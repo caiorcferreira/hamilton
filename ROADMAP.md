@@ -2,9 +2,6 @@
 
 ## Next Up
 
-- [x] Use proper cli framework; we don't have support for help flag currently
-- [x] Add commands to list workflow runs
-- [x] Improve visualization of `hamilton workflow list` — tabular output with columns, color, grouping by category
 - [ ] Add greenfield workflow — scaffold new projects from scratch with a bootstrapper agent that sets up project structure, dependencies, and initial files before the planner/developer loop
 - [ ] Add `do` workflow — single general-purpose agent that takes a prompt and executes it end-to-end without decomposition into steps (for quick tasks that don't need a full pipeline)
 - [ ] change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
@@ -20,3 +17,7 @@
   - **Areas to fix:** add logging of the actual failure reason before the `catchAll` in `run.ts`; verify `Effect.timeout` + `Effect.retry` composition propagates errors correctly; ensure `ctx.transitionStep(stepId, "fail")` and `ctx.fail(workflowStatus)` are always called on exhaustion; add a sentinel to detect planner output that only contains tool calls and no final text answer
 
 ## Completed
+
+- [x] Improve visualization of `hamilton workflow list` — tabular output with columns, color, grouping by category
+- [x] Add commands to list workflow runs
+- [x] Use proper cli framework; we don't have support for help flag currently
