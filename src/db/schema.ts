@@ -1,6 +1,6 @@
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 
-export function createSchema(db: Database.Database): void {
+export function createSchema(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY,

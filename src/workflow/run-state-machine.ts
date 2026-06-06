@@ -1,5 +1,5 @@
 import { Effect, Data } from "effect"
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 import { openDb } from "../workflow/state.js"
 import {
   insertRun,
@@ -49,7 +49,7 @@ const STEP_TRANSITION_MAP: Record<string, StepState> = {
 }
 
 export interface WorkflowRuntime {
-  readonly db: Database.Database
+  readonly db: Database
   readonly runId: string
   readonly state: RunState
   readonly spec: WorkflowSpec
@@ -68,7 +68,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   private _stepStates: Map<string, StepState> = new Map()
 
   constructor(
-    private readonly _db: Database.Database,
+    private readonly _db: Database,
     private readonly _runId: string,
     private readonly _spec: WorkflowSpec,
     initialState: RunState,
@@ -78,7 +78,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     this._stepStates = stepStates
   }
 
-  get db(): Database.Database { return this._db }
+  get db(): Database { return this._db }
   get runId(): string { return this._runId }
   get state(): RunState { return this._state }
   get spec(): WorkflowSpec { return this._spec }

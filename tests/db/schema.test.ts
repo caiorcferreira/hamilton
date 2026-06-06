@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest"
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { createSchema } from "../../src/db/schema.js"
 
-function tempDb(): Database.Database {
+function tempDb(): Database {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-test-"))
   const dbPath = Path.join(dir, "test.db")
   const db = new Database(dbPath)
@@ -14,14 +14,14 @@ function tempDb(): Database.Database {
   return db
 }
 
-function cleanupDb(db: Database.Database) {
+function cleanupDb(db: Database) {
   const dir = (db as any)._tempDir as string
   db.close()
   if (dir) Fs.rmSync(dir, { recursive: true, force: true })
 }
 
 describe("createSchema", () => {
-  let db: Database.Database
+  let db: Database
 
   afterEach(() => {
     if (db) cleanupDb(db)

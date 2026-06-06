@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
@@ -9,7 +9,7 @@ import { createSchema } from "../../src/db/schema.js"
 import { insertRun, insertSteps, updateStepStarted, updateStepCompleted, updateRunCompleted, insertTokenEvent, getRunStatus } from "../../src/db/queries.js"
 import { formatStatus } from "../../src/cli/commands/status.js"
 
-function tempDb(): Database.Database {
+function tempDb(): Database {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-status-"))
   const dp = Path.join(dir, "hamilton.db")
   const db = new Database(dp)
@@ -18,14 +18,14 @@ function tempDb(): Database.Database {
   return db
 }
 
-function cleanupDb(db: Database.Database) {
+function cleanupDb(db: Database) {
   const dir = (db as any)._tempDir as string
   db.close()
   if (dir) Fs.rmSync(dir, { recursive: true, force: true })
 }
 
 describe("loadRunState (SQLite-backed)", () => {
-  let db: Database.Database
+  let db: Database
   let origHome: string | undefined
   let tmpHome: string
 

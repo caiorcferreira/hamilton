@@ -1,4 +1,4 @@
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 
 export interface RunRow {
   id: string
@@ -49,7 +49,7 @@ export interface RunStatusRow {
 }
 
 export function insertRun(
-  db: Database.Database,
+  db: Database,
   runId: string,
   workflowId: string,
   startedAt: string
@@ -60,7 +60,7 @@ export function insertRun(
 }
 
 export function insertSteps(
-  db: Database.Database,
+  db: Database,
   runId: string,
   steps: Array<{ stepId: string; agentId: string }>
 ): void {
@@ -73,7 +73,7 @@ export function insertSteps(
 }
 
 export function updateStepStarted(
-  db: Database.Database,
+  db: Database,
   runId: string,
   stepId: string,
   startedAt: string
@@ -87,7 +87,7 @@ export function updateStepStarted(
 }
 
 export function updateStepCompleted(
-  db: Database.Database,
+  db: Database,
   runId: string,
   stepId: string,
   completedAt: string,
@@ -100,7 +100,7 @@ export function updateStepCompleted(
 }
 
 export function updateStepFailed(
-  db: Database.Database,
+  db: Database,
   runId: string,
   stepId: string,
   errorMessage: string
@@ -111,7 +111,7 @@ export function updateStepFailed(
 }
 
 export function insertTokenEvent(
-  db: Database.Database,
+  db: Database,
   runId: string,
   stepId: string,
   eventType: string,
@@ -124,7 +124,7 @@ export function insertTokenEvent(
 }
 
 export function updateRunCompleted(
-  db: Database.Database,
+  db: Database,
   runId: string,
   completedAt: string
 ): void {
@@ -134,7 +134,7 @@ export function updateRunCompleted(
 }
 
 export function updateRunFailed(
-  db: Database.Database,
+  db: Database,
   runId: string,
   errorMessage: string
 ): void {
@@ -143,15 +143,15 @@ export function updateRunFailed(
   ).run(new Date().toISOString(), errorMessage, runId)
 }
 
-export function getRunById(db: Database.Database, runId: string): RunRow | null {
+export function getRunById(db: Database, runId: string): RunRow | null {
   return db.prepare(`SELECT * FROM runs WHERE id = ?`).get(runId) as RunRow | null ?? null
 }
 
-export function getStepsByRunId(db: Database.Database, runId: string): StepRow[] {
+export function getStepsByRunId(db: Database, runId: string): StepRow[] {
   return db.prepare(`SELECT * FROM steps WHERE run_id = ? ORDER BY id`).all(runId) as StepRow[]
 }
 
-export function getRunStatus(db: Database.Database, runId: string): RunStatusRow | null {
+export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
   const run = getRunById(db, runId)
   if (!run) return null
 
@@ -184,7 +184,7 @@ export function getRunStatus(db: Database.Database, runId: string): RunStatusRow
 }
 
 export function setWorkflowState(
-  db: Database.Database,
+  db: Database,
   runId: string,
   key: string,
   value: string
@@ -195,7 +195,7 @@ export function setWorkflowState(
 }
 
 export function getWorkflowState(
-  db: Database.Database,
+  db: Database,
   runId: string,
   key: string
 ): string | null {
@@ -206,7 +206,7 @@ export function getWorkflowState(
 }
 
 export function setDurableDeferred(
-  db: Database.Database,
+  db: Database,
   id: string,
   runId: string,
   state: string,
@@ -218,7 +218,7 @@ export function setDurableDeferred(
 }
 
 export function getDurableDeferred(
-  db: Database.Database,
+  db: Database,
   id: string
 ): { state: string; value: string | null } | null {
   const row = db.prepare(
@@ -228,7 +228,7 @@ export function getDurableDeferred(
 }
 
 export function updateRunContext(
-  db: Database.Database,
+  db: Database,
   runId: string,
   contextJson: string
 ): void {

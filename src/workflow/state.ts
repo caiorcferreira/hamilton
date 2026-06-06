@@ -1,5 +1,5 @@
 import { Effect, Data } from "effect"
-import Database from "better-sqlite3"
+import { Database } from "bun:sqlite"
 import { dbPath } from "../paths.js"
 import { createSchema } from "../db/schema.js"
 import { getRunStatus } from "../db/queries.js"
@@ -31,12 +31,12 @@ export interface RunStatus {
   errorMessage: string | null
 }
 
-export function openDb(): Effect.Effect<Database.Database, RunStateError> {
+export function openDb(): Effect.Effect<Database, RunStateError> {
   return Effect.try({
     try: () => {
       const dp = dbPath()
       const db = new Database(dp)
-      db.pragma("journal_mode = WAL")
+      db.run("PRAGMA journal_mode = WAL")
       createSchema(db)
       return db
     },
