@@ -35,9 +35,12 @@ describe("runWorkflow", () => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-runner-"))
     process.env.HOME = tmpHome
 
-    const agentDir = Path.join(tmpHome, ".hamilton", "agents", "agent-a")
-    Fs.mkdirSync(agentDir, { recursive: true })
-    Fs.writeFileSync(Path.join(agentDir, "AGENTS.md"), "Test agent")
+    const hh = Path.join(tmpHome, ".hamilton")
+    Fs.mkdirSync(Path.join(hh, "agents", "agent-a"), { recursive: true })
+    Fs.writeFileSync(Path.join(hh, "agents", "agent-a", "AGENTS.md"), "Test agent")
+
+    Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
+    Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
   })
 
   afterEach(() => {
@@ -83,5 +86,26 @@ describe("runWorkflow", () => {
     expect(events[1].type).toBe("step_started")
     expect(events[2].type).toBe("step_completed")
     expect(events[events.length - 1].type).toBe("workflow_completed")
+  })
+
+  it("fails when persona not found", async () => {
+    const specNoAgent: WorkflowSpec = {
+      ...testSpec,
+      agents: [
+        { id: "no-such-agent", role: "coding" as const, workspace: { baseDir: ".", files: {} } }
+      ],
+      steps: [
+        { id: "step-1", agent: "no-such-agent", input: "Do something" }
+      ]
+    }
+
+    const result = await Effect.runPromiseExit(
+      runWorkflow(specNoAgent, { task: "test" }, {
+        onEvent: () => Effect.void,
+        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+      })
+    )
+
+    expect(Exit.isFailure(result)).toBe(true)
   })
 })

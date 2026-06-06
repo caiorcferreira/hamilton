@@ -4,7 +4,7 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { pauseWorkflow } from "../../src/cli/commands/pause.js"
-import { initializeRun, closeEngine } from "../../src/workflow/workflow-engine.js"
+import { createWorkflowRuntime } from "../../src/workflow/run-state-machine.js"
 import type { WorkflowSpec } from "../../src/types.js"
 
 const makeSpec = (): WorkflowSpec => ({
@@ -30,11 +30,11 @@ describe("pauseWorkflow", () => {
 
   it("sets pause signal for a running workflow", async () => {
     const ctx = await Effect.runPromise(
-      initializeRun(makeSpec(), "run-pause", { task: "test" })
+      createWorkflowRuntime(makeSpec(), { task: "test" })
     )
-    await Effect.runPromise(closeEngine(ctx))
+    await Effect.runPromise(ctx.close())
 
-    const result = await Effect.runPromiseExit(pauseWorkflow("run-pause"))
+    const result = await Effect.runPromiseExit(pauseWorkflow(ctx.runId))
     expect(Exit.isSuccess(result)).toBe(true)
     if (Exit.isSuccess(result)) {
       expect(result.value).toContain("Paused")

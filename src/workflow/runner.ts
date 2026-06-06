@@ -1,25 +1,22 @@
 import { Effect, Schedule, Duration } from "effect"
-import * as Path from "node:path"
 import { WorkflowSpec } from "../types.js"
 import { buildAgentPrompt, extractContextFromOutput } from "../agent/activity.js"
-import { loadPersona } from "../agent/persona.js"
+import { resolvePersona } from "../agent/persona.js"
 import { loadAgentSettings } from "../agent/config.js"
 import { createRtkExtension } from "../agent/rtk-extension.js"
 import { executeWithPi } from "../agent/pi-executor.js"
 import { mergeContext } from "../workflow/context.js"
-import { computeStepOrder, buildRunId, resolveStepTimeout } from "../workflow/engine.js"
+import { computeStepOrder, resolveStepTimeout } from "../workflow/engine.js"
+import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
+import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
-  initializeRun,
-  checkpointStepStart,
-  checkpointStepComplete,
-  checkpointStepFailed,
-  markRunCompleted,
-  markRunFailed,
-  closeEngine,
-  getDeferredState
-} from "../workflow/workflow-engine.js"
-import { createRunDir, writeInput, writeStepOutput, appendStepLog, writeSummary, appendEngineLog } from "../observability/run-dir.js"
-import { agentsDir } from "../paths.js"
+  createRunDir,
+  writeInput,
+  writeStepOutput,
+  appendStepLog,
+  writeSummary,
+  appendEngineLog
+} from "../observability/run-dir.js"
 
 export interface WorkflowEvent {
   type: string
@@ -54,52 +51,62 @@ function emit(
 export function runWorkflow(
   spec: WorkflowSpec,
   initialContext: Record<string, string>,
-  config: WorkflowRunnerConfig
+  config: WorkflowRunnerConfig,
+  existingRunId?: string
 ): Effect.Effect<WorkflowResult, Error> {
   return Effect.gen(function* (_) {
-    const runId = buildRunId(spec.id)
     const startedAt = new Date().toISOString()
     const runningContext: Record<string, string> = { ...initialContext }
     const stepResults: Record<string, string> = { ...spec.context }
     const stepOrder = computeStepOrder(spec)
 
-    const ctx = yield* initializeRun(spec, runId, runningContext)
+    const ctx: WorkflowRuntime = yield* _(
+      createWorkflowRuntime(spec, runningContext, existingRunId).pipe(
+        Effect.mapError((e) => new Error(e.message))
+      )
+    )
 
-    yield* createRunDir(runId)
-    yield* writeInput(runId, { spec, initialContext })
-    yield* emit(config.onEvent, { type: "workflow_started", runId })
-    yield* appendEngineLog(runId, { event: "workflow_started", workflowId: spec.id })
+    const runId = ctx.runId
+
+    yield* _(createRunDir(runId))
+    yield* _(writeInput(runId, { spec, initialContext }))
+    yield* _(emit(config.onEvent, { type: "workflow_started", runId }))
+    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.id }))
 
     let workflowStatus: "completed" | "failed" | "paused" = "completed"
 
     const body = Effect.gen(function* () {
       for (const stepId of stepOrder) {
+        const shouldExec = yield* _(ctx.shouldExecuteStep(stepId))
+        if (!shouldExec) continue
+
         const step = spec.steps.find((s) => s.id === stepId)!
         const agent = spec.agents.find((a) => a.id === step.agent)!
         const maxRetries = step.max_retries ?? 1
         const timeoutSeconds = resolveStepTimeout(spec, agent.id)
         const model = agent.model
 
-        const deferred = yield* getDeferredState(ctx, `${runId}:${stepId}`)
-        if (deferred?.state === "paused") {
-          yield* emit(config.onEvent, { type: "step_paused", runId, stepId, message: "step paused via deferred state" })
+        const shouldPauseResult = yield* _(ctx.shouldPause())
+        if (shouldPauseResult) {
+          yield* _(emit(config.onEvent, { type: "step_paused", runId, stepId, message: "step paused via deferred state" }))
           workflowStatus = "paused"
           break
         }
 
-        yield* checkpointStepStart(ctx, stepId)
-        yield* emit(config.onEvent, { type: "step_started", runId, stepId })
-        yield* appendEngineLog(runId, { event: "step_started", stepId })
+        yield* _(ctx.transitionStep(stepId, "start"))
+        yield* _(emit(config.onEvent, { type: "step_started", runId, stepId }))
+        yield* _(appendEngineLog(runId, { event: "step_started", stepId }))
 
-        const persona = yield* Effect.match(loadPersona(Path.join(agentsDir(), agent.id)), {
-          onSuccess: (p) => p,
-          onFailure: () => ({ agents: "", identity: "", soul: "" } as const)
-        })
+        const persona = yield* _(
+          resolvePersona(agent.id, spec.id).pipe(
+            Effect.mapError((e) => new Error(e.message))
+          )
+        )
 
-        const agentSettings = yield* Effect.match(loadAgentSettings(Path.join(agentsDir(), agent.id)), {
+        const agentSettings = yield* _(Effect.match(loadAgentSettings(""), {
           onSuccess: (s) => s,
           onFailure: () => ({}) as Record<string, never>
-        })
+        }))
 
         const prompt = buildAgentPrompt({
           agentsMd: persona.agents,
@@ -109,20 +116,20 @@ export function runWorkflow(
           context: runningContext
         })
 
-        yield* appendStepLog(runId, stepId, { event: "prompt_built" })
+        yield* _(appendStepLog(runId, stepId, { event: "prompt_built" }))
 
         const rtkExtension = createRtkExtension({
           model: model ?? agentSettings.model,
           disabled: process.env.RTK_DISABLED === "1"
         })
 
-        const output = yield* executeWithPi({
+        const output = yield* _(executeWithPi({
           systemPrompt: prompt.systemPrompt,
           taskPrompt: prompt.taskPrompt,
           stepId,
           agentId: agent.id,
           runId,
-          timeoutSeconds: timeoutSeconds,
+          timeoutSeconds,
           model,
           extensions: [rtkExtension],
           settings: {
@@ -136,30 +143,30 @@ export function runWorkflow(
             Schedule.recurs(maxRetries - 1).pipe(
               Schedule.tapInput((_error: unknown) =>
                 Effect.gen(function* () {
-                  yield* emit(config.onEvent, {
+                  yield* _(emit(config.onEvent, {
                     type: "step_retry",
                     runId,
                     stepId,
                     message: "Retrying step"
-                  })
-                  yield* appendStepLog(runId, stepId, { event: "retry" })
+                  }))
+                  yield* _(appendStepLog(runId, stepId, { event: "retry" }))
                 }).pipe(Effect.catchAll(() => Effect.void))
               )
             )
           )
-        )
+        ))
 
         if (output === undefined || output === null) {
-          yield* emit(config.onEvent, { type: "step_timeout", runId, stepId, message: "step timed out" })
-          yield* checkpointStepFailed(ctx, stepId, "timeout")
-          yield* appendEngineLog(runId, { event: "step_timeout", stepId })
+          yield* _(emit(config.onEvent, { type: "step_timeout", runId, stepId, message: "step timed out" }))
+          yield* _(ctx.transitionStep(stepId, "fail"))
+          yield* _(appendEngineLog(runId, { event: "step_timeout", stepId }))
           workflowStatus = "failed"
           break
         }
 
-        yield* checkpointStepComplete(ctx, stepId, { output: JSON.stringify(output) })
-        yield* appendStepLog(runId, stepId, { event: "completed" })
-        yield* writeStepOutput(runId, stepId, output)
+        yield* _(ctx.transitionStep(stepId, "complete"))
+        yield* _(appendStepLog(runId, stepId, { event: "completed" }))
+        yield* _(writeStepOutput(runId, stepId, output))
 
         const extracted = extractContextFromOutput(output)
         Object.assign(runningContext, extracted)
@@ -169,28 +176,28 @@ export function runWorkflow(
           stepResults[stepId] = output.status
         }
 
-        yield* emit(config.onEvent, { type: "step_completed", runId, stepId })
-        yield* appendEngineLog(runId, { event: "step_completed", stepId })
+        yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+        yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
       }
 
       const completedAt = new Date().toISOString()
 
       if (workflowStatus === "completed") {
-        yield* markRunCompleted(ctx)
+        yield* _(ctx.complete().pipe(Effect.catchAll(() => Effect.void)))
       } else if (workflowStatus === "failed") {
-        yield* markRunFailed(ctx, workflowStatus)
+        yield* _(ctx.fail(workflowStatus).pipe(Effect.catchAll(() => Effect.void)))
       }
 
       const summary = { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt }
-      yield* writeSummary(runId, summary)
-      yield* emit(config.onEvent, { type: "workflow_completed", runId })
-      yield* appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus })
+      yield* _(writeSummary(runId, summary))
+      yield* _(emit(config.onEvent, { type: "workflow_completed", runId }))
+      yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
 
       return { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt } as WorkflowResult
     })
 
-    return yield* body.pipe(
-      Effect.ensuring(closeEngine(ctx))
-    )
+    return yield* _(body.pipe(
+      Effect.ensuring(ctx.close())
+    ))
   })
 }

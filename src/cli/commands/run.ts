@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import * as Fs from "node:fs"
-import { workflowsDir } from "../../paths.js"
+import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { resolveWorkflowId } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { runWorkflow, WorkflowResult } from "../../workflow/runner.js"
@@ -20,6 +20,9 @@ export interface RunResult {
 
 export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
   return Effect.gen(function* (_) {
+    if (!Fs.existsSync(hamiltonHome())) {
+      return yield* _(Effect.fail(new Error('Hamilton is not initialized. Run "hamilton init" first.')))
+    }
     const wfDir = workflowsDir()
     const availableSlugs = yield* _(
       Effect.try({
