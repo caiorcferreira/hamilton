@@ -1,5 +1,6 @@
 import * as Path from "node:path"
 import * as Os from "node:os"
+import * as Fs from "node:fs"
 
 export function hamiltonHome(): string {
   const home = process.env.HOME ?? Os.homedir()
@@ -56,4 +57,19 @@ export function piAgentDir(): string {
 
 export function eventsFilePath(runId: string): string {
   return Path.join(runDir(runId), "events.jsonl")
+}
+
+export function ensureHamiltonHome(): void {
+  const dirs = [
+    hamiltonHome(),
+    agentsDir(),
+    workflowsDir(),
+    runsDir(),
+    piAgentDir()
+  ]
+  for (const dir of dirs) {
+    if (!Fs.existsSync(dir)) {
+      Fs.mkdirSync(dir, { recursive: true })
+    }
+  }
 }
