@@ -12,8 +12,8 @@ bun run install-local          # symlinks to ~/.local/bin/hamilton
 # Bootstrap ~/.hamilton/ (dirs, agents, DB, bundled workflows)
 hamilton init
 
-# Check rtk
-hamilton rtk verify
+# Check prerequisites
+hamilton doctor
 
 # See what's available
 hamilton workflow list
@@ -71,7 +71,7 @@ Each agent dir contains `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, and `settings.yam
 | `hamilton workflow install <id> [--force]` | Install one workflow from bundled set |
 | `hamilton workflow install --all [--force]` | Install all bundled workflows |
 | `hamilton workflow uninstall <id>` | Remove a workflow |
-| `hamilton rtk verify` | Check if rtk is installed and meets minimum version |
+| `hamilton doctor` | Check prerequisites (rtk installed, etc.) |
 
 ## Available workflows
 
