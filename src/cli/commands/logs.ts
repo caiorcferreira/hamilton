@@ -1,7 +1,12 @@
-import { Effect } from "effect"
+import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { stepLogsDir, stepLogFile, eventsFilePath } from "../../paths.js"
+import { stepLogsDir, stepLogFile, eventsFilePath, hamiltonHome } from "../../paths.js"
+
+export class LogsError extends Data.TaggedError("LogsError")<{
+  runId: string
+  message: string
+}> {}
 
 export interface LogEvent {
   event: string
@@ -15,8 +20,15 @@ export interface LogsParams {
   stepId?: string
 }
 
-export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], never> {
+export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], LogsError> {
   return Effect.gen(function* (_) {
+    if (!Fs.existsSync(hamiltonHome())) {
+      return yield* _(Effect.fail(new LogsError({
+        runId: params.runId,
+        message: 'Hamilton is not initialized. Run "hamilton init" first.'
+      })))
+    }
+
     const logsDir = stepLogsDir(params.runId)
 
     const files = yield* _(

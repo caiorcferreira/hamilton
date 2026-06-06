@@ -1,10 +1,21 @@
 import { Effect } from "effect"
+import * as Fs from "node:fs"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
+import { hamiltonHome } from "../../paths.js"
 
 export type RunStatus = import("../../workflow/state.js").RunStatus
 
 export function getRunStatus(runId: string): Effect.Effect<RunStatus, RunStateError> {
-  return loadRunState(runId)
+  return Effect.gen(function* (_) {
+    if (!Fs.existsSync(hamiltonHome())) {
+      return yield* _(Effect.fail(new RunStateError({
+        runId,
+        message: 'Hamilton is not initialized. Run "hamilton init" first.'
+      })))
+    }
+
+    return yield* _(loadRunState(runId))
+  })
 }
 
 function computeElapsed(start: string, end?: string | null): string {

@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { workflowsDir } from "../../paths.js"
+import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 
 export interface WorkflowListItem {
@@ -14,6 +14,8 @@ export interface WorkflowListItem {
 }
 
 export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.gen(function* (_) {
+  if (!Fs.existsSync(hamiltonHome())) return []
+
   const dir = workflowsDir()
   const entries: string[] = yield* _(
     Effect.try({

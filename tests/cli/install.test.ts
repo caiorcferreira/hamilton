@@ -12,6 +12,7 @@ describe("installWorkflow", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-install-"))
     process.env.HOME = tmpHome
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
   })
 
   afterEach(() => {

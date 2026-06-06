@@ -1,7 +1,7 @@
 import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { workflowsDir } from "../../paths.js"
+import { workflowsDir, hamiltonHome } from "../../paths.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -28,6 +28,12 @@ export function installWorkflow(
   options?: { force?: boolean }
 ): Effect.Effect<void, InstallError> {
   return Effect.gen(function* () {
+    if (!Fs.existsSync(hamiltonHome())) {
+      return yield* Effect.fail(
+        new InstallError({ workflowId, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+      )
+    }
+
     const srcDir = Path.join(bundledWorkflowsDir(), workflowId)
     const destDir = Path.join(workflowsDir(), workflowId)
 
@@ -67,6 +73,12 @@ export function uninstallWorkflow(
   workflowId: string
 ): Effect.Effect<void, InstallError> {
   return Effect.gen(function* () {
+    if (!Fs.existsSync(hamiltonHome())) {
+      return yield* Effect.fail(
+        new InstallError({ workflowId, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+      )
+    }
+
     const destDir = Path.join(workflowsDir(), workflowId)
 
     if (!Fs.existsSync(destDir)) {

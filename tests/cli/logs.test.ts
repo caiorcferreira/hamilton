@@ -12,6 +12,7 @@ describe("getRunLogs", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-logs-"))
     process.env.HOME = tmpHome
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
   })
 
   afterEach(() => {
