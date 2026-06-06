@@ -1,4 +1,5 @@
-import { Effect } from "effect"
+import { Args, Command } from "@effect/cli"
+import { Console, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { resolveWorkflowId } from "../../workflow/resolver.js"
@@ -64,3 +65,21 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
     }
   })
 }
+
+const slug = Args.text({ name: "slug" })
+const prompt = Args.text({ name: "prompt" })
+
+export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt }) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(executeRun({ workflowSlug: slug, prompt }))
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Workflow failed: ${String(result.cause)}`)
+      return
+    }
+    yield* Console.log(`Run ID: ${result.value.runId}`)
+    yield* Console.log(`Status: ${result.value.status}`)
+    for (const [step, status] of Object.entries(result.value.stepResults)) {
+      yield* Console.log(`  ${step}: ${status}`)
+    }
+  })
+).pipe(Command.withDescription("Run a workflow"))

@@ -1,4 +1,5 @@
-import { Effect, Data } from "effect"
+import { Args, Command } from "@effect/cli"
+import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import { openDb } from "../../workflow/state.js"
 import { setDurableDeferred } from "../../db/queries.js"
@@ -28,3 +29,16 @@ export function pauseWorkflow(runId: string): Effect.Effect<string, PauseError> 
     return `Paused ${runId}`
   })
 }
+
+const runIdArg = Args.text({ name: "id" })
+
+export const pauseCommand = Command.make("pause", { id: runIdArg }, ({ id }) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(pauseWorkflow(id))
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Pause failed: ${String(result.cause)}`)
+      return
+    }
+    yield* Console.log(result.value)
+  })
+).pipe(Command.withDescription("Pause a running workflow"))

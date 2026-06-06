@@ -1,4 +1,5 @@
-import { Effect, Data } from "effect"
+import { Args, Command } from "@effect/cli"
+import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { openDb } from "../../workflow/state.js"
@@ -71,3 +72,16 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     return `Resumed ${runId}. Status: ${result.status}`
   })
 }
+
+const runIdArg = Args.text({ name: "id" })
+
+export const resumeCommand = Command.make("resume", { id: runIdArg }, ({ id }) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(resumeWorkflow(id))
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Resume failed: ${String(result.cause)}`)
+      return
+    }
+    yield* Console.log(result.value)
+  })
+).pipe(Command.withDescription("Resume a paused workflow"))

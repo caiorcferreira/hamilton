@@ -1,4 +1,5 @@
-import { Effect } from "effect"
+import { Args, Command } from "@effect/cli"
+import { Console, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
 import { hamiltonHome } from "../../paths.js"
@@ -76,3 +77,16 @@ export function formatStatus(status: RunStatus): string {
 
   return lines.join("\n")
 }
+
+const runIdArg = Args.text({ name: "id" })
+
+export const statusCommand = Command.make("status", { id: runIdArg }, ({ id }) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(getRunStatus(id))
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Status not found: ${id}`)
+      return
+    }
+    yield* Console.log(formatStatus(result.value))
+  })
+).pipe(Command.withDescription("Show run status"))

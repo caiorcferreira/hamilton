@@ -1,9 +1,10 @@
-import { Effect, Data } from "effect"
+import { Command, Options } from "@effect/cli"
+import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { ensureHamiltonHome, agentsDir } from "../../paths.js"
 import { openDb } from "../../workflow/state.js"
-import { installAllWorkflows } from "./install.js"
+import { installAllWorkflows } from "./install-logic.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -88,3 +89,21 @@ export function initHamilton(options?: { force?: boolean }): Effect.Effect<strin
     return workflowIds
   })
 }
+
+const force = Options.boolean("force")
+
+export const initCommand = Command.make("init", { force }, ({ force }) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(initHamilton({ force }))
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Init failed: ${String(result.cause)}`)
+      return
+    }
+    const installed = Exit.getOrElse(result, () => [] as string[])
+    yield* Console.log("Hamilton initialized successfully.")
+    yield* Console.log(`Installed ${installed.length} workflows.`)
+    for (const id of installed) {
+      yield* Console.log(`  ${id}`)
+    }
+  })
+).pipe(Command.withDescription("Bootstrap Hamilton directories and install workflows"))

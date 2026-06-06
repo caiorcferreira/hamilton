@@ -1,4 +1,5 @@
-import { Effect, Data } from "effect"
+import { Args, Command, Options } from "@effect/cli"
+import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { stepLogsDir, stepLogFile, eventsFilePath, hamiltonHome } from "../../paths.js"
@@ -143,3 +144,27 @@ export function followLogs(params: { runId: string }): { stop: () => void } {
     }
   }
 }
+
+const runIdArg = Args.text({ name: "id" })
+const stepOpt = Options.text("step").pipe(Options.optional)
+const followOpt = Options.boolean("follow")
+
+export const logsCommand = Command.make("logs", { id: runIdArg, step: stepOpt, follow: followOpt }, ({ id, step, follow }) =>
+  Effect.gen(function* () {
+    if (follow) {
+      const controller = followLogs({ runId: id })
+      process.on("SIGINT", () => { controller.stop(); process.exit(0) })
+      yield* Effect.never
+    }
+    const result = yield* Effect.exit(
+      getRunLogs({ runId: id, stepId: step._tag === "Some" ? step.value : undefined })
+    )
+    if (Exit.isFailure(result)) {
+      yield* Console.error(`Logs not found: ${id}`)
+      return
+    }
+    for (const event of result.value) {
+      yield* Console.log(JSON.stringify(event))
+    }
+  })
+).pipe(Command.withDescription("View run logs"))
