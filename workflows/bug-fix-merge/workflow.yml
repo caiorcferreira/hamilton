@@ -1,0 +1,326 @@
+# Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
+id: bug-fix-merge
+name: Bug Triage & Fix + Merge
+version: 1
+description: |
+  Triage, investigate, and fix bugs in a new branch with automatic squash-merge and automated verification.
+  Bug fix pipeline with automatic squash-merge. Triager analyzes the report
+  and reproduces the issue. Investigator traces root cause. Setup creates the
+  bugfix branch and captures the original branch. Fixer implements the fix
+  with a regression test. Verifier confirms correctness. Merger squash-merges
+  the fix back into the original branch (NO push, NO gh pr create).
+polling:
+  model: default
+  timeoutSeconds: 120
+
+agents:
+  - id: triager
+    name: Triager
+    role: analysis
+    description: Analyzes bug reports, reproduces issues, classifies severity.
+    workspace:
+      baseDir: agents/triager
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: agents/triager/AGENTS.md
+        SOUL.md: agents/triager/SOUL.md
+        IDENTITY.md: agents/triager/IDENTITY.md
+
+  - id: investigator
+    name: Investigator
+    role: analysis
+    description: Traces bugs to root cause and proposes fix approach.
+    workspace:
+      baseDir: agents/investigator
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: agents/investigator/AGENTS.md
+        SOUL.md: agents/investigator/SOUL.md
+        IDENTITY.md: agents/investigator/IDENTITY.md
+
+  - id: setup
+    name: Setup
+    role: coding
+    description: Creates bugfix branch, captures original branch, and establishes baseline.
+    workspace:
+      baseDir: agents/setup
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: ../../agents/shared/setup/AGENTS.md
+        SOUL.md: ../../agents/shared/setup/SOUL.md
+        IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
+
+  - id: fixer
+    name: Fixer
+    role: coding
+    description: Implements the fix and writes regression tests.
+    workspace:
+      baseDir: agents/fixer
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: agents/fixer/AGENTS.md
+        SOUL.md: agents/fixer/SOUL.md
+        IDENTITY.md: agents/fixer/IDENTITY.md
+
+  - id: verifier
+    name: Verifier
+    role: verification
+    description: Verifies the fix and regression test correctness.
+    workspace:
+      baseDir: agents/verifier
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: ../../agents/shared/verifier/AGENTS.md
+        SOUL.md: ../../agents/shared/verifier/SOUL.md
+        IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
+
+  - id: merger
+    name: Merger
+    role: pr
+    description: Squashes bugfix branch changes and merges into the original branch.
+    workspace:
+      baseDir: agents/merger
+      skills:
+        - tamandua-agents
+      files:
+        AGENTS.md: agents/merger/AGENTS.md
+        SOUL.md: agents/merger/SOUL.md
+        IDENTITY.md: agents/merger/IDENTITY.md
+
+steps:
+  - id: triage
+    agent: triager
+    input: |
+      Triage the following bug report. Explore the codebase, reproduce the issue, and classify severity.
+
+      BUG REPORT:
+      {{task}}
+
+      Instructions:
+      1. Read the bug report carefully
+      2. Explore the codebase to find the affected area
+      3. Attempt to reproduce: run tests, check for failing cases, read error logs/stack traces
+      4. Classify severity (critical/high/medium/low)
+      5. Document findings
+
+      Reply with:
+      STATUS: done
+      REPO: /path/to/repo
+      BRANCH: bugfix-branch-name
+      SEVERITY: critical|high|medium|low
+      AFFECTED_AREA: what files/modules are affected
+      REPRODUCTION: how to reproduce the bug
+      PROBLEM_STATEMENT: clear description of what's wrong
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human
+
+  - id: investigate
+    agent: investigator
+    input: |
+      Investigate the root cause of this bug.
+
+      BUG REPORT:
+      {{task}}
+
+      REPO: {{repo}}
+      SEVERITY: {{severity}}
+      AFFECTED_AREA: {{affected_area}}
+      REPRODUCTION: {{reproduction}}
+      PROBLEM_STATEMENT: {{problem_statement}}
+
+      Instructions:
+      1. Read the code in the affected area
+      2. Trace the bug to its root cause
+      3. Document exactly what's wrong and why
+      4. Propose a fix approach
+
+      Reply with:
+      STATUS: done
+      ROOT_CAUSE: detailed explanation of the root cause
+      FIX_APPROACH: what needs to change and where
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human
+
+  - id: setup
+    agent: setup
+    input: |
+      Prepare the environment for the bugfix.
+
+      REPO: {{repo}}
+      BRANCH: {{branch}}
+
+      Instructions:
+      1. cd into the repo
+      2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
+      3. Create the bugfix branch (git checkout -b {{branch}} from main)
+      4. Read package.json, CI config, test config to understand build/test setup
+      5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+      6. Run the build to establish a baseline
+      7. Run the tests to establish a baseline
+
+      Reply with:
+      STATUS: done
+      ORIGINAL_BRANCH: <branch name captured before checkout>
+      BUILD_CMD: <build command>
+      TEST_CMD: <test command>
+      BASELINE: <baseline status>
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human
+
+  - id: fix
+    agent: fixer
+    input: |
+      Implement the bug fix.
+
+      BUG REPORT:
+      {{task}}
+
+      REPO: {{repo}}
+      BRANCH: {{branch}}
+      BUILD_CMD: {{build_cmd}}
+      TEST_CMD: {{test_cmd}}
+      AFFECTED_AREA: {{affected_area}}
+      ROOT_CAUSE: {{root_cause}}
+      FIX_APPROACH: {{fix_approach}}
+      PROBLEM_STATEMENT: {{problem_statement}}
+
+      VERIFY FEEDBACK (if retrying):
+      {{verify_feedback}}
+
+      TIMEOUT RETRY (if previous attempt timed out):
+      {{timeout_retry}}
+
+      Instructions:
+      1. cd into the repo, checkout the branch
+      2. Implement the fix based on the root cause and fix approach
+      3. Write a regression test that would have caught this bug
+      4. Run {{build_cmd}} to verify the build passes
+      5. Run {{test_cmd}} to verify all tests pass
+      6. Commit: fix: brief description of the fix
+
+      Reply with:
+      STATUS: done
+      CHANGES: what was changed
+      REGRESSION_TEST: what test was added
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human
+
+  - id: verify
+    agent: verifier
+    input: |
+      Verify the bug fix is correct and complete.
+
+      BUG REPORT:
+      {{task}}
+
+      REPO: {{repo}}
+      BRANCH: {{branch}}
+      TEST_CMD: {{test_cmd}}
+      CHANGES: {{changes}}
+      REGRESSION_TEST: {{regression_test}}
+      ROOT_CAUSE: {{root_cause}}
+      PROBLEM_STATEMENT: {{problem_statement}}
+
+      Instructions:
+      1. Run the full test suite with {{test_cmd}}
+      2. Confirm the regression test exists and tests the right thing
+      3. Review the fix to confirm it addresses the root cause
+      4. Check for unintended side effects
+      5. Verify the regression test would fail without the fix (review the diff logic)
+
+      MANDATORY first step:
+      - Run `git diff main..{{branch}} --stat` and `git diff main..{{branch}}`
+      - If the diff is empty or only contains trivial changes (version bumps, lockfiles), REJECT immediately
+      - Compare the diff against CHANGES claimed above — if they don't match, REJECT
+
+      Bug-fix specific checks:
+      - The regression test MUST test the specific bug scenario (not just a generic test)
+      - The regression test assertions must fail if the fix were reverted
+      - The fix should be minimal and targeted — not a refactor disguised as a bugfix
+      - Check that the fix addresses the ROOT CAUSE, not just a symptom
+      - All changes must be to files INSIDE the repo — not external workspace files
+
+      Reply with:
+      STATUS: done
+      VERIFIED: what was confirmed
+
+      Or if issues found:
+      STATUS: retry
+      ISSUES:
+      - What's wrong or incomplete
+    expects: "STATUS: done"
+    on_fail:
+      retry_step: fix
+      max_retries: 6
+      on_exhausted:
+        escalate_to: human
+
+  - id: finalize_merge
+    agent: merger
+    input: |
+      Finalize this run by squashing bugfix changes into one commit and merging
+      into the original branch. Follow the fast-forward-first process described
+      in your AGENTS.md.
+
+      TASK:
+      {{task}}
+
+      REPO: {{repo}}
+      BRANCH: {{branch}}
+      ORIGINAL_BRANCH: {{original_branch}}
+      PROBLEM_STATEMENT: {{problem_statement}}
+      ROOT_CAUSE: {{root_cause}}
+      CHANGES: {{changes}}
+      REGRESSION_TEST: {{regression_test}}
+      VERIFIED: {{verified}}
+
+      Follow the Required Process from your AGENTS.md:
+
+      Phase 1 — Fast-Forward Check (ALWAYS FIRST):
+      1. cd {{repo}}
+      2. git checkout {{original_branch}}
+      3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+         - Exit 0 (FF): proceed to Phase 3
+         - Exit non-zero (not FF): proceed to Phase 2
+
+      Phase 2 — Rebase (Non-Fast-Forward Path):
+      4. git checkout {{branch}}
+      5. git rebase {{original_branch}}
+      6. Fix any conflicts; `git rebase --continue` until complete
+      7. After rebase (clean or with conflict resolution), proceed to Phase 3.
+         Bug-fix-merge has no tester step — the verifier already confirmed the fix.
+
+      Phase 3 — Squash Merge (Fast-Forward-Safe):
+      8. git checkout {{original_branch}}
+      9. git merge --squash {{branch}}
+      10. Build a descriptive commit message with `fix:` prefix (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
+
+      Verify the merge commit was created:
+      - MERGE_COMMIT=$(git rev-parse --short HEAD)
+
+      Reply with:
+      STATUS: done
+      REBASED: <true|false>
+      MERGE_COMMIT: <short commit hash>
+      MERGED_INTO: {{original_branch}}
+
+      Or if merge cannot be completed:
+      STATUS: retry
+      REBASED: <true|false>
+      FAILURE: <reason>
+    expects: "STATUS: done"
+    on_fail:
+      escalate_to: human
