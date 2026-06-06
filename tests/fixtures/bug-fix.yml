@@ -1,0 +1,22 @@
+id: bug-fix
+name: Bug Fix Workflow
+version: 1
+description: Triage, investigate, and fix bugs.
+polling:
+  model: default
+  timeoutSeconds: 120
+agents:
+  - id: triager
+    role: analysis
+    workspace:
+      baseDir: agents/triager
+      files:
+        AGENTS.md: agents/triager/AGENTS.md
+steps:
+  - id: triage
+    agent: triager
+    input: "Triage this bug: {{task}}"
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human
