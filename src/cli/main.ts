@@ -5,6 +5,7 @@ import { executeRun } from "./commands/run.js"
 import { getRunStatus, formatStatus } from "./commands/status.js"
 import { getRunLogs, followLogs } from "./commands/logs.js"
 import { verifyRtk } from "./commands/rtk.js"
+import { installWorkflow, uninstallWorkflow, installAllWorkflows } from "./commands/install.js"
 
 const args = process.argv.slice(2)
 
@@ -18,6 +19,9 @@ if (args.length === 0) {
   console.log("  workflow resume <id>               Resume a paused workflow")
   console.log("  workflow list                      List installed workflows")
   console.log("  workflow logs <id> [--step <id>] [--follow]   View run logs")
+  console.log("  workflow install <id> [--force]       Install a workflow")
+  console.log("  workflow install --all [--force]      Install all bundled workflows")
+  console.log("  workflow uninstall <id>              Remove a workflow")
   console.log("  rtk verify                          Check rtk installation")
   process.exit(0)
 }
@@ -114,6 +118,46 @@ if (command === "workflow") {
   } else if (subcommand === "resume" && args[2]) {
     console.error("Resume is not yet implemented. See follow-up tasks in the design doc.")
     process.exit(1)
+  } else if (subcommand === "install") {
+    const allFlag = args.includes("--all")
+    const forceFlag = args.includes("--force")
+
+    if (allFlag) {
+      void Effect.runPromiseExit(installAllWorkflows({ force: forceFlag })).then((result) => {
+        if (Exit.isSuccess(result)) {
+          for (const id of result.value) {
+            console.log(`Installed: ${id}`)
+          }
+        } else {
+          console.error("Install failed:", String(result.cause))
+          process.exitCode = 1
+        }
+      })
+    } else {
+      const workflowId = args[2]
+      if (!workflowId || workflowId.startsWith("--")) {
+        console.error("Usage: hamilton workflow install <id> [--force]")
+        process.exit(1)
+      }
+      void Effect.runPromiseExit(installWorkflow(workflowId, { force: forceFlag })).then((result) => {
+        if (Exit.isSuccess(result)) {
+          console.log(`Installed: ${workflowId}`)
+        } else {
+          console.error("Install failed:", String(result.cause))
+          process.exitCode = 1
+        }
+      })
+    }
+  } else if (subcommand === "uninstall" && args[2]) {
+    const workflowId = args[2]
+    void Effect.runPromiseExit(uninstallWorkflow(workflowId)).then((result) => {
+      if (Exit.isSuccess(result)) {
+        console.log(`Uninstalled: ${workflowId}`)
+      } else {
+        console.error("Uninstall failed:", String(result.cause))
+        process.exitCode = 1
+      }
+    })
   } else if (subcommand) {
     console.error(`Unknown subcommand: ${subcommand}`)
     process.exit(1)
