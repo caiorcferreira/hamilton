@@ -6,3 +6,4 @@ dist/
 *.pem
 *.log
 .worktrees/
+bun.lockb
