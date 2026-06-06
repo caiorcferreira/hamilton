@@ -20,7 +20,8 @@ import {
   getWorkflowState,
   setDurableDeferred,
   getDurableDeferred,
-  updateRunContext
+  updateRunContext,
+  listRuns
 } from "../../src/db/queries.js"
 
 function tempDb(): Database {
@@ -158,5 +159,54 @@ describe("queries", () => {
   it("getRunById returns null for non-existent run", () => {
     const run = getRunById(db, "nonexistent")
     expect(run).toBeNull()
+  })
+})
+
+describe("listRuns", () => {
+  let db: Database
+
+  beforeEach(() => {
+    db = tempDb()
+    createSchema(db)
+  })
+
+  afterEach(() => {
+    cleanupDb(db)
+  })
+
+  it("returns runs ordered by started_at DESC", () => {
+    const now = new Date().toISOString()
+    const earlier = new Date(Date.now() - 3600000).toISOString()
+    insertRun(db, "run-1", "bug-fix", earlier)
+    insertRun(db, "run-2", "feature-dev", now)
+    const runs = listRuns(db)
+    expect(runs).toHaveLength(2)
+    expect(runs[0].id).toBe("run-2")
+    expect(runs[1].id).toBe("run-1")
+  })
+
+  it("filters by status", () => {
+    const now = new Date().toISOString()
+    insertRun(db, "run-ok", "bug-fix", now)
+    insertRun(db, "run-fail", "security-audit", now)
+    updateRunFailed(db, "run-fail", "it broke")
+    const running = listRuns(db, { status: "running" })
+    expect(running).toHaveLength(1)
+    expect(running[0].id).toBe("run-ok")
+    const failed = listRuns(db, { status: "failed" })
+    expect(failed).toHaveLength(1)
+    expect(failed[0].id).toBe("run-fail")
+  })
+
+  it("respects limit", () => {
+    for (let i = 0; i < 5; i++) {
+      insertRun(db, `run-${i}`, "bug-fix", new Date(Date.now() - i * 1000).toISOString())
+    }
+    expect(listRuns(db, { limit: 3 })).toHaveLength(3)
+  })
+
+  it("default limit is 20", () => {
+    const runs = listRuns(db)
+    expect(runs.length).toBeLessThanOrEqual(20)
   })
 })

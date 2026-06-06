@@ -236,3 +236,27 @@ export function updateRunContext(
     `UPDATE runs SET context_json = ? WHERE id = ?`
   ).run(contextJson, runId)
 }
+
+export interface RunSummary {
+  id: string
+  workflow_id: string
+  status: string
+  started_at: string
+  current_step: string | null
+}
+
+export function listRuns(
+  db: Database,
+  opts?: { status?: string; limit?: number }
+): RunSummary[] {
+  const status = opts?.status ?? null
+  const limit = opts?.limit ?? 20
+  const rows = db.prepare(
+    `SELECT id, workflow_id, status, started_at, current_step
+     FROM runs
+     WHERE (? IS NULL OR status = ?)
+     ORDER BY started_at DESC
+     LIMIT ?`
+  ).all(status, status, limit)
+  return rows as RunSummary[]
+}
