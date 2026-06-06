@@ -1,0 +1,72 @@
+export type AgentRole =
+  | "analysis"
+  | "coding"
+  | "verification"
+  | "testing"
+  | "pr"
+  | "scanning"
+
+export interface WorkflowSpec {
+  id: string
+  name: string
+  version: number
+  description?: string
+  polling?: WorkflowPolling
+  agents: WorkflowAgent[]
+  steps: WorkflowStep[]
+  context?: Record<string, string>
+  notifications?: unknown
+  run?: unknown
+}
+
+export interface WorkflowPolling {
+  model?: string
+  timeoutSeconds?: number
+}
+
+export interface WorkflowAgent {
+  id: string
+  name?: string
+  role: AgentRole
+  description?: string
+  model?: string
+  pollingModel?: string
+  timeoutSeconds?: number
+  workspace: WorkflowAgentWorkspace
+}
+
+export interface WorkflowAgentWorkspace {
+  baseDir: string
+  skills?: string[]
+  files: Record<string, string>
+}
+
+export interface WorkflowStep {
+  id: string
+  agent: string
+  type?: "default" | "loop"
+  loop?: LoopConfig
+  input: string
+  expects?: string
+  max_retries?: number
+  on_fail?: OnFailConfig
+}
+
+export interface LoopConfig {
+  over: "stories"
+  completion?: string
+  fresh_session?: boolean
+  verify_each?: boolean
+  verify_step?: string
+}
+
+export interface OnFailConfig {
+  escalate_to?: string
+  retry_step?: string
+  max_retries?: number
+  on_exhausted?: OnExhaustedConfig
+}
+
+export interface OnExhaustedConfig {
+  escalate_to?: string
+}
