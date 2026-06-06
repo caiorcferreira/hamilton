@@ -105,11 +105,13 @@ export function runWorkflow(
           )
         )
 
+        // todo: why loadAgentSettings don't pass agentDir? Can't this cause problems?
         const agentSettings = yield* _(Effect.match(loadAgentSettings(""), {
           onSuccess: (s) => s,
           onFailure: () => ({}) as Record<string, never>
         }))
 
+        // todo: rename field to remove "Md"
         const prompt = buildAgentPrompt({
           agentsMd: persona.agents,
           identityMd: persona.identity,

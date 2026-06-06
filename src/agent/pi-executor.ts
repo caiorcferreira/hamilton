@@ -38,7 +38,7 @@ export interface PiExecutorConfig {
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
   stepId: string
   message: string
-}> {}
+}> { }
 
 function readDefaults(agentDir: string): { defaultProvider: string; defaultModel: string } {
   try {
@@ -111,7 +111,9 @@ export function executeWithPi(
         createAgentSession({
           model,
           thinkingLevel,
-          tools: config.settings?.tools ?? [],
+          tools: config.settings?.tools ?? [
+            "read", "bash", "edit", "write", "grep", "find", "ls"
+          ],
           customTools: [writeStepOutputTool],
           agentDir,
           authStorage,
