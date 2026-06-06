@@ -1,5 +1,5 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
-id: bug-fix-github-pr
+slug: bug-fix-github-pr
 name: Bug Triage & Fix (GitHub PR)
 version: 1
 description: |
@@ -13,7 +13,7 @@ polling:
   timeoutSeconds: 120
 
 agents:
-  - id: triager
+  - slug: triager
     name: Triager
     role: analysis
     description: Analyzes bug reports, reproduces issues, classifies severity.
@@ -26,7 +26,7 @@ agents:
         SOUL.md: agents/triager/SOUL.md
         IDENTITY.md: agents/triager/IDENTITY.md
 
-  - id: investigator
+  - slug: investigator
     name: Investigator
     role: analysis
     description: Traces bugs to root cause and proposes fix approach.
@@ -39,7 +39,7 @@ agents:
         SOUL.md: agents/investigator/SOUL.md
         IDENTITY.md: agents/investigator/IDENTITY.md
 
-  - id: setup
+  - slug: setup
     name: Setup
     role: coding
     description: Creates bugfix branch and establishes baseline.
@@ -52,7 +52,7 @@ agents:
         SOUL.md: ../../agents/shared/setup/SOUL.md
         IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
 
-  - id: fixer
+  - slug: fixer
     name: Fixer
     role: coding
     description: Implements the fix and writes regression tests.
@@ -65,7 +65,7 @@ agents:
         SOUL.md: agents/fixer/SOUL.md
         IDENTITY.md: agents/fixer/IDENTITY.md
 
-  - id: verifier
+  - slug: verifier
     name: Verifier
     role: verification
     description: Verifies the fix and regression test correctness.
@@ -78,7 +78,7 @@ agents:
         SOUL.md: ../../agents/shared/verifier/SOUL.md
         IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
 
-  - id: pr
+  - slug: pr
     name: PR Creator
     role: pr
     description: Creates a pull request with bug fix details.
@@ -92,7 +92,7 @@ agents:
         IDENTITY.md: ../../agents/shared/pr/IDENTITY.md
 
 steps:
-  - id: triage
+  - slug: triage
     agent: triager
     input: |
       Triage the following bug report. Explore the codebase, reproduce the issue, and classify severity.
@@ -120,7 +120,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: investigate
+  - slug: investigate
     agent: investigator
     input: |
       Investigate the root cause of this bug.
@@ -149,7 +149,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: setup
+  - slug: setup
     agent: setup
     input: |
       Prepare the environment for the bugfix.
@@ -175,7 +175,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: fix
+  - slug: fix
     agent: fixer
     input: |
       Implement the bug fix.
@@ -215,7 +215,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: verify
+  - slug: verify
     agent: verifier
     input: |
       Verify the bug fix is correct and complete.
@@ -265,7 +265,7 @@ steps:
       on_exhausted:
         escalate_to: human
 
-  - id: pr
+  - slug: pr
     agent: pr
     input: |
       Create a pull request for the bug fix.

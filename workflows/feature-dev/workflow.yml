@@ -1,6 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
 # session with clean context. Memory persists via git history and progress files.
-id: feature-dev
+slug: feature-dev
 name: Feature Development Workflow (local-only)
 version: 5
 description: |
@@ -19,7 +19,7 @@ polling:
   timeoutSeconds: 120
 
 agents:
-  - id: planner
+  - slug: planner
     name: Planner
     role: analysis
     description: Decomposes tasks into ordered user stories.
@@ -32,7 +32,7 @@ agents:
         SOUL.md: agents/planner/SOUL.md
         IDENTITY.md: agents/planner/IDENTITY.md
 
-  - id: setup
+  - slug: setup
     name: Setup
     role: coding
     description: Prepares environment, creates branch, establishes baseline.
@@ -45,7 +45,7 @@ agents:
         SOUL.md: ../../agents/shared/setup/SOUL.md
         IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
 
-  - id: developer
+  - slug: developer
     name: Developer
     role: coding
     description: Implements features and writes tests.
@@ -58,7 +58,7 @@ agents:
         SOUL.md: agents/developer/SOUL.md
         IDENTITY.md: agents/developer/IDENTITY.md
 
-  - id: verifier
+  - slug: verifier
     name: Verifier
     role: verification
     description: Quick sanity check - did developer actually do the work?
@@ -72,7 +72,7 @@ agents:
         SOUL.md: ../../agents/shared/verifier/SOUL.md
         IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
 
-  - id: tester
+  - slug: tester
     name: Tester
     role: testing
     description: Integration and E2E testing after all stories are implemented.
@@ -86,7 +86,7 @@ agents:
         IDENTITY.md: agents/tester/IDENTITY.md
 
 steps:
-  - id: plan
+  - slug: plan
     agent: planner
     input: |
       Decompose the following task into ordered user stories for autonomous execution.
@@ -121,7 +121,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: setup
+  - slug: setup
     agent: setup
     input: |
       Prepare the development environment for this feature.
@@ -155,7 +155,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: implement
+  - slug: implement
     agent: developer
     type: loop
     loop:
@@ -212,7 +212,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: verify
+  - slug: verify
     agent: verifier
     input: |
       Verify the developer's work on this story.
@@ -273,7 +273,7 @@ steps:
       on_exhausted:
         escalate_to: human
 
-  - id: test
+  - slug: test
     agent: tester
     input: |
       Integration and E2E testing of the implementation.
