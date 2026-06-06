@@ -16,7 +16,7 @@ describe("buildAgentPrompt", () => {
     context: {}
   }
 
-  it("includes persona files and step input", () => {
+  it("returns systemPrompt and taskPrompt", () => {
     const params: PromptParams = {
       agentsMd: "You are a coder.",
       identityMd: "Senior Developer",
@@ -25,38 +25,41 @@ describe("buildAgentPrompt", () => {
       context: {}
     }
     const result = buildAgentPrompt(params)
-    expect(result).toContain("Your role: Senior Developer")
-    expect(result).toContain("Your style: Concise and direct")
-    expect(result).toContain("You are a coder.")
-    expect(result).toContain("Task: Fix the bug")
-    expect(result).toContain("When complete, respond with a JSON object containing your results.")
+    expect(result).toHaveProperty("systemPrompt")
+    expect(result).toHaveProperty("taskPrompt")
+    expect(result.systemPrompt).toContain("Your role: Senior Developer")
+    expect(result.systemPrompt).toContain("Your style: Concise and direct")
+    expect(result.systemPrompt).toContain("You are a coder.")
+    expect(result.taskPrompt).toContain("Fix the bug")
+    expect(result.taskPrompt).toContain("When complete, respond with a JSON object containing your results.")
   })
 
-  it("resolves template expressions in step input", () => {
+  it("resolves template expressions in the task prompt", () => {
     const params: PromptParams = {
       ...baseParams,
       stepInput: "Fix bug in {{repo}}",
       context: { repo: "hamilton" }
     }
     const result = buildAgentPrompt(params)
-    expect(result).toContain("Task: Fix bug in hamilton")
+    expect(result.taskPrompt).toContain("Fix bug in hamilton")
   })
 
-  it("includes context entries from previous steps", () => {
+  it("includes context entries in the system prompt", () => {
     const params: PromptParams = {
       ...baseParams,
       context: { branch: "main", status: "approved" }
     }
     const result = buildAgentPrompt(params)
-    expect(result).toContain("Context from previous steps:")
-    expect(result).toContain("branch: main")
-    expect(result).toContain("status: approved")
+    expect(result.systemPrompt).toContain("Context from previous steps:")
+    expect(result.systemPrompt).toContain("branch: main")
+    expect(result.systemPrompt).toContain("status: approved")
   })
 
   it("omits role and style sections when empty", () => {
     const result = buildAgentPrompt(baseParams)
-    expect(result).not.toContain("Your role:")
-    expect(result).not.toContain("Your style:")
+    expect(result.systemPrompt).not.toContain("Your role:")
+    expect(result.systemPrompt).not.toContain("Your style:")
+    expect(result.taskPrompt).toContain("Fix the bug")
   })
 })
 

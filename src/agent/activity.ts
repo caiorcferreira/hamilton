@@ -9,35 +9,41 @@ export interface PromptParams {
   context: Record<string, string>
 }
 
+export interface BuiltPrompt {
+  systemPrompt: string
+  taskPrompt: string
+}
+
 export class AgentOutputParseError extends Data.TaggedError("AgentOutputParseError")<{
   message: string
 }> {}
 
-export function buildAgentPrompt(params: PromptParams): string {
-  const parts: string[] = []
+export function buildAgentPrompt(params: PromptParams): BuiltPrompt {
+  const systemParts: string[] = []
 
   if (params.identityMd) {
-    parts.push(`Your role: ${params.identityMd}`)
+    systemParts.push(`Your role: ${params.identityMd}`)
   }
 
   if (params.soulMd) {
-    parts.push(`Your style: ${params.soulMd}`)
+    systemParts.push(`Your style: ${params.soulMd}`)
   }
 
   if (Object.keys(params.context).length > 0) {
     const contextLines = Object.entries(params.context)
       .map(([key, value]) => `  ${key}: ${value}`)
       .join("\n")
-    parts.push(`Context from previous steps:\n${contextLines}`)
+    systemParts.push(`Context from previous steps:\n${contextLines}`)
   }
 
-  parts.push(params.agentsMd)
+  systemParts.push(params.agentsMd)
 
   const resolvedInput = resolveTemplate(params.stepInput, params.context)
-  parts.push(`Task: ${resolvedInput}`)
-  parts.push("When complete, respond with a JSON object containing your results.")
 
-  return parts.join("\n\n")
+  return {
+    systemPrompt: systemParts.join("\n\n"),
+    taskPrompt: `${resolvedInput}\n\nWhen complete, respond with a JSON object containing your results.`
+  }
 }
 
 export function parseAgentOutput(
