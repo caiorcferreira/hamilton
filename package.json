@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.78.1",
+    "@earendil-works/pi-ai": "^0.78.1",
+    "@earendil-works/pi-coding-agent": "^0.78.1",
     "@effect/schema": "0.75.5",
     "@effect/workflow": "0.18.2",
     "@types/better-sqlite3": "^7.6.13",
