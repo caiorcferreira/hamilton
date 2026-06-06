@@ -5,3 +5,4 @@ dist/
 *.key
 *.pem
 *.log
+.worktrees/
