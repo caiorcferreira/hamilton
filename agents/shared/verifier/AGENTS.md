@@ -44,18 +44,25 @@ These are non-negotiable — a security failure is always a rejection, regardles
 
 ## Output Format
 
-If everything checks out:
-```
-STATUS: done
-VERIFIED: What you confirmed (list each criterion checked)
+If everything checks out, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "verified": "What you confirmed (list each criterion checked)"
+}
 ```
 
 If issues found:
-```
-STATUS: retry
-ISSUES:
-- Specific issue 1 (reference the criterion that failed)
-- Specific issue 2
+
+```json
+{
+  "status": "retry",
+  "issues": [
+    "Specific issue 1 (reference the criterion that failed)",
+    "Specific issue 2"
+  ]
+}
 ```
 
 ## Important

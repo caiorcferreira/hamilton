@@ -69,7 +69,15 @@ export function runWorkflow(
     const runId = ctx.runId
 
     yield* _(createRunDir(runId))
-    yield* _(writeInput(runId, { spec, initialContext }))
+    yield* _(writeInput(runId, {
+      spec,
+      initialContext,
+      executionContext: {
+        cwd: process.cwd(),
+        requestedAt: startedAt,
+        workflowSlug: spec.slug
+      }
+    }))
     yield* _(emit(config.onEvent, { type: "workflow_started", runId }))
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.slug }))
 

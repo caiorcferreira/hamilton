@@ -6,6 +6,7 @@ export interface PiEvent {
   toolCall?: { input: Record<string, unknown> }
   isError?: boolean
   assistantMessageEvent?: { type: string; delta?: string }
+  message?: { content?: Array<{ type: string; text?: string }> }
   tokenUsage?: { input: number; output: number }
   [key: string]: unknown
 }
@@ -18,15 +19,25 @@ export interface SubscribeConfig {
 }
 
 export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => Effect.Effect<void> {
+  let buffer = ""
+
   return (event: PiEvent) =>
     Effect.gen(function* () {
       switch (event.type) {
         case "message_update":
           if (event.assistantMessageEvent?.type === "text_delta" && event.assistantMessageEvent.delta) {
-            yield* config.onLog({ event: "llm_delta", delta: event.assistantMessageEvent.delta, step_id: config.stepId })
+            buffer += event.assistantMessageEvent.delta
+          }
+          break
+        case "message_end":
+          if (buffer) {
+            const text = buffer
+            buffer = ""
+            yield* config.onLog({ event: "llm_message", text, step_id: config.stepId })
           }
           break
         case "tool_execution_start":
+          buffer = ""
           yield* config.onLog({ event: "tool_call", tool: event.toolName ?? "unknown", input: event.toolCall?.input ?? {}, step_id: config.stepId })
           break
         case "tool_execution_end":

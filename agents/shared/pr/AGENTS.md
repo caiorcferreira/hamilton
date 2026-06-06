@@ -25,9 +25,13 @@ Do NOT fall back to reporting a manual or `pull/new/<branch>` URL. Do NOT report
 
 ## Output Format
 
-```
-STATUS: done
-PR: https://github.com/org/repo/pull/123
+Call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "pr": "https://github.com/org/repo/pull/123"
+}
 ```
 
 ## What NOT To Do

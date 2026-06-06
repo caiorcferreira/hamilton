@@ -25,20 +25,20 @@ You prepare the development environment. You create the branch, discover build/t
 
 ## Output Format
 
-```
-STATUS: done
-ORIGINAL_BRANCH: <branch you captured before checkout, e.g. main>
-BUILD_CMD: npm run build (or whatever you found)
-TEST_CMD: npm test (or whatever you found)
-CI_NOTES: brief notes about CI setup (or "none found")
-BASELINE: build passes / tests pass (or describe what failed)
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "original_branch": "main",
+  "build_cmd": "npm run build",
+  "test_cmd": "npm test",
+  "ci_notes": "brief notes about CI setup (or none found)",
+  "baseline": "build passes / tests pass (or describe what failed)"
+}
 ```
 
-Each `KEY:` must be on its own line and use the EXACT key names above. Downstream
-steps reference these as `{{original_branch}}`, `{{build_cmd}}`, `{{test_cmd}}`,
-`{{ci_notes}}`, `{{baseline}}`. Do not nest values inside other keys (for
-example, don't put `ORIGINAL_BRANCH:` inside a `CHANGES:` value — there is no
-`CHANGES` key for setup).
+Each key must use the EXACT names above. Downstream steps reference these as `{{original_branch}}`, `{{build_cmd}}`, `{{test_cmd}}`, `{{ci_notes}}`, `{{baseline}}`. Do not nest values inside other keys.
 
 ## Important Notes
 
