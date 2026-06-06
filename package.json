@@ -16,6 +16,8 @@
     "@earendil-works/pi-agent-core": "0.78.1",
     "@earendil-works/pi-ai": "0.78.1",
     "@earendil-works/pi-coding-agent": "0.78.1",
+    "@effect/cli": "0.75.2",
+    "@effect/platform-bun": "0.90.0",
     "@effect/schema": "0.75.5",
     "@effect/workflow": "0.18.2",
     "effect": "3.21.3",
