@@ -6,7 +6,7 @@ import { loadAgentSettings } from "../agent/config.js"
 import { createRtkExtension } from "../agent/rtk-extension.js"
 import { executeWithPi } from "../agent/pi-executor.js"
 import { mergeContext } from "../workflow/context.js"
-import { computeStepOrder, resolveStepTimeout } from "../workflow/engine.js"
+import { computeStepOrder, resolveStepTimeout, buildStepId } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
@@ -71,34 +71,36 @@ export function runWorkflow(
     yield* _(createRunDir(runId))
     yield* _(writeInput(runId, { spec, initialContext }))
     yield* _(emit(config.onEvent, { type: "workflow_started", runId }))
-    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.id }))
+    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.slug }))
 
     let workflowStatus: "completed" | "failed" | "paused" = "completed"
 
     const body = Effect.gen(function* () {
-      for (const stepId of stepOrder) {
-        const shouldExec = yield* _(ctx.shouldExecuteStep(stepId))
+      for (const stepSlug of stepOrder) {
+        const shouldExec = yield* _(ctx.shouldExecuteStep(stepSlug))
         if (!shouldExec) continue
 
-        const step = spec.steps.find((s) => s.id === stepId)!
-        const agent = spec.agents.find((a) => a.id === step.agent)!
+        const step = spec.steps.find((s) => s.slug === stepSlug)!
+        const agent = spec.agents.find((a) => a.slug === step.agent)!
         const maxRetries = step.max_retries ?? 1
-        const timeoutSeconds = resolveStepTimeout(spec, agent.id)
+        const timeoutSeconds = resolveStepTimeout(spec, agent.slug)
         const model = agent.model
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(emit(config.onEvent, { type: "step_paused", runId, stepId, message: "step paused via deferred state" }))
+          yield* _(emit(config.onEvent, { type: "step_paused", runId, stepId: stepSlug, message: "step paused via deferred state" }))
           workflowStatus = "paused"
           break
         }
 
-        yield* _(ctx.transitionStep(stepId, "start"))
+        const stepId = buildStepId(runId, stepSlug)
+
+        yield* _(ctx.transitionStep(stepSlug, "start"))
         yield* _(emit(config.onEvent, { type: "step_started", runId, stepId }))
         yield* _(appendEngineLog(runId, { event: "step_started", stepId }))
 
         const persona = yield* _(
-          resolvePersona(agent.id, spec.id).pipe(
+          resolvePersona(agent.slug, spec.slug).pipe(
             Effect.mapError((e) => new Error(e.message))
           )
         )
@@ -127,7 +129,7 @@ export function runWorkflow(
           systemPrompt: prompt.systemPrompt,
           taskPrompt: prompt.taskPrompt,
           stepId,
-          agentId: agent.id,
+          agentId: agent.slug,
           runId,
           timeoutSeconds,
           model,
@@ -158,13 +160,13 @@ export function runWorkflow(
 
         if (output === undefined || output === null) {
           yield* _(emit(config.onEvent, { type: "step_timeout", runId, stepId, message: "step timed out" }))
-          yield* _(ctx.transitionStep(stepId, "fail"))
+          yield* _(ctx.transitionStep(stepSlug, "fail"))
           yield* _(appendEngineLog(runId, { event: "step_timeout", stepId }))
           workflowStatus = "failed"
           break
         }
 
-        yield* _(ctx.transitionStep(stepId, "complete"))
+        yield* _(ctx.transitionStep(stepSlug, "complete"))
         yield* _(appendStepLog(runId, stepId, { event: "completed" }))
         yield* _(writeStepOutput(runId, stepId, output))
 
@@ -173,7 +175,7 @@ export function runWorkflow(
         Object.assign(runningContext, mergeContext(runningContext, output))
 
         if (output.status && typeof output.status === "string") {
-          stepResults[stepId] = output.status
+          stepResults[stepSlug] = output.status
         }
 
         yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
