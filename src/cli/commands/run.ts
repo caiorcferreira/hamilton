@@ -67,11 +67,12 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
 }
 
 const slug = Args.text({ name: "slug" })
-const prompt = Args.text({ name: "prompt" })
+const prompt = Args.text({ name: "prompt" }).pipe(Args.repeated)
 
 export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt }) =>
   Effect.gen(function* () {
-    const result = yield* Effect.exit(executeRun({ workflowSlug: slug, prompt }))
+    const promptText = prompt.join(" ")
+    const result = yield* Effect.exit(executeRun({ workflowSlug: slug, prompt: promptText }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Workflow failed: ${String(result.cause)}`)
       return

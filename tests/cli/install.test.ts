@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { installWorkflow, uninstallWorkflow, installAllWorkflows } from "../../src/cli/commands/install.js"
+import { installWorkflow, uninstallWorkflow, installAllWorkflows } from "../../src/cli/commands/install-logic.js"
 
 describe("installWorkflow", () => {
   let tmpHome: string
