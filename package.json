@@ -17,6 +17,8 @@
     "@earendil-works/pi-agent-core": "0.78.1",
     "@effect/schema": "0.75.5",
     "@effect/workflow": "0.18.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^11.10.0",
     "effect": "3.21.3",
     "yaml": "2.4.5"
   },

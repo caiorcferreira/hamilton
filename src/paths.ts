@@ -45,3 +45,11 @@ export function inputFile(runId: string): string {
 export function summaryFile(runId: string): string {
   return Path.join(runDir(runId), "summary.json")
 }
+
+export function dbPath(): string {
+  return Path.join(hamiltonHome(), "hamilton.db")
+}
+
+export function eventsFilePath(runId: string): string {
+  return Path.join(runDir(runId), "events.jsonl")
+}
