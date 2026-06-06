@@ -1,8 +1,10 @@
-import { Effect } from "effect"
+import { Command } from "@effect/cli"
+import { Console, Effect } from "effect"
 import * as Fs from "node:fs"
-import * as Path from "node:path"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
+import { renderTable, Column } from "../formatting/table.js"
+import { categoryColor, dim } from "../formatting/colors.js"
 
 export interface WorkflowListItem {
   id: string
@@ -13,28 +15,20 @@ export interface WorkflowListItem {
   agentCount: number
 }
 
-export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.gen(function* (_) {
-  if (!Fs.existsSync(hamiltonHome())) return []
+export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.gen(function* () {
+  if (!Fs.existsSync(hamiltonHome())) return [] as WorkflowListItem[]
 
   const dir = workflowsDir()
-  const entries: string[] = yield* _(
-    Effect.try({
-      try: () => {
-        if (!Fs.existsSync(dir)) return [] as string[]
-        return Fs.readdirSync(dir, { withFileTypes: true })
-          .filter((e) => e.isDirectory())
-          .map((e) => e.name)
-          .sort()
-      },
-      catch: () => [] as string[]
-    }).pipe(Effect.orElseSucceed(() => [] as string[]))
-  )
+  if (!Fs.existsSync(dir)) return [] as WorkflowListItem[]
+
+  const entries = Fs.readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort()
 
   const results: WorkflowListItem[] = []
   for (const slug of entries) {
-    const spec = yield* _(
-      loadWorkflowSpec(dir, slug).pipe(Effect.option)
-    )
+    const spec = yield* loadWorkflowSpec(dir, slug).pipe(Effect.option)
     if (spec._tag === "Some") {
       results.push({
         id: spec.value.id,
@@ -48,3 +42,22 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
   }
   return results
 })
+
+const workflowColumns: Column<WorkflowListItem>[] = [
+  { header: "ID", width: 24, render: (i) => categoryColor(i.id)(i.id) },
+  { header: "NAME", width: 46, render: (i) => i.name },
+  { header: "VERSION", width: 4, render: (i) => dim(`v${i.version}`) },
+  { header: "STEPS", width: 9, render: (i) => dim(`${i.stepCount} steps`) },
+  { header: "AGENTS", width: 10, render: (i) => dim(`${i.agentCount} agents`) }
+]
+
+export const listCommand = Command.make("list", {}, () =>
+  Effect.gen(function* () {
+    const items = yield* listWorkflows
+    if (items.length === 0) {
+      yield* Console.log("No workflows installed.")
+    } else {
+      yield* Console.log(renderTable(items, workflowColumns))
+    }
+  })
+).pipe(Command.withDescription("List installed workflows"))
