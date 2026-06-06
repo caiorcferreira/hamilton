@@ -3,7 +3,7 @@ import { Effect, Exit } from "effect"
 import { listWorkflows } from "./commands/list.js"
 import { executeRun } from "./commands/run.js"
 import { getRunStatus, formatStatus } from "./commands/status.js"
-import { getRunLogs } from "./commands/logs.js"
+import { getRunLogs, followLogs } from "./commands/logs.js"
 import { verifyRtk } from "./commands/rtk.js"
 
 const args = process.argv.slice(2)
@@ -17,7 +17,7 @@ if (args.length === 0) {
   console.log("  workflow pause <id>                Pause a running workflow")
   console.log("  workflow resume <id>               Resume a paused workflow")
   console.log("  workflow list                      List installed workflows")
-  console.log("  workflow logs <id> [--step <id>]   View run logs")
+  console.log("  workflow logs <id> [--step <id>] [--follow]   View run logs")
   console.log("  rtk verify                          Check rtk installation")
   process.exit(0)
 }
@@ -50,14 +50,20 @@ if (command === "workflow") {
   } else if (subcommand === "logs" && args[2]) {
     const stepIdx = args.indexOf("--step")
     const stepId = stepIdx !== -1 ? args[stepIdx + 1] : undefined
+    const follow = args.includes("--follow")
 
-    void Effect.runPromiseExit(getRunLogs({ runId: args[2], stepId })).then((result) => {
-      if (Exit.isSuccess(result)) {
-        for (const event of result.value) {
-          console.log(JSON.stringify(event))
+    if (follow) {
+      const controller = followLogs({ runId: args[2] })
+      process.on("SIGINT", () => { controller.stop(); process.exit(0) })
+    } else {
+      void Effect.runPromiseExit(getRunLogs({ runId: args[2], stepId })).then((result) => {
+        if (Exit.isSuccess(result)) {
+          for (const event of result.value) {
+            console.log(JSON.stringify(event))
+          }
         }
-      }
-    })
+      })
+    }
   } else if (subcommand === "run" && args[2]) {
     const slug = args[2]
     const prompt = args.slice(3).join(" ")

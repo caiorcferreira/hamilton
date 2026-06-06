@@ -8,7 +8,8 @@ import {
   stepOutputFile,
   stepLogFile,
   inputFile,
-  summaryFile
+  summaryFile,
+  eventsFilePath
 } from "../paths.js"
 
 export class RunDirError extends Data.TaggedError("RunDirError")<{
@@ -60,5 +61,19 @@ export function writeSummary(runId: string, summary: Record<string, unknown>): E
       Fs.writeFileSync(summaryFile(runId), JSON.stringify(summary, null, 2))
     },
     catch: () => new RunDirError({ runId, message: `Failed to write summary for ${runId}` })
+  })
+}
+
+export function appendEngineLog(
+  runId: string,
+  event: Record<string, unknown>
+): Effect.Effect<void, RunDirError> {
+  return Effect.try({
+    try: () => {
+      const line = JSON.stringify({ timestamp: new Date().toISOString(), ...event })
+      const path = eventsFilePath(runId)
+      Fs.appendFileSync(path, line + "\n", "utf-8")
+    },
+    catch: () => new RunDirError({ runId, message: "Failed to append engine log" })
   })
 }

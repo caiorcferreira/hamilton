@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { stepLogsDir, stepLogFile } from "../../paths.js"
+import { stepLogsDir, stepLogFile, eventsFilePath } from "../../paths.js"
 
 export interface LogEvent {
   event: string
@@ -64,4 +64,70 @@ export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], never>
 
     return events
   })
+}
+
+export function followLogs(params: { runId: string }): { stop: () => void } {
+  const logsDir = stepLogsDir(params.runId)
+  const eventsPath = eventsFilePath(params.runId)
+  let stopped = false
+
+  const stop = () => { stopped = true }
+
+  const seenBytes = new Map<string, number>()
+  let eventsSeenBytes = 0
+
+  const poll = () => {
+    if (stopped) return
+    try {
+      if (Fs.existsSync(logsDir)) {
+        const files = Fs.readdirSync(logsDir).filter(f => f.endsWith(".jsonl")).sort()
+        for (const file of files) {
+          const filePath = Path.join(logsDir, file)
+          try {
+            const stat = Fs.statSync(filePath)
+            const previousSize = seenBytes.get(file) ?? 0
+            if (stat.size > previousSize) {
+              const fd = Fs.openSync(filePath, "r")
+              const buffer = Buffer.alloc(stat.size - previousSize)
+              Fs.readSync(fd, buffer, 0, buffer.length, previousSize)
+              Fs.closeSync(fd)
+              for (const line of buffer.toString("utf-8").trim().split("\n")) {
+                if (line.trim()) {
+                  try { console.log(JSON.stringify(JSON.parse(line))) } catch { console.log(line) }
+                }
+              }
+            }
+            seenBytes.set(file, stat.size)
+          } catch {}
+        }
+      }
+    } catch {}
+
+    try {
+      if (!stopped && Fs.existsSync(eventsPath)) {
+        const stat = Fs.statSync(eventsPath)
+        if (stat.size > eventsSeenBytes) {
+          const fd = Fs.openSync(eventsPath, "r")
+          const buffer = Buffer.alloc(stat.size - eventsSeenBytes)
+          Fs.readSync(fd, buffer, 0, buffer.length, eventsSeenBytes)
+          Fs.closeSync(fd)
+          for (const line of buffer.toString("utf-8").trim().split("\n")) {
+            if (line.trim()) {
+              try { console.log(JSON.stringify(JSON.parse(line))) } catch { console.log(line) }
+            }
+          }
+        }
+        eventsSeenBytes = stat.size
+      }
+    } catch {}
+  }
+
+  const interval = setInterval(poll, 500)
+
+  return {
+    stop: () => {
+      stopped = true
+      clearInterval(interval)
+    }
+  }
 }

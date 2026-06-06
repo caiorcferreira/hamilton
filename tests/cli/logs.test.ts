@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { getRunLogs } from "../../src/cli/commands/logs.js"
+import { getRunLogs, followLogs } from "../../src/cli/commands/logs.js"
 
 describe("getRunLogs", () => {
   let tmpHome: string
@@ -63,5 +63,26 @@ describe("getRunLogs", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toEqual([])
     }
+  })
+})
+
+describe("followLogs", () => {
+  let tmpHome: string
+  const originalHome = process.env.HOME
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-follow-"))
+    process.env.HOME = tmpHome
+  })
+
+  afterEach(() => {
+    process.env.HOME = originalHome
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  it("returns an object with a stop function", () => {
+    const controller = followLogs({ runId: "follow-test" })
+    expect(typeof controller.stop).toBe("function")
+    controller.stop()
   })
 })
