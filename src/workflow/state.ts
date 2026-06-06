@@ -1,6 +1,8 @@
 import { Effect, Data } from "effect"
-import * as Fs from "node:fs"
-import { runDir, summaryFile } from "../paths.js"
+import Database from "better-sqlite3"
+import { dbPath } from "../paths.js"
+import { createSchema } from "../db/schema.js"
+import { getRunStatus } from "../db/queries.js"
 
 export class RunStateError extends Data.TaggedError("RunStateError")<{
   runId: string
@@ -12,28 +14,53 @@ export interface RunStatus {
   workflow: string
   status: string
   startedAt: string
-  completedAt?: string
-  stepResults: Record<string, string>
-  tokenUsage?: Record<string, unknown>
+  completedAt: string | null
+  currentStep: string | null
+  steps: Array<{
+    stepId: string
+    agentId: string
+    status: string
+    startedAt: string | null
+    completedAt: string | null
+    tokensIn: number
+    tokensOut: number
+    errorMessage: string | null
+  }>
+  totalTokensIn: number
+  totalTokensOut: number
+  errorMessage: string | null
+}
+
+export function openDb(): Effect.Effect<Database.Database, RunStateError> {
+  return Effect.try({
+    try: () => {
+      const dp = dbPath()
+      const db = new Database(dp)
+      db.pragma("journal_mode = WAL")
+      createSchema(db)
+      return db
+    },
+    catch: (e) =>
+      new RunStateError({
+        runId: "db",
+        message: `Failed to open database: ${String(e)}`
+      })
+  })
 }
 
 export function loadRunState(runId: string): Effect.Effect<RunStatus, RunStateError> {
-  return Effect.gen(function* (_) {
-    const filePath = summaryFile(runId)
-    const content = yield* _(
-      Effect.try({
-        try: () => Fs.readFileSync(filePath, "utf-8"),
-        catch: () => new RunStateError({ runId, message: `Run directory not found for ${runId}` })
-      })
-    )
+  return Effect.gen(function* () {
+    const db = yield* openDb()
+    const status = getRunStatus(db, runId)
 
-    const parsed = yield* _(
-      Effect.try({
-        try: () => JSON.parse(content) as RunStatus,
-        catch: () => new RunStateError({ runId, message: `Invalid summary.json for ${runId}` })
-      })
-    )
+    if (!status) {
+      db.close()
+      return yield* Effect.fail(
+        new RunStateError({ runId, message: `Run not found: ${runId}` })
+      )
+    }
 
-    return parsed
+    db.close()
+    return status
   })
 }

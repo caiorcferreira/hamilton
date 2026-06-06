@@ -2,7 +2,7 @@
 import { Effect, Exit } from "effect"
 import { listWorkflows } from "./commands/list.js"
 import { executeRun } from "./commands/run.js"
-import { getRunStatus } from "./commands/status.js"
+import { getRunStatus, formatStatus } from "./commands/status.js"
 import { getRunLogs } from "./commands/logs.js"
 import { verifyRtk } from "./commands/rtk.js"
 
@@ -41,7 +41,7 @@ if (command === "workflow") {
   if (subcommand === "status" && args[2]) {
     void Effect.runPromiseExit(getRunStatus(args[2])).then((result) => {
       if (Exit.isSuccess(result)) {
-        console.log(JSON.stringify(result.value, null, 2))
+        console.log(formatStatus(result.value))
       } else {
         console.error("Status not found:", args[2])
         process.exitCode = 1

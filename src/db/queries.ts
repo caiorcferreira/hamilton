@@ -37,8 +37,11 @@ export interface RunStatusRow {
     stepId: string
     agentId: string
     status: string
+    startedAt: string | null
+    completedAt: string | null
     tokensIn: number
     tokensOut: number
+    errorMessage: string | null
   }>
   totalTokensIn: number
   totalTokensOut: number
@@ -168,8 +171,11 @@ export function getRunStatus(db: Database.Database, runId: string): RunStatusRow
       stepId: s.step_id,
       agentId: s.agent_id,
       status: s.status,
+      startedAt: s.started_at,
+      completedAt: s.completed_at,
       tokensIn: s.tokens_in,
-      tokensOut: s.tokens_out
+      tokensOut: s.tokens_out,
+      errorMessage: s.error_message
     })),
     totalTokensIn: tokenResult.total_in,
     totalTokensOut: tokenResult.total_out,
