@@ -1,9 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { executeRun } from "../../src/cli/commands/run.js"
+import { PiExecutionError } from "../../src/agent/pi-executor.js"
+
+vi.mock("../../src/agent/pi-executor.js", () => {
+  const { Effect: E } = require("effect")
+  return {
+    executeWithPi: vi.fn(() => E.succeed({ status: "done" })),
+    PiExecutionError: class PiExecutionError extends Error {
+      constructor(props: { stepId: string; message: string }) {
+        super(props.message)
+        this.name = "PiExecutionError"
+      }
+    }
+  }
+})
 
 const validYaml = `id: test-wf
 name: Test Workflow
@@ -46,8 +60,7 @@ describe("executeRun", () => {
     const result = await Effect.runPromiseExit(
       executeRun({
         workflowSlug: "test-wf",
-        prompt: "Fix the bug",
-        executeStep: () => Effect.succeed({ status: "done" })
+        prompt: "Fix the bug"
       })
     )
 
@@ -61,12 +74,16 @@ describe("executeRun", () => {
     }
   })
 
-  it("returns failed status when executeStep fails", async () => {
+  it("returns failed status when executeWithPi fails", async () => {
+    const { executeWithPi } = await import("../../src/agent/pi-executor.js")
+    vi.mocked(executeWithPi).mockImplementationOnce(
+      () => Effect.fail(new PiExecutionError({ stepId: "step-1", message: "agent error" }))
+    )
+
     const result = await Effect.runPromiseExit(
       executeRun({
         workflowSlug: "test-wf",
-        prompt: "Fix the bug",
-        executeStep: () => Effect.fail(new Error("agent error"))
+        prompt: "Fix the bug"
       })
     )
 
@@ -80,8 +97,7 @@ describe("executeRun", () => {
     const result = await Effect.runPromiseExit(
       executeRun({
         workflowSlug: "nonexistent",
-        prompt: "Fix the bug",
-        executeStep: () => Effect.succeed({ status: "done" })
+        prompt: "Fix the bug"
       })
     )
 

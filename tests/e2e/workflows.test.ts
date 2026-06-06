@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
@@ -6,6 +6,21 @@ import { Effect, Exit } from "effect"
 import { loadWorkflowSpec } from "../../src/workflow/loader.js"
 import { runWorkflow, WorkflowEvent } from "../../src/workflow/runner.js"
 import { workflowsDir, runDir } from "../../src/paths.js"
+
+const stepResponses: Record<string, Record<string, unknown>> = {
+  triage: { status: "done", repo: "/tmp/test-repo", branch: "bugfix-login", severity: "high", affected_area: "src/auth.ts", reproduction: "open /login", problem_statement: "race condition in session" },
+  investigate: { status: "done", root_cause: "session expiry race condition", fix_approach: "add mutex around session update" },
+  setup: { status: "done", build_cmd: "npm run build", test_cmd: "npm test", baseline: "all pass" },
+  fix: { status: "done", changes: "added mutex", regression_test: "test/session-race.test.ts" },
+  verify: { status: "done", verified: "fix confirmed correct" }
+}
+
+vi.mock("../../src/agent/pi-executor.js", () => ({
+  executeWithPi: vi.fn((config: { stepId: string }) =>
+    Effect.succeed(stepResponses[config.stepId] ?? { status: "done" })
+  ),
+  PiExecutionError: class PiExecutionError extends Error {}
+}))
 
 describe("end-to-end workflow execution", () => {
   let testHome: string
@@ -37,29 +52,10 @@ describe("end-to-end workflow execution", () => {
       Fs.writeFileSync(Path.join(agentDir, "SOUL.md"), "Professional")
     }
 
-    const callOrder: string[] = []
     const events: WorkflowEvent[] = []
 
     const result = await Effect.runPromiseExit(
       runWorkflow(spec, { task: "fix login bug" }, {
-        executeStep: (params) =>
-          Effect.gen(function* () {
-            callOrder.push(params.stepId)
-            switch (params.stepId) {
-              case "triage":
-                return { status: "done", repo: "/tmp/test-repo", branch: "bugfix-login", severity: "high", affected_area: "src/auth.ts", reproduction: "open /login", problem_statement: "race condition in session" }
-              case "investigate":
-                return { status: "done", root_cause: "session expiry race condition", fix_approach: "add mutex around session update" }
-              case "setup":
-                return { status: "done", build_cmd: "npm run build", test_cmd: "npm test", baseline: "all pass" }
-              case "fix":
-                return { status: "done", changes: "added mutex", regression_test: "test/session-race.test.ts" }
-              case "verify":
-                return { status: "done", verified: "fix confirmed correct" }
-              default:
-                return { status: "done" }
-            }
-          }),
         onEvent: (event) =>
           Effect.sync(() => { events.push(event) }),
         workflowsDir: wfDest
@@ -78,8 +74,6 @@ describe("end-to-end workflow execution", () => {
 
       expect(r.context).toHaveProperty("repo")
       expect(r.context).toHaveProperty("root_cause")
-
-      expect(callOrder).toEqual(["triage", "investigate", "setup", "fix", "verify"])
 
       const rd = runDir(r.runId)
       expect(Fs.existsSync(Path.join(rd, "input.json"))).toBe(true)

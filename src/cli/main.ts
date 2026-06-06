@@ -78,27 +78,7 @@ if (command === "workflow") {
     }
 
     void Effect.runPromiseExit(
-      executeRun({
-        workflowSlug: slug,
-        prompt,
-        executeStep: (params) =>
-          Effect.gen(function* () {
-            console.error(
-              `[${params.runId}/${params.stepId}] Starting agent ${params.agentId}...`
-            )
-            console.error(
-              `[${params.runId}/${params.stepId}] Timeout: ${params.timeoutSeconds}s`
-            )
-            // TODO: Replace with actual pi-agent-core call
-            yield* Effect.log(
-              `Would execute step ${params.stepId} with agent ${params.agentId}`
-            )
-            return yield* Effect.succeed({
-              status: "done",
-              message: `Step ${params.stepId} completed (pi-agent-core not yet integrated)`
-            })
-          })
-      })
+      executeRun({ workflowSlug: slug, prompt })
     ).then((result) => {
       if (Exit.isSuccess(result)) {
         console.log(`Run ID: ${result.value.runId}`)

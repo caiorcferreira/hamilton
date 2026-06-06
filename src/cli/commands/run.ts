@@ -10,13 +10,6 @@ import { buildRunId } from "../../workflow/engine.js"
 export interface RunParams {
   workflowSlug: string
   prompt: string
-  executeStep: (params: {
-    prompt: string
-    stepId: string
-    agentId: string
-    runId: string
-    timeoutSeconds: number
-  }) => Effect.Effect<Record<string, unknown>, Error>
 }
 
 export interface RunResult {
@@ -45,7 +38,6 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
 
     const result = yield* _(
       runWorkflow(spec as unknown as WfSpec, { task: params.prompt }, {
-        executeStep: params.executeStep,
         onEvent: (_) => Effect.void,
         workflowsDir: wfDir
       }).pipe(

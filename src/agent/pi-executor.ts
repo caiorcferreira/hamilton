@@ -7,7 +7,13 @@ export interface PiExecutorConfig {
   runId: string
   timeoutSeconds: number
   model?: string
-  logCallback: (event: Record<string, unknown>) => Effect.Effect<void>
+  extensions?: Array<(pi: unknown) => void>
+  settings?: {
+    thinking?: string
+    tools?: string[]
+    skills?: string[]
+  }
+  logCallback?: (event: Record<string, unknown>) => Effect.Effect<void>
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -19,11 +25,13 @@ export function executeWithPi(
   config: PiExecutorConfig
 ): Effect.Effect<Record<string, unknown>, PiExecutionError> {
   return Effect.gen(function* () {
-    yield* config.logCallback({
-      event: "pi_session_started",
-      step_id: config.stepId,
-      agent_id: config.agentId
-    })
+    if (config.logCallback) {
+      yield* config.logCallback({
+        event: "pi_session_started",
+        step_id: config.stepId,
+        agent_id: config.agentId
+      })
+    }
 
     // pi-agent-core integration point.
     // The exact API depends on @earendil-works/pi-agent-core internals.
