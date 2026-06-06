@@ -15,8 +15,17 @@ import {
   getDurableDeferred,
   updateRunContext
 } from "../db/queries.js"
-import { buildRunId } from "../workflow/engine.js"
+import { buildRunId, buildStepId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
+
+function parseStepSlug(stepId: string, runId: string): string {
+  const prefix = runId + "-"
+  if (!stepId.startsWith(prefix)) return stepId
+  const afterRun = stepId.slice(prefix.length)
+  const lastDash = afterRun.lastIndexOf("-")
+  if (lastDash === -1) return afterRun
+  return afterRun.slice(0, lastDash)
+}
 
 export class EngineError extends Data.TaggedError("EngineError")<{
   runId: string
@@ -215,7 +224,7 @@ export function createWorkflowRuntime(
       const stepStates = new Map<string, StepState>()
       for (const step of stepRows) {
         const state = step.status as StepState
-        stepStates.set(step.step_id, state)
+        stepStates.set(parseStepSlug(step.id, existingRunId), state)
       }
 
       const deferredSteps = stepRows.filter((s) => s.status === "deferred")
@@ -223,7 +232,7 @@ export function createWorkflowRuntime(
         db.prepare(
           `UPDATE steps SET status = 'pending' WHERE id = ?`
         ).run(s.id)
-        stepStates.set(s.step_id, "pending")
+        stepStates.set(parseStepSlug(s.id, existingRunId), "pending")
       }
 
       updateRunContext(db, existingRunId, JSON.stringify(context))
@@ -235,15 +244,15 @@ export function createWorkflowRuntime(
       return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", stepStates)
     }
 
-    const runId = buildRunId(spec.id)
+    const runId = buildRunId(spec.slug)
 
-    insertRun(db, runId, spec.id, new Date().toISOString())
-    insertSteps(db, runId, spec.steps.map((s) => ({ stepId: s.id, agentId: s.agent })))
+    insertRun(db, runId, spec.slug, new Date().toISOString())
+    insertSteps(db, runId, spec.steps.map((s) => ({ stepSlug: s.slug, agentSlug: s.agent })))
     updateRunContext(db, runId, JSON.stringify(context))
 
     const stepStates = new Map<string, StepState>()
     for (const step of spec.steps) {
-      stepStates.set(step.id, "pending")
+      stepStates.set(step.slug, "pending")
     }
 
     return new WorkflowRuntimeImpl(db, runId, spec, "running", stepStates)
