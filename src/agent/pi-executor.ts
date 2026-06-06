@@ -15,6 +15,8 @@ import { appendStepLog } from "../observability/run-dir.js"
 
 import * as Fs from "node:fs"
 import * as Path from "node:path"
+import { createWriteStepOutputTool } from "./write-step-output-tool.js"
+import { stepOutputFile } from "../paths.js"
 
 export interface PiExecutorConfig {
   systemPrompt: string
@@ -74,24 +76,6 @@ function mapThinkingLevel(level?: string): ThinkingLevel {
   }
 }
 
-function extractTextContent(msg: unknown): string {
-  if (typeof msg === "string") return msg
-  if (msg && typeof msg === "object") {
-    const candidate = msg as Record<string, unknown>
-    if (typeof candidate.content === "string") return candidate.content
-    if (Array.isArray(candidate.content)) {
-      const texts = candidate.content
-        .filter(
-          (block: unknown) =>
-            block && typeof block === "object" && (block as Record<string, unknown>).type === "text" && typeof (block as Record<string, unknown>).text === "string"
-        )
-        .map((block: unknown) => (block as Record<string, unknown>).text as string)
-      return texts.join("")
-    }
-  }
-  return ""
-}
-
 export function executeWithPi(
   config: PiExecutorConfig
 ): Effect.Effect<Record<string, unknown>, PiExecutionError> {
@@ -118,6 +102,8 @@ export function executeWithPi(
 
     yield* _(Effect.promise(() => loader.reload()))
 
+    const writeStepOutputTool = createWriteStepOutputTool(config.runId, config.stepId)
+
     const sessionManager = SessionManager.inMemory()
 
     const { session } = yield* _(
@@ -126,6 +112,7 @@ export function executeWithPi(
           model,
           thinkingLevel,
           tools: config.settings?.tools ?? [],
+          customTools: [writeStepOutputTool],
           agentDir,
           authStorage,
           modelRegistry,
@@ -155,55 +142,21 @@ export function executeWithPi(
     try {
       yield* _(Effect.promise(() => session.prompt(config.taskPrompt)))
 
-      const messages = session.messages
-      const assistantMessages = messages.filter((m) => (m as { role: string }).role === "assistant")
-      const lastAssistant = assistantMessages[assistantMessages.length - 1]
-      if (!lastAssistant) {
+      const outputPath = stepOutputFile(config.runId, config.stepId)
+      if (!Fs.existsSync(outputPath)) {
         return yield* _(
           Effect.fail(
             new PiExecutionError({
               stepId: config.stepId,
-              message: "No assistant response received"
+              message: "Step did not call write_step_output"
             })
           )
         )
       }
 
-      const text = extractTextContent(lastAssistant)
-      if (!text) {
-        return yield* _(
-          Effect.fail(
-            new PiExecutionError({
-              stepId: config.stepId,
-              message: "Assistant response had no text content"
-            })
-          )
-        )
-      }
-
-      try {
-        const parsed: Record<string, unknown> = JSON.parse(text)
-        if (typeof parsed !== "object" || parsed === null || !("status" in parsed)) {
-          return yield* _(
-            Effect.fail(
-              new PiExecutionError({
-                stepId: config.stepId,
-                message: "Agent output must be a JSON object with a \"status\" field"
-              })
-            )
-          )
-        }
-        return parsed
-      } catch (e) {
-        return yield* _(
-          Effect.fail(
-            new PiExecutionError({
-              stepId: config.stepId,
-              message: e instanceof Error ? e.message : String(e)
-            })
-          )
-        )
-      }
+      const raw = Fs.readFileSync(outputPath, "utf-8")
+      const parsed = JSON.parse(raw) as Record<string, unknown>
+      return parsed
     } catch (e) {
       return yield* _(
         Effect.fail(
