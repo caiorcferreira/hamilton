@@ -50,6 +50,10 @@ export function dbPath(): string {
   return Path.join(hamiltonHome(), "hamilton.db")
 }
 
+export function piAgentDir(): string {
+  return Path.join(hamiltonHome(), "executors", "pi", "agent")
+}
+
 export function eventsFilePath(runId: string): string {
   return Path.join(runDir(runId), "events.jsonl")
 }

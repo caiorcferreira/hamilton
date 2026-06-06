@@ -9,6 +9,7 @@ import {
   SettingsManager
 } from "@earendil-works/pi-coding-agent"
 import { getModel } from "@earendil-works/pi-ai"
+import { piAgentDir } from "../paths.js"
 import { subscribePiEvents } from "../observability/streaming.js"
 import { appendStepLog } from "../observability/run-dir.js"
 import { parseAgentOutput } from "../agent/activity.js"
@@ -95,7 +96,7 @@ export function executeWithPi(
 
     const loader = new DefaultResourceLoader({
       cwd,
-      agentDir: ".pi-agent",
+      agentDir: piAgentDir(),
       systemPromptOverride: () => config.systemPrompt,
       extensionFactories: config.extensions as Array<(pi: unknown) => void> | undefined,
       settingsManager
