@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { Effect, Exit } from "effect"
 import { listWorkflows } from "./commands/list.js"
 import { executeRun } from "./commands/run.js"

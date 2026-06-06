@@ -9,8 +9,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "bun --bun vitest run",
-    "install-local": "bun run build && bun link",
-    "purge": "bun unlink hamilton; rm -rf ~/.hamilton/"
+    "install-local": "bun run build && mkdir -p ~/.local/bin && ln -sf $(pwd)/dist/cli/main.js ~/.local/bin/hamilton && chmod +x dist/cli/main.js",
+    "purge": "rm -f ~/.local/bin/hamilton; rm -rf ~/.hamilton/"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.78.1",
