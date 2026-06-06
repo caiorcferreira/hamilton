@@ -6,6 +6,8 @@ import { getRunStatus, formatStatus } from "./commands/status.js"
 import { getRunLogs, followLogs } from "./commands/logs.js"
 import { verifyRtk } from "./commands/rtk.js"
 import { installWorkflow, uninstallWorkflow, installAllWorkflows } from "./commands/install.js"
+import { pauseWorkflow } from "./commands/pause.js"
+import { resumeWorkflow } from "./commands/resume.js"
 
 const args = process.argv.slice(2)
 
@@ -93,11 +95,23 @@ if (command === "workflow") {
       }
     })
   } else if (subcommand === "pause" && args[2]) {
-    console.error("Pause is not yet implemented. See follow-up tasks in the design doc.")
-    process.exit(1)
+    void Effect.runPromiseExit(pauseWorkflow(args[2])).then((result) => {
+      if (Exit.isSuccess(result)) {
+        console.log(result.value)
+      } else {
+        console.error("Pause failed:", String(result.cause))
+        process.exitCode = 1
+      }
+    })
   } else if (subcommand === "resume" && args[2]) {
-    console.error("Resume is not yet implemented. See follow-up tasks in the design doc.")
-    process.exit(1)
+    void Effect.runPromiseExit(resumeWorkflow(args[2])).then((result) => {
+      if (Exit.isSuccess(result)) {
+        console.log(result.value)
+      } else {
+        console.error("Resume failed:", String(result.cause))
+        process.exitCode = 1
+      }
+    })
   } else if (subcommand === "install") {
     const allFlag = args.includes("--all")
     const forceFlag = args.includes("--force")
