@@ -58,8 +58,6 @@ IMPORTANT:
   }
 }
 
-
-
 export function extractContextFromOutput(
   output: Record<string, unknown>
 ): Record<string, string> {
