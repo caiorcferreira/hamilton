@@ -1,5 +1,5 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
-id: security-audit-worktree
+slug: security-audit-worktree
 name: Security Audit & Fix (Worktree)
 version: 1
 description: |
@@ -22,7 +22,7 @@ polling:
   timeoutSeconds: 120
 
 agents:
-  - id: scanner
+  - slug: scanner
     name: Scanner
     role: scanning
     description: Explores codebase and runs comprehensive security analysis.
@@ -35,7 +35,7 @@ agents:
         SOUL.md: agents/scanner/SOUL.md
         IDENTITY.md: agents/scanner/IDENTITY.md
 
-  - id: prioritizer
+  - slug: prioritizer
     name: Prioritizer
     role: analysis
     description: Deduplicates, ranks, and groups findings into a fix plan.
@@ -48,7 +48,7 @@ agents:
         SOUL.md: agents/prioritizer/SOUL.md
         IDENTITY.md: agents/prioritizer/IDENTITY.md
 
-  - id: setup
+  - slug: setup
     name: Setup
     role: coding
     description: Creates security branch in the worktree, captures original branch from harness context, and establishes baseline.
@@ -61,7 +61,7 @@ agents:
         SOUL.md: ../../agents/shared/setup/SOUL.md
         IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
 
-  - id: fixer
+  - slug: fixer
     name: Fixer
     role: coding
     description: Implements security fixes one at a time with regression tests.
@@ -74,7 +74,7 @@ agents:
         SOUL.md: agents/fixer/SOUL.md
         IDENTITY.md: agents/fixer/IDENTITY.md
 
-  - id: verifier
+  - slug: verifier
     name: Verifier
     role: verification
     description: Verifies each fix is correct and the vulnerability is patched.
@@ -87,7 +87,7 @@ agents:
         SOUL.md: ../../agents/shared/verifier/SOUL.md
         IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
 
-  - id: tester
+  - slug: tester
     name: Tester
     role: testing
     description: Final integration testing and audit re-run after all fixes.
@@ -101,7 +101,7 @@ agents:
         IDENTITY.md: agents/tester/IDENTITY.md
 
 steps:
-  - id: scan
+  - slug: scan
     agent: scanner
     input: |
       Perform a comprehensive security audit of the codebase.
@@ -140,7 +140,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: prioritize
+  - slug: prioritize
     agent: prioritizer
     input: |
       Prioritize and group the security findings into a fix plan.
@@ -161,7 +161,7 @@ steps:
       6. Output each fix as a story in STORIES_JSON format
 
       Each story object must have:
-      - id: "fix-001", "fix-002", etc.
+      - slug: "fix-001", "fix-002", etc.
       - title: brief description of the fix
       - description: what vulnerability it addresses, affected files, what needs to change
       - acceptance_criteria: list of criteria including "Vulnerability is no longer exploitable" and "Regression test passes"
@@ -179,7 +179,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: setup
+  - slug: setup
     agent: setup
     input: |
       Prepare the environment for security fixes in a detached git worktree.
@@ -209,7 +209,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: fix
+  - slug: fix
     agent: fixer
     type: loop
     loop:
@@ -265,7 +265,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: verify
+  - slug: verify
     agent: verifier
     input: |
       Verify the security fix is correct and the vulnerability is patched.
@@ -312,7 +312,7 @@ steps:
       on_exhausted:
         escalate_to: human
 
-  - id: test
+  - slug: test
     agent: tester
     input: |
       Final integration testing after all security fixes.

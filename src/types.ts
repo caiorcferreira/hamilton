@@ -6,8 +6,14 @@ export type AgentRole =
   | "pr"
   | "scanning"
 
+export type WorkflowSlug = string & { readonly __brand: "WorkflowSlug" }
+export type StepSlug = string & { readonly __brand: "StepSlug" }
+export type AgentSlug = string & { readonly __brand: "AgentSlug" }
+export type RunId = string & { readonly __brand: "RunId" }
+export type StepId = string & { readonly __brand: "StepId" }
+
 export interface WorkflowSpec {
-  id: string
+  slug: WorkflowSlug
   name: string
   version: number
   description?: string
@@ -25,7 +31,7 @@ export interface WorkflowPolling {
 }
 
 export interface WorkflowAgent {
-  id: string
+  slug: AgentSlug
   name?: string
   role: AgentRole
   description?: string
@@ -42,8 +48,8 @@ export interface WorkflowAgentWorkspace {
 }
 
 export interface WorkflowStep {
-  id: string
-  agent: string
+  slug: StepSlug
+  agent: AgentSlug
   type?: "default" | "loop"
   loop?: LoopConfig
   input: string

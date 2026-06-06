@@ -16,7 +16,6 @@ export function createSchema(db: Database): void {
     CREATE TABLE IF NOT EXISTS steps (
       id TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,
-      step_id TEXT NOT NULL,
       agent_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       started_at TEXT,

@@ -7,7 +7,7 @@ const SUFFIX_MAP: Record<string, string> = {
   "--worktree": "-worktree"
 }
 
-export function resolveWorkflowId(
+export function resolveWorkflowSlug(
   input: string,
   available: ReadonlySet<string>
 ): string {

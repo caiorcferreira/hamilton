@@ -16,9 +16,10 @@ const stepResponses: Record<string, Record<string, unknown>> = {
 }
 
 vi.mock("../../src/agent/pi-executor.js", () => ({
-  executeWithPi: vi.fn((config: { stepId: string }) =>
-    Effect.succeed(stepResponses[config.stepId] ?? { status: "done" })
-  ),
+  executeWithPi: vi.fn((config: { stepId: string }) => {
+    const slug = Object.keys(stepResponses).find((k) => config.stepId.includes(k)) ?? config.stepId
+    return Effect.succeed(stepResponses[slug] ?? { status: "done" })
+  }),
   PiExecutionError: class PiExecutionError extends Error {}
 }))
 
@@ -45,10 +46,10 @@ describe("end-to-end workflow execution", () => {
     const spec = await Effect.runPromise(loadWorkflowSpec(workflowsDir(), "bug-fix"))
 
     for (const agent of spec.agents) {
-      const agentDir = Path.join(testHome, ".hamilton", "agents", agent.id)
+      const agentDir = Path.join(testHome, ".hamilton", "agents", agent.slug)
       Fs.mkdirSync(agentDir, { recursive: true })
       Fs.writeFileSync(Path.join(agentDir, "AGENTS.md"), "You are a " + agent.role + " agent")
-      Fs.writeFileSync(Path.join(agentDir, "IDENTITY.md"), "Name: " + agent.id)
+      Fs.writeFileSync(Path.join(agentDir, "IDENTITY.md"), "Name: " + agent.slug)
       Fs.writeFileSync(Path.join(agentDir, "SOUL.md"), "Professional")
     }
 

@@ -2,7 +2,7 @@ import { Args, Command } from "@effect/cli"
 import { Console, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
-import { resolveWorkflowId } from "../../workflow/resolver.js"
+import { resolveWorkflowSlug } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { runWorkflow, WorkflowResult } from "../../workflow/runner.js"
 import { WorkflowSpec as WfSpec } from "../../types.js"
@@ -37,8 +37,8 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
       }).pipe(Effect.orElseSucceed(() => [] as string[]))
     )
 
-    const resolvedId = resolveWorkflowId(params.workflowSlug, new Set(availableSlugs))
-    const spec = yield* loadWorkflowSpec(wfDir, resolvedId)
+    const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
+    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug)
 
     const result = yield* _(
       runWorkflow(spec as unknown as WfSpec, { task: params.prompt }, {
@@ -47,7 +47,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
       }).pipe(
         Effect.catchAll((error) =>
           Effect.succeed<WorkflowResult>({
-            runId: buildRunId((spec as unknown as WfSpec).id),
+            runId: buildRunId((spec as unknown as WfSpec).slug),
             status: "failed",
             stepResults: {},
             context: {},

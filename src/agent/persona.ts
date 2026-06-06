@@ -11,7 +11,7 @@ export interface Persona {
 
 export class PersonaLoadError extends Data.TaggedError("PersonaLoadError")<{
   agentId: string
-  workflowId: string
+  workflowSlug: string
   message: string
 }> {}
 
@@ -33,22 +33,22 @@ function loadPersonaFromDir(dir: string): Persona | null {
 }
 
 export function resolvePersona(
-  agentId: string,
-  workflowId: string
+  agentSlug: string,
+  workflowSlug: string
 ): Effect.Effect<Persona, PersonaLoadError> {
   return Effect.sync(() => {
-    const localDir = Path.join(workflowsDir(), workflowId, "agents", agentId)
+    const localDir = Path.join(workflowsDir(), workflowSlug, "agents", agentSlug)
     const local = loadPersonaFromDir(localDir)
     if (local) return local
 
-    const sharedDir = Path.join(agentsDir(), agentId)
+    const sharedDir = Path.join(agentsDir(), agentSlug)
     const shared = loadPersonaFromDir(sharedDir)
     if (shared) return shared
 
     throw new PersonaLoadError({
-      agentId,
-      workflowId,
-      message: `Agent "${agentId}" not found in workflow "${workflowId}" or shared agents. Check "hamilton init".`
+      agentId: agentSlug,
+      workflowSlug,
+      message: `Agent "${agentSlug}" not found in workflow "${workflowSlug}" or shared agents. Check "hamilton init".`
     })
   })
 }

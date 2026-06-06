@@ -5,6 +5,7 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { runWorkflow, WorkflowEvent } from "../../src/workflow/runner.js"
 import type { WorkflowSpec } from "../../src/types.js"
+import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
 vi.mock("../../src/agent/pi-executor.js", () => {
   const { Effect: E } = require("effect")
@@ -15,15 +16,15 @@ vi.mock("../../src/agent/pi-executor.js", () => {
 })
 
 const testSpec: WorkflowSpec = {
-  id: "test-flow",
+  slug: "test-flow" as WorkflowSlug,
   name: "Test Flow",
   version: 1,
   agents: [
-    { id: "agent-a", role: "coding" as const, workspace: { baseDir: ".", files: {} } }
+    { slug: "agent-a" as AgentSlug, role: "coding" as const, workspace: { baseDir: ".", files: {} } }
   ],
   steps: [
-    { id: "step-1", agent: "agent-a", input: "Do something" },
-    { id: "step-2", agent: "agent-a", input: "Do another thing" }
+    { slug: "step-1" as StepSlug, agent: "agent-a" as AgentSlug, input: "Do something" },
+    { slug: "step-2" as StepSlug, agent: "agent-a" as AgentSlug, input: "Do another thing" }
   ]
 }
 
@@ -92,10 +93,10 @@ describe("runWorkflow", () => {
     const specNoAgent: WorkflowSpec = {
       ...testSpec,
       agents: [
-        { id: "no-such-agent", role: "coding" as const, workspace: { baseDir: ".", files: {} } }
+        { slug: "no-such-agent" as AgentSlug, role: "coding" as const, workspace: { baseDir: ".", files: {} } }
       ],
       steps: [
-        { id: "step-1", agent: "no-such-agent", input: "Do something" }
+        { slug: "step-1" as StepSlug, agent: "no-such-agent" as AgentSlug, input: "Do something" }
       ]
     }
 

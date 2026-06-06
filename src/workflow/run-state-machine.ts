@@ -15,8 +15,17 @@ import {
   getDurableDeferred,
   updateRunContext
 } from "../db/queries.js"
-import { buildRunId } from "../workflow/engine.js"
+import { buildRunId, buildStepId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
+
+function parseStepSlug(stepId: string, runId: string): string {
+  const prefix = runId + "-"
+  if (!stepId.startsWith(prefix)) return stepId
+  const afterRun = stepId.slice(prefix.length)
+  const lastDash = afterRun.lastIndexOf("-")
+  if (lastDash === -1) return afterRun
+  return afterRun.slice(0, lastDash)
+}
 
 export class EngineError extends Data.TaggedError("EngineError")<{
   runId: string
@@ -66,16 +75,19 @@ export interface WorkflowRuntime {
 class WorkflowRuntimeImpl implements WorkflowRuntime {
   private _state: RunState
   private _stepStates: Map<string, StepState> = new Map()
+  private _compoundStepIds: Map<string, string> = new Map()
 
   constructor(
     private readonly _db: Database,
     private readonly _runId: string,
     private readonly _spec: WorkflowSpec,
     initialState: RunState,
-    stepStates: Map<string, StepState>
+    stepStates: Map<string, StepState>,
+    compoundStepIds: Map<string, string>
   ) {
     this._state = initialState
     this._stepStates = stepStates
+    this._compoundStepIds = compoundStepIds
   }
 
   get db(): Database { return this._db }
@@ -112,13 +124,14 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
         )
       }
 
+      const compoundId = this._compoundStepIds.get(stepId) ?? stepId
       const now = new Date().toISOString()
       if (transition === "start") {
-        updateStepStarted(this._db, this._runId, stepId, now)
+        updateStepStarted(this._db, this._runId, compoundId, now)
       } else if (transition === "complete") {
-        updateStepCompleted(this._db, this._runId, stepId, now, {})
+        updateStepCompleted(this._db, this._runId, compoundId, now, {})
       } else {
-        updateStepFailed(this._db, this._runId, stepId, "Step failed")
+        updateStepFailed(this._db, this._runId, compoundId, "Step failed")
       }
 
       this._stepStates.set(stepId, newStepState)
@@ -213,9 +226,12 @@ export function createWorkflowRuntime(
 
       const stepRows = getStepsByRunId(db, existingRunId)
       const stepStates = new Map<string, StepState>()
+      const compoundStepIds = new Map<string, string>()
       for (const step of stepRows) {
         const state = step.status as StepState
-        stepStates.set(step.step_id, state)
+        const slug = parseStepSlug(step.id, existingRunId)
+        stepStates.set(slug, state)
+        compoundStepIds.set(slug, step.id)
       }
 
       const deferredSteps = stepRows.filter((s) => s.status === "deferred")
@@ -223,7 +239,8 @@ export function createWorkflowRuntime(
         db.prepare(
           `UPDATE steps SET status = 'pending' WHERE id = ?`
         ).run(s.id)
-        stepStates.set(s.step_id, "pending")
+        const slug = parseStepSlug(s.id, existingRunId)
+        stepStates.set(slug, "pending")
       }
 
       updateRunContext(db, existingRunId, JSON.stringify(context))
@@ -232,20 +249,24 @@ export function createWorkflowRuntime(
         `UPDATE runs SET status = 'running' WHERE id = ?`
       ).run(existingRunId)
 
-      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", stepStates)
+      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", stepStates, compoundStepIds)
     }
 
-    const runId = buildRunId(spec.id)
+    const runId = buildRunId(spec.slug)
 
-    insertRun(db, runId, spec.id, new Date().toISOString())
-    insertSteps(db, runId, spec.steps.map((s) => ({ stepId: s.id, agentId: s.agent })))
+    insertRun(db, runId, spec.slug, new Date().toISOString())
+    insertSteps(db, runId, spec.steps.map((s) => ({ stepSlug: s.slug, agentSlug: s.agent })))
     updateRunContext(db, runId, JSON.stringify(context))
 
+    const stepRows = getStepsByRunId(db, runId)
     const stepStates = new Map<string, StepState>()
-    for (const step of spec.steps) {
-      stepStates.set(step.id, "pending")
+    const compoundStepIds = new Map<string, string>()
+    for (const step of stepRows) {
+      const slug = parseStepSlug(step.id, runId)
+      stepStates.set(slug, "pending")
+      compoundStepIds.set(slug, step.id)
     }
 
-    return new WorkflowRuntimeImpl(db, runId, spec, "running", stepStates)
+    return new WorkflowRuntimeImpl(db, runId, spec, "running", stepStates, compoundStepIds)
   })
 }

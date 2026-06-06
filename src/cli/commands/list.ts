@@ -7,7 +7,7 @@ import { renderTable, Column } from "../formatting/table.js"
 import { categoryColor, dim } from "../formatting/colors.js"
 
 export interface WorkflowListItem {
-  id: string
+  slug: string
   name: string
   description: string | undefined
   version: number
@@ -31,7 +31,7 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
     const spec = yield* loadWorkflowSpec(dir, slug).pipe(Effect.option)
     if (spec._tag === "Some") {
       results.push({
-        id: spec.value.id,
+        slug: spec.value.slug,
         name: spec.value.name,
         description: spec.value.description,
         version: spec.value.version,
@@ -44,7 +44,7 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
 })
 
 const workflowColumns: Column<WorkflowListItem>[] = [
-  { header: "ID", width: 24, render: (i) => categoryColor(i.id)(i.id) },
+  { header: "SLUG", width: 24, render: (i) => categoryColor(i.slug)(i.slug) },
   { header: "NAME", width: 46, render: (i) => i.name },
   { header: "VERSION", width: 4, render: (i) => dim(`v${i.version}`) },
   { header: "STEPS", width: 9, render: (i) => dim(`${i.stepCount} steps`) },

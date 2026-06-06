@@ -1,6 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
 # session with clean context. Memory persists via git history.
-id: quarantine-broken-tests-merge-worktree
+slug: quarantine-broken-tests-merge-worktree
 name: Quarantine Broken Tests + Merge (Worktree)
 version: 1
 description: |
@@ -26,7 +26,7 @@ polling:
   timeoutSeconds: 120
 
 agents:
-  - id: setup
+  - slug: setup
     name: Setup
     role: coding
     description: Prepares environment, creates branch, captures original branch, discovers build/test commands, establishes baseline.
@@ -39,7 +39,7 @@ agents:
         SOUL.md: ../../agents/shared/setup/SOUL.md
         IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
 
-  - id: quarantiner
+  - slug: quarantiner
     name: Quarantiner
     role: coding
     description: Finds failing tests and disables them minimally until the suite passes.
@@ -52,7 +52,7 @@ agents:
         SOUL.md: agents/quarantiner/SOUL.md
         IDENTITY.md: agents/quarantiner/IDENTITY.md
 
-  - id: verifier
+  - slug: verifier
     name: Verifier
     role: verification
     description: Confirms test suite passes cleanly and only test files were modified.
@@ -65,7 +65,7 @@ agents:
         SOUL.md: agents/verifier/SOUL.md
         IDENTITY.md: agents/verifier/IDENTITY.md
 
-  - id: merger
+  - slug: merger
     name: Merger
     role: pr
     description: Squashes quarantine branch changes and merges into the original branch in the origin repository.
@@ -79,7 +79,7 @@ agents:
         IDENTITY.md: agents/merger/IDENTITY.md
 
 steps:
-  - id: setup
+  - slug: setup
     agent: setup
     input: |
       Prepare the environment for test quarantine in a detached git worktree.
@@ -117,7 +117,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: quarantine
+  - slug: quarantine
     agent: quarantiner
     input: |
       Find and disable failing tests until the test suite passes.
@@ -157,7 +157,7 @@ steps:
     on_fail:
       escalate_to: human
 
-  - id: verify
+  - slug: verify
     agent: verifier
     input: |
       Verify the quarantiner's work — confirm all tests pass and only test files were modified.
@@ -198,7 +198,7 @@ steps:
       on_exhausted:
         escalate_to: human
 
-  - id: finalize_merge
+  - slug: finalize_merge
     agent: merger
     input: |
       Finalize this run by squashing quarantine changes into one commit and merging

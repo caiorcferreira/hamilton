@@ -16,7 +16,7 @@ const WorkflowAgentWorkspaceSchema = Schema.Struct({
 })
 
 const WorkflowAgentSchema = Schema.Struct({
-  id: Schema.String,
+  slug: Schema.String,
   name: Schema.optional(Schema.String),
   role: AgentRoleSchema,
   description: Schema.optional(Schema.String),
@@ -46,7 +46,7 @@ const OnFailConfigSchema = Schema.Struct({
 })
 
 const WorkflowStepSchema = Schema.Struct({
-  id: Schema.String,
+  slug: Schema.String,
   agent: Schema.String,
   type: Schema.optional(Schema.Literal("default", "loop")),
   loop: Schema.optional(LoopConfigSchema),
@@ -62,7 +62,7 @@ const WorkflowPollingSchema = Schema.Struct({
 })
 
 export const WorkflowSpecSchema = Schema.Struct({
-  id: Schema.String,
+  slug: Schema.String,
   name: Schema.String,
   version: Schema.Number,
   description: Schema.optional(Schema.String),
@@ -77,8 +77,8 @@ export const WorkflowSpecSchema = Schema.Struct({
 }).pipe(
   Schema.filter(
     (spec) => {
-      const agentIds = new Set(spec.agents.map((a) => a.id))
-      return spec.steps.every((s) => agentIds.has(s.agent))
+      const agentSlugs = new Set(spec.agents.map((a) => a.slug))
+      return spec.steps.every((s) => agentSlugs.has(s.agent))
     },
     { message: () => "every step.agent must reference a defined agent id" }
   )

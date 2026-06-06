@@ -5,24 +5,24 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadWorkflowSpec, WorkflowNotFoundError, WorkflowParseError } from "../../src/workflow/loader.js"
 
-const validYaml = `id: bug-fix
+const validYaml = `slug: bug-fix
 name: Bug Fix Workflow
 version: 1
 description: Triage and fix bugs
 agents:
-  - id: triager
+  - slug: triager
     role: analysis
     workspace:
       baseDir: agents/triager
       files:
         AGENTS.md: agents/triager/AGENTS.md
 steps:
-  - id: triage
+  - slug: triage
     agent: triager
     input: "Triage this bug"
 `
 
-const invalidYaml = `id: bad
+const invalidYaml = `slug: bad
 name: Bad
 version: not-a-number
 agents: []
@@ -56,7 +56,7 @@ describe("loadWorkflowSpec", () => {
   it("loads a valid workflow YAML", async () => {
     const exit = await Effect.runPromiseExit(loadWorkflowSpec(tmpDir, "bug-fix"))
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.id).toBe("bug-fix")
+      expect(exit.value.slug).toBe("bug-fix")
       expect(exit.value.name).toBe("Bug Fix Workflow")
       expect(exit.value.version).toBe(1)
     } else {

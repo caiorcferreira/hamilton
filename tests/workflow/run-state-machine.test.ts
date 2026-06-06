@@ -6,18 +6,19 @@ import { Effect } from "effect"
 import { createWorkflowRuntime, EngineError } from "../../src/workflow/run-state-machine.js"
 import { getRunById, getStepsByRunId, updateStepCompleted } from "../../src/db/queries.js"
 import type { WorkflowSpec } from "../../src/types.js"
+import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
 const makeSpec = (): WorkflowSpec => ({
-  id: "test-wf",
+  slug: "test-wf" as WorkflowSlug,
   name: "Test",
   version: 1,
   agents: [
-    { id: "a", role: "coding", workspace: { baseDir: "x", files: {} } },
-    { id: "b", role: "verification", workspace: { baseDir: "y", files: {} } }
+    { slug: "a" as AgentSlug, role: "coding", workspace: { baseDir: "x", files: {} } },
+    { slug: "b" as AgentSlug, role: "verification", workspace: { baseDir: "y", files: {} } }
   ],
   steps: [
-    { id: "step-1", agent: "a", input: "do it" },
-    { id: "step-2", agent: "b", input: "check it" }
+    { slug: "step-1" as StepSlug, agent: "a" as AgentSlug, input: "do it" },
+    { slug: "step-2" as StepSlug, agent: "b" as AgentSlug, input: "check it" }
   ]
 })
 
