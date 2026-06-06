@@ -117,7 +117,8 @@ export function runWorkflow(
         })
 
         const output = yield* executeWithPi({
-          prompt,
+          systemPrompt: prompt.systemPrompt,
+          taskPrompt: prompt.taskPrompt,
           stepId,
           agentId: agent.id,
           runId,
