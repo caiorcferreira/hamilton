@@ -1,2 +1,116 @@
 #!/usr/bin/env node
-export const VERSION = "0.1.0"
+import { Effect, Exit } from "effect"
+import { listWorkflows } from "./commands/list.js"
+import { executeRun } from "./commands/run.js"
+import { getRunStatus } from "./commands/status.js"
+import { getRunLogs } from "./commands/logs.js"
+
+const args = process.argv.slice(2)
+
+if (args.length === 0) {
+  console.log("Hamilton - Workflow-based agentic execution engine")
+  console.log("")
+  console.log("Commands:")
+  console.log("  workflow run <slug> <prompt>       Run a workflow")
+  console.log("  workflow status <id>                Show run status")
+  console.log("  workflow pause <id>                Pause a running workflow")
+  console.log("  workflow resume <id>               Resume a paused workflow")
+  console.log("  workflow list                      List installed workflows")
+  console.log("  workflow logs <id> [--step <id>]   View run logs")
+  process.exit(0)
+}
+
+const command = args[0]
+
+if (command === "workflow") {
+  const subcommand = args[1]
+
+  if (subcommand === "list") {
+    const result = Effect.runSyncExit(listWorkflows)
+    if (Exit.isSuccess(result)) {
+      for (const wf of result.value) {
+        console.log(`${wf.id}  v${wf.version}  ${wf.name}  (${wf.stepCount} steps, ${wf.agentCount} agents)`)
+        if (wf.description) console.log(`  ${wf.description}`)
+      }
+    }
+    process.exit(0)
+  }
+
+  if (subcommand === "status" && args[2]) {
+    void Effect.runPromiseExit(getRunStatus(args[2])).then((result) => {
+      if (Exit.isSuccess(result)) {
+        console.log(JSON.stringify(result.value, null, 2))
+      } else {
+        console.error("Status not found:", args[2])
+        process.exitCode = 1
+      }
+    })
+  } else if (subcommand === "logs" && args[2]) {
+    const stepIdx = args.indexOf("--step")
+    const stepId = stepIdx !== -1 ? args[stepIdx + 1] : undefined
+
+    void Effect.runPromiseExit(getRunLogs({ runId: args[2], stepId })).then((result) => {
+      if (Exit.isSuccess(result)) {
+        for (const event of result.value) {
+          console.log(JSON.stringify(event))
+        }
+      }
+    })
+  } else if (subcommand === "run" && args[2]) {
+    const slug = args[2]
+    const prompt = args.slice(3).join(" ")
+
+    if (!prompt) {
+      console.error("Usage: hamilton workflow run <slug> <prompt>")
+      process.exit(1)
+    }
+
+    void Effect.runPromiseExit(
+      executeRun({
+        workflowSlug: slug,
+        prompt,
+        executeStep: (params) =>
+          Effect.gen(function* () {
+            console.error(
+              `[${params.runId}/${params.stepId}] Starting agent ${params.agentId}...`
+            )
+            console.error(
+              `[${params.runId}/${params.stepId}] Timeout: ${params.timeoutSeconds}s`
+            )
+            // TODO: Replace with actual pi-agent-core call
+            yield* Effect.log(
+              `Would execute step ${params.stepId} with agent ${params.agentId}`
+            )
+            return yield* Effect.succeed({
+              status: "done",
+              message: `Step ${params.stepId} completed (pi-agent-core not yet integrated)`
+            })
+          })
+      })
+    ).then((result) => {
+      if (Exit.isSuccess(result)) {
+        console.log(`Run ID: ${result.value.runId}`)
+        console.log(`Status: ${result.value.status}`)
+        console.log("Step results:")
+        for (const [step, status] of Object.entries(result.value.stepResults)) {
+          console.log(`  ${step}: ${status}`)
+        }
+      } else {
+        console.error("Workflow failed:", String(result.cause))
+        process.exitCode = 1
+      }
+    })
+  } else if (subcommand === "pause" && args[2]) {
+    console.error("Pause is not yet implemented. See follow-up tasks in the design doc.")
+    process.exit(1)
+  } else if (subcommand === "resume" && args[2]) {
+    console.error("Resume is not yet implemented. See follow-up tasks in the design doc.")
+    process.exit(1)
+  } else if (subcommand) {
+    console.error(`Unknown subcommand: ${subcommand}`)
+    process.exit(1)
+  }
+} else if (command) {
+  console.error(`Unknown command: ${command}`)
+  process.exit(1)
+}
