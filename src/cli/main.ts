@@ -8,6 +8,7 @@ import { verifyRtk } from "./commands/rtk.js"
 import { installWorkflow, uninstallWorkflow, installAllWorkflows } from "./commands/install.js"
 import { pauseWorkflow } from "./commands/pause.js"
 import { resumeWorkflow } from "./commands/resume.js"
+import { initHamilton } from "./commands/init.js"
 
 const args = process.argv.slice(2)
 
@@ -15,6 +16,7 @@ if (args.length === 0) {
   console.log("Hamilton - Workflow-based agentic execution engine")
   console.log("")
   console.log("Commands:")
+  console.log("  init [--force]                       Bootstrap Hamilton directories and install workflows")
   console.log("  workflow run <slug> <prompt>       Run a workflow")
   console.log("  workflow status <id>                Show run status")
   console.log("  workflow pause <id>                Pause a running workflow")
@@ -156,6 +158,26 @@ if (command === "workflow") {
     console.error(`Unknown subcommand: ${subcommand}`)
     process.exit(1)
   }
+} else if (command === "init") {
+  const forceFlag = args.includes("--force")
+  void Effect.runPromiseExit(initHamilton({ force: forceFlag })).then((result) => {
+    if (Exit.isSuccess(result)) {
+      console.log("Hamilton initialized successfully.")
+      console.log(`Installed ${result.value.length} workflows.`)
+      for (const id of result.value) {
+        console.log(`  ${id}`)
+      }
+      console.log("")
+      console.log("Directories created:")
+      console.log("  ~/.hamilton/agents/")
+      console.log("  ~/.hamilton/workflows/")
+      console.log("  ~/.hamilton/runs/")
+      console.log("  ~/.hamilton/executors/pi/agent/")
+    } else {
+      console.error("Init failed:", String(result.cause))
+      process.exitCode = 1
+    }
+  })
 } else if (command === "rtk") {
   const subcommand = args[1]
   if (subcommand === "verify") {
