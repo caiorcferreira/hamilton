@@ -1,4 +1,4 @@
-import { Data, Effect } from "effect"
+import { Effect } from "effect"
 import { resolveTemplate } from "../workflow/context.js"
 
 export interface PromptParams {
@@ -14,12 +14,24 @@ export interface BuiltPrompt {
   taskPrompt: string
 }
 
-export class AgentOutputParseError extends Data.TaggedError("AgentOutputParseError")<{
-  message: string
-}> {}
-
 export function buildAgentPrompt(params: PromptParams): BuiltPrompt {
   const systemParts: string[] = []
+
+  systemParts.push(`## Hamilton Workflow System
+
+You are executing a step within a Hamilton workflow. A workflow is a sequence of steps
+that pass context between them. Your job is to complete one step and save your result.
+
+### How to finish your step
+
+When you have completed your work, call the write_step_output tool with a JSON object
+containing your results. The object MUST include a "status" field (string) indicating
+your completion state. Other fields are freeform and will be passed as context to
+subsequent steps.
+
+IMPORTANT:
+- You MUST call write_step_output exactly once — it will reject duplicate calls
+- The tool validates that your output is valid JSON with a "status" field`)
 
   if (params.identityMd) {
     systemParts.push(`Your role: ${params.identityMd}`)
@@ -42,30 +54,11 @@ export function buildAgentPrompt(params: PromptParams): BuiltPrompt {
 
   return {
     systemPrompt: systemParts.join("\n\n"),
-    taskPrompt: `${resolvedInput}\n\nWhen complete, respond with a JSON object containing your results.`
+    taskPrompt: resolvedInput
   }
 }
 
-export function parseAgentOutput(
-  output: string
-): Effect.Effect<Record<string, unknown>, AgentOutputParseError> {
-  return Effect.try({
-    try: () => {
-      const trimmed = output.trim()
-      if (!trimmed) throw new Error("Empty output")
 
-      const fenceMatch = trimmed.match(/```json\s*\n([\s\S]*?)\n```/)
-      if (fenceMatch) {
-        return JSON.parse(fenceMatch[1])
-      }
-
-      return JSON.parse(trimmed)
-    },
-    catch: (e) => new AgentOutputParseError({
-      message: `Failed to parse agent output: ${e instanceof Error ? e.message : String(e)}`
-    })
-  })
-}
 
 export function extractContextFromOutput(
   output: Record<string, unknown>

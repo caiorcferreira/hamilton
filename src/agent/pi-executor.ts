@@ -12,7 +12,7 @@ import { getModel } from "@earendil-works/pi-ai"
 import { piAgentDir } from "../paths.js"
 import { subscribePiEvents } from "../observability/streaming.js"
 import { appendStepLog } from "../observability/run-dir.js"
-import { parseAgentOutput } from "../agent/activity.js"
+
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 
@@ -181,17 +181,29 @@ export function executeWithPi(
         )
       }
 
-      return yield* _(
-        parseAgentOutput(text).pipe(
-          Effect.mapError(
-            (e) =>
+      try {
+        const parsed: Record<string, unknown> = JSON.parse(text)
+        if (typeof parsed !== "object" || parsed === null || !("status" in parsed)) {
+          return yield* _(
+            Effect.fail(
               new PiExecutionError({
                 stepId: config.stepId,
-                message: e.message
+                message: "Agent output must be a JSON object with a \"status\" field"
               })
+            )
+          )
+        }
+        return parsed
+      } catch (e) {
+        return yield* _(
+          Effect.fail(
+            new PiExecutionError({
+              stepId: config.stepId,
+              message: e instanceof Error ? e.message : String(e)
+            })
           )
         )
-      )
+      }
     } catch (e) {
       return yield* _(
         Effect.fail(
