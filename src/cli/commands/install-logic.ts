@@ -6,7 +6,7 @@ import { workflowsDir, hamiltonHome } from "../../paths.js"
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
 export class InstallError extends Data.TaggedError("InstallError")<{
-  workflowId: string
+  workflowSlug: string
   message: string
 }> {}
 
@@ -14,7 +14,7 @@ function bundledWorkflowsDir(): string {
   return Path.join(PROJECT_ROOT, "workflows")
 }
 
-function listBundledWorkflowIds(): string[] {
+function listBundledWorkflowSlugs(): string[] {
   const dir = bundledWorkflowsDir()
   if (!Fs.existsSync(dir)) return []
   return Fs.readdirSync(dir, { withFileTypes: true })
@@ -24,28 +24,28 @@ function listBundledWorkflowIds(): string[] {
 }
 
 export function installWorkflow(
-  workflowId: string,
+  workflowSlug: string,
   options?: { force?: boolean }
 ): Effect.Effect<void, InstallError> {
   return Effect.gen(function* () {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* Effect.fail(
-        new InstallError({ workflowId, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
       )
     }
 
-    const srcDir = Path.join(bundledWorkflowsDir(), workflowId)
-    const destDir = Path.join(workflowsDir(), workflowId)
+    const srcDir = Path.join(bundledWorkflowsDir(), workflowSlug)
+    const destDir = Path.join(workflowsDir(), workflowSlug)
 
     if (!Fs.existsSync(srcDir)) {
       return yield* Effect.fail(
-        new InstallError({ workflowId, message: `Bundled workflow "${workflowId}" not found` })
+        new InstallError({ workflowSlug, message: `Bundled workflow "${workflowSlug}" not found` })
       )
     }
 
     if (Fs.existsSync(destDir) && !options?.force) {
       return yield* Effect.fail(
-        new InstallError({ workflowId, message: `Workflow "${workflowId}" already installed (use --force to overwrite)` })
+        new InstallError({ workflowSlug, message: `Workflow "${workflowSlug}" already installed (use --force to overwrite)` })
       )
     }
 
@@ -64,33 +64,33 @@ export function installWorkflow(
         }
       },
       catch: (e) =>
-        new InstallError({ workflowId, message: `Failed to install workflow "${workflowId}": ${String(e)}` })
+        new InstallError({ workflowSlug, message: `Failed to install workflow "${workflowSlug}": ${String(e)}` })
     })
   })
 }
 
 export function uninstallWorkflow(
-  workflowId: string
+  workflowSlug: string
 ): Effect.Effect<void, InstallError> {
   return Effect.gen(function* () {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* Effect.fail(
-        new InstallError({ workflowId, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
       )
     }
 
-    const destDir = Path.join(workflowsDir(), workflowId)
+    const destDir = Path.join(workflowsDir(), workflowSlug)
 
     if (!Fs.existsSync(destDir)) {
       return yield* Effect.fail(
-        new InstallError({ workflowId, message: `Workflow "${workflowId}" is not installed` })
+        new InstallError({ workflowSlug, message: `Workflow "${workflowSlug}" is not installed` })
       )
     }
 
     yield* Effect.try({
       try: () => Fs.rmSync(destDir, { recursive: true, force: true }),
       catch: (e) =>
-        new InstallError({ workflowId, message: `Failed to uninstall workflow "${workflowId}": ${String(e)}` })
+        new InstallError({ workflowSlug, message: `Failed to uninstall workflow "${workflowSlug}": ${String(e)}` })
     })
   })
 }
@@ -99,11 +99,11 @@ export function installAllWorkflows(
   options?: { force?: boolean }
 ): Effect.Effect<string[], InstallError> {
   return Effect.gen(function* () {
-    const ids = listBundledWorkflowIds()
+    const slugs = listBundledWorkflowSlugs()
     const installed: string[] = []
-    for (const id of ids) {
-      yield* installWorkflow(id, options)
-      installed.push(id)
+    for (const slug of slugs) {
+      yield* installWorkflow(slug, options)
+      installed.push(slug)
     }
     return installed
   })

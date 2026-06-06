@@ -59,7 +59,7 @@ export function formatStatus(status: RunStatus): string {
   const currentIdx = status.steps.findIndex((s) => s.status === "running")
   if (status.currentStep && currentIdx >= 0) {
     const step = status.steps[currentIdx]
-    lines.push(`Step:      ${currentIdx + 1}/${status.steps.length} \u2014 ${step.stepId} (agent: ${step.agentId})`)
+    lines.push(`Step:      ${currentIdx + 1}/${status.steps.length} \u2014 ${step.stepId} (agent: ${step.agentSlug})`)
   }
 
   const stepLine = status.steps.map((s) => `${s.stepId} ${stepIndicator(s.status)}`).join("  ")

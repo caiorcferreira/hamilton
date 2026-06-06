@@ -18,7 +18,7 @@ export interface RunStatus {
   currentStep: string | null
   steps: Array<{
     stepId: string
-    agentId: string
+    agentSlug: string
     status: string
     startedAt: string | null
     completedAt: string | null
