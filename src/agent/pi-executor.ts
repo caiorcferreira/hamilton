@@ -13,6 +13,8 @@ import { piAgentDir } from "../paths.js"
 import { subscribePiEvents } from "../observability/streaming.js"
 import { appendStepLog } from "../observability/run-dir.js"
 import { parseAgentOutput } from "../agent/activity.js"
+import * as Fs from "node:fs"
+import * as Path from "node:path"
 
 export interface PiExecutorConfig {
   systemPrompt: string
@@ -36,16 +38,29 @@ export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
   message: string
 }> {}
 
-function parseModelString(
-  model?: string
-): [string, string] {
-  const defaultModel = "anthropic/claude-sonnet-4-20250514"
-  const parts = (model ?? defaultModel).split("/")
-  if (parts.length !== 2) {
-    const fallback = defaultModel.split("/")
-    return [fallback[0]!, fallback[1]!]
+function readDefaults(agentDir: string): { defaultProvider: string; defaultModel: string } {
+  try {
+    const settingsPath = Path.join(agentDir, "settings.json")
+    const raw = Fs.readFileSync(settingsPath, "utf-8")
+    const settings = JSON.parse(raw)
+    return {
+      defaultProvider: settings.defaultProvider ?? "openai",
+      defaultModel: settings.defaultModel ?? "glm-5.1"
+    }
+  } catch {
+    return { defaultProvider: "openai", defaultModel: "glm-5.1" }
   }
-  return [parts[0]!, parts[1]!]
+}
+
+function parseModelString(
+  model: string | undefined,
+  defaults: { defaultProvider: string; defaultModel: string }
+): [string, string] {
+  if (model) {
+    const parts = model.split("/")
+    if (parts.length === 2) return [parts[0]!, parts[1]!]
+  }
+  return [defaults.defaultProvider, defaults.defaultModel]
 }
 
 function mapThinkingLevel(level?: string): ThinkingLevel {
@@ -82,21 +97,20 @@ export function executeWithPi(
 ): Effect.Effect<Record<string, unknown>, PiExecutionError> {
   return Effect.gen(function* (_) {
     const cwd = config.cwd ?? process.cwd()
+    const agentDir = piAgentDir()
+    const defaults = readDefaults(agentDir)
 
-    const authStorage = AuthStorage.create()
-    const modelRegistry = ModelRegistry.create(authStorage)
-    const settingsManager = SettingsManager.inMemory({
-      compaction: { enabled: false },
-      retry: { enabled: false }
-    })
+    const authStorage = AuthStorage.create(Path.join(agentDir, "auth.json"))
+    const modelRegistry = ModelRegistry.create(authStorage, Path.join(agentDir, "models.json"))
+    const settingsManager = SettingsManager.create(cwd, agentDir)
 
-    const [provider, modelId] = parseModelString(config.model)
-    const model = getModel(provider as "anthropic", modelId as Parameters<typeof getModel>[1])
+    const [provider, modelId] = parseModelString(config.model, defaults)
+    const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
     const loader = new DefaultResourceLoader({
       cwd,
-      agentDir: piAgentDir(),
+      agentDir,
       systemPromptOverride: () => config.systemPrompt,
       extensionFactories: config.extensions as Array<(pi: unknown) => void> | undefined,
       settingsManager
@@ -112,6 +126,7 @@ export function executeWithPi(
           model,
           thinkingLevel,
           tools: config.settings?.tools ?? [],
+          agentDir,
           authStorage,
           modelRegistry,
           resourceLoader: loader,
