@@ -65,50 +65,56 @@ describe("queries", () => {
   it("insertSteps creates all steps", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
     insertSteps(db, "run-1", [
-      { stepId: "step-1", agentId: "agent-1" },
-      { stepId: "step-2", agentId: "agent-2" }
+      { stepSlug: "step-1", agentSlug: "agent-1" },
+      { stepSlug: "step-2", agentSlug: "agent-2" }
     ])
     const steps = getStepsByRunId(db, "run-1")
     expect(steps).toHaveLength(2)
-    expect(steps[0].step_id).toBe("step-1")
+    expect(steps[0].id).toContain("step-1")
     expect(steps[0].agent_id).toBe("agent-1")
-    expect(steps[1].step_id).toBe("step-2")
+    expect(steps[1].id).toContain("step-2")
   })
 
   it("updateStepStarted sets status to running", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertSteps(db, "run-1", [{ stepId: "step-1", agentId: "agent-1" }])
-    updateStepStarted(db, "run-1", "step-1", "2025-01-01T00:01:00Z")
+    insertSteps(db, "run-1", [{ stepSlug: "step-1", agentSlug: "agent-1" }])
     const steps = getStepsByRunId(db, "run-1")
-    expect(steps[0].status).toBe("running")
-    expect(steps[0].started_at).toBe("2025-01-01T00:01:00Z")
+    const stepId = steps[0].id
+    updateStepStarted(db, "run-1", stepId, "2025-01-01T00:01:00Z")
+    const updated = getStepsByRunId(db, "run-1")
+    expect(updated[0].status).toBe("running")
+    expect(updated[0].started_at).toBe("2025-01-01T00:01:00Z")
     const run = getRunById(db, "run-1")
-    expect(run!.current_step).toBe("step-1")
+    expect(run!.current_step).toBe(stepId)
   })
 
   it("updateStepCompleted sets status, tokens, output", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertSteps(db, "run-1", [{ stepId: "step-1", agentId: "agent-1" }])
-    updateStepStarted(db, "run-1", "step-1", "2025-01-01T00:01:00Z")
-    updateStepCompleted(db, "run-1", "step-1", "2025-01-01T00:02:00Z", {
+    insertSteps(db, "run-1", [{ stepSlug: "step-1", agentSlug: "agent-1" }])
+    const steps = getStepsByRunId(db, "run-1")
+    const stepId = steps[0].id
+    updateStepStarted(db, "run-1", stepId, "2025-01-01T00:01:00Z")
+    updateStepCompleted(db, "run-1", stepId, "2025-01-01T00:02:00Z", {
       tokensIn: 100,
       tokensOut: 50,
       output: { result: "done" }
     })
-    const steps = getStepsByRunId(db, "run-1")
-    expect(steps[0].status).toBe("completed")
-    expect(steps[0].tokens_in).toBe(100)
-    expect(steps[0].tokens_out).toBe(50)
-    expect(JSON.parse(steps[0].output_json!)).toEqual({ result: "done" })
+    const updated = getStepsByRunId(db, "run-1")
+    expect(updated[0].status).toBe("completed")
+    expect(updated[0].tokens_in).toBe(100)
+    expect(updated[0].tokens_out).toBe(50)
+    expect(JSON.parse(updated[0].output_json!)).toEqual({ result: "done" })
   })
 
   it("updateStepFailed sets status and error", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertSteps(db, "run-1", [{ stepId: "step-1", agentId: "agent-1" }])
-    updateStepFailed(db, "run-1", "step-1", "something went wrong")
+    insertSteps(db, "run-1", [{ stepSlug: "step-1", agentSlug: "agent-1" }])
     const steps = getStepsByRunId(db, "run-1")
-    expect(steps[0].status).toBe("failed")
-    expect(steps[0].error_message).toBe("something went wrong")
+    const stepId = steps[0].id
+    updateStepFailed(db, "run-1", stepId, "something went wrong")
+    const updated = getStepsByRunId(db, "run-1")
+    expect(updated[0].status).toBe("failed")
+    expect(updated[0].error_message).toBe("something went wrong")
   })
 
   it("insertTokenEvent adds event", () => {
@@ -140,13 +146,15 @@ describe("queries", () => {
 
   it("getRunStatus returns formatted status for CLI", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertSteps(db, "run-1", [{ stepId: "step-1", agentId: "agent-1" }])
-    updateStepStarted(db, "run-1", "step-1", "2025-01-01T00:01:00Z")
-    updateStepCompleted(db, "run-1", "step-1", "2025-01-01T00:02:00Z", {
+    insertSteps(db, "run-1", [{ stepSlug: "step-1", agentSlug: "agent-1" }])
+    const steps = getStepsByRunId(db, "run-1")
+    const stepId = steps[0].id
+    updateStepStarted(db, "run-1", stepId, "2025-01-01T00:01:00Z")
+    updateStepCompleted(db, "run-1", stepId, "2025-01-01T00:02:00Z", {
       tokensIn: 100,
       tokensOut: 50
     })
-    insertTokenEvent(db, "run-1", "step-1", "completion", 100, 50)
+    insertTokenEvent(db, "run-1", stepId, "completion", 100, 50)
     const status = getRunStatus(db, "run-1")
     expect(status).not.toBeNull()
     expect(status!.runId).toBe("run-1")

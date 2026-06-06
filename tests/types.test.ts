@@ -3,7 +3,10 @@ import type {
   WorkflowSpec,
   WorkflowAgent,
   WorkflowStep,
-  AgentRole
+  AgentRole,
+  AgentSlug,
+  StepSlug,
+  WorkflowSlug
 } from "../src/types.js"
 
 describe("types", () => {
@@ -12,26 +15,26 @@ describe("types", () => {
     expect(role).toBe("analysis")
 
     const agent: WorkflowAgent = {
-      id: "test",
+      slug: "test" as AgentSlug,
       role: "coding",
       workspace: { baseDir: "agents/test", files: {} }
     }
-    expect(agent.id).toBe("test")
+    expect(agent.slug).toBe("test")
 
     const step: WorkflowStep = {
-      id: "step1",
-      agent: "test",
+      slug: "step1" as StepSlug,
+      agent: "test" as AgentSlug,
       input: "do something"
     }
     expect(step.agent).toBe("test")
 
     const spec: WorkflowSpec = {
-      id: "test-wf",
+      slug: "test-wf" as WorkflowSlug,
       name: "Test",
       version: 1,
       agents: [agent],
       steps: [step]
     }
-    expect(spec.id).toBe("test-wf")
+    expect(spec.slug).toBe("test-wf")
   })
 })

@@ -5,18 +5,18 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { listWorkflows } from "../../src/cli/commands/list.js"
 
-const validYaml = (id: string, name: string, desc?: string) => `id: ${id}
+const validYaml = (slug: string, name: string, desc?: string) => `slug: ${slug}
 name: ${name}
 version: 1
 ${desc ? `description: "${desc}"` : ""}
 agents:
-  - id: agent-1
+  - slug: agent-1
     role: coding
     workspace:
       baseDir: .
       files: {}
 steps:
-  - id: step-1
+  - slug: step-1
     agent: agent-1
     input: "Do stuff"
 `
@@ -47,12 +47,12 @@ describe("listWorkflows", () => {
     if (Exit.isSuccess(exit)) {
       const items = exit.value
       expect(items).toHaveLength(2)
-      expect(items[0].id).toBe("alpha")
+      expect(items[0].slug).toBe("alpha")
       expect(items[0].name).toBe("Alpha WF")
       expect(items[0].description).toBe("First workflow")
       expect(items[0].stepCount).toBe(1)
       expect(items[0].agentCount).toBe(1)
-      expect(items[1].id).toBe("beta")
+      expect(items[1].slug).toBe("beta")
       expect(items[1].description).toBeUndefined()
     }
   })
@@ -76,7 +76,7 @@ describe("listWorkflows", () => {
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(1)
-      expect(exit.value[0].id).toBe("good")
+      expect(exit.value[0].slug).toBe("good")
     }
   })
 })

@@ -19,17 +19,17 @@ vi.mock("../../src/agent/pi-executor.js", () => {
   }
 })
 
-const validYaml = `id: test-wf
+const validYaml = `slug: test-wf
 name: Test Workflow
 version: 1
 agents:
-  - id: agent-1
+  - slug: agent-1
     role: coding
     workspace:
       baseDir: .
       files: {}
 steps:
-  - id: step-1
+  - slug: step-1
     agent: agent-1
     input: "Do the thing"
 `

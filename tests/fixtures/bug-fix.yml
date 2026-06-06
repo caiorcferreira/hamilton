@@ -1,4 +1,4 @@
-id: bug-fix
+slug: bug-fix
 name: Bug Fix Workflow
 version: 1
 description: Triage, investigate, and fix bugs.
@@ -6,14 +6,14 @@ polling:
   model: default
   timeoutSeconds: 120
 agents:
-  - id: triager
+  - slug: triager
     role: analysis
     workspace:
       baseDir: agents/triager
       files:
         AGENTS.md: agents/triager/AGENTS.md
 steps:
-  - id: triage
+  - slug: triage
     agent: triager
     input: "Triage this bug: {{task}}"
     expects: "STATUS: done"

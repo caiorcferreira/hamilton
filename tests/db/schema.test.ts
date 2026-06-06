@@ -67,11 +67,11 @@ describe("createSchema", () => {
       "INSERT INTO runs (id, workflow_id, status, started_at) VALUES (?, ?, ?, ?)"
     ).run("run-1", "wf-1", "running", new Date().toISOString())
     db.prepare(
-      "INSERT INTO steps (id, run_id, step_id, agent_id, status) VALUES (?, ?, ?, ?, ?)"
-    ).run("run-1:step-1", "run-1", "step-1", "agent-1", "pending")
+      "INSERT INTO steps (id, run_id, agent_id, status) VALUES (?, ?, ?, ?)"
+    ).run("run-1-step-1-abcde", "run-1", "agent-1", "pending")
     const steps = db.prepare("SELECT * FROM steps WHERE run_id = ?").all("run-1") as any[]
     expect(steps).toHaveLength(1)
-    expect(steps[0].step_id).toBe("step-1")
+    expect(steps[0].id).toBe("run-1-step-1-abcde")
     expect(steps[0].agent_id).toBe("agent-1")
   })
 

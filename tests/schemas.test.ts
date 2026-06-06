@@ -15,7 +15,7 @@ describe("WorkflowSpecSchema", () => {
     )
     const raw = Yaml.parse(yaml)
     const spec = decode(raw)
-    expect(spec.id).toBe("bug-fix")
+    expect(spec.slug).toBe("bug-fix")
     expect(spec.name).toBe("Bug Fix Workflow")
     expect(spec.version).toBe(1)
     expect(spec.agents).toHaveLength(1)
@@ -25,14 +25,14 @@ describe("WorkflowSpecSchema", () => {
   })
 
   it("should reject a workflow with no agents", () => {
-    const raw = { id: "bad", name: "Bad", version: 1, agents: [], steps: [] }
+    const raw = { slug: "bad", name: "Bad", version: 1, agents: [], steps: [] }
     expect(() => decode(raw)).toThrow()
   })
 
   it("should reject an invalid agent role", () => {
     const raw = {
-      id: "bad", name: "Bad", version: 1,
-      agents: [{ id: "a", role: "invalid", workspace: { baseDir: "x", files: {} } }],
+      slug: "bad", name: "Bad", version: 1,
+      agents: [{ slug: "a", role: "invalid", workspace: { baseDir: "x", files: {} } }],
       steps: []
     }
     expect(() => decode(raw)).toThrow()
@@ -40,9 +40,9 @@ describe("WorkflowSpecSchema", () => {
 
   it("should reject a missing step agent reference", () => {
     const raw = {
-      id: "bad", name: "Bad", version: 1,
-      agents: [{ id: "a", role: "coding", workspace: { baseDir: "x", files: {} } }],
-      steps: [{ id: "s1", agent: "b", input: "x" }]
+      slug: "bad", name: "Bad", version: 1,
+      agents: [{ slug: "a", role: "coding", workspace: { baseDir: "x", files: {} } }],
+      steps: [{ slug: "s1", agent: "b", input: "x" }]
     }
     expect(() => decode(raw)).toThrow()
   })

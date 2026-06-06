@@ -47,16 +47,20 @@ describe("loadRunState (SQLite-backed)", () => {
     const startedAt = "2026-01-01T00:00:00.000Z"
     insertRun(db, "run-1", "bug-fix", startedAt)
     insertSteps(db, "run-1", [
-      { stepId: "triage", agentId: "triager" },
-      { stepId: "fix", agentId: "fixer" }
+      { stepSlug: "triage", agentSlug: "triager" },
+      { stepSlug: "fix", agentSlug: "fixer" }
     ])
-    updateStepStarted(db, "run-1", "triage", "2026-01-01T00:00:01.000Z")
-    updateStepCompleted(db, "run-1", "triage", "2026-01-01T00:00:30.000Z", {
+    const steps = db.prepare("SELECT * FROM steps WHERE run_id = ? ORDER BY id").all("run-1") as any[]
+    const triageStepId = steps.find((s: any) => s.id.includes("triage"))!.id
+    const fixStepId = steps.find((s: any) => s.id.includes("fix"))!.id
+
+    updateStepStarted(db, "run-1", triageStepId, "2026-01-01T00:00:01.000Z")
+    updateStepCompleted(db, "run-1", triageStepId, "2026-01-01T00:00:30.000Z", {
       tokensIn: 500,
       tokensOut: 200
     })
-    updateStepStarted(db, "run-1", "fix", "2026-01-01T00:00:31.000Z")
-    insertTokenEvent(db, "run-1", "triage", "completion", 500, 200)
+    updateStepStarted(db, "run-1", fixStepId, "2026-01-01T00:00:31.000Z")
+    insertTokenEvent(db, "run-1", triageStepId, "completion", 500, 200)
 
     const dp = Path.join(tmpHome, ".hamilton", "hamilton.db")
     const targetDb = new Database(dp)
@@ -70,8 +74,8 @@ describe("loadRunState (SQLite-backed)", () => {
     const stepsData = db.prepare("SELECT * FROM steps").all() as any[]
     for (const row of stepsData) {
       targetDb.prepare(
-        `INSERT OR REPLACE INTO steps (id, run_id, step_id, agent_id, status, started_at, completed_at, tokens_in, tokens_out, retry_count, error_message, output_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(row.id, row.run_id, row.step_id, row.agent_id, row.status, row.started_at, row.completed_at, row.tokens_in, row.tokens_out, row.retry_count, row.error_message, row.output_json)
+        `INSERT OR REPLACE INTO steps (id, run_id, agent_id, status, started_at, completed_at, tokens_in, tokens_out, retry_count, error_message, output_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(row.id, row.run_id, row.agent_id, row.status, row.started_at, row.completed_at, row.tokens_in, row.tokens_out, row.retry_count, row.error_message, row.output_json)
     }
     const tokenData = db.prepare("SELECT * FROM token_events").all() as any[]
     for (const row of tokenData) {
@@ -88,9 +92,9 @@ describe("loadRunState (SQLite-backed)", () => {
       expect(exit.value.workflow).toBe("bug-fix")
       expect(exit.value.status).toBe("running")
       expect(exit.value.steps).toHaveLength(2)
-      expect(exit.value.steps[0].stepId).toBe("fix")
+      expect(exit.value.steps[0].stepId).toContain("fix")
       expect(exit.value.steps[0].status).toBe("running")
-      expect(exit.value.steps[1].stepId).toBe("triage")
+      expect(exit.value.steps[1].stepId).toContain("triage")
       expect(exit.value.steps[1].status).toBe("completed")
       expect(exit.value.totalTokensIn).toBe(500)
       expect(exit.value.totalTokensOut).toBe(200)
@@ -118,11 +122,11 @@ describe("formatStatus", () => {
       completedAt: null,
       currentStep: "fix",
       steps: [
-        { stepId: "triage", agentId: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { stepId: "investigate", agentId: "investigator", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { stepId: "setup", agentId: "setter", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { stepId: "fix", agentId: "fixer", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { stepId: "verify", agentId: "verifier", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
+        { stepId: "triage", agentSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { stepId: "investigate", agentSlug: "investigator", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { stepId: "setup", agentSlug: "setter", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { stepId: "fix", agentSlug: "fixer", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { stepId: "verify", agentSlug: "verifier", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
       ],
       totalTokensIn: 25000,
       totalTokensOut: 8000,
@@ -150,7 +154,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:05:00.000Z",
       currentStep: null,
       steps: [
-        { stepId: "step-1", agentId: "a1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
+        { stepId: "step-1", agentSlug: "a1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
       ],
       totalTokensIn: 100,
       totalTokensOut: 50,
@@ -170,7 +174,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:00:10.000Z",
       currentStep: null,
       steps: [
-        { stepId: "step-1", agentId: "a1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
+        { stepId: "step-1", agentSlug: "a1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
       ],
       totalTokensIn: 0,
       totalTokensOut: 0,
