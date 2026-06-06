@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite"
+import { buildStepId } from "../workflow/engine.js"
 
 export interface RunRow {
   id: string
@@ -14,7 +15,6 @@ export interface RunRow {
 export interface StepRow {
   id: string
   run_id: string
-  step_id: string
   agent_id: string
   status: string
   started_at: string | null
@@ -35,7 +35,7 @@ export interface RunStatusRow {
   currentStep: string | null
   steps: Array<{
     stepId: string
-    agentId: string
+    agentSlug: string
     status: string
     startedAt: string | null
     completedAt: string | null
@@ -62,13 +62,13 @@ export function insertRun(
 export function insertSteps(
   db: Database,
   runId: string,
-  steps: Array<{ stepId: string; agentId: string }>
+  steps: Array<{ stepSlug: string; agentSlug: string }>
 ): void {
   const stmt = db.prepare(
-    `INSERT OR REPLACE INTO steps (id, run_id, step_id, agent_id, status) VALUES (?, ?, ?, ?, 'pending')`
+    `INSERT OR REPLACE INTO steps (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
   )
   for (const step of steps) {
-    stmt.run(`${runId}:${step.stepId}`, runId, step.stepId, step.agentId)
+    stmt.run(buildStepId(runId, step.stepSlug), runId, step.agentSlug)
   }
 }
 
@@ -80,7 +80,7 @@ export function updateStepStarted(
 ): void {
   db.prepare(
     `UPDATE steps SET status = 'running', started_at = ? WHERE id = ?`
-  ).run(startedAt, `${runId}:${stepId}`)
+  ).run(startedAt, stepId)
   db.prepare(
     `UPDATE runs SET current_step = ? WHERE id = ?`
   ).run(stepId, runId)
@@ -96,7 +96,7 @@ export function updateStepCompleted(
   const outputJson = data.output ? JSON.stringify(data.output) : null
   db.prepare(
     `UPDATE steps SET status = 'completed', completed_at = ?, tokens_in = ?, tokens_out = ?, output_json = ? WHERE id = ?`
-  ).run(completedAt, data.tokensIn ?? 0, data.tokensOut ?? 0, outputJson, `${runId}:${stepId}`)
+  ).run(completedAt, data.tokensIn ?? 0, data.tokensOut ?? 0, outputJson, stepId)
 }
 
 export function updateStepFailed(
@@ -107,7 +107,7 @@ export function updateStepFailed(
 ): void {
   db.prepare(
     `UPDATE steps SET status = 'failed', error_message = ? WHERE id = ?`
-  ).run(errorMessage, `${runId}:${stepId}`)
+  ).run(errorMessage, stepId)
 }
 
 export function insertTokenEvent(
@@ -168,8 +168,8 @@ export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
     completedAt: run.completed_at,
     currentStep: run.current_step,
     steps: steps.map((s) => ({
-      stepId: s.step_id,
-      agentId: s.agent_id,
+      stepId: s.id,
+      agentSlug: s.agent_id,
       status: s.status,
       startedAt: s.started_at,
       completedAt: s.completed_at,
