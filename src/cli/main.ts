@@ -4,6 +4,7 @@ import { listWorkflows } from "./commands/list.js"
 import { executeRun } from "./commands/run.js"
 import { getRunStatus } from "./commands/status.js"
 import { getRunLogs } from "./commands/logs.js"
+import { verifyRtk } from "./commands/rtk.js"
 
 const args = process.argv.slice(2)
 
@@ -17,6 +18,7 @@ if (args.length === 0) {
   console.log("  workflow resume <id>               Resume a paused workflow")
   console.log("  workflow list                      List installed workflows")
   console.log("  workflow logs <id> [--step <id>]   View run logs")
+  console.log("  rtk verify                          Check rtk installation")
   process.exit(0)
 }
 
@@ -109,6 +111,26 @@ if (command === "workflow") {
   } else if (subcommand) {
     console.error(`Unknown subcommand: ${subcommand}`)
     process.exit(1)
+  }
+} else if (command === "rtk") {
+  const subcommand = args[1]
+  if (subcommand === "verify") {
+    void Effect.runPromiseExit(verifyRtk).then((result) => {
+      if (Exit.isSuccess(result)) {
+        const s = result.value
+        if (s.installed) {
+          console.log(`rtk ${s.version} found at ${s.path}`)
+          console.log(`Status: ${s.message}`)
+        } else {
+          console.log(`rtk not found in PATH`)
+          console.log(`Status: MISSING — install with: npm install -g @rtk-ai/rtk`)
+        }
+      }
+    })
+  } else {
+    console.log("rtk commands:")
+    console.log("  rtk verify    Check if rtk is installed and meets minimum version")
+    process.exit(0)
   }
 } else if (command) {
   console.error(`Unknown command: ${command}`)
