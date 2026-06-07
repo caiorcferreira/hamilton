@@ -142,7 +142,7 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
+          REPO: {{tasks.setup.outputs.repo}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
 
@@ -180,12 +180,12 @@ tasks:
         content: |
           Prepare the environment for security fixes.
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
 
           Instructions:
           1. cd into the repo
-          2. Create the security branch (git checkout -b {{branch}} from main)
+          2. Create the security branch (git checkout -b {{tasks.setup.outputs.branch}} from main)
           3. Read package.json, CI config, test config to understand build/test setup
           4. Run the build to establish a baseline
           5. Run the tests to establish a baseline
@@ -217,13 +217,13 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           COMPLETED STORIES:
           {{completed_stories}}
@@ -244,8 +244,8 @@ tasks:
           2. Read the vulnerability description carefully
           3. Implement the fix — minimal, targeted changes only
           4. Write a regression test that verifies the vulnerability is patched
-          5. Run {{build_cmd}} to verify the build passes
-          6. Run {{test_cmd}} to verify all tests pass
+          5. Run {{tasks.setup.outputs.build_cmd}} to verify the build passes
+          6. Run {{tasks.setup.outputs.test_cmd}} to verify all tests pass
           7. Commit: fix(security): brief description
           8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
 
@@ -272,20 +272,20 @@ tasks:
         content: |
           Verify the security fix is correct and the vulnerability is patched.
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           PROGRESS LOG:
           {{progress}}
 
           Instructions:
-          1. Run the full test suite with {{test_cmd}}
+          1. Run the full test suite with {{tasks.setup.outputs.test_cmd}}
           2. Confirm the regression test exists and tests the right thing
           3. Review the fix — does it actually address the vulnerability?
           4. Check for unintended side effects
@@ -322,10 +322,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
 
@@ -333,8 +333,8 @@ tasks:
           {{progress}}
 
           Instructions:
-          1. Run the full test suite ({{test_cmd}}) — all tests must pass
-          2. Run the build ({{build_cmd}}) — must succeed
+          1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) — all tests must pass
+          2. Run the build ({{tasks.setup.outputs.build_cmd}}) — must succeed
           3. Run `npm audit` (or equivalent) again — compare before/after
           4. Quick smoke test: does the app still start and work?
           5. Verify no regressions from the security fixes
@@ -361,8 +361,8 @@ tasks:
         content: |
           Create a pull request for the security fixes.
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
           FIX_PLAN: {{fix_plan}}

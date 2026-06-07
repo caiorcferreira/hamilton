@@ -80,8 +80,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
@@ -89,7 +89,7 @@ tasks:
           Instructions:
           1. cd into the repo
           2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
-          3. Create the quarantine branch (git checkout -b {{branch}})
+          3. Create the quarantine branch (git checkout -b {{tasks.setup.outputs.branch}})
           4. Read package.json, CI config, test config to understand the build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -118,21 +118,21 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
 
           Instructions:
-          1. cd into the repo and ensure you're on {{branch}}
-          2. Run {{build_cmd}} to confirm the project builds
-          3. Run {{test_cmd}} and parse the output to find failing tests
+          1. cd into the repo and ensure you're on {{tasks.setup.outputs.branch}}
+          2. Run {{tasks.setup.outputs.build_cmd}} to confirm the project builds
+          3. Run {{tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
           4. If zero failures on first run, run one more time to catch flaky tests
           5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-          6. Run {{test_cmd}} after each batch of changes
+          6. Run {{tasks.setup.outputs.test_cmd}} after each batch of changes
           7. Iterate until all tests pass — then run one final time to confirm stability
           8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
@@ -160,10 +160,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           DISABLED: {{disabled}}
           SUMMARY: {{summary}}
 
@@ -171,9 +171,9 @@ tasks:
           {{retry_feedback}}
 
           Check:
-          1. Run {{build_cmd}} — build must pass
-          2. Run {{test_cmd}} — all tests must pass (exit code 0)
-          3. Run {{test_cmd}} a second time — confirm stability
+          1. Run {{tasks.setup.outputs.build_cmd}} — build must pass
+          2. Run {{tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
+          3. Run {{tasks.setup.outputs.test_cmd}} a second time — confirm stability
           4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
           5. Verify each disabled test has an explanatory comment
           6. If retry feedback is present, the merger rebased the branch to resolve conflicts — re-validate the rebased changes listed in the feedback
@@ -205,9 +205,9 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          ORIGINAL_BRANCH: {{original_branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
 
           DISABLED: {{disabled}}
           SUMMARY: {{summary}}
@@ -218,15 +218,15 @@ tasks:
           Follow the Required Process from your AGENTS.md:
 
           Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-          1. cd {{repo}}
-          2. git checkout {{original_branch}}
-          3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+          1. cd {{tasks.setup.outputs.repo}}
+          2. git checkout {{tasks.setup.outputs.original_branch}}
+          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}
              - Exit 0 (FF): proceed to Phase 3
              - Exit non-zero (not FF): proceed to Phase 2
 
           Phase 2 — Rebase (Non-Fast-Forward Path):
-          4. git checkout {{branch}}
-          5. git rebase {{original_branch}}
+          4. git checkout {{tasks.setup.outputs.branch}}
+          5. git rebase {{tasks.setup.outputs.original_branch}}
           6. Fix any conflicts; `git rebase --continue` until complete
           7. If rebase changed code/tests/docs/config:
              - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: verify
@@ -234,8 +234,8 @@ tasks:
           8. If rebase was clean: proceed to Phase 3
 
           Phase 3 — Squash Merge (Fast-Forward-Safe):
-          9. git checkout {{original_branch}}
-          10. git merge --squash {{branch}}
+          9. git checkout {{tasks.setup.outputs.original_branch}}
+          10. git merge --squash {{tasks.setup.outputs.branch}}
           11. Build a descriptive commit message (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
 
           Verify the merge commit was created:
@@ -245,7 +245,7 @@ tasks:
           STATUS: done
           REBASED: <true|false>
           MERGE_COMMIT: <short commit hash>
-          MERGED_INTO: {{original_branch}}
+          MERGED_INTO: {{tasks.setup.outputs.original_branch}}
 
           Or if rebase requires verifier re-validation:
           STATUS: retry

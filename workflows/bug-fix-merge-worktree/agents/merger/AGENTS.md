@@ -16,9 +16,9 @@ Use explicit git commands in this order:
 
 ### Phase 1: Fast-Forward Check (ALWAYS FIRST)
 
-1. `cd {{repo}}`
-2. `git checkout {{original_branch}}`
-3. `git merge-base --is-ancestor {{original_branch}} {{branch}}`
+1. `cd {{tasks.setup.outputs.repo}}`
+2. `git checkout {{tasks.setup.outputs.original_branch}}`
+3. `git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}`
 
 **If the command exits 0 (success):** the merge IS a fast-forward. Proceed to Phase 3 (Squash Merge).
 
@@ -26,8 +26,8 @@ Use explicit git commands in this order:
 
 ### Phase 2: Rebase (Non-Fast-Forward Path)
 
-4. `git checkout {{branch}}`
-5. `git rebase {{original_branch}}`
+4. `git checkout {{tasks.setup.outputs.branch}}`
+5. `git rebase {{tasks.setup.outputs.original_branch}}`
 6. If conflicts arise, fix them carefully:
    - Resolve each conflict by editing the files
    - `git add` the resolved files
@@ -41,8 +41,8 @@ Use explicit git commands in this order:
 
 The merge is now fast-forward-safe (either was FF from the start, or has been rebased to be so).
 
-8. `git checkout {{original_branch}}`
-9. `git merge --squash {{branch}}`
+8. `git checkout {{tasks.setup.outputs.original_branch}}`
+9. `git merge --squash {{tasks.setup.outputs.branch}}`
 10. Build a descriptive commit message (see "Commit Message Generation" below), write it to a temp file, then commit with `git commit -F <tempfile>`
 11. `git rev-parse --short HEAD`
 
@@ -53,7 +53,7 @@ Do NOT use a hardcoded one-line commit message. Instead, generate a descriptive,
 ### Gathering Information
 
 1. Read the bug report from `{{task}}` to understand what was broken
-2. Get the git log of the bugfix branch: `git log {{original_branch}}..{{branch}} --oneline`
+2. Get the git log of the bugfix branch: `git log {{tasks.setup.outputs.original_branch}}..{{tasks.setup.outputs.branch}} --oneline`
 3. Identify the bug, root cause, and fix from the step context ({{problem_statement}}, {{root_cause}}, {{changes}}, {{regression_test}})
 
 ### Generating the Message

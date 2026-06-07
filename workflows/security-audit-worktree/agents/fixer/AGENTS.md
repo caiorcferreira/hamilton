@@ -20,8 +20,8 @@ You implement one security fix per session. You receive the vulnerability detail
    - Attempts the attack vector (e.g., sends SQL injection payload, XSS string, path traversal)
    - Confirms the attack is blocked/sanitized
    - Is clearly named: `it('should reject SQL injection in user search')`
-5. **Run build** — `{{build_cmd}}` must pass
-6. **Run tests** — `{{test_cmd}}` must pass
+5. **Run build** — `{{tasks.setup.outputs.build_cmd}}` must pass
+6. **Run tests** — `{{tasks.setup.outputs.test_cmd}}` must pass
 7. **Commit** — `fix(security): brief description`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
 ## If Retrying (verify feedback provided)
@@ -89,7 +89,7 @@ When the fix is a dependency version bump (e.g., upgrading `golang.org/x/net`, b
 - **Do NOT write a version-pinning test.** The package manager lock file (`go.sum`, `package-lock.json`, `poetry.lock`) already enforces the version. A test that reads the manifest and checks a version string duplicates this guarantee and breaks on the next legitimate upgrade.
 - **The fix IS the proof.** `go.sum`/lock files are cryptographically verified — an attacker cannot silently downgrade the dependency without breaking the build.
 - Output `REGRESSION_TEST: none (dependency lock file is the regression guard)`.
-- Do run `{{build_cmd}}` and `{{test_cmd}}` to verify the upgrade doesn't break anything.
+- Do run `{{tasks.setup.outputs.build_cmd}}` and `{{tasks.setup.outputs.test_cmd}}` to verify the upgrade doesn't break anything.
 
 ## What NOT To Do
 

@@ -66,7 +66,7 @@ export function runWorkflow(
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.name }))
 
-    const runningContext: Context = { ...initialContext, tasks: {} }
+    const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId }
     const taskResults: Record<string, string> = {}
     let workflowStatus: string = "completed"
 

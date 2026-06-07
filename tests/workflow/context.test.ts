@@ -57,6 +57,41 @@ describe("resolveTemplate", () => {
   })
 })
 
+describe("resolveTemplate with dotted paths", () => {
+  it("resolves dotted-path placeholders", () => {
+    const ctx = {
+      tasks: {
+        setup: { outputs: { repo: "/tmp/repo", branch: "feature/x", build_cmd: "npm run build" } },
+        plan: { outputs: { stories_json: [{ id: "US-001" }] } }
+      }
+    }
+    expect(resolveTemplate("REPO: {{tasks.setup.outputs.repo}}", ctx)).toBe("REPO: /tmp/repo")
+    expect(resolveTemplate("BRANCH: {{tasks.setup.outputs.branch}}", ctx)).toBe("BRANCH: feature/x")
+    expect(resolveTemplate("BUILD: {{tasks.setup.outputs.build_cmd}}", ctx)).toBe("BUILD: npm run build")
+    expect(resolveTemplate("STORIES: {{tasks.plan.outputs.stories_json}}", ctx))
+      .toBe('STORIES: [{"id":"US-001"}]')
+  })
+
+  it("resolves vars.current_story from forEach vars", () => {
+    const ctx = {
+      vars: { current_story: { id: "US-001", title: "Add feature" } }
+    }
+    expect(resolveTemplate("STORY: {{vars.current_story}}", ctx))
+      .toBe('STORY: {"id":"US-001","title":"Add feature"}')
+    expect(resolveTemplate("ID: {{vars.current_story.id}}", ctx)).toBe("ID: US-001")
+    expect(resolveTemplate("TITLE: {{vars.current_story.title}}", ctx)).toBe("TITLE: Add feature")
+  })
+
+  it("resolves multi-level dotted path", () => {
+    const ctx = { tasks: { setup: { outputs: { repo: { url: "github.com/x" } } } } }
+    expect(resolveTemplate("URL: {{tasks.setup.outputs.repo.url}}", ctx)).toBe("URL: github.com/x")
+  })
+
+  it("keeps unreplaced template with dotted path intact", () => {
+    expect(resolveTemplate("MISSING: {{tasks.nonexistent.field}}", {})).toBe("MISSING: {{tasks.nonexistent.field}}")
+  })
+})
+
 describe("mergeContext", () => {
   it("shallow-merges two context objects", () => {
     expect(mergeContext({ a: "1" }, { b: "2" })).toEqual({ a: "1", b: "2" })
@@ -122,5 +157,18 @@ describe("buildAutoContext", () => {
     }
     const result = buildAutoContext(task, allOutputs, vars)
     expect(result.story).toEqual({ id: "US-001", title: "Add feature" })
+  })
+
+  it("merges vars into allOutputs when no context.fields defined", () => {
+    const allOutputs = {
+      tasks: {
+        setup: { outputs: { repo: "/tmp/repo" } }
+      }
+    }
+    const vars = { current_story: { id: "US-001", title: "Add feature" } }
+    const task: WorkflowTask = { name: "implement-story" }
+    const result = buildAutoContext(task, allOutputs, vars)
+    expect(result.tasks).toEqual(allOutputs.tasks)
+    expect(result.current_story).toEqual({ id: "US-001", title: "Add feature" })
   })
 })

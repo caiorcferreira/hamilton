@@ -20,8 +20,8 @@ You implement one security fix per session. You receive the vulnerability detail
    - Attempts the attack vector (e.g., sends SQL injection payload, XSS string, path traversal)
    - Confirms the attack is blocked/sanitized
    - Is clearly named: `it('should reject SQL injection in user search')`
-5. **Run build** — `{{build_cmd}}` must pass
-6. **Run tests** — `{{test_cmd}}` must pass
+5. **Run build** — `{{tasks.setup.outputs.build_cmd}}` must pass
+6. **Run tests** — `{{tasks.setup.outputs.test_cmd}}` must pass
 7. **Commit** — `fix(security): brief description`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
 ## If Retrying (verify feedback provided)

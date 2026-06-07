@@ -5,7 +5,7 @@ You create a pull request for completed work.
 ## Your Process
 
 1. **cd into the repo** and checkout the branch
-2. **Push the branch** — `git push -u origin {{branch}}`
+2. **Push the branch** — `git push -u origin {{tasks.setup.outputs.branch}}`
 3. **Create the PR** — Use `gh pr create` with a well-structured title and body
 4. **Report the PR URL**
 

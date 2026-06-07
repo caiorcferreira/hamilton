@@ -8,7 +8,7 @@ description: |
   origin repository.
 
   Scanner explores the codebase for vulnerabilities. Prioritizer ranks and groups
-  findings. Setup prepares the worktree environment ({{original_branch}} is
+  findings. Setup prepares the worktree environment ({{tasks.setup.outputs.original_branch}} is
   pre-seeded by the harness since the worktree starts detached). Fixer implements
   each fix with regression tests. Verifier confirms each fix. Tester runs final
   integration validation. Merger squash-merges the audit fixes back into the
@@ -149,7 +149,7 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
+          REPO: {{tasks.setup.outputs.repo}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
 
@@ -187,15 +187,15 @@ tasks:
         content: |
           Prepare the environment for security fixes in a detached git worktree.
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          ORIGINAL_BRANCH: {{original_branch}}
-          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{tasks.setup.outputs.worktree_origin_repository}}
 
           Instructions:
           1. cd into the repo (this is the worktree path)
-          2. ORIGINAL_BRANCH is {{original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
-          3. Create the security branch (git checkout -b {{branch}})
+          2. ORIGINAL_BRANCH is {{tasks.setup.outputs.original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
+          3. Create the security branch (git checkout -b {{tasks.setup.outputs.branch}})
           4. Read package.json, CI config, test config to understand build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -203,7 +203,7 @@ tasks:
 
           Reply with:
           STATUS: done
-          ORIGINAL_BRANCH: {{original_branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
           BUILD_CMD: <build command>
           TEST_CMD: <test command>
           BASELINE: <baseline status>
@@ -229,13 +229,13 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           COMPLETED STORIES:
           {{completed_stories}}
@@ -256,8 +256,8 @@ tasks:
           2. Read the vulnerability description carefully
           3. Implement the fix — minimal, targeted changes only
           4. Write a regression test that verifies the vulnerability is patched
-          5. Run {{build_cmd}} to verify the build passes
-          6. Run {{test_cmd}} to verify all tests pass
+          5. Run {{tasks.setup.outputs.build_cmd}} to verify the build passes
+          6. Run {{tasks.setup.outputs.test_cmd}} to verify all tests pass
           7. Commit: fix(security): brief description
           8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
 
@@ -284,20 +284,20 @@ tasks:
         content: |
           Verify the security fix is correct and the vulnerability is patched.
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           PROGRESS LOG:
           {{progress}}
 
           Instructions:
-          1. Run the full test suite with {{test_cmd}}
+          1. Run the full test suite with {{tasks.setup.outputs.test_cmd}}
           2. Confirm the regression test exists and tests the right thing
           3. Review the fix — does it actually address the vulnerability?
           4. Check for unintended side effects
@@ -334,10 +334,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
 
@@ -348,8 +348,8 @@ tasks:
           {{retry_feedback}}
 
           Instructions:
-          1. Run the full test suite ({{test_cmd}}) — all tests must pass
-          2. Run the build ({{build_cmd}}) — must succeed
+          1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) — all tests must pass
+          2. Run the build ({{tasks.setup.outputs.build_cmd}}) — must succeed
           3. Run `npm audit` (or equivalent) again — compare before/after
           4. Quick smoke test: does the app still start and work?
           5. Verify no regressions from the security fixes
@@ -384,10 +384,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          ORIGINAL_BRANCH: {{original_branch}}
-          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{tasks.setup.outputs.worktree_origin_repository}}
 
           PROGRESS LOG:
           {{progress}}
@@ -399,21 +399,21 @@ tasks:
 
           IMPORTANT — Worktree Mode: All git operations below (phases 1–3) must run
           in the ORIGIN repository, NOT the worktree. Use:
-            git -C {{worktree_origin_repository}} <command>
-          for every git command. The worktree at {{repo}} contains the security branch
-          changes; the origin at {{worktree_origin_repository}} is where the merge
+            git -C {{tasks.setup.outputs.worktree_origin_repository}} <command>
+          for every git command. The worktree at {{tasks.setup.outputs.repo}} contains the security branch
+          changes; the origin at {{tasks.setup.outputs.worktree_origin_repository}} is where the merge
           must be finalized.
 
           Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-          1. cd {{worktree_origin_repository}}
-          2. git checkout {{original_branch}}
-          3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+          1. cd {{tasks.setup.outputs.worktree_origin_repository}}
+          2. git checkout {{tasks.setup.outputs.original_branch}}
+          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}
              - Exit 0 (FF): proceed to Phase 3
              - Exit non-zero (not FF): proceed to Phase 2
 
           Phase 2 — Rebase (Non-Fast-Forward Path):
-          4. cd {{repo}}
-          5. git rebase {{original_branch}}
+          4. cd {{tasks.setup.outputs.repo}}
+          5. git rebase {{tasks.setup.outputs.original_branch}}
           6. Fix any conflicts; `git rebase --continue` until complete
           7. If rebase changed code/tests/docs/config:
              - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
@@ -421,9 +421,9 @@ tasks:
           8. If rebase was clean: proceed to Phase 3
 
           Phase 3 — Squash Merge (Fast-Forward-Safe):
-          9. cd {{worktree_origin_repository}}
-          10. git checkout {{original_branch}}
-          11. git merge --squash {{branch}}
+          9. cd {{tasks.setup.outputs.worktree_origin_repository}}
+          10. git checkout {{tasks.setup.outputs.original_branch}}
+          11. git merge --squash {{tasks.setup.outputs.branch}}
           12. Build a descriptive commit message (see AGENTS.md for full instructions — use fix(security): prefix), write it to a temp file, then commit with `git commit -F <tempfile>`
 
           Verify the merge commit was created:
@@ -433,7 +433,7 @@ tasks:
           STATUS: done
           REBASED: <true|false>
           MERGE_COMMIT: <short commit hash>
-          MERGED_INTO: {{original_branch}}
+          MERGED_INTO: {{tasks.setup.outputs.original_branch}}
 
           Or if rebase requires tester re-validation:
           STATUS: retry

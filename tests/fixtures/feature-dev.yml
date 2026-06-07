@@ -81,7 +81,7 @@ tasks:
       prompt:
         content: |
           Setup environment.
-          REPO: {{repo}}
+          REPO: {{tasks.setup.outputs.repo}}
   - name: codify
     dependencies:
       - setup

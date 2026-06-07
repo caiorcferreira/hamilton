@@ -66,15 +66,15 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
 
           Instructions:
           1. cd into the repo
-          2. Create the quarantine branch (git checkout -b {{branch}})
+          2. Create the quarantine branch (git checkout -b {{tasks.setup.outputs.branch}})
           3. Read package.json, CI config, test config to understand the build/test setup
           4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           5. Run the build to establish a baseline
@@ -102,21 +102,21 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
 
           Instructions:
-          1. cd into the repo and ensure you're on {{branch}}
-          2. Run {{build_cmd}} to confirm the project builds
-          3. Run {{test_cmd}} and parse the output to find failing tests
+          1. cd into the repo and ensure you're on {{tasks.setup.outputs.branch}}
+          2. Run {{tasks.setup.outputs.build_cmd}} to confirm the project builds
+          3. Run {{tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
           4. If zero failures on first run, run one more time to catch flaky tests
           5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-          6. Run {{test_cmd}} after each batch of changes
+          6. Run {{tasks.setup.outputs.test_cmd}} after each batch of changes
           7. Iterate until all tests pass — then run one final time to confirm stability
           8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
@@ -144,10 +144,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           DISABLED: {{disabled}}
           SUMMARY: {{summary}}
 
@@ -155,9 +155,9 @@ tasks:
           {{retry_feedback}}
 
           Check:
-          1. Run {{build_cmd}} — build must pass
-          2. Run {{test_cmd}} — all tests must pass (exit code 0)
-          3. Run {{test_cmd}} a second time — confirm stability
+          1. Run {{tasks.setup.outputs.build_cmd}} — build must pass
+          2. Run {{tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
+          3. Run {{tasks.setup.outputs.test_cmd}} a second time — confirm stability
           4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
           5. Verify each disabled test has an explanatory comment
 

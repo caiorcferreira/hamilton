@@ -8,7 +8,7 @@ description: |
   Runs in a detached git worktree created from an origin repository.
 
   Planner decomposes tasks into user stories. Setup prepares the worktree
-  environment ({{original_branch}} is pre-seeded by the harness since the
+  environment ({{tasks.setup.outputs.original_branch}} is pre-seeded by the harness since the
   worktree starts detached). Developer implements each story (with tests) in
   a fresh session. Verifier checks each story.
 
@@ -143,18 +143,18 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          ORIGINAL_BRANCH: {{original_branch}}
-          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{tasks.setup.outputs.worktree_origin_repository}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
 
           Instructions:
           1. cd into the repo (this is the worktree path)
-          2. ORIGINAL_BRANCH is {{original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
-          3. Create the feature branch (git checkout -b {{branch}})
+          2. ORIGINAL_BRANCH is {{tasks.setup.outputs.original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
+          3. Create the feature branch (git checkout -b {{tasks.setup.outputs.branch}})
           4. Read package.json, CI config, test config to understand the build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -163,7 +163,7 @@ tasks:
 
           Reply with:
           STATUS: done
-          ORIGINAL_BRANCH: {{original_branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
           BUILD_CMD: <build command>
           TEST_CMD: <test command>
           CI_NOTES: <brief CI notes>
@@ -190,13 +190,13 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           COMPLETED STORIES:
           {{completed_stories}}
@@ -219,7 +219,7 @@ tasks:
           4. Write tests for this story's functionality
           5. Run typecheck / build
           6. Run tests to confirm they pass
-          7. Commit: feat: {{current_story_id}} - {{current_story_title}}
+          7. Commit: feat: {{vars.current_story.id}} - {{vars.current_story.title}}
           8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
           9. Update Codebase Patterns if you found reusable patterns
 
@@ -249,13 +249,13 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
           CHANGES: {{changes}}
-          TEST_CMD: {{test_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           CURRENT STORY:
-          {{current_story}}
+          {{vars.current_story}}
 
           PROGRESS LOG:
           {{progress}}
@@ -264,7 +264,7 @@ tasks:
           1. Code exists (not just TODOs or placeholders)
           2. Each acceptance criterion for the story is met
           3. Tests were written for this story's functionality
-          4. Tests pass (run {{test_cmd}})
+          4. Tests pass (run {{tasks.setup.outputs.test_cmd}})
           5. No obvious incomplete work
           6. Typecheck passes
 
@@ -310,11 +310,11 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
           CHANGES: {{changes}}
-          BUILD_CMD: {{build_cmd}}
-          TEST_CMD: {{test_cmd}}
+          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
           PROGRESS LOG:
           {{progress}}
@@ -323,7 +323,7 @@ tasks:
           {{retry_feedback}}
 
           Your job (integration/E2E testing — unit tests were already written per-story):
-          1. Run the full test suite ({{test_cmd}}) to confirm everything passes together
+          1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) to confirm everything passes together
           2. Look for integration issues between stories
           3. If this is a UI feature, use agent-browser to test it end-to-end
           4. Check cross-cutting concerns: error handling, edge cases across features
@@ -357,10 +357,10 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{repo}}
-          BRANCH: {{branch}}
-          ORIGINAL_BRANCH: {{original_branch}}
-          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{tasks.setup.outputs.repo}}
+          BRANCH: {{tasks.setup.outputs.branch}}
+          ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{tasks.setup.outputs.worktree_origin_repository}}
 
           PROGRESS LOG:
           {{progress}}
@@ -372,21 +372,21 @@ tasks:
 
           IMPORTANT — Worktree Mode: All git operations below (phases 1–3) must run
           in the ORIGIN repository, NOT the worktree. Use:
-            git -C {{worktree_origin_repository}} <command>
-          for every git command. The worktree at {{repo}} contains the feature branch
-          changes; the origin at {{worktree_origin_repository}} is where the merge
+            git -C {{tasks.setup.outputs.worktree_origin_repository}} <command>
+          for every git command. The worktree at {{tasks.setup.outputs.repo}} contains the feature branch
+          changes; the origin at {{tasks.setup.outputs.worktree_origin_repository}} is where the merge
           must be finalized.
 
           Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-          1. cd {{worktree_origin_repository}}
-          2. git checkout {{original_branch}}
-          3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+          1. cd {{tasks.setup.outputs.worktree_origin_repository}}
+          2. git checkout {{tasks.setup.outputs.original_branch}}
+          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}
              - Exit 0 (FF): proceed to Phase 3
              - Exit non-zero (not FF): proceed to Phase 2
 
           Phase 2 — Rebase (Non-Fast-Forward Path):
-          4. cd {{repo}}
-          5. git rebase {{original_branch}}
+          4. cd {{tasks.setup.outputs.repo}}
+          5. git rebase {{tasks.setup.outputs.original_branch}}
           6. Fix any conflicts; `git rebase --continue` until complete
           7. If rebase changed code/tests/docs/config:
              - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
@@ -394,9 +394,9 @@ tasks:
           8. If rebase was clean: proceed to Phase 3
 
           Phase 3 — Squash Merge (Fast-Forward-Safe):
-          9. cd {{worktree_origin_repository}}
-          10. git checkout {{original_branch}}
-          11. git merge --squash {{branch}}
+          9. cd {{tasks.setup.outputs.worktree_origin_repository}}
+          10. git checkout {{tasks.setup.outputs.original_branch}}
+          11. git merge --squash {{tasks.setup.outputs.branch}}
           12. Build a descriptive commit message (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
 
           Verify the merge commit was created:
@@ -406,7 +406,7 @@ tasks:
           STATUS: done
           REBASED: <true|false>
           MERGE_COMMIT: <short commit hash>
-          MERGED_INTO: {{original_branch}}
+          MERGED_INTO: {{tasks.setup.outputs.original_branch}}
 
           Or if rebase requires tester re-validation:
           STATUS: retry

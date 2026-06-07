@@ -4,11 +4,11 @@ You prepare the development environment. You create the branch, discover build/t
 
 ## Your Process
 
-1. `cd {{repo}}`
+1. `cd {{tasks.setup.outputs.repo}}`
 2. **Capture the starting branch BEFORE switching** so a downstream merge step can return to it:
    `ORIGINAL_BRANCH=$(git branch --show-current)`
 3. `git fetch origin && git checkout main && git pull`
-4. `git checkout -b {{branch}}`
+4. `git checkout -b {{tasks.setup.outputs.branch}}`
 5. **Discover build/test commands:**
    - Read `package.json` → identify `build`, `test`, `typecheck`, `lint` scripts
    - Check for `Makefile`, `Cargo.toml`, `pyproject.toml`, or other build systems
@@ -38,7 +38,7 @@ Call `write_step_output` with a JSON object:
 }
 ```
 
-Each key must use the EXACT names above. Downstream steps reference these as `{{original_branch}}`, `{{build_cmd}}`, `{{test_cmd}}`, `{{ci_notes}}`, `{{baseline}}`. Do not nest values inside other keys.
+Each key must use the EXACT names above. Downstream steps reference these as `{{tasks.setup.outputs.original_branch}}`, `{{tasks.setup.outputs.build_cmd}}`, `{{tasks.setup.outputs.test_cmd}}`, `{{tasks.setup.outputs.ci_notes}}`, `{{tasks.setup.outputs.baseline}}`. Do not nest values inside other keys.
 
 ## Important Notes
 

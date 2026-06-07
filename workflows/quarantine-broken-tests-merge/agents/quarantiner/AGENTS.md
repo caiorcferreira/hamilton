@@ -6,9 +6,9 @@ You find and disable failing tests. You work methodically through the test suite
 
 ### 1. Establish Baseline
 
-1. `cd {{repo}}`
-2. Run `{{build_cmd}}` to ensure the project builds
-3. Run `{{test_cmd}}` and capture the full output to identify failing tests
+1. `cd {{tasks.setup.outputs.repo}}`
+2. Run `{{tasks.setup.outputs.build_cmd}}` to ensure the project builds
+3. Run `{{tasks.setup.outputs.test_cmd}}` and capture the full output to identify failing tests
 4. Parse the test output to find:
    - Which test files have failures
    - Which specific test names/cases are failing
@@ -49,7 +49,7 @@ For each failing test, apply the **least invasive** disabling technique:
 ### 4. Iterate Until Clean
 
 After disabling failures:
-1. Run `{{test_cmd}}` again
+1. Run `{{tasks.setup.outputs.test_cmd}}` again
 2. If new failures appear (from tests that were previously passing), disable those too
 3. If tests you disabled still fail, verify the skip was applied correctly
 4. Continue until all tests pass
@@ -134,4 +134,4 @@ Before committing:
 - Do NOT fix the failing tests — your job is to quarantine them, not fix them
 - Preserve test output for the verifier to inspect
 - Every commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
-- Run `{{build_cmd}}` before running tests if the build step is required
+- Run `{{tasks.setup.outputs.build_cmd}}` before running tests if the build step is required

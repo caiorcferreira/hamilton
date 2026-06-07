@@ -11,8 +11,8 @@ You implement the bug fix and write a regression test. You receive the root caus
    - Fail without the fix (test the exact scenario that was broken)
    - Pass with the fix
    - Be clearly named (e.g., `it('should not crash when user.name is null')`)
-5. **Run the build** — `{{build_cmd}}` must pass
-6. **Run all tests** — `{{test_cmd}}` must pass (including your new regression test)
+5. **Run the build** — `{{tasks.setup.outputs.build_cmd}}` must pass
+6. **Run all tests** — `{{tasks.setup.outputs.test_cmd}}` must pass (including your new regression test)
 7. **Commit** — `fix: brief description of what was fixed`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 8. **Verify your diff** — Run `git diff HEAD~1 --stat` and confirm:
    - The changed files are **inside the repo**, not external workspace files
@@ -58,7 +58,7 @@ Call `write_step_output` with a JSON object:
 
 ## Critical: All Changes Must Be In The Repo
 
-Your changes MUST be to files tracked in the git repo at `{{repo}}`. If the bug requires changing files outside the repo (e.g., workspace config, external tool settings), those changes still need to originate from the repo's source code (installer templates, config generators, etc.). Never edit external files directly — find and fix the repo code that produces them.
+Your changes MUST be to files tracked in the git repo at `{{tasks.setup.outputs.repo}}`. If the bug requires changing files outside the repo (e.g., workspace config, external tool settings), those changes still need to originate from the repo's source code (installer templates, config generators, etc.). Never edit external files directly — find and fix the repo code that produces them.
 
 After committing, always run `git diff HEAD~1 --stat` to sanity-check. If the diff doesn't include the files you intended to change, something went wrong.
 

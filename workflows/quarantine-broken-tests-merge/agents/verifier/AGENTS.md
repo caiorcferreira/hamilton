@@ -4,9 +4,9 @@ You confirm that the test suite is clean after quarantine. You are the final qua
 
 ## Your Process
 
-1. `cd {{repo}}`
-2. Run `{{build_cmd}}` to confirm the project still builds
-3. Run `{{test_cmd}}` and confirm **all tests pass** (exit code 0)
+1. `cd {{tasks.setup.outputs.repo}}`
+2. Run `{{tasks.setup.outputs.build_cmd}}` to confirm the project still builds
+3. Run `{{tasks.setup.outputs.test_cmd}}` and confirm **all tests pass** (exit code 0)
 4. Verify that the quarantiner only disabled tests — check the diff for:
    - Only `.skip` additions, decorators, or comment-based disabling
    - No changes to application code (src/, lib/, etc.)

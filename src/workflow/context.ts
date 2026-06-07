@@ -15,9 +15,9 @@ export function resolveDottedPath(context: Context, path: string): unknown {
 }
 
 export function resolveTemplate(template: string, context: Context): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-    if (!(key in context)) return match
-    const value = context[key]
+  return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
+    const value = resolveDottedPath(context, key)
+    if (value === undefined) return match
     return typeof value === "string" ? value : JSON.stringify(value)
   })
 }
@@ -43,5 +43,5 @@ export function buildAutoContext(
     }
     return result
   }
-  return allOutputs
+  return { ...allOutputs, ...vars }
 }
