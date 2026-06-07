@@ -13,6 +13,10 @@ describe("resolveTemplate", () => {
   it("replaces multiple templates", () => {
     expect(resolveTemplate("{{a}} and {{b}}", { a: "1", b: "2" })).toBe("1 and 2")
   })
+
+  it("stringifies non-string values in templates", () => {
+    expect(resolveTemplate("Items: {{items}}", { items: [1, 2, 3] })).toBe("Items: [1,2,3]")
+  })
 })
 
 describe("mergeContext", () => {
@@ -32,16 +36,20 @@ describe("mergeContext", () => {
     expect(existing).toEqual({ a: "1" })
   })
 
-  it("stringifies non-string values as JSON", () => {
-    const result = mergeContext({}, { items: [1, 2], obj: { key: "val" }, num: 42 })
-    expect(result.items).toBe("[1,2]")
-    expect(result.obj).toBe('{"key":"val"}')
-    expect(result.num).toBe("42")
+  it("preserves non-string values as-is", () => {
+    const result = mergeContext({}, { items: [1, 2], obj: { key: "val" }, num: 42, flag: true })
+    expect(result.items).toEqual([1, 2])
+    expect(result.obj).toEqual({ key: "val" })
+    expect(result.num).toBe(42)
+    expect(result.flag).toBe(true)
   })
 
-  it("skips null and undefined values", () => {
-    const result = mergeContext({}, { a: null, b: undefined, c: "keep" })
-    expect(result).toEqual({ c: "keep" })
+  it("merges structured context correctly", () => {
+    const existing = { stories_json: [{ id: "1", title: "First" }] }
+    const incoming = { stories_json: [{ id: "2", title: "Second" }], status: "done" }
+    const result = mergeContext(existing, incoming)
+    expect(result.stories_json).toEqual([{ id: "2", title: "Second" }])
+    expect(result.status).toBe("done")
   })
 })
 

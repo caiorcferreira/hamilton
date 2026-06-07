@@ -17,6 +17,7 @@ import {
 } from "../db/queries.js"
 import { buildRunId, buildStepId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
+import type { Context } from "../workflow/context.js"
 
 function parseStepSlug(stepId: string, runId: string): string {
   const prefix = runId + "-"
@@ -201,7 +202,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
 
 export function createWorkflowRuntime(
   spec: WorkflowSpec,
-  context: Record<string, string>,
+  context: Context,
   existingRunId?: string
 ): Effect.Effect<WorkflowRuntime, EngineError> {
   return Effect.gen(function* () {

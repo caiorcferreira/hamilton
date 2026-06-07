@@ -46,7 +46,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     }
 
     const contextJson = getWorkflowState(db, runId, "context")
-    let context: Record<string, string> = {}
+    let context: Record<string, unknown> = {}
     if (contextJson) {
       try {
         context = JSON.parse(contextJson)

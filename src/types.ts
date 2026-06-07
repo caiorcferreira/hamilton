@@ -1,3 +1,5 @@
+import type { Context } from "./workflow/context.js"
+
 export type AgentRole =
   | "analysis"
   | "coding"
@@ -20,7 +22,7 @@ export interface WorkflowSpec {
   polling?: WorkflowPolling
   agents: WorkflowAgent[]
   steps: WorkflowStep[]
-  context?: Record<string, string>
+  context?: Context
   notifications?: unknown
   run?: unknown
 }

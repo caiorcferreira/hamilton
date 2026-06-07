@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest"
 import {
   buildAgentPrompt,
-  extractContextFromOutput,
   PromptParams
 } from "../../src/agent/activity.js"
 
@@ -41,15 +40,35 @@ describe("buildAgentPrompt", () => {
     expect(result.taskPrompt).toContain("Fix bug in hamilton")
   })
 
-  it("includes context entries in the system prompt", () => {
+  it("resolves non-string template values as JSON", () => {
+    const params: PromptParams = {
+      ...baseParams,
+      stepInput: "Stories: {{stories_json}}",
+      context: { stories_json: [{ id: "US-001", title: "Add thing" }] }
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.taskPrompt).toContain('Stories: [{"id":"US-001","title":"Add thing"}]')
+  })
+
+  it("includes context as JSON in the system prompt", () => {
     const params: PromptParams = {
       ...baseParams,
       context: { branch: "main", status: "approved" }
     }
     const result = buildAgentPrompt(params)
     expect(result.systemPrompt).toContain("Context from previous steps:")
-    expect(result.systemPrompt).toContain("branch: main")
-    expect(result.systemPrompt).toContain("status: approved")
+    expect(result.systemPrompt).toContain('"branch": "main"')
+    expect(result.systemPrompt).toContain('"status": "approved"')
+  })
+
+  it("includes structured context as JSON in the system prompt", () => {
+    const params: PromptParams = {
+      ...baseParams,
+      context: { stories_json: [{ id: "1", title: "Story" }] }
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.systemPrompt).toContain('"stories_json"')
+    expect(result.systemPrompt).toContain('"Story"')
   })
 
   it("omits role and style sections when empty", () => {
@@ -70,19 +89,5 @@ describe("buildAgentPrompt", () => {
     const result = buildAgentPrompt(params)
     const sections = result.systemPrompt.split("\n\n")
     expect(sections[0]).toContain("Hamilton Workflow System")
-  })
-})
-
-describe("extractContextFromOutput", () => {
-  it("extracts only string-valued entries", () => {
-    const output = { status: "done", repo: "hamilton", count: 42, items: [1, 2] }
-    const result = extractContextFromOutput(output)
-    expect(result).toEqual({ status: "done", repo: "hamilton" })
-  })
-
-  it("returns empty object for no string values", () => {
-    const output = { count: 1, flag: true }
-    const result = extractContextFromOutput(output)
-    expect(result).toEqual({})
   })
 })

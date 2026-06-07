@@ -1,11 +1,11 @@
 import { Effect, Schedule, Duration } from "effect"
 import { WorkflowSpec } from "../types.js"
-import { buildAgentPrompt, extractContextFromOutput } from "../agent/activity.js"
+import { buildAgentPrompt } from "../agent/activity.js"
+import { mergeContext, type Context } from "../workflow/context.js"
 import { resolvePersona } from "../agent/persona.js"
 import { loadAgentSettings } from "../agent/config.js"
 import { createRtkExtension } from "../agent/rtk-extension.js"
 import { executeWithPi } from "../agent/pi-executor.js"
-import { mergeContext } from "../workflow/context.js"
 import { computeStepOrder, resolveStepTimeout, buildStepId } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
@@ -36,7 +36,7 @@ export interface WorkflowResult {
   runId: string
   status: "completed" | "failed" | "paused"
   stepResults: Record<string, string>
-  context: Record<string, string>
+  context: Context
   startedAt: string
   completedAt: string
 }
@@ -50,14 +50,19 @@ function emit(
 
 export function runWorkflow(
   spec: WorkflowSpec,
-  initialContext: Record<string, string>,
+  initialContext: Context,
   config: WorkflowRunnerConfig,
   existingRunId?: string
 ): Effect.Effect<WorkflowResult, Error> {
   return Effect.gen(function* (_) {
     const startedAt = new Date().toISOString()
-    const runningContext: Record<string, string> = { ...initialContext }
-    const stepResults: Record<string, string> = { ...spec.context }
+    const runningContext: Context = { ...initialContext }
+    const stepResults: Record<string, string> = {}
+    if (spec.context) {
+      for (const [k, v] of Object.entries(spec.context)) {
+        if (typeof v === "string") stepResults[k] = v
+      }
+    }
     const stepOrder = computeStepOrder(spec)
 
     const ctx: WorkflowRuntime = yield* _(
@@ -180,9 +185,8 @@ export function runWorkflow(
         yield* _(appendStepLog(runId, stepId, { event: "completed" }))
         yield* _(writeStepOutput(runId, stepId, output))
 
-        const extracted = extractContextFromOutput(output)
+        const extracted = mergeContext(runningContext, output)
         Object.assign(runningContext, extracted)
-        Object.assign(runningContext, mergeContext(runningContext, output))
 
         if (output.status && typeof output.status === "string") {
           stepResults[stepSlug] = output.status

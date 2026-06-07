@@ -1,12 +1,12 @@
 import { Effect } from "effect"
-import { resolveTemplate } from "../workflow/context.js"
+import { resolveTemplate, type Context } from "../workflow/context.js"
 
 export interface PromptParams {
   agentsMd: string
   identityMd: string
   soulMd: string
   stepInput: string
-  context: Record<string, string>
+  context: Context
 }
 
 export interface BuiltPrompt {
@@ -42,10 +42,8 @@ IMPORTANT:
   }
 
   if (Object.keys(params.context).length > 0) {
-    const contextLines = Object.entries(params.context)
-      .map(([key, value]) => `  ${key}: ${value}`)
-      .join("\n")
-    systemParts.push(`Context from previous steps:\n${contextLines}`)
+    const contextJson = JSON.stringify(params.context, null, 2)
+    systemParts.push(`Context from previous steps:\n\`\`\`json\n${contextJson}\n\`\`\``)
   }
 
   systemParts.push(params.agentsMd)
@@ -56,16 +54,4 @@ IMPORTANT:
     systemPrompt: systemParts.join("\n\n"),
     taskPrompt: resolvedInput
   }
-}
-
-export function extractContextFromOutput(
-  output: Record<string, unknown>
-): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const [key, value] of Object.entries(output)) {
-    if (typeof value === "string") {
-      result[key] = value
-    }
-  }
-  return result
 }

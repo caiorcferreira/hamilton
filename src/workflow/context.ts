@@ -5,25 +5,18 @@ export interface Story {
   acceptanceCriteria: string[]
 }
 
-export function resolveTemplate(template: string, context: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) =>
-    key in context ? context[key] : match
-  )
+export type Context = Record<string, unknown>
+
+export function resolveTemplate(template: string, context: Context): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    if (!(key in context)) return match
+    const value = context[key]
+    return typeof value === "string" ? value : JSON.stringify(value)
+  })
 }
 
-export function mergeContext(
-  existing: Record<string, string>,
-  incoming: Record<string, unknown>
-): Record<string, string> {
-  const result: Record<string, string> = { ...existing }
-  for (const [key, value] of Object.entries(incoming)) {
-    if (typeof value === "string") {
-      result[key] = value
-    } else if (value !== null && value !== undefined) {
-      result[key] = JSON.stringify(value)
-    }
-  }
-  return result
+export function mergeContext(existing: Context, incoming: Context): Context {
+  return { ...existing, ...incoming }
 }
 
 export function parseStoriesJson(json: string): Story[] {
