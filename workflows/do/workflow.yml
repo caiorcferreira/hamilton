@@ -41,6 +41,18 @@ tasks:
           STATUS: done
           RESULT: Summary of what was accomplished
           CHANGES: What files or changes were made
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            result:
+              type: string
+            changes:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human

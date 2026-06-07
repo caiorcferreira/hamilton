@@ -123,6 +123,22 @@ tasks:
           BRANCH: security-audit-YYYY-MM-DD
           VULNERABILITY_COUNT: <number>
           FINDINGS: <detailed list of each vulnerability>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            findings:
+              type: array
+            summary:
+              type: string
+            repo:
+              type: string
+            vulnerability_count:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -164,6 +180,24 @@ tasks:
           HIGH_COUNT: <number>
           DEFERRED: <any issues skipped and why>
           STORIES_JSON: [ ... array of story objects ... ]
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            prioritized_findings:
+              type: array
+            fix_plan:
+              type: string
+            critical_count:
+              type: string
+            high_count:
+              type: string
+            deferred:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -196,6 +230,26 @@ tasks:
           BUILD_CMD: <build command>
           TEST_CMD: <test command>
           BASELINE: <baseline status>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            original_branch:
+              type: string
+            build_cmd:
+              type: string
+            test_cmd:
+              type: string
+            ci_notes:
+              type: string
+            baseline:
+              type: string
+            worktree_origin_repository:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -254,6 +308,18 @@ tasks:
           STATUS: done
           CHANGES: what was fixed
           REGRESSION_TEST: what test was added
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            changes:
+              type: string
+            tests:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -308,6 +374,18 @@ tasks:
           STATUS: retry
           ISSUES:
           - What's wrong or incomplete
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            verified:
+              type: string
+            issues:
+              type: array
     on_failure:
       max_retries: 6
       escalate_to: human
@@ -350,6 +428,18 @@ tasks:
           STATUS: retry
           FAILURES:
           - What's broken
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            results:
+              type: string
+            failures:
+              type: array
     on_failure:
       max_retries: 4
       escalate_to: human

@@ -105,6 +105,30 @@ tasks:
           AFFECTED_AREA: what files/modules are affected
           REPRODUCTION: how to reproduce the bug
           PROBLEM_STATEMENT: clear description of what's wrong
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            repo:
+              type: string
+            branch:
+              type: string
+            priority:
+              type: string
+            assigned_to:
+              type: string
+            severity:
+              type: string
+            affected_area:
+              type: string
+            reproduction:
+              type: string
+            problem_statement:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -136,6 +160,26 @@ tasks:
           STATUS: done
           ROOT_CAUSE: detailed explanation of the root cause
           FIX_APPROACH: what needs to change and where
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            root_cause:
+              type: string
+            affected_files:
+              type: array
+            severity:
+              type: string
+            fix_approach:
+              type: string
+            problem_statement:
+              type: string
+            regression_test:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -164,6 +208,24 @@ tasks:
           BUILD_CMD: <build command>
           TEST_CMD: <test command>
           BASELINE: <baseline status>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            original_branch:
+              type: string
+            build_cmd:
+              type: string
+            test_cmd:
+              type: string
+            ci_notes:
+              type: string
+            baseline:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -206,6 +268,18 @@ tasks:
           STATUS: done
           CHANGES: what was changed
           REGRESSION_TEST: what test was added
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            changes:
+              type: string
+            tests:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -256,6 +330,18 @@ tasks:
           STATUS: retry
           ISSUES:
           - What's wrong or incomplete
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            verified:
+              type: string
+            issues:
+              type: array
     on_failure:
       max_retries: 6
       escalate_to: human
@@ -304,5 +390,15 @@ tasks:
           Reply with:
           STATUS: done
           PR: URL to the pull request
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            pr:
+              type: string
     on_failure:
       escalate_to: human

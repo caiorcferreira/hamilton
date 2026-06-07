@@ -124,6 +124,20 @@ tasks:
           - Do NOT put any text after the closing ] on the STORIES_JSON line
 
           Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            repo:
+              type: string
+            branch:
+              type: string
+            stories_json:
+              type: array
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -162,6 +176,24 @@ tasks:
           TEST_CMD: <test command>
           CI_NOTES: <brief CI notes>
           BASELINE: <baseline status>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            original_branch:
+              type: string
+            build_cmd:
+              type: string
+            test_cmd:
+              type: string
+            ci_notes:
+              type: string
+            baseline:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -221,6 +253,24 @@ tasks:
           STATUS: done
           CHANGES: what you implemented
           TESTS: what tests you wrote
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            repo:
+              type: string
+            branch:
+              type: string
+            commits:
+              type: string
+            changes:
+              type: string
+            tests:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -289,6 +339,18 @@ tasks:
           STATUS: retry
           ISSUES:
           - What's missing or incomplete
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            verified:
+              type: string
+            issues:
+              type: array
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -332,6 +394,18 @@ tasks:
           STATUS: retry
           FAILURES:
           - Specific test failures or bugs found
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            results:
+              type: string
+            failures:
+              type: array
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -403,6 +477,20 @@ tasks:
           STATUS: retry
           REBASED: <true|false>
           FAILURE: <reason>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            merged_branch:
+              type: string
+            merged_into:
+              type: string
+            reason:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human

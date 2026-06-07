@@ -104,6 +104,26 @@ tasks:
           TEST_CMD: <test command>
           CI_NOTES: <brief CI notes>
           BASELINE: <baseline status including test results>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done]
+            original_branch:
+              type: string
+            build_cmd:
+              type: string
+            test_cmd:
+              type: string
+            ci_notes:
+              type: string
+            baseline:
+              type: string
+            worktree_origin_repository:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -146,6 +166,22 @@ tasks:
           If unable to achieve clean suite after 5 iterations:
           STATUS: failed
           REASON: <why>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, failed]
+            quarantined_tests:
+              type: array
+            reason:
+              type: string
+            disabled:
+              type: string
+            summary:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -187,6 +223,18 @@ tasks:
           STATUS: retry
           ISSUES:
           - Specific issues
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            verified:
+              type: string
+            issues:
+              type: array
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -267,6 +315,20 @@ tasks:
           STATUS: retry
           REBASED: <true|false>
           FAILURE: <reason>
+      output:
+        schema:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [done, retry]
+            merged_branch:
+              type: string
+            merged_into:
+              type: string
+            reason:
+              type: string
     on_failure:
       max_retries: 4
       escalate_to: human
