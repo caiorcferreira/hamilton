@@ -31,9 +31,9 @@ agents:
       skills:
         - hamilton-agents
       systemPrompt:
-        agent: ../../agents/shared/setup/AGENTS.md
-        soul: ../../agents/shared/setup/SOUL.md
-        identity: ../../agents/shared/setup/IDENTITY.md
+        agent: shared/agents/setup/AGENTS.md
+        soul: shared/agents/setup/SOUL.md
+        identity: shared/agents/setup/IDENTITY.md
 
   - name: quarantiner
     role: coding

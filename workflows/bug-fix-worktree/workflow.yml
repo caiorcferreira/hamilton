@@ -45,9 +45,9 @@ agents:
       skills:
         - hamilton-agents
       systemPrompt:
-        agent: ../../agents/shared/setup/AGENTS.md
-        soul: ../../agents/shared/setup/SOUL.md
-        identity: ../../agents/shared/setup/IDENTITY.md
+        agent: shared/agents/setup/AGENTS.md
+        soul: shared/agents/setup/SOUL.md
+        identity: shared/agents/setup/IDENTITY.md
 
   - name: fixer
     role: coding
@@ -67,9 +67,9 @@ agents:
       skills:
         - hamilton-agents
       systemPrompt:
-        agent: ../../agents/shared/verifier/AGENTS.md
-        soul: ../../agents/shared/verifier/SOUL.md
-        identity: ../../agents/shared/verifier/IDENTITY.md
+        agent: shared/agents/verifier/AGENTS.md
+        soul: shared/agents/verifier/SOUL.md
+        identity: shared/agents/verifier/IDENTITY.md
 
 tasks:
   - name: triage
