@@ -1,5 +1,3 @@
-import type { Context } from "./workflow/context.js"
-
 export type AgentRole =
   | "analysis"
   | "coding"
@@ -8,73 +6,99 @@ export type AgentRole =
   | "pr"
   | "scanning"
 
-export type WorkflowSlug = string & { readonly __brand: "WorkflowSlug" }
-export type StepSlug = string & { readonly __brand: "StepSlug" }
-export type AgentSlug = string & { readonly __brand: "AgentSlug" }
+export type TaskName = string & { readonly __brand: "TaskName" }
+export type AgentName = string & { readonly __brand: "AgentName" }
 export type RunId = string & { readonly __brand: "RunId" }
-export type StepId = string & { readonly __brand: "StepId" }
+export type TaskId = string & { readonly __brand: "TaskId" }
 
-export interface WorkflowSpec {
-  slug: WorkflowSlug
-  name: string
-  version: number
-  description?: string
-  polling?: WorkflowPolling
-  agents: WorkflowAgent[]
-  steps: WorkflowStep[]
-  context?: Context
-  notifications?: unknown
-  run?: unknown
+export interface RunConfig {
+  entrypoint: string
+  timeout: string
 }
 
-export interface WorkflowPolling {
+export interface SystemPromptPaths {
+  agent: string
+  soul: string
+  identity: string
+}
+
+export interface AgentSettings {
   model?: string
-  timeoutSeconds?: number
+  systemPrompt: SystemPromptPaths
+  skills?: string[]
 }
 
 export interface WorkflowAgent {
-  slug: AgentSlug
-  name?: string
+  name: string
   role: AgentRole
   description?: string
-  model?: string
-  pollingModel?: string
-  timeoutSeconds?: number
-  workspace: WorkflowAgentWorkspace
+  settings: AgentSettings
 }
 
-export interface WorkflowAgentWorkspace {
-  baseDir: string
-  skills?: string[]
-  files: Record<string, string>
+export interface RefPath {
+  ref: string
 }
 
-export interface WorkflowStep {
-  slug: StepSlug
-  agent: AgentSlug
-  type?: "default" | "loop" | "create_git_worktree" | "cleanup_git_worktree"
-  loop?: LoopConfig
-  input: string
-  expects?: string
-  timeoutSeconds?: number
-  on_fail?: OnFailConfig
+export interface Timeout {
+  fixed: string
 }
 
-export interface LoopConfig {
-  over: "stories"
-  completion?: string
-  fresh_session?: boolean
-  verify_each?: boolean
-  verify_step?: string
+export interface OnExhausted {
+  escalate_to?: string
 }
 
-export interface OnFailConfig {
+export interface OnFailure {
+  max_retries?: number
   escalate_to?: string
   retry_step?: string
-  max_retries?: number
-  on_exhausted?: OnExhaustedConfig
+  on_exhausted?: OnExhausted
 }
 
-export interface OnExhaustedConfig {
-  escalate_to?: string
+export interface OutputConfig {
+  schema?: Record<string, unknown>
+}
+
+export interface Prompt {
+  content: string
+}
+
+export interface TaskAgent {
+  ref: string
+  timeout?: Timeout
+  on_failure?: OnFailure
+  output?: OutputConfig
+  prompt: Prompt
+}
+
+export interface ForEach {
+  valueFrom: RefPath
+  as: string
+}
+
+export interface ContextField {
+  name: string
+  valueFrom: RefPath
+}
+
+export interface ContextFields {
+  fields: ContextField[]
+}
+
+export interface WorkflowTask {
+  name: string
+  dependencies?: string[]
+  agent?: TaskAgent
+  template?: string
+  forEach?: ForEach
+  context?: ContextFields
+  tasks?: WorkflowTask[]
+}
+
+export interface WorkflowSpec {
+  version: number
+  name: string
+  description?: string
+  run: RunConfig
+  agents: WorkflowAgent[]
+  tasks: WorkflowTask[]
 }
