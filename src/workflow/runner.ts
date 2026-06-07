@@ -1,12 +1,11 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
-import { WorkflowSpec } from "../types.js"
+import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentPrompt } from "../agent/activity.js"
-import { mergeContext, resolveTemplate, type Context } from "../workflow/context.js"
+import { buildAutoContext, resolveDottedPath, type Context } from "../workflow/context.js"
 import { resolvePersona } from "../agent/persona.js"
-import { loadAgentSettings } from "../agent/config.js"
 import { createRtkExtension } from "../agent/rtk-extension.js"
 import { executeWithPi } from "../agent/pi-executor.js"
-import { computeStepOrder, resolveStepTimeout, buildStepId } from "../workflow/engine.js"
+import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
@@ -18,7 +17,6 @@ import {
 } from "../observability/run-dir.js"
 import { EventBus } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
-import { createGitWorktree, cleanupGitWorktree, WorktreeError } from "../workflow/deterministic-activities.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -27,7 +25,7 @@ export interface WorkflowRunnerConfig {
 export interface WorkflowResult {
   runId: string
   status: "completed" | "failed" | "paused"
-  stepResults: Record<string, string>
+  taskResults: Record<string, string>
   context: Context
   startedAt: string
   completedAt: string
@@ -42,17 +40,13 @@ export function runWorkflow(
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
-    const runningContext: Context = { ...initialContext }
-    const stepResults: Record<string, string> = {}
-    if (spec.context) {
-      for (const [k, v] of Object.entries(spec.context)) {
-        if (typeof v === "string") stepResults[k] = v
-      }
-    }
-    const stepOrder = computeStepOrder(spec)
+    const workflowDir = `${config.workflowsDir}/${spec.name}`
+
+    const staticTasks = collectReachableTasks(spec.tasks, spec.run.entrypoint)
+    const sortedTasks = topologicalSort(staticTasks)
 
     const ctx: WorkflowRuntime = yield* _(
-      createWorkflowRuntime(spec, runningContext, existingRunId).pipe(
+      createWorkflowRuntime(spec, initialContext, existingRunId).pipe(
         Effect.mapError((e) => new Error(e.message))
       )
     )
@@ -60,154 +54,166 @@ export function runWorkflow(
     const runId = ctx.runId
 
     yield* _(DbWriter(ctx.db))
-
     yield* _(createRunDir(runId))
     yield* _(writeInput(runId, {
       spec,
       initialContext,
-      executionContext: {
-        cwd: process.cwd(),
-        requestedAt: startedAt,
-        workflowSlug: spec.slug
-      }
+      executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.name }
     }))
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
-    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.slug }))
+    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.name }))
 
-    let workflowStatus: "completed" | "failed" | "paused" = "completed"
+    const runningContext: Context = { ...initialContext, tasks: {} }
+    const taskResults: Record<string, string> = {}
+    let workflowStatus: string = "completed"
+
+    const executeSingleTask = (
+      task: WorkflowTask,
+      taskContext: Context,
+      instanceName: string
+    ): Effect.Effect<void, unknown, EventBus | Scope.Scope> =>
+      Effect.gen(function* () {
+        if (!task.agent) return
+
+        const agentName = task.agent.ref.replace("agents.", "")
+        const agent = spec.agents.find(a => a.name === agentName)
+        if (!agent) return
+
+        const taskId = buildTaskId(runId, instanceName)
+
+        yield* _(ctx.transitionTask(instanceName, "start"))
+        yield* _(bus.publish({ _tag: "StepStarted", runId, stepId: taskId }))
+
+        const persona = yield* _(
+          resolvePersona(agent.settings.systemPrompt, workflowDir).pipe(
+            Effect.mapError((e) => new Error(e.agentPath))
+          )
+        )
+
+        const prompt = buildAgentPrompt({
+          agentFile: persona.agent,
+          soulFile: persona.soul,
+          identityFile: persona.identity,
+          prompt: task.agent!.prompt,
+          context: taskContext,
+          agentConfig: agent
+        })
+
+        yield* _(bus.publish({
+          _tag: "PromptBuilt",
+          runId,
+          stepId: taskId,
+          systemPrompt: prompt.systemPrompt,
+          taskPrompt: prompt.taskPrompt
+        }))
+
+        const timeoutSeconds = resolveTaskTimeout(task, spec.run.timeout)
+        const rtkExtension = createRtkExtension({
+          model: agent.settings.model,
+          disabled: process.env.RTK_DISABLED === "1"
+        })
+        const outputSchema = task.agent!.output?.schema
+
+        const output = yield* _(
+          executeWithPi({
+            systemPrompt: prompt.systemPrompt,
+            taskPrompt: prompt.taskPrompt,
+            stepId: taskId,
+            agentId: agent.name,
+            runId,
+            timeoutSeconds,
+            model: agent.settings.model,
+            extensions: [rtkExtension],
+            outputSchema,
+            settings: {
+              skills: agent.settings.skills,
+              thinking: undefined,
+              tools: undefined,
+              retryOnTransient: undefined,
+              compactionEnabled: undefined
+            }
+          }).pipe(
+            Effect.timeout(Duration.seconds(timeoutSeconds)),
+            Effect.retry(
+              Schedule.recurs((task.agent!.on_failure?.max_retries ?? 1) - 1).pipe(
+                Schedule.tapInput(() =>
+                  Effect.gen(function* () {
+                    yield* _(bus.publish({ _tag: "StepRetrying", runId, stepId: taskId }))
+                  }).pipe(Effect.catchAll(() => Effect.void))
+                )
+              )
+            )
+          )
+        )
+
+        if (output === undefined || output === null) {
+          yield* _(bus.publish({ _tag: "StepTimedOut", runId, stepId: taskId }))
+          yield* _(ctx.transitionTask(instanceName, "fail"))
+          workflowStatus = "failed"
+          return
+        }
+
+        taskResults[instanceName] = String(output.status ?? "done")
+        if (!runningContext.tasks) (runningContext as Record<string, unknown>).tasks = {}
+        ;(runningContext.tasks as Record<string, unknown>)[instanceName] = { outputs: output }
+
+        yield* _(ctx.transitionTask(instanceName, "complete"))
+        yield* _(writeStepOutput(runId, taskId, output))
+        yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId: taskId }))
+      })
 
     const body = Effect.gen(function* () {
-      for (const stepSlug of stepOrder) {
-        const shouldExec = yield* _(ctx.shouldExecuteStep(stepSlug))
-        if (!shouldExec) continue
+      for (const task of sortedTasks) {
+        if (workflowStatus === "failed") break
 
-        const step = spec.steps.find((s) => s.slug === stepSlug)!
-        const agent = spec.agents.find((a) => a.slug === step.agent)!
-        const maxRetries = step.on_fail?.max_retries ?? 1
-        const timeoutSeconds = resolveStepTimeout(spec, step.slug)
-        const model = agent.model
+        if (task.template) {
+          const templateTask = spec.tasks.find(t => t.name === task.template)
+          if (!templateTask) continue
+
+          const arrValue = task.forEach
+            ? resolveDottedPath(runningContext, task.forEach.valueFrom.ref)
+            : undefined
+          const items = Array.isArray(arrValue) ? arrValue : [undefined]
+
+          for (let i = 0; i < items.length; i++) {
+            if (workflowStatus === "failed") break
+
+            const instanceName = `${task.name}/${i}`
+            const vars: Context = {}
+            if (task.forEach && items[i] !== undefined) {
+              vars[task.forEach.as] = items[i]
+            }
+
+            const subContext = buildAutoContext(task, runningContext, vars)
+
+            if (templateTask.tasks && templateTask.tasks.length > 0) {
+              const sub = topologicalSort(templateTask.tasks)
+              for (const subTask of sub) {
+                if (workflowStatus === "failed") break
+                const subInstanceName = `${instanceName}-${subTask.name}`
+                yield* _(executeSingleTask(subTask, subContext, subInstanceName))
+              }
+            } else if (templateTask.agent) {
+              yield* _(executeSingleTask(templateTask, subContext, instanceName))
+            }
+          }
+          continue
+        }
+
+        if (!task.agent) continue
+
+        const shouldExec = yield* _(ctx.shouldExecuteTask(task.name))
+        if (!shouldExec) continue
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(bus.publish({ _tag: "StepPaused", runId, stepId: stepSlug }))
+          yield* _(bus.publish({ _tag: "StepPaused", runId, stepId: task.name }))
           workflowStatus = "paused"
           break
         }
 
-        const stepId = buildStepId(runId, stepSlug)
-
-        yield* _(ctx.transitionStep(stepSlug, "start"))
-        yield* _(bus.publish({ _tag: "StepStarted", runId, stepId }))
-        yield* _(appendEngineLog(runId, { event: "step_started", stepId }))
-
-        if (step.type === "create_git_worktree") {
-          const resolvedInput = resolveTemplate(step.input, runningContext)
-          const worktreeParams = JSON.parse(resolvedInput) as { repo: string; branch: string; worktreePath?: string }
-          const result = yield* _(
-            createGitWorktree(worktreeParams, stepId).pipe(
-              Effect.mapError((e) => new Error(e.message))
-            )
-          )
-          Object.assign(runningContext, { worktree_path: result.worktreePath, worktree_branch: result.branch })
-          stepResults[stepSlug] = "done"
-          yield* _(ctx.transitionStep(stepSlug, "complete"))
-          yield* _(writeStepOutput(runId, stepId, { status: "done", worktree_path: result.worktreePath, worktree_branch: result.branch }))
-          yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
-          yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
-          continue
-        }
-
-        if (step.type === "cleanup_git_worktree") {
-          const resolvedInput = resolveTemplate(step.input, runningContext)
-          const cleanupParams = JSON.parse(resolvedInput) as { worktreePath: string }
-          const result = yield* _(
-            cleanupGitWorktree(cleanupParams, stepId).pipe(
-              Effect.mapError((e) => new Error(e.message))
-            )
-          )
-          stepResults[stepSlug] = "done"
-          yield* _(ctx.transitionStep(stepSlug, "complete"))
-          yield* _(writeStepOutput(runId, stepId, { status: "done", cleaned: result.cleaned }))
-          yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
-          yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
-          continue
-        }
-
-        const persona = yield* _(
-          resolvePersona(agent.slug, spec.slug).pipe(
-            Effect.mapError((e) => new Error(e.message))
-          )
-        )
-
-        const agentSettings = yield* _(Effect.match(loadAgentSettings(""), {
-          onSuccess: (s) => s,
-          onFailure: () => ({}) as Record<string, never>
-        }))
-
-        const prompt = buildAgentPrompt({
-          agentsMd: persona.agents,
-          identityMd: persona.identity,
-          soulMd: persona.soul,
-          stepInput: step.input,
-          context: runningContext
-        })
-
-        yield* _(bus.publish({ _tag: "PromptBuilt", runId, stepId, systemPrompt: prompt.systemPrompt, taskPrompt: prompt.taskPrompt }))
-
-        const rtkExtension = createRtkExtension({
-          model: model ?? agentSettings.model,
-          disabled: process.env.RTK_DISABLED === "1"
-        })
-
-        const output = yield* _(executeWithPi({
-          systemPrompt: prompt.systemPrompt,
-          taskPrompt: prompt.taskPrompt,
-          stepId,
-          agentId: agent.slug,
-          runId,
-          timeoutSeconds,
-          model,
-          extensions: [rtkExtension],
-          settings: {
-            thinking: agentSettings.thinking,
-            tools: agentSettings.tools,
-            skills: agentSettings.skills,
-            retryOnTransient: agentSettings.retryOnTransient,
-            compactionEnabled: agentSettings.compactionEnabled
-          }
-        }).pipe(
-          Effect.timeout(Duration.seconds(timeoutSeconds)),
-          Effect.retry(
-            Schedule.recurs(maxRetries - 1).pipe(
-              Schedule.tapInput((_error: unknown) =>
-                Effect.gen(function* () {
-                  yield* _(bus.publish({ _tag: "StepRetrying", runId, stepId }))
-                }).pipe(Effect.catchAll(() => Effect.void))
-              )
-            )
-          )
-        ))
-
-        if (output === undefined || output === null) {
-          yield* _(bus.publish({ _tag: "StepTimedOut", runId, stepId }))
-          yield* _(ctx.transitionStep(stepSlug, "fail"))
-          yield* _(appendEngineLog(runId, { event: "step_timeout", stepId }))
-          workflowStatus = "failed"
-          break
-        }
-
-        yield* _(ctx.transitionStep(stepSlug, "complete"))
-        yield* _(writeStepOutput(runId, stepId, output))
-
-        const extracted = mergeContext(runningContext, output)
-        Object.assign(runningContext, extracted)
-
-        if (output.status && typeof output.status === "string") {
-          stepResults[stepSlug] = output.status
-        }
-
-        yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
-        yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
+        const taskContext = buildAutoContext(task, runningContext, {})
+        yield* _(executeSingleTask(task, taskContext, task.name))
       }
 
       const completedAt = new Date().toISOString()
@@ -218,12 +224,12 @@ export function runWorkflow(
         yield* _(ctx.fail(workflowStatus).pipe(Effect.catchAll(() => Effect.void)))
       }
 
-      const summary = { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt }
+      const summary = { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt }
       yield* _(writeSummary(runId, summary))
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
       yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
 
-      return { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt } as WorkflowResult
+      return { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt } as WorkflowResult
     })
 
     const completedAt = new Date().toISOString()
@@ -234,8 +240,8 @@ export function runWorkflow(
           yield* _(bus.publish({ _tag: "WorkflowCompleted", runId, message: String(error) }))
           yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
-          yield* _(writeSummary(runId, { runId, status: "failed", stepResults, context: runningContext, startedAt, completedAt }))
-          return { runId, status: "failed" as const, stepResults, context: runningContext, startedAt, completedAt }
+          yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt }))
+          return { runId, status: "failed" as const, taskResults, context: runningContext, startedAt, completedAt }
         })
       ),
       Effect.ensuring(ctx.close())
