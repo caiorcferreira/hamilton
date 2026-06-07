@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
-import { Effect, Exit } from "effect"
-import { runWorkflow, WorkflowEvent } from "../../src/workflow/runner.js"
+import { Effect, Exit, Stream } from "effect"
+import { runWorkflow } from "../../src/workflow/runner.js"
+import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
 import type { WorkflowSpec } from "../../src/types.js"
 import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
@@ -50,13 +51,24 @@ describe("runWorkflow", () => {
   })
 
   it("executes all steps and returns completed", async () => {
-    const events: WorkflowEvent[] = []
+    const events: Event[] = []
 
     const result = await Effect.runPromiseExit(
-      runWorkflow(testSpec, { task: "test" }, {
-        onEvent: (e) => Effect.sync(() => events.push(e)),
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
@@ -65,28 +77,39 @@ describe("runWorkflow", () => {
       expect(result.value.stepResults["step-1"]).toBe("done")
       expect(result.value.stepResults["step-2"]).toBe("done")
 
-      const types = events.map((e) => e.type)
-      expect(types).toContain("workflow_started")
-      expect(types).toContain("step_started")
-      expect(types).toContain("step_completed")
-      expect(types).toContain("workflow_completed")
+      const tags = events.map((e) => e._tag)
+      expect(tags).toContain("WorkflowStarted")
+      expect(tags).toContain("StepStarted")
+      expect(tags).toContain("StepCompleted")
+      expect(tags).toContain("WorkflowCompleted")
     }
   })
 
   it("emits events in correct order", async () => {
-    const events: WorkflowEvent[] = []
+    const events: Event[] = []
 
     await Effect.runPromise(
-      runWorkflow(testSpec, { task: "test" }, {
-        onEvent: (e) => Effect.sync(() => events.push(e)),
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
-    expect(events[0].type).toBe("workflow_started")
-    expect(events[1].type).toBe("step_started")
-    expect(events[2].type).toBe("step_completed")
-    expect(events[events.length - 1].type).toBe("workflow_completed")
+    expect(events[0]._tag).toBe("WorkflowStarted")
+    expect(events[1]._tag).toBe("StepStarted")
+    expect(events[2]._tag).toBe("PromptBuilt")
+    expect(events[events.length - 1]._tag).toBe("WorkflowCompleted")
   })
 
   it("fails when persona not found", async () => {
@@ -101,10 +124,11 @@ describe("runWorkflow", () => {
     }
 
     const result = await Effect.runPromiseExit(
-      runWorkflow(specNoAgent, { task: "test" }, {
-        onEvent: () => Effect.void,
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        runWorkflow(specNoAgent, { task: "test" }, {
+          workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isFailure(result)).toBe(true)

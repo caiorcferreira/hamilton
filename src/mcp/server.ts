@@ -9,6 +9,7 @@ import { getRunStatus as getDbRunStatus, listRuns } from "../db/queries.js"
 import { getRunLogs } from "../cli/commands/logs.js"
 import { pauseWorkflow } from "../cli/commands/pause.js"
 import { resumeWorkflow } from "../cli/commands/resume.js"
+import { EventBusLive } from "../events/bus.js"
 import { workflowsDir, hamiltonHome } from "../paths.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
@@ -41,7 +42,9 @@ export function createMcpServer(): McpServer {
   }, async ({ slug, prompt }) => {
     try {
       const { executeRun } = await import("../cli/commands/run.js")
-      const result = await effectToPromise(executeRun({ workflowSlug: slug as string, prompt: prompt as string }))
+      const result = await effectToPromise(
+        Effect.scoped(executeRun({ workflowSlug: slug as string, prompt: prompt as string })).pipe(Effect.provide(EventBusLive))
+      )
       return textResult(JSON.stringify(result, null, 2))
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e))

@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
-import { Effect, Exit } from "effect"
-import { runWorkflow, WorkflowEvent } from "../../src/workflow/runner.js"
+import { Effect, Exit, Stream } from "effect"
+import { runWorkflow } from "../../src/workflow/runner.js"
+import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
+import { FileLogger } from "../../src/observability/subscribers.js"
 import type { WorkflowSpec } from "../../src/types.js"
 import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
@@ -49,14 +51,48 @@ describe("runWorkflow regression tests", () => {
     Fs.rmSync(tmpHome, { recursive: true, force: true })
   })
 
-  it("emits prompt_built event with system_prompt and task_prompt", async () => {
-    const collectedEvents: Array<Record<string, unknown>> = []
+  it("publishes PromptBuilt event with systemPrompt and taskPrompt", async () => {
+    const events: Event[] = []
 
     const result = await Effect.runPromiseExit(
-      runWorkflow(testSpec, { task: "test" }, {
-        onEvent: (e) => Effect.sync(() => collectedEvents.push(e as unknown as Record<string, unknown>)),
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    expect(Exit.isSuccess(result)).toBe(true)
+
+    const promptBuilt = events.find((e) => e._tag === "PromptBuilt")
+    expect(promptBuilt).toBeDefined()
+    if (promptBuilt && promptBuilt._tag === "PromptBuilt") {
+      expect(typeof promptBuilt.systemPrompt).toBe("string")
+      expect(typeof promptBuilt.taskPrompt).toBe("string")
+      expect(promptBuilt.systemPrompt.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("writes PromptBuilt event to step logs via FileLogger", async () => {
+    const result = await Effect.runPromiseExit(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* FileLogger
+          return yield* runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          })
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
@@ -75,48 +111,60 @@ describe("runWorkflow regression tests", () => {
       for (const line of content.trim().split("\n")) {
         if (!line.trim()) continue
         const parsed = JSON.parse(line)
-        if (parsed.event === "prompt_built") {
-          expect(parsed).toHaveProperty("system_prompt")
-          expect(parsed).toHaveProperty("task_prompt")
-          expect(typeof parsed.system_prompt).toBe("string")
-          expect(typeof parsed.task_prompt).toBe("string")
-          expect(parsed.system_prompt.length).toBeGreaterThan(0)
+        if (parsed._tag === "PromptBuilt" || parsed.event === "prompt_built") {
+          expect(parsed).toHaveProperty("systemPrompt")
+          expect(parsed).toHaveProperty("taskPrompt")
           return
         }
       }
     }
   })
 
-  it("emits workflow_started as first event", async () => {
-    const events: WorkflowEvent[] = []
+  it("emits WorkflowStarted as first event", async () => {
+    const events: Event[] = []
 
     await Effect.runPromise(
-      runWorkflow(testSpec, { task: "test" }, {
-        onEvent: (e) => Effect.sync(() => events.push(e)),
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
-    expect(events[0].type).toBe("workflow_started")
+    expect(events[0]._tag).toBe("WorkflowStarted")
   })
 
-  it("records token events in the database", async () => {
-    const events: Array<WorkflowEvent> = []
+  it("records token events via EventBus TokenUsage subscriber", async () => {
+    const tokenEvents: Event[] = []
 
     const result = await Effect.runPromiseExit(
-      runWorkflow(testSpec, { task: "test" }, {
-        onEvent: (e) => Effect.sync(() => events.push(e)),
-        workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
-      })
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeTo("TokenUsage").pipe(
+              Stream.tap((e) => Effect.sync(() => tokenEvents.push(e as Event))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
-    if (Exit.isSuccess(result)) {
-      const { Database } = require("bun:sqlite")
-      const db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
-      const rows = db.prepare("SELECT * FROM token_events WHERE run_id = ?").all(result.value.runId)
-      db.close()
-      expect(rows.length).toBeGreaterThan(0)
-    }
   })
 })

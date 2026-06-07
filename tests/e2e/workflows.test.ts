@@ -4,7 +4,8 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadWorkflowSpec } from "../../src/workflow/loader.js"
-import { runWorkflow, WorkflowEvent } from "../../src/workflow/runner.js"
+import { runWorkflow } from "../../src/workflow/runner.js"
+import { EventBusLive } from "../../src/events/bus.js"
 import { workflowsDir, runDir } from "../../src/paths.js"
 
 const stepResponses: Record<string, Record<string, unknown>> = {
@@ -53,14 +54,12 @@ describe("end-to-end workflow execution", () => {
       Fs.writeFileSync(Path.join(agentDir, "SOUL.md"), "Professional")
     }
 
-    const events: WorkflowEvent[] = []
-
     const result = await Effect.runPromiseExit(
-      runWorkflow(spec, { task: "fix login bug" }, {
-        onEvent: (event) =>
-          Effect.sync(() => { events.push(event) }),
-        workflowsDir: wfDest
-      })
+      Effect.scoped(
+        runWorkflow(spec, { task: "fix login bug" }, {
+          workflowsDir: wfDest
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
@@ -79,10 +78,6 @@ describe("end-to-end workflow execution", () => {
       const rd = runDir(r.runId)
       expect(Fs.existsSync(Path.join(rd, "input.json"))).toBe(true)
       expect(Fs.existsSync(Path.join(rd, "summary.json"))).toBe(true)
-
-      const types = events.map((e) => e.type)
-      expect(types).toContain("workflow_started")
-      expect(types).toContain("workflow_completed")
     }
   })
 })

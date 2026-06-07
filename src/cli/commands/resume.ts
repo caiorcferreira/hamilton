@@ -8,6 +8,8 @@ import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import type { WorkflowSpec } from "../../types.js"
+import { EventBusLive } from "../../events/bus.js"
+import { FileLogger } from "../../observability/subscribers.js"
 
 export class ResumeError extends Data.TaggedError("ResumeError")<{
   runId: string
@@ -61,12 +63,16 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     ))
 
     const result = yield* _(
-      runWorkflow(spec as unknown as WorkflowSpec, context, {
-        onEvent: () => Effect.void,
-        workflowsDir: wfDir
-      }, runId).pipe(
-        Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
-      )
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* FileLogger
+          return yield* runWorkflow(spec as unknown as WorkflowSpec, context, {
+            workflowsDir: wfDir
+          }, runId).pipe(
+            Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
+          )
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     return `Resumed ${runId}. Status: ${result.status}`

@@ -5,6 +5,7 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { executeRun } from "../../src/cli/commands/run.js"
 import { PiExecutionError } from "../../src/agent/pi-executor.js"
+import { EventBusLive } from "../../src/events/bus.js"
 
 vi.mock("../../src/agent/pi-executor.js", () => {
   const { Effect: E } = require("effect")
@@ -58,10 +59,12 @@ describe("executeRun", () => {
 
   it("executes a workflow and returns completed result", async () => {
     const result = await Effect.runPromiseExit(
-      executeRun({
-        workflowSlug: "test-wf",
-        prompt: "Fix the bug"
-      })
+      Effect.scoped(
+        executeRun({
+          workflowSlug: "test-wf",
+          prompt: "Fix the bug"
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
@@ -81,10 +84,12 @@ describe("executeRun", () => {
     )
 
     const result = await Effect.runPromiseExit(
-      executeRun({
-        workflowSlug: "test-wf",
-        prompt: "Fix the bug"
-      })
+      Effect.scoped(
+        executeRun({
+          workflowSlug: "test-wf",
+          prompt: "Fix the bug"
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isSuccess(result)).toBe(true)
@@ -95,10 +100,12 @@ describe("executeRun", () => {
 
   it("fails when workflow slug does not exist", async () => {
     const result = await Effect.runPromiseExit(
-      executeRun({
-        workflowSlug: "nonexistent",
-        prompt: "Fix the bug"
-      })
+      Effect.scoped(
+        executeRun({
+          workflowSlug: "nonexistent",
+          prompt: "Fix the bug"
+        })
+      ).pipe(Effect.provide(EventBusLive))
     )
 
     expect(Exit.isFailure(result)).toBe(true)

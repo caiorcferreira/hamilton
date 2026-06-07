@@ -1,4 +1,4 @@
-import { Effect, Schedule, Duration, Ref } from "effect"
+import { Effect, Schedule, Duration, Scope } from "effect"
 import { WorkflowSpec } from "../types.js"
 import { buildAgentPrompt } from "../agent/activity.js"
 import { mergeContext, resolveTemplate, type Context } from "../workflow/context.js"
@@ -13,24 +13,14 @@ import {
   createRunDir,
   writeInput,
   writeStepOutput,
-  appendStepLog,
   writeSummary,
   appendEngineLog
 } from "../observability/run-dir.js"
-import { insertTokenEvent, updateStepCompleted } from "../db/queries.js"
+import { EventBus } from "../events/bus.js"
+import { DbWriter } from "../db/subscribers.js"
 import { createGitWorktree, cleanupGitWorktree, WorktreeError } from "../workflow/deterministic-activities.js"
 
-export interface WorkflowEvent {
-  type: string
-  runId: string
-  stepId?: string
-  message?: string
-  timestamp: string
-  data?: Record<string, unknown>
-}
-
 export interface WorkflowRunnerConfig {
-  onEvent: (event: WorkflowEvent) => Effect.Effect<void>
   workflowsDir: string
 }
 
@@ -43,20 +33,14 @@ export interface WorkflowResult {
   completedAt: string
 }
 
-function emit(
-  onEvent: WorkflowRunnerConfig["onEvent"],
-  event: Omit<WorkflowEvent, "timestamp">
-): Effect.Effect<void> {
-  return onEvent({ ...event, timestamp: new Date().toISOString() })
-}
-
 export function runWorkflow(
   spec: WorkflowSpec,
   initialContext: Context,
   config: WorkflowRunnerConfig,
   existingRunId?: string
-): Effect.Effect<WorkflowResult, Error> {
+): Effect.Effect<WorkflowResult, Error, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
+    const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
     const runningContext: Context = { ...initialContext }
     const stepResults: Record<string, string> = {}
@@ -75,6 +59,8 @@ export function runWorkflow(
 
     const runId = ctx.runId
 
+    yield* _(DbWriter(ctx.db))
+
     yield* _(createRunDir(runId))
     yield* _(writeInput(runId, {
       spec,
@@ -85,12 +71,10 @@ export function runWorkflow(
         workflowSlug: spec.slug
       }
     }))
-    yield* _(emit(config.onEvent, { type: "workflow_started", runId }))
+    yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.slug }))
 
     let workflowStatus: "completed" | "failed" | "paused" = "completed"
-
-    const tokenRef = yield* _(Ref.make({ in: 0, out: 0 }))
 
     const body = Effect.gen(function* () {
       for (const stepSlug of stepOrder) {
@@ -105,17 +89,15 @@ export function runWorkflow(
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(emit(config.onEvent, { type: "step_paused", runId, stepId: stepSlug, message: "step paused via deferred state" }))
+          yield* _(bus.publish({ _tag: "StepPaused", runId, stepId: stepSlug }))
           workflowStatus = "paused"
           break
         }
 
         const stepId = buildStepId(runId, stepSlug)
 
-        yield* _(Ref.set(tokenRef, { in: 0, out: 0 }))
-
         yield* _(ctx.transitionStep(stepSlug, "start"))
-        yield* _(emit(config.onEvent, { type: "step_started", runId, stepId }))
+        yield* _(bus.publish({ _tag: "StepStarted", runId, stepId }))
         yield* _(appendEngineLog(runId, { event: "step_started", stepId }))
 
         if (step.type === "create_git_worktree") {
@@ -129,9 +111,8 @@ export function runWorkflow(
           Object.assign(runningContext, { worktree_path: result.worktreePath, worktree_branch: result.branch })
           stepResults[stepSlug] = "done"
           yield* _(ctx.transitionStep(stepSlug, "complete"))
-          yield* _(appendStepLog(runId, stepId, { event: "completed" }))
           yield* _(writeStepOutput(runId, stepId, { status: "done", worktree_path: result.worktreePath, worktree_branch: result.branch }))
-          yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+          yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
           yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
           continue
         }
@@ -146,9 +127,8 @@ export function runWorkflow(
           )
           stepResults[stepSlug] = "done"
           yield* _(ctx.transitionStep(stepSlug, "complete"))
-          yield* _(appendStepLog(runId, stepId, { event: "completed" }))
           yield* _(writeStepOutput(runId, stepId, { status: "done", cleaned: result.cleaned }))
-          yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+          yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
           yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
           continue
         }
@@ -172,7 +152,7 @@ export function runWorkflow(
           context: runningContext
         })
 
-        yield* _(appendStepLog(runId, stepId, { event: "prompt_built", system_prompt: prompt.systemPrompt, task_prompt: prompt.taskPrompt }))
+        yield* _(bus.publish({ _tag: "PromptBuilt", runId, stepId, systemPrompt: prompt.systemPrompt, taskPrompt: prompt.taskPrompt }))
 
         const rtkExtension = createRtkExtension({
           model: model ?? agentSettings.model,
@@ -201,13 +181,7 @@ export function runWorkflow(
             Schedule.recurs(maxRetries - 1).pipe(
               Schedule.tapInput((_error: unknown) =>
                 Effect.gen(function* () {
-                  yield* _(emit(config.onEvent, {
-                    type: "step_retry",
-                    runId,
-                    stepId,
-                    message: "Retrying step"
-                  }))
-                  yield* _(appendStepLog(runId, stepId, { event: "retry" }))
+                  yield* _(bus.publish({ _tag: "StepRetrying", runId, stepId }))
                 }).pipe(Effect.catchAll(() => Effect.void))
               )
             )
@@ -215,22 +189,14 @@ export function runWorkflow(
         ))
 
         if (output === undefined || output === null) {
-          yield* _(emit(config.onEvent, { type: "step_timeout", runId, stepId, message: "step timed out" }))
+          yield* _(bus.publish({ _tag: "StepTimedOut", runId, stepId }))
           yield* _(ctx.transitionStep(stepSlug, "fail"))
           yield* _(appendEngineLog(runId, { event: "step_timeout", stepId }))
           workflowStatus = "failed"
           break
         }
 
-        const stepTokens = yield* _(Ref.get(tokenRef))
-        const compoundId = ctx.compoundStepIds.get(stepSlug) ?? stepSlug
-
-        yield* _(Effect.sync(() => {
-          insertTokenEvent(ctx.db, runId, compoundId, "completion", stepTokens.in, stepTokens.out)
-        }).pipe(Effect.catchAll(() => Effect.void)))
-
         yield* _(ctx.transitionStep(stepSlug, "complete"))
-        yield* _(appendStepLog(runId, stepId, { event: "completed" }))
         yield* _(writeStepOutput(runId, stepId, output))
 
         const extracted = mergeContext(runningContext, output)
@@ -240,7 +206,7 @@ export function runWorkflow(
           stepResults[stepSlug] = output.status
         }
 
-        yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+        yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId }))
         yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
       }
 
@@ -254,7 +220,7 @@ export function runWorkflow(
 
       const summary = { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt }
       yield* _(writeSummary(runId, summary))
-      yield* _(emit(config.onEvent, { type: "workflow_completed", runId }))
+      yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
       yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
 
       return { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt } as WorkflowResult
@@ -265,7 +231,7 @@ export function runWorkflow(
     return yield* _(body.pipe(
       Effect.catchAll((error) =>
         Effect.gen(function* () {
-          yield* _(emit(config.onEvent, { type: "workflow_completed", runId, message: String(error) }))
+          yield* _(bus.publish({ _tag: "WorkflowCompleted", runId, message: String(error) }))
           yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
           yield* _(writeSummary(runId, { runId, status: "failed", stepResults, context: runningContext, startedAt, completedAt }))
