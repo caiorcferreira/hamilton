@@ -161,7 +161,14 @@ export function executeWithPi(
           if (config.onTokenUsage) {
             config.onTokenUsage(tokensIn, tokensOut)
           }
-        })
+        }),
+      getSessionStats: () => {
+        const stats = session.getSessionStats?.()
+        return {
+          inputTokens: stats?.tokens?.input ?? 0,
+          outputTokens: stats?.tokens?.output ?? 0
+        }
+      }
     })
 
     const unsubscribe = session.subscribe((piEvent) => {

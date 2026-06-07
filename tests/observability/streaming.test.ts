@@ -5,6 +5,7 @@ import { subscribePiEvents, type PiEvent, type SubscribeConfig } from "../../src
 describe("subscribePiEvents", () => {
   const onLogCalls: Record<string, unknown>[] = []
   const onTokenCalls: { runId: string; stepId: string; tokensIn: number; tokensOut: number }[] = []
+  let sessionStats: { inputTokens: number; outputTokens: number }
 
   let config: SubscribeConfig
   let handler: ReturnType<typeof subscribePiEvents>
@@ -12,6 +13,7 @@ describe("subscribePiEvents", () => {
   beforeEach(() => {
     onLogCalls.length = 0
     onTokenCalls.length = 0
+    sessionStats = { inputTokens: 0, outputTokens: 0 }
 
     config = {
       runId: "run-1",
@@ -23,7 +25,8 @@ describe("subscribePiEvents", () => {
       onTokenEvent: (params) => {
         onTokenCalls.push(params)
         return Effect.succeed(undefined)
-      }
+      },
+      getSessionStats: () => sessionStats
     }
 
     handler = subscribePiEvents(config)
@@ -49,25 +52,92 @@ describe("subscribePiEvents", () => {
     })
   })
 
-  it("handles turn_end with token tracking", async () => {
-    const event: PiEvent = {
-      type: "turn_end",
-      tokenUsage: { input: 100, output: 50 }
-    }
+  it("computes token deltas from getSessionStats on turn_end", async () => {
+    sessionStats = { inputTokens: 0, outputTokens: 0 }
+    const handler = subscribePiEvents(config)
+
+    sessionStats = { inputTokens: 150, outputTokens: 75 }
+    const event: PiEvent = { type: "turn_end" }
     await Effect.runPromise(handler(event))
     expect(onLogCalls).toHaveLength(1)
     expect(onLogCalls[0]).toEqual({
       event: "turn_end",
-      tokens_in: 100,
-      tokens_out: 50,
+      tokens_in: 150,
+      tokens_out: 75,
       step_id: "step-1"
     })
     expect(onTokenCalls).toHaveLength(1)
     expect(onTokenCalls[0]).toEqual({
       runId: "run-1",
       stepId: "step-1",
+      tokensIn: 150,
+      tokensOut: 75
+    })
+  })
+
+  it("computes incremental deltas across multiple turn_end events", async () => {
+    sessionStats = { inputTokens: 0, outputTokens: 0 }
+    const handler = subscribePiEvents(config)
+
+    sessionStats = { inputTokens: 100, outputTokens: 50 }
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onTokenCalls[0]).toEqual({
+      runId: "run-1",
+      stepId: "step-1",
       tokensIn: 100,
       tokensOut: 50
+    })
+
+    sessionStats = { inputTokens: 250, outputTokens: 120 }
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onTokenCalls[1]).toEqual({
+      runId: "run-1",
+      stepId: "step-1",
+      tokensIn: 150,
+      tokensOut: 70
+    })
+
+    sessionStats = { inputTokens: 300, outputTokens: 150 }
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onTokenCalls[2]).toEqual({
+      runId: "run-1",
+      stepId: "step-1",
+      tokensIn: 50,
+      tokensOut: 30
+    })
+  })
+
+  it("emits zero deltas when session stats havent changed", async () => {
+    sessionStats = { inputTokens: 100, outputTokens: 50 }
+    const handler = subscribePiEvents(config)
+
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onTokenCalls[0]).toEqual({
+      runId: "run-1",
+      stepId: "step-1",
+      tokensIn: 100,
+      tokensOut: 50
+    })
+
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onTokenCalls[1]).toEqual({
+      runId: "run-1",
+      stepId: "step-1",
+      tokensIn: 0,
+      tokensOut: 0
+    })
+  })
+
+  it("emits zero tokens when getSessionStats returns zeros initially", async () => {
+    sessionStats = { inputTokens: 0, outputTokens: 0 }
+    const handler = subscribePiEvents(config)
+
+    await Effect.runPromise(handler({ type: "turn_end" }))
+    expect(onLogCalls[0]).toEqual({
+      event: "turn_end",
+      tokens_in: 0,
+      tokens_out: 0,
+      step_id: "step-1"
     })
   })
 

@@ -8,7 +8,6 @@ export interface PiEvent {
   isError?: boolean
   assistantMessageEvent?: { type: string; delta?: string }
   message?: { content?: Array<{ type: string; text?: string }> }
-  tokenUsage?: { input: number; output: number }
   result?: unknown
   [key: string]: unknown
 }
@@ -18,10 +17,12 @@ export interface SubscribeConfig {
   stepId: string
   onLog: (event: Record<string, unknown>) => Effect.Effect<void>
   onTokenEvent: (params: { runId: string; stepId: string; tokensIn: number; tokensOut: number }) => Effect.Effect<void>
+  getSessionStats: () => { inputTokens: number; outputTokens: number }
 }
 
 export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => Effect.Effect<void> {
   let buffer = ""
+  let lastStats = { inputTokens: 0, outputTokens: 0 }
 
   return (event: PiEvent) =>
     Effect.gen(function* () {
@@ -46,8 +47,10 @@ export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => 
           yield* config.onLog({ event: "tool_result", tool: event.toolName ?? "unknown", isError: event.isError ?? false, step_id: config.stepId })
           break
         case "turn_end":
-          const tokensIn = event.tokenUsage?.input ?? 0
-          const tokensOut = event.tokenUsage?.output ?? 0
+          const current = config.getSessionStats()
+          const tokensIn = current.inputTokens - lastStats.inputTokens
+          const tokensOut = current.outputTokens - lastStats.outputTokens
+          lastStats = current
           yield* config.onLog({ event: "turn_end", tokens_in: tokensIn, tokens_out: tokensOut, step_id: config.stepId })
           yield* config.onTokenEvent({ runId: config.runId, stepId: config.stepId, tokensIn, tokensOut })
           break
