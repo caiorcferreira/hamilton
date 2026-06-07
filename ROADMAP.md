@@ -2,6 +2,10 @@
 
 ## Next Up
 
+- [ ] Fix token_in/token_out always 0: use session.getSessionStats() delta on turn_end instead of dead tokenUsage field
+- [ ] Make timeout configurable at the step level (step.timeoutSeconds → agent.timeoutSeconds → polling.timeoutSeconds → 300)
+- [ ] Print run ID at workflow start (in workflow_started event formatter), not only at the end
+- [ ] Refactor event architecture to use Effect event bus — decouple onLog, onTokenEvent, onTokenUsage into single-responsibility subscribers (logger, DB writer, CLI renderer)
 - [ ] change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
 - [ ] rename step id to step slug, for example `triage` is the step slug
 - [ ] the workflow id must have the format `<workflow-slug>-<uuid>`
