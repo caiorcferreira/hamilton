@@ -27,44 +27,43 @@ describe("createWriteStepOutputTool", () => {
 
   it("executes successfully with valid JSON input containing status", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: '{"status":"done","repo":"hamilton"}' }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: { status: "done", repo: "hamilton" } as any }, undefined, undefined, {} as any)
 
     expect(result.details).toEqual({})
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
   })
 
-  it("returns error when input is not valid JSON", async () => {
+  it("returns error when status is empty string", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: "not json" }, undefined, undefined, {} as any)
-
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Invalid JSON")
+    const result = await tool.execute("call-1", { input: { status: "" } }, undefined, undefined, {} as any)
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Missing required field 'status'")
   })
 
-  it("returns error when input is not an object", async () => {
+  it("returns error when input is an array", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: "[1,2,3]" }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: [1, 2, 3] as any }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("JSON object")
   })
 
   it("returns error when status field is missing", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: '{"repo":"hamilton"}' }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: { repo: "hamilton" } as any }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Missing required field 'status'")
   })
 
   it("rejects duplicate calls (write-once)", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    await tool.execute("call-1", { input: '{"status":"done"}' }, undefined, undefined, {} as any)
-    const result = await tool.execute("call-2", { input: '{"status":"done"}' }, undefined, undefined, {} as any)
+    await tool.execute("call-1", { input: { status: "done" } }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-2", { input: { status: "done" } }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Output already written")
   })
 
   it("writes output JSON to the correct file path", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
-    await tool.execute("call-1", { input: '{"status":"done","key":"val"}' }, undefined, undefined, {} as any)
+    await tool.execute("call-1", { input: { status: "done", key: "val" } as any }, undefined, undefined, {} as any)
 
     const outputPath = Path.join(tmpDir, ".hamilton", "runs", "run-1", "step-outputs", "step-1.json")
     const raw = Fs.readFileSync(outputPath, "utf-8")
@@ -82,7 +81,7 @@ describe("createWriteStepOutputTool", () => {
       required: ["status", "count"]
     }
     const tool = createWriteStepOutputTool("run-schema", "step-schema", schema)
-    const result = await tool.execute("call-1", { input: '{"status":"done","count":"not-a-number"}' }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: { status: "done", count: "not-a-number" } as any }, undefined, undefined, {} as any)
 
     const text = (result.content[0] as { type: "text"; text: string }).text
     expect(text).toContain("schema validation")
@@ -98,15 +97,21 @@ describe("createWriteStepOutputTool", () => {
       required: ["status", "count"]
     }
     const tool = createWriteStepOutputTool("run-valid", "step-valid", schema)
-    const result = await tool.execute("call-1", { input: '{"status":"done","count":42}' }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: { status: "done", count: 42 } as any }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
   })
 
   it("skips schema validation when schema is undefined", async () => {
     const tool = createWriteStepOutputTool("run-noschema", "step-noschema")
-    const result = await tool.execute("call-1", { input: '{"status":"done","anyField":"anyValue"}' }, undefined, undefined, {} as any)
+    const result = await tool.execute("call-1", { input: { status: "done", anyField: "anyValue" } as any }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
+  })
+
+  it("returns error when input is null", async () => {
+    const tool = createWriteStepOutputTool("run-1", "step-1")
+    const result = await tool.execute("call-1", { input: null as any }, undefined, undefined, {} as any)
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("JSON object")
   })
 })

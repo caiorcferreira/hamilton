@@ -6,7 +6,9 @@ import { Type } from "typebox"
 import { Ajv } from "ajv"
 
 const paramsSchema = Type.Object({
-  input: Type.String({ description: "JSON string with your results. Must be an object with a 'status' field." })
+  input: Type.Object({
+    status: Type.String({ description: "Completion state: 'done', 'retry', or 'failed'" })
+  }, { additionalProperties: true })
 })
 
 function textContent(text: string): { type: "text"; text: string } {
@@ -29,9 +31,9 @@ export function createWriteStepOutputTool(
   return defineTool({
     name: "write_step_output",
     label: "Write Step Output",
-    description: "Save your step results as JSON. The input must be a valid JSON object with a 'status' field (string). Call this exactly once when your step is complete. The file is written to the Hamilton run outputs directory.",
+    description: "Save your step results. The input must be a JSON object with a 'status' field (string). Call this exactly once when your step is complete. The file is written to the Hamilton run outputs directory.",
     parameters: paramsSchema,
-    promptSnippet: "- write_step_output: saves your step results as JSON (call once when done, input must be valid JSON with 'status' field)",
+    promptSnippet: "- write_step_output: saves your step results (call once when done, input must be a JSON object with 'status' field)",
     execute: async (_toolCallId, { input }, _signal, _onUpdate, _ctx) => {
       const outputsDir = stepOutputsDir(runId)
       const outputPath = stepOutputFile(runId, stepId)
@@ -43,27 +45,17 @@ export function createWriteStepOutputTool(
         }
       }
 
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(input)
-      } catch {
-        return {
-          content: [textContent("Error: Invalid JSON input. Please provide a valid JSON string.")],
-          details: {}
-        }
-      }
-
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      if (typeof input !== "object" || input === null || Array.isArray(input)) {
         return {
           content: [textContent("Error: Input must be a JSON object (not an array, null, or primitive value).")],
           details: {}
         }
       }
 
-      const obj = parsed as Record<string, unknown>
-      if (typeof obj.status !== "string") {
+      const obj = input as Record<string, unknown>
+      if (typeof obj.status !== "string" || obj.status.length === 0) {
         return {
-          content: [textContent("Error: Missing required field 'status' (must be a string). Example: { \"status\": \"done\", ... }")],
+          content: [textContent("Error: Missing required field 'status' (must be a non-empty string). Example: { \"status\": \"done\", ... }")],
           details: {}
         }
       }
