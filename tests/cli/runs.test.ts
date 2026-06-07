@@ -73,6 +73,7 @@ describe("listRunHistory", () => {
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(3)
+      expect(exit.value[0].completed_at).toBeDefined()
     }
   })
 })

@@ -37,7 +37,7 @@ describe("subscribePiEvents", () => {
     const event: PiEvent = {
       type: "tool_execution_start",
       toolName: "bash",
-      toolCall: { input: { command: "ls" } }
+      args: { command: "ls" }
     }
     await Effect.runPromise(handler(event))
     expect(onLogCalls).toHaveLength(1)
@@ -113,7 +113,7 @@ describe("subscribePiEvents", () => {
     const toolStart: PiEvent = {
       type: "tool_execution_start",
       toolName: "bash",
-      toolCall: { input: { command: "ls" } }
+      args: { command: "ls" }
     }
     const messageEnd: PiEvent = {
       type: "message_end"

@@ -1,7 +1,7 @@
-import { Effect, Schedule, Duration } from "effect"
+import { Effect, Schedule, Duration, Ref } from "effect"
 import { WorkflowSpec } from "../types.js"
 import { buildAgentPrompt } from "../agent/activity.js"
-import { mergeContext, type Context } from "../workflow/context.js"
+import { mergeContext, resolveTemplate, type Context } from "../workflow/context.js"
 import { resolvePersona } from "../agent/persona.js"
 import { loadAgentSettings } from "../agent/config.js"
 import { createRtkExtension } from "../agent/rtk-extension.js"
@@ -17,6 +17,8 @@ import {
   writeSummary,
   appendEngineLog
 } from "../observability/run-dir.js"
+import { insertTokenEvent, updateStepCompleted } from "../db/queries.js"
+import { createGitWorktree, cleanupGitWorktree, WorktreeError } from "../workflow/deterministic-activities.js"
 
 export interface WorkflowEvent {
   type: string
@@ -88,6 +90,8 @@ export function runWorkflow(
 
     let workflowStatus: "completed" | "failed" | "paused" = "completed"
 
+    const tokenRef = yield* _(Ref.make({ in: 0, out: 0 }))
+
     const body = Effect.gen(function* () {
       for (const stepSlug of stepOrder) {
         const shouldExec = yield* _(ctx.shouldExecuteStep(stepSlug))
@@ -108,9 +112,46 @@ export function runWorkflow(
 
         const stepId = buildStepId(runId, stepSlug)
 
+        yield* _(Ref.set(tokenRef, { in: 0, out: 0 }))
+
         yield* _(ctx.transitionStep(stepSlug, "start"))
         yield* _(emit(config.onEvent, { type: "step_started", runId, stepId }))
         yield* _(appendEngineLog(runId, { event: "step_started", stepId }))
+
+        if (step.type === "create_git_worktree") {
+          const resolvedInput = resolveTemplate(step.input, runningContext)
+          const worktreeParams = JSON.parse(resolvedInput) as { repo: string; branch: string; worktreePath?: string }
+          const result = yield* _(
+            createGitWorktree(worktreeParams, stepId).pipe(
+              Effect.mapError((e) => new Error(e.message))
+            )
+          )
+          Object.assign(runningContext, { worktree_path: result.worktreePath, worktree_branch: result.branch })
+          stepResults[stepSlug] = "done"
+          yield* _(ctx.transitionStep(stepSlug, "complete"))
+          yield* _(appendStepLog(runId, stepId, { event: "completed" }))
+          yield* _(writeStepOutput(runId, stepId, { status: "done", worktree_path: result.worktreePath, worktree_branch: result.branch }))
+          yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+          yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
+          continue
+        }
+
+        if (step.type === "cleanup_git_worktree") {
+          const resolvedInput = resolveTemplate(step.input, runningContext)
+          const cleanupParams = JSON.parse(resolvedInput) as { worktreePath: string }
+          const result = yield* _(
+            cleanupGitWorktree(cleanupParams, stepId).pipe(
+              Effect.mapError((e) => new Error(e.message))
+            )
+          )
+          stepResults[stepSlug] = "done"
+          yield* _(ctx.transitionStep(stepSlug, "complete"))
+          yield* _(appendStepLog(runId, stepId, { event: "completed" }))
+          yield* _(writeStepOutput(runId, stepId, { status: "done", cleaned: result.cleaned }))
+          yield* _(emit(config.onEvent, { type: "step_completed", runId, stepId }))
+          yield* _(appendEngineLog(runId, { event: "step_completed", stepId }))
+          continue
+        }
 
         const persona = yield* _(
           resolvePersona(agent.slug, spec.slug).pipe(
@@ -118,13 +159,11 @@ export function runWorkflow(
           )
         )
 
-        // todo: why loadAgentSettings don't pass agentDir? Can't this cause problems?
         const agentSettings = yield* _(Effect.match(loadAgentSettings(""), {
           onSuccess: (s) => s,
           onFailure: () => ({}) as Record<string, never>
         }))
 
-        // todo: rename field to remove "Md"
         const prompt = buildAgentPrompt({
           agentsMd: persona.agents,
           identityMd: persona.identity,
@@ -133,7 +172,7 @@ export function runWorkflow(
           context: runningContext
         })
 
-        yield* _(appendStepLog(runId, stepId, { event: "prompt_built" }))
+        yield* _(appendStepLog(runId, stepId, { event: "prompt_built", system_prompt: prompt.systemPrompt, task_prompt: prompt.taskPrompt }))
 
         const rtkExtension = createRtkExtension({
           model: model ?? agentSettings.model,
@@ -152,8 +191,12 @@ export function runWorkflow(
           settings: {
             thinking: agentSettings.thinking,
             tools: agentSettings.tools,
-            skills: agentSettings.skills
-          }
+            skills: agentSettings.skills,
+            retryOnTransient: agentSettings.retryOnTransient,
+            compactionEnabled: agentSettings.compactionEnabled
+          },
+          onTokenUsage: (tokensIn, tokensOut) =>
+            Ref.update(tokenRef, (prev) => ({ in: prev.in + tokensIn, out: prev.out + tokensOut }))
         }).pipe(
           Effect.timeout(Duration.seconds(timeoutSeconds)),
           Effect.retry(
@@ -180,6 +223,13 @@ export function runWorkflow(
           workflowStatus = "failed"
           break
         }
+
+        const stepTokens = yield* _(Ref.get(tokenRef))
+        const compoundId = ctx.compoundStepIds.get(stepSlug) ?? stepSlug
+
+        yield* _(Effect.sync(() => {
+          insertTokenEvent(ctx.db, runId, compoundId, "completion", stepTokens.in, stepTokens.out)
+        }).pipe(Effect.catchAll(() => Effect.void)))
 
         yield* _(ctx.transitionStep(stepSlug, "complete"))
         yield* _(appendStepLog(runId, stepId, { event: "completed" }))

@@ -63,6 +63,7 @@ export interface WorkflowRuntime {
   readonly runId: string
   readonly state: RunState
   readonly spec: WorkflowSpec
+  readonly compoundStepIds: ReadonlyMap<string, string>
 
   readonly shouldExecuteStep: (stepId: string) => Effect.Effect<boolean, EngineError>
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
@@ -95,6 +96,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   get runId(): string { return this._runId }
   get state(): RunState { return this._state }
   get spec(): WorkflowSpec { return this._spec }
+  get compoundStepIds(): ReadonlyMap<string, string> { return this._compoundStepIds }
 
   shouldExecuteStep(stepId: string): Effect.Effect<boolean, EngineError> {
     return Effect.sync(() => {

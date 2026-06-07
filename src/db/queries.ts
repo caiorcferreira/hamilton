@@ -242,6 +242,7 @@ export interface RunSummary {
   workflow_id: string
   status: string
   started_at: string
+  completed_at: string | null
   current_step: string | null
 }
 
@@ -252,7 +253,7 @@ export function listRuns(
   const status = opts?.status ?? null
   const limit = opts?.limit ?? 20
   const rows = db.prepare(
-    `SELECT id, workflow_id, status, started_at, current_step
+    `SELECT id, workflow_id, status, started_at, completed_at, current_step
      FROM runs
      WHERE (? IS NULL OR status = ?)
      ORDER BY started_at DESC

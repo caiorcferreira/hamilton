@@ -32,7 +32,10 @@ export interface PiExecutorConfig {
     thinking?: string
     tools?: string[]
     skills?: string[]
+    retryOnTransient?: boolean
+    compactionEnabled?: boolean
   }
+  onTokenUsage?: (tokensIn: number, tokensOut: number) => void
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -110,7 +113,14 @@ export function executeWithPi(
 
     yield* _(Effect.promise(() => loader.reload()))
 
-    const writeStepOutputTool = createWriteStepOutputTool(config.runId, config.stepId)
+    let sessionRef: typeof session | null = null
+    const writeStepOutputTool = createWriteStepOutputTool(config.runId, config.stepId, {
+      onStepComplete: () => {
+        if (sessionRef) {
+          sessionRef.abort().catch(() => {})
+        }
+      }
+    })
 
     const sessionManager = SessionManager.inMemory()
 
@@ -131,6 +141,12 @@ export function executeWithPi(
       )
     )
 
+    sessionRef = session
+
+    if (config.settings?.compactionEnabled) {
+      (session as any).setAutoCompactionEnabled?.(true)
+    }
+
     const handlePiEvent = subscribePiEvents({
       runId: config.runId,
       stepId: config.stepId,
@@ -138,9 +154,14 @@ export function executeWithPi(
         Effect.catchAll(() => Effect.void)
       ),
       onTokenEvent: ({ runId, stepId, tokensIn, tokensOut }) =>
-        appendStepLog(runId, stepId, { event: "token_usage", tokens_in: tokensIn, tokens_out: tokensOut }).pipe(
-          Effect.catchAll(() => Effect.void)
-        )
+        Effect.gen(function* () {
+          yield* appendStepLog(runId, stepId, { event: "token_usage", tokens_in: tokensIn, tokens_out: tokensOut }).pipe(
+            Effect.catchAll(() => Effect.void)
+          )
+          if (config.onTokenUsage) {
+            config.onTokenUsage(tokensIn, tokensOut)
+          }
+        })
     })
 
     const unsubscribe = session.subscribe((piEvent) => {
@@ -166,6 +187,13 @@ export function executeWithPi(
       const parsed = JSON.parse(raw) as Record<string, unknown>
       return parsed
     } catch (e) {
+      const outputPath = stepOutputFile(config.runId, config.stepId)
+      if (Fs.existsSync(outputPath)) {
+        const raw = Fs.readFileSync(outputPath, "utf-8")
+        const parsed = JSON.parse(raw) as Record<string, unknown>
+        return parsed
+      }
+
       return yield* _(
         Effect.fail(
           new PiExecutionError({

@@ -9,6 +9,9 @@ export interface AgentSettings {
   tools?: string[]
   timeoutSeconds?: number
   skills?: string[]
+  retryOnTransient?: boolean
+  compactionEnabled?: boolean
+  compactionThresholdTokens?: number
 }
 
 export class ConfigLoadError extends Data.TaggedError("ConfigLoadError")<{
@@ -48,6 +51,9 @@ export function loadAgentSettings(
         if (typeof r.timeoutSeconds === "number") result.timeoutSeconds = r.timeoutSeconds
         if (Array.isArray(r.tools) && r.tools.every((t) => typeof t === "string")) result.tools = r.tools as string[]
         if (Array.isArray(r.skills) && r.skills.every((s) => typeof s === "string")) result.skills = r.skills as string[]
+        if (typeof r.retryOnTransient === "boolean") result.retryOnTransient = r.retryOnTransient
+        if (typeof r.compactionEnabled === "boolean") result.compactionEnabled = r.compactionEnabled
+        if (typeof r.compactionThresholdTokens === "number") result.compactionThresholdTokens = r.compactionThresholdTokens
         return result
       },
       catch: (e) =>

@@ -3,11 +3,13 @@ import { Effect } from "effect"
 export interface PiEvent {
   type: string
   toolName?: string
-  toolCall?: { input: Record<string, unknown> }
+  toolCallId?: string
+  args?: unknown
   isError?: boolean
   assistantMessageEvent?: { type: string; delta?: string }
   message?: { content?: Array<{ type: string; text?: string }> }
   tokenUsage?: { input: number; output: number }
+  result?: unknown
   [key: string]: unknown
 }
 
@@ -38,7 +40,7 @@ export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => 
           break
         case "tool_execution_start":
           buffer = ""
-          yield* config.onLog({ event: "tool_call", tool: event.toolName ?? "unknown", input: event.toolCall?.input ?? {}, step_id: config.stepId })
+          yield* config.onLog({ event: "tool_call", tool: event.toolName ?? "unknown", input: event.args ?? {}, step_id: config.stepId })
           break
         case "tool_execution_end":
           yield* config.onLog({ event: "tool_result", tool: event.toolName ?? "unknown", isError: event.isError ?? false, step_id: config.stepId })

@@ -12,7 +12,11 @@ function textContent(text: string): { type: "text"; text: string } {
   return { type: "text", text }
 }
 
-export function createWriteStepOutputTool(runId: string, stepId: string): ToolDefinition<typeof paramsSchema> {
+export interface StepCompleteCallback {
+  onStepComplete: () => void
+}
+
+export function createWriteStepOutputTool(runId: string, stepId: string, cb?: StepCompleteCallback): ToolDefinition<typeof paramsSchema> {
   return defineTool({
     name: "write_step_output",
     label: "Write Step Output",
@@ -57,6 +61,8 @@ export function createWriteStepOutputTool(runId: string, stepId: string): ToolDe
 
       Fs.mkdirSync(outputsDir, { recursive: true })
       Fs.writeFileSync(outputPath, JSON.stringify(obj, null, 2))
+
+      cb?.onStepComplete()
 
       return {
         content: [textContent("Step output written successfully to " + outputPath)],

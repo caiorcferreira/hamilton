@@ -1,0 +1,47 @@
+slug: do
+name: General Purpose Do Workflow
+version: 1
+description: |
+  Single general-purpose agent that takes an arbitrary task description
+  and executes it end-to-end — plans, executes, and reports results.
+  For quick tasks that don't need a full multi-step pipeline.
+polling:
+  model: default
+  timeoutSeconds: 120
+
+agents:
+  - slug: doer
+    name: Doer
+    role: coding
+    description: General-purpose agent that plans and executes any task.
+    workspace:
+      baseDir: agents/doer
+      files:
+        AGENTS.md: agents/doer/AGENTS.md
+        SOUL.md: agents/doer/SOUL.md
+        IDENTITY.md: agents/doer/IDENTITY.md
+
+steps:
+  - slug: execute
+    agent: doer
+    input: |
+      Execute the following task end-to-end.
+
+      TASK:
+      {{task}}
+
+      Instructions:
+      1. Understand the task completely
+      2. Plan your approach before starting
+      3. Execute the plan step by step
+      4. Verify the result matches the task requirements
+      5. Report what you did
+
+      Reply with:
+      STATUS: done
+      RESULT: Summary of what was accomplished
+      CHANGES: What files or changes were made
+    expects: "STATUS: done"
+    max_retries: 4
+    on_fail:
+      escalate_to: human

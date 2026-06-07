@@ -2,7 +2,7 @@ import { Args, Command } from "@effect/cli"
 import { Console, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
-import { hamiltonHome } from "../../paths.js"
+import { hamiltonHome, runDir } from "../../paths.js"
 
 export type RunStatus = import("../../workflow/state.js").RunStatus
 
@@ -38,10 +38,21 @@ function stepIndicator(status: string): string {
   return "\u25CB"
 }
 
+function parseStepSlug(stepId: string, runId: string): string {
+  const prefix = runId + "-"
+  if (!stepId.startsWith(prefix)) return stepId
+  const afterRun = stepId.slice(prefix.length)
+  const lastDash = afterRun.lastIndexOf("-")
+  if (lastDash === -1) return afterRun
+  return afterRun.slice(0, lastDash)
+}
+
 export function formatStatus(status: RunStatus): string {
   const lines: string[] = []
 
   const elapsed = computeElapsed(status.startedAt, status.completedAt)
+
+  lines.push(`Run folder: ${runDir(status.runId)}/`)
 
   if (status.status === "completed") {
     lines.push(`Workflow:  ${status.workflow}`)
@@ -56,13 +67,19 @@ export function formatStatus(status: RunStatus): string {
 
   lines.push(`Run ID:    ${status.runId}`)
 
-  const currentIdx = status.steps.findIndex((s) => s.status === "running")
+  const stepsInOrder = status.steps.map((s, idx) => ({
+    ...s,
+    slug: parseStepSlug(s.stepId, status.runId),
+    order: idx
+  }))
+
+  const currentIdx = stepsInOrder.findIndex((s) => s.status === "running")
   if (status.currentStep && currentIdx >= 0) {
-    const step = status.steps[currentIdx]
-    lines.push(`Step:      ${currentIdx + 1}/${status.steps.length} \u2014 ${step.stepId} (agent: ${step.agentSlug})`)
+    const step = stepsInOrder[currentIdx]
+    lines.push(`Step:      ${step.slug} (${currentIdx + 1}/${stepsInOrder.length}) \u2014 agent: ${step.agentSlug}`)
   }
 
-  const stepLine = status.steps.map((s) => `${s.stepId} ${stepIndicator(s.status)}`).join("  ")
+  const stepLine = stepsInOrder.map((s, idx) => `${s.slug}(${idx + 1}/${stepsInOrder.length}) ${stepIndicator(s.status)}`).join("  ")
   lines.push(`Steps:     ${stepLine}`)
 
   const tokensIn = status.totalTokensIn.toLocaleString()

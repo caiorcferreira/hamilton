@@ -10,6 +10,7 @@ interface ToolCallEvent {
     name: string
     input: { command: string }
   }
+  args?: { command: string }
 }
 
 interface PiExtensionApi {
@@ -48,7 +49,8 @@ export function createRtkExtension(options: RtkExtensionOptions): (pi: unknown) 
 
     api.addEventListener("tool_call", (evt: ToolCallEvent) => {
       if (evt.toolCall?.name === "bash") {
-        rewriteCommand(evt.toolCall.input, evt.toolCall.input.command, model)
+        const command = evt.args?.command ?? evt.toolCall.input.command
+        rewriteCommand(evt.toolCall.input, command, model)
       }
     })
   }

@@ -147,7 +147,7 @@ export function followLogs(params: { runId: string }): { stop: () => void } {
 
 const runIdArg = Args.text({ name: "id" })
 const stepOpt = Options.text("step").pipe(Options.optional)
-const followOpt = Options.boolean("follow")
+const followOpt = Options.boolean("follow", { aliases: ["f"] })
 
 export const logsCommand = Command.make("logs", { id: runIdArg, step: stepOpt, follow: followOpt }, ({ id, step, follow }) =>
   Effect.gen(function* () {

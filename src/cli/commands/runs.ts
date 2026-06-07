@@ -16,11 +16,22 @@ export const listRunHistory = (opts?: { status?: string; limit?: number }) =>
     return runs
   })
 
+function computeDuration(start: string, end: string | null): string {
+  const startMs = new Date(start).getTime()
+  const endMs = end ? new Date(end).getTime() : Date.now()
+  const diffSec = Math.max(0, Math.floor((endMs - startMs) / 1000))
+  if (diffSec < 60) return `${diffSec}s`
+  const min = Math.floor(diffSec / 60)
+  const sec = diffSec % 60
+  return `${min}m ${sec}s`
+}
+
 const runColumns: Column<RunSummary>[] = [
   { header: "RUN ID", width: 22, render: (r) => r.id.slice(0, 22) },
   { header: "WORKFLOW", width: 16, render: (r) => r.workflow_id },
   { header: "STATUS", width: 10, render: (r) => statusColor(r.status)(r.status) },
   { header: "STARTED", width: 20, render: (r) => dim(r.started_at.slice(0, 19)) },
+  { header: "DURATION", width: 10, render: (r) => dim(computeDuration(r.started_at, r.completed_at)) },
   { header: "STEP", width: 12, render: (r) => r.current_step ?? "-" }
 ]
 

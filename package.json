@@ -20,9 +20,12 @@
     "@effect/platform-bun": "0.90.0",
     "@effect/schema": "0.75.5",
     "@effect/workflow": "0.18.2",
+    "@modelcontextprotocol/sdk": "1.12.0",
     "effect": "3.21.3",
     "nanoid": "3.3.12",
-    "yaml": "2.4.5"
+    "yaml": "2.4.5",
+    "zod": "3.23.8",
+    "zod-to-json-schema": "3.24.1"
   },
   "devDependencies": {
     "@effect/vitest": "0.29.0",

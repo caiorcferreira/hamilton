@@ -48,7 +48,7 @@ const OnFailConfigSchema = Schema.Struct({
 const WorkflowStepSchema = Schema.Struct({
   slug: Schema.String,
   agent: Schema.String,
-  type: Schema.optional(Schema.Literal("default", "loop")),
+  type: Schema.optional(Schema.Literal("default", "loop", "create_git_worktree", "cleanup_git_worktree")),
   loop: Schema.optional(LoopConfigSchema),
   input: Schema.String,
   expects: Schema.optional(Schema.String),

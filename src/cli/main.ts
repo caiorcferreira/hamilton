@@ -13,6 +13,7 @@ import { pauseCommand } from "./commands/pause.js"
 import { resumeCommand } from "./commands/resume.js"
 import { installCommand } from "./commands/install.js"
 import { uninstallCommand } from "./commands/uninstall.js"
+import { mcpCommand } from "./commands/mcp.js"
 
 const workflowCommand = Command.make("workflow", {}, () =>
   Console.log("Hamilton workflows — use a subcommand or --help")
@@ -33,7 +34,7 @@ const workflowCommand = Command.make("workflow", {}, () =>
 const rootCommand = Command.make("hamilton", {}, () =>
   Console.log("Hamilton - Workflow-based agentic execution engine\n\nUse --help for available commands")
 ).pipe(
-  Command.withSubcommands([initCommand, doctorCommand, workflowCommand])
+  Command.withSubcommands([initCommand, doctorCommand, workflowCommand, mcpCommand])
 )
 
 const cli = Command.run(rootCommand, {

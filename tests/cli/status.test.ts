@@ -133,10 +133,11 @@ describe("formatStatus", () => {
       errorMessage: null
     }
     const output = formatStatus(status)
-    expect(output).toContain("Workflow:  bug-fix")
+    expect(output).toContain("Run folder:")
+    expect(output).toContain("bug-fix")
     expect(output).toContain("running")
     expect(output).toContain("bug-fix-abc123")
-    expect(output).toContain("4/5")
+    expect(output).toContain("fix(4/5)")
     expect(output).toContain("agent: fixer")
     expect(output).toContain("triage")
     expect(output).toContain("verify")

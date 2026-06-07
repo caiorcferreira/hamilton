@@ -52,7 +52,7 @@ export interface WorkflowAgentWorkspace {
 export interface WorkflowStep {
   slug: StepSlug
   agent: AgentSlug
-  type?: "default" | "loop"
+  type?: "default" | "loop" | "create_git_worktree" | "cleanup_git_worktree"
   loop?: LoopConfig
   input: string
   expects?: string
