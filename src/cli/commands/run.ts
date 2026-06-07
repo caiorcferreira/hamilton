@@ -6,7 +6,7 @@ import { resolveWorkflowSlug } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { runWorkflow, WorkflowResult, WorkflowEvent } from "../../workflow/runner.js"
 import { WorkflowSpec as WfSpec } from "../../types.js"
-import { buildRunId } from "../../workflow/engine.js"
+
 
 export interface RunParams {
   workflowSlug: string
@@ -72,17 +72,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error> {
         onEvent,
         workflowsDir: wfDir
       }).pipe(
-        Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`)),
-        Effect.catchAll((error) =>
-          Effect.succeed<WorkflowResult>({
-            runId: buildRunId((spec as unknown as WfSpec).slug),
-            status: "failed",
-            stepResults: {},
-            context: {},
-            startedAt: new Date().toISOString(),
-            completedAt: new Date().toISOString()
-          })
-        )
+        Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )
     )
 

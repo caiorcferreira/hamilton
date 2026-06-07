@@ -262,7 +262,18 @@ export function runWorkflow(
       return { runId, status: workflowStatus, stepResults, context: runningContext, startedAt, completedAt } as WorkflowResult
     })
 
+    const completedAt = new Date().toISOString()
+
     return yield* _(body.pipe(
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* _(emit(config.onEvent, { type: "workflow_completed", runId, message: String(error) }))
+          yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
+          yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
+          yield* _(writeSummary(runId, { runId, status: "failed", stepResults, context: runningContext, startedAt, completedAt }))
+          return { runId, status: "failed" as const, stepResults, context: runningContext, startedAt, completedAt }
+        })
+      ),
       Effect.ensuring(ctx.close())
     ))
   })
