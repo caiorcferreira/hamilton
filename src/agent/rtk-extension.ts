@@ -1,7 +1,6 @@
 import * as ChildProcess from "node:child_process"
 
 export interface RtkExtensionOptions {
-  model?: string
   disabled?: boolean
 }
 
@@ -19,13 +18,10 @@ interface PiExtensionApi {
 
 export function rewriteCommand(
   toolInput: { command: string },
-  command: string,
-  model?: string
+  command: string
 ): void {
   try {
-    const args = ["rewrite", command]
-    if (model) args.push("--model", model)
-    const result = ChildProcess.spawnSync("rtk", args, {
+    const result = ChildProcess.spawnSync("rtk", ["rewrite", command], {
       stdio: ["pipe", "pipe", "pipe"],
       encoding: "utf-8",
       timeout: 5000
@@ -41,7 +37,7 @@ export function createRtkExtension(options: RtkExtensionOptions): (pi: unknown) 
     return () => {}
   }
 
-  const { model } = options
+  return () => {}
 
   return (pi: unknown) => {
     const api = pi as PiExtensionApi | null
@@ -50,7 +46,7 @@ export function createRtkExtension(options: RtkExtensionOptions): (pi: unknown) 
     api.addEventListener("tool_call", (evt: ToolCallEvent) => {
       if (evt.toolCall?.name === "bash") {
         const command = evt.args?.command ?? evt.toolCall.input.command
-        rewriteCommand(evt.toolCall.input, command, model)
+        rewriteCommand(evt.toolCall.input, command)
       }
     })
   }

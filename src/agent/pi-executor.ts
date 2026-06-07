@@ -16,6 +16,7 @@ import { subscribePiEvents } from "../observability/streaming.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { createWriteStepOutputTool } from "./write-step-output-tool.js"
+import { createRtkExtension } from "./rtk-extension.js"
 import { stepOutputFile } from "../paths.js"
 
 export interface PiExecutorConfig {
@@ -31,7 +32,7 @@ export interface PiExecutorConfig {
   settings?: {
     thinking?: string
     tools?: string[]
-    skills?: string[]
+    skills?: string[] | null
     retryOnTransient?: boolean
     compactionEnabled?: boolean
   }
@@ -103,11 +104,16 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
+    const rtkExtension = createRtkExtension({ disabled: process.env.RTK_DISABLED === "1" })
+
     const loader = new DefaultResourceLoader({
       cwd,
       agentDir,
       systemPromptOverride: () => config.systemPrompt,
-      extensionFactories: config.extensions as Array<(pi: unknown) => void> | undefined,
+      extensionFactories: [
+        rtkExtension,
+        ...(config.extensions ?? []) as Array<(pi: unknown) => void>
+      ],
       settingsManager
     })
 

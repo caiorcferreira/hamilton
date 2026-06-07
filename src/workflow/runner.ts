@@ -3,7 +3,7 @@ import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentPrompt } from "../agent/activity.js"
 import { buildAutoContext, resolveDottedPath, type Context } from "../workflow/context.js"
 import { resolvePersona } from "../agent/persona.js"
-import { createRtkExtension } from "../agent/rtk-extension.js"
+import { resolveAgentDefaults } from "../agent/config.js"
 import { executeWithPi } from "../agent/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
@@ -108,10 +108,7 @@ export function runWorkflow(
         }))
 
         const timeoutSeconds = resolveTaskTimeout(task, spec.run.timeout)
-        const rtkExtension = createRtkExtension({
-          model: agent.settings.model,
-          disabled: process.env.RTK_DISABLED === "1"
-        })
+        const resolved = resolveAgentDefaults(agent.settings)
         const outputSchema = task.agent!.output?.schema
 
         const output = yield* _(
@@ -122,11 +119,10 @@ export function runWorkflow(
             agentId: agent.name,
             runId,
             timeoutSeconds,
-            model: agent.settings.model,
-            extensions: [rtkExtension],
+            model: resolved.model,
             outputSchema,
             settings: {
-              skills: agent.settings.skills,
+              skills: resolved.skills,
               thinking: undefined,
               tools: undefined,
               retryOnTransient: undefined,
