@@ -2,6 +2,7 @@ import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
+import { ensureSharedAgentsSymlink } from "../../workflow/shared-agents.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -66,6 +67,11 @@ export function installWorkflow(
       catch: (e) =>
         new InstallError({ workflowSlug, message: `Failed to install workflow "${workflowSlug}": ${String(e)}` })
     })
+
+    yield* Effect.mapError(
+      ensureSharedAgentsSymlink(destDir),
+      (e) => new InstallError({ workflowSlug, message: e.message })
+    )
   })
 }
 

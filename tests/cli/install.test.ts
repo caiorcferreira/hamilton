@@ -13,6 +13,7 @@ describe("installWorkflow", () => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-install-"))
     process.env.HOME = tmpHome
     Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "agents"), { recursive: true })
   })
 
   afterEach(() => {
@@ -42,6 +43,30 @@ describe("installWorkflow", () => {
     } else {
       expect.unreachable("Expected success")
     }
+  })
+
+  it("creates shared/agents symlink on install", async () => {
+    const exit = await Effect.runPromiseExit(installWorkflow("bug-fix"))
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const linkPath = Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "shared", "agents")
+    expect(Fs.existsSync(linkPath)).toBe(true)
+    expect(Fs.lstatSync(linkPath).isSymbolicLink()).toBe(true)
+  })
+
+  it("replaces stale shared/agents symlink on re-install", async () => {
+    await Effect.runPromiseExit(installWorkflow("bug-fix"))
+
+    const linkPath = Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "shared", "agents")
+    const wrongDir = Path.join(tmpHome, "wrong-target")
+    Fs.mkdirSync(wrongDir, { recursive: true })
+    Fs.rmSync(linkPath, { recursive: true, force: true })
+    Fs.symlinkSync(wrongDir, linkPath, "dir")
+    expect(Fs.readlinkSync(linkPath)).toBe(wrongDir)
+
+    const exit = await Effect.runPromiseExit(installWorkflow("bug-fix", { force: true }))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    expect(Fs.readlinkSync(linkPath)).not.toBe(wrongDir)
   })
 
   it("installAllWorkflows installs all bundled workflows", async () => {
