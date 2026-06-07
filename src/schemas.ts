@@ -9,77 +9,113 @@ const AgentRoleSchema = Schema.Literal(
   "scanning"
 )
 
-const WorkflowAgentWorkspaceSchema = Schema.Struct({
-  baseDir: Schema.String,
-  skills: Schema.optional(Schema.Array(Schema.String)),
-  files: Schema.Record({ key: Schema.String, value: Schema.String })
+const SystemPromptPathsSchema = Schema.Struct({
+  agent: Schema.String,
+  soul: Schema.String,
+  identity: Schema.String
+})
+
+const AgentSettingsSchema = Schema.Struct({
+  model: Schema.optional(Schema.String),
+  systemPrompt: SystemPromptPathsSchema,
+  skills: Schema.optional(Schema.Array(Schema.String))
 })
 
 const WorkflowAgentSchema = Schema.Struct({
-  slug: Schema.String,
-  name: Schema.optional(Schema.String),
+  name: Schema.String,
   role: AgentRoleSchema,
   description: Schema.optional(Schema.String),
-  model: Schema.optional(Schema.String),
-  pollingModel: Schema.optional(Schema.String),
-  timeoutSeconds: Schema.optional(Schema.Number),
-  workspace: WorkflowAgentWorkspaceSchema
+  settings: AgentSettingsSchema
 })
 
-const LoopConfigSchema = Schema.Struct({
-  over: Schema.Literal("stories"),
-  completion: Schema.optional(Schema.String),
-  fresh_session: Schema.optional(Schema.Boolean),
-  verify_each: Schema.optional(Schema.Boolean),
-  verify_step: Schema.optional(Schema.String)
+const RefPathSchema = Schema.Struct({
+  ref: Schema.String
 })
 
-const OnExhaustedConfigSchema = Schema.Struct({
+const TimeoutSchema = Schema.Struct({
+  fixed: Schema.String
+})
+
+const OnExhaustedSchema = Schema.Struct({
   escalate_to: Schema.optional(Schema.String)
 })
 
-const OnFailConfigSchema = Schema.Struct({
+const OnFailureSchema = Schema.Struct({
+  max_retries: Schema.optional(Schema.Number),
   escalate_to: Schema.optional(Schema.String),
   retry_step: Schema.optional(Schema.String),
-  max_retries: Schema.optional(Schema.Number),
-  on_exhausted: Schema.optional(OnExhaustedConfigSchema)
+  on_exhausted: Schema.optional(OnExhaustedSchema)
 })
 
-const WorkflowStepSchema = Schema.Struct({
-  slug: Schema.String,
-  agent: Schema.String,
-  type: Schema.optional(Schema.Literal("default", "loop", "create_git_worktree", "cleanup_git_worktree")),
-  loop: Schema.optional(LoopConfigSchema),
-  input: Schema.String,
-  expects: Schema.optional(Schema.String),
-  timeoutSeconds: Schema.optional(Schema.Number),
-  on_fail: Schema.optional(OnFailConfigSchema)
+const OutputConfigSchema = Schema.Struct({
+  schema: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown }))
 })
 
-const WorkflowPollingSchema = Schema.Struct({
-  model: Schema.optional(Schema.String),
-  timeoutSeconds: Schema.optional(Schema.Number)
+const PromptSchema = Schema.Struct({
+  content: Schema.String
+})
+
+const TaskAgentSchema = Schema.Struct({
+  ref: Schema.String,
+  timeout: Schema.optional(TimeoutSchema),
+  on_failure: Schema.optional(OnFailureSchema),
+  output: Schema.optional(OutputConfigSchema),
+  prompt: PromptSchema
+})
+
+const ForEachSchema = Schema.Struct({
+  valueFrom: RefPathSchema,
+  as: Schema.String
+})
+
+const ContextFieldSchema = Schema.Struct({
+  name: Schema.String,
+  valueFrom: RefPathSchema
+})
+
+const ContextFieldsSchema = Schema.Struct({
+  fields: Schema.Array(ContextFieldSchema)
+})
+
+const WorkflowTaskSchema: Schema.Schema<any> = Schema.Struct({
+  name: Schema.String,
+  dependencies: Schema.optional(Schema.Array(Schema.String)),
+  agent: Schema.optional(TaskAgentSchema),
+  template: Schema.optional(Schema.String),
+  forEach: Schema.optional(ForEachSchema),
+  context: Schema.optional(ContextFieldsSchema),
+  tasks: Schema.optional(Schema.suspend(() => Schema.Array(WorkflowTaskSchema)))
+})
+
+const RunConfigSchema = Schema.Struct({
+  entrypoint: Schema.String,
+  timeout: Schema.String
 })
 
 export const WorkflowSpecSchema = Schema.Struct({
-  slug: Schema.String,
-  name: Schema.String,
   version: Schema.Number,
+  name: Schema.String,
   description: Schema.optional(Schema.String),
-  polling: Schema.optional(WorkflowPollingSchema),
+  run: RunConfigSchema,
   agents: Schema.NonEmptyArray(WorkflowAgentSchema),
-  steps: Schema.NonEmptyArray(WorkflowStepSchema),
-  context: Schema.optional(
-    Schema.Record({ key: Schema.String, value: Schema.String })
-  ),
-  notifications: Schema.optional(Schema.Unknown),
-  run: Schema.optional(Schema.Unknown)
+  tasks: Schema.Array(WorkflowTaskSchema)
 }).pipe(
   Schema.filter(
-    (spec) => {
-      const agentSlugs = new Set(spec.agents.map((a) => a.slug))
-      return spec.steps.every((s) => agentSlugs.has(s.agent))
+    (spec: any) => {
+      const taskNames = new Set(spec.tasks.map((t: any) => t.name))
+      let valid = true
+      for (const task of spec.tasks) {
+        if (!task.agent && !task.template && !task.tasks) {
+          valid = false
+          break
+        }
+        if (task.template && !taskNames.has(task.template)) {
+          valid = false
+          break
+        }
+      }
+      return valid
     },
-    { message: () => "every step.agent must reference a defined agent id" }
+    { message: () => "every task must have agent, template, or nested tasks. template references must be valid task names." }
   )
 )

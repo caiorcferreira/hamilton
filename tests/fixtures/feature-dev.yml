@@ -1,0 +1,121 @@
+version: 1
+name: feature-dev
+description: Feature development workflow
+run:
+  entrypoint: plan
+  timeout: 300s
+agents:
+  - name: planner
+    role: analysis
+    description: Decomposes tasks
+    settings:
+      model: deepseek-v4-pro-official
+      systemPrompt:
+        agent: agents/planner/AGENTS.md
+        soul: agents/planner/SOUL.md
+        identity: agents/planner/IDENTITY.md
+      skills:
+        - hamilton-agents
+  - name: setup
+    role: coding
+    description: Prepares environment
+    settings:
+      systemPrompt:
+        agent: shared/agents/setup/AGENTS.md
+        soul: shared/agents/setup/SOUL.md
+        identity: shared/agents/setup/IDENTITY.md
+      skills:
+        - hamilton-agents
+  - name: developer
+    role: coding
+    description: Implements features
+    settings:
+      systemPrompt:
+        agent: agents/developer/AGENTS.md
+        soul: agents/developer/SOUL.md
+        identity: agents/developer/IDENTITY.md
+      skills:
+        - hamilton-agents
+  - name: verifier
+    role: verification
+    description: Verifies work
+    settings:
+      systemPrompt:
+        agent: shared/agents/verifier/AGENTS.md
+        soul: shared/agents/verifier/SOUL.md
+        identity: shared/agents/setup/IDENTITY.md
+      skills:
+        - hamilton-agents
+  - name: tester
+    role: testing
+    description: Integration testing
+    settings:
+      systemPrompt:
+        agent: agents/tester/AGENTS.md
+        soul: agents/tester/SOUL.md
+        identity: agents/tester/IDENTITY.md
+      skills:
+        - hamilton-agents
+tasks:
+  - name: plan
+    agent:
+      ref: agents.planner
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+      prompt:
+        content: |
+          Decompose the task.
+          TASK:
+          {{task}}
+  - name: setup
+    dependencies:
+      - plan
+    agent:
+      ref: agents.setup
+      timeout:
+        fixed: 300s
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+      prompt:
+        content: |
+          Setup environment.
+          REPO: {{repo}}
+  - name: codify
+    dependencies:
+      - setup
+    template: develop
+    forEach:
+      valueFrom:
+        ref: tasks.plan.outputs.user_stories
+      as: user_story
+    context:
+      fields:
+        - name: repository
+          valueFrom:
+            ref: tasks.setup.outputs.repo
+  - name: develop
+    tasks:
+      - name: implement
+        agent:
+          ref: agents.developer
+          timeout:
+            fixed: 600s
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+          prompt:
+            content: Implement the story.
+      - name: test
+        dependencies:
+          - implement
+        agent:
+          ref: agents.tester
+          on_failure:
+            retry_step: implement
+            max_retries: 4
+            on_exhausted:
+              escalate_to: human
+          prompt:
+            content: Test the implementation.
