@@ -35,7 +35,7 @@ export interface PiExecutorConfig {
     retryOnTransient?: boolean
     compactionEnabled?: boolean
   }
-  
+  outputSchema?: Record<string, unknown>
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -114,13 +114,18 @@ export function executeWithPi(
     yield* _(Effect.promise(() => loader.reload()))
 
     let sessionRef: typeof session | null = null
-    const writeStepOutputTool = createWriteStepOutputTool(config.runId, config.stepId, {
-      onStepComplete: () => {
-        if (sessionRef) {
-          sessionRef.abort().catch(() => {})
+    const writeStepOutputTool = createWriteStepOutputTool(
+      config.runId,
+      config.stepId,
+      config.outputSchema,
+      {
+        onStepComplete: () => {
+          if (sessionRef) {
+            sessionRef.abort().catch(() => {})
+          }
         }
       }
-    })
+    )
 
     const sessionManager = SessionManager.inMemory()
 
