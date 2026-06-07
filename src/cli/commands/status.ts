@@ -1,21 +1,43 @@
 import { Args, Command } from "@effect/cli"
 import { Console, Effect, Exit } from "effect"
+import { Schema } from "@effect/schema"
 import * as Fs from "node:fs"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
-import { hamiltonHome, runDir } from "../../paths.js"
+import { hamiltonHome, runDir, workflowsDir } from "../../paths.js"
+import { loadWorkflowSpec } from "../../workflow/loader.js"
+import { collectReachableTasks, topologicalSort } from "../../workflow/engine.js"
+import type { WorkflowSpec } from "../../types.js"
+import { WorkflowSpecSchema } from "../../schemas.js"
 
 export type RunStatus = import("../../workflow/state.js").RunStatus
+type DecodedSpec = Schema.Schema.Type<typeof WorkflowSpecSchema>
 
-export function getRunStatus(runId: string): Effect.Effect<RunStatus, RunStateError> {
+export interface GetRunStatusOpts {
+  runId: string
+  loadSpec?: boolean
+}
+
+export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<{ status: RunStatus; spec: DecodedSpec | null }, RunStateError> {
   return Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new RunStateError({
-        runId,
+        runId: opts.runId,
         message: 'Hamilton is not initialized. Run "hamilton init" first.'
       })))
     }
 
-    return yield* _(loadRunState(runId))
+    const status = yield* _(loadRunState(opts.runId))
+
+    let spec: DecodedSpec | null = null
+    if (opts.loadSpec) {
+      spec = yield* _(
+        loadWorkflowSpec(workflowsDir(), status.workflow).pipe(
+          Effect.catchAll(() => Effect.succeed(null))
+        )
+      )
+    }
+
+    return { status, spec }
   })
 }
 
@@ -44,10 +66,16 @@ function parseTaskSlug(taskId: string, runId: string): string {
   const afterRun = taskId.slice(prefix.length)
   const lastDash = afterRun.lastIndexOf("-")
   if (lastDash === -1) return afterRun
-  return afterRun.slice(0, lastDash)
+  const slug = afterRun.slice(0, lastDash)
+  const instancePattern = /^(.+)-(\d+)$/
+  const match = instancePattern.exec(slug)
+  if (match) {
+    return `${match[1]}/${match[2]}`
+  }
+  return slug
 }
 
-export function formatStatus(status: RunStatus): string {
+export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
   const lines: string[] = []
 
   const elapsed = computeElapsed(status.startedAt, status.completedAt)
@@ -67,20 +95,40 @@ export function formatStatus(status: RunStatus): string {
 
   lines.push(`Run ID:    ${status.runId}`)
 
-  const tasksInOrder = status.tasks.map((t, idx) => ({
+  const tasksInOrder = status.tasks.map((t) => ({
     ...t,
-    slug: parseTaskSlug(t.taskId, status.runId),
-    order: idx
+    slug: parseTaskSlug(t.taskId, status.runId)
   }))
+
+  if (spec) {
+    const staticTasks = collectReachableTasks(spec.tasks as WorkflowSpec["tasks"], spec.run.entrypoint)
+    const sorted = topologicalSort(staticTasks)
+    const orderMap = new Map<string, number>()
+    sorted.forEach((t, i) => orderMap.set(t.name, i))
+    const expandedOrder = new Map<string, number>()
+    tasksInOrder.forEach((t) => {
+      const baseName = t.slug.includes("/")
+        ? t.slug.split("/")[0]
+        : t.slug
+      if (orderMap.has(baseName)) {
+        expandedOrder.set(t.slug, orderMap.get(baseName)!)
+      } else {
+        expandedOrder.set(t.slug, Infinity)
+      }
+    })
+    tasksInOrder.sort((a, b) => {
+      const aOrder = expandedOrder.get(a.slug) ?? Infinity
+      const bOrder = expandedOrder.get(b.slug) ?? Infinity
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return a.slug.localeCompare(b.slug)
+    })
+  }
 
   const currentIdx = tasksInOrder.findIndex((t) => t.status === "running")
   if (status.currentTask && currentIdx >= 0) {
     const task = tasksInOrder[currentIdx]
-    lines.push(`Task:      ${task.slug} (${currentIdx + 1}/${tasksInOrder.length}) — agent: ${task.taskSlug}`)
+    lines.push(`Task:      ${task.slug} (${currentIdx + 1}/${tasksInOrder.length})`)
   }
-
-  const taskLine = tasksInOrder.map((t, idx) => `${t.slug}(${idx + 1}/${tasksInOrder.length}) ${taskIndicator(t.status)}`).join("  ")
-  lines.push(`Tasks:     ${taskLine}`)
 
   const tokensIn = status.totalTokensIn.toLocaleString()
   const tokensOut = status.totalTokensOut.toLocaleString()
@@ -92,6 +140,17 @@ export function formatStatus(status: RunStatus): string {
     lines.push(`Errors:    none`)
   }
 
+  lines.push("")
+  lines.push("Tasks:")
+
+  for (const t of tasksInOrder) {
+    const indicator = taskIndicator(t.status)
+    const isSubtask = t.slug.includes("/")
+    const indent = isSubtask ? "   " : "  "
+    const agentName = isSubtask ? "" : ` (${t.taskSlug})`
+    lines.push(`${indent}${indicator}  ${t.slug}${agentName}`)
+  }
+
   return lines.join("\n")
 }
 
@@ -99,11 +158,11 @@ const runIdArg = Args.text({ name: "id" })
 
 export const statusCommand = Command.make("status", { id: runIdArg }, ({ id }) =>
   Effect.gen(function* () {
-    const result = yield* Effect.exit(getRunStatus(id))
+    const result = yield* Effect.exit(getRunStatus({ runId: id, loadSpec: true }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Status not found: ${id}`)
       return
     }
-    yield* Console.log(formatStatus(result.value))
+    yield* Console.log(formatStatus(result.value.status, result.value.spec ?? undefined))
   })
 ).pipe(Command.withDescription("Show run status"))

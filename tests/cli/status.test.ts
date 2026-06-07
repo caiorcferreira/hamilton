@@ -114,19 +114,20 @@ describe("loadRunState (SQLite-backed)", () => {
 
 describe("formatStatus", () => {
   it("formats a running status", () => {
+    const runId = "bug-fix-abc123"
     const status = {
-      runId: "bug-fix-abc123",
+      runId,
       workflow: "bug-fix",
       status: "running",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: null,
       currentTask: "fix",
       tasks: [
-        { taskId: "triage", taskSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: "investigate", taskSlug: "investigator", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: "setup", taskSlug: "setter", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: "fix", taskSlug: "fixer", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: "verify", taskSlug: "verifier", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
+        { taskId: `${runId}-triage-x1y2z`, taskSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-investigate-x2y3z`, taskSlug: "investigator", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-setup-x3y4z`, taskSlug: "setter", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-fix-x4y5z`, taskSlug: "fixer", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-verify-x5y6z`, taskSlug: "verifier", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
       ],
       totalTokensIn: 25000,
       totalTokensOut: 8000,
@@ -136,25 +137,37 @@ describe("formatStatus", () => {
     expect(output).toContain("Run folder:")
     expect(output).toContain("bug-fix")
     expect(output).toContain("running")
-    expect(output).toContain("bug-fix-abc123")
-    expect(output).toContain("fix(4/5)")
+    expect(output).toContain(runId)
+    expect(output).toContain("fix (4/5)")
     expect(output).toContain("triage")
     expect(output).toContain("verify")
     expect(output).toContain("25,000")
     expect(output).toContain("8,000")
     expect(output).toContain("Errors:    none")
+
+    const lines = output.split("\n")
+    const tasksLineIdx = lines.findIndex((l) => l === "Tasks:")
+    expect(tasksLineIdx).toBeGreaterThanOrEqual(0)
+    expect(tasksLineIdx).toBe(lines.length - 6)
+
+    for (const t of status.tasks) {
+      const slug = t.taskId.slice(runId.length + 1, t.taskId.lastIndexOf("-"))
+      const found = lines.some((l) => l.includes(slug))
+      expect(found).toBe(true)
+    }
   })
 
   it("formats a completed status", () => {
+    const runId = "run-done"
     const status = {
-      runId: "run-done",
+      runId,
       workflow: "test-wf",
       status: "completed",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: "2026-01-01T00:05:00.000Z",
       currentTask: null,
       tasks: [
-        { taskId: "task-1", taskSlug: "a1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
+        { taskId: `${runId}-task-1-abc`, taskSlug: "a1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
       ],
       totalTokensIn: 100,
       totalTokensOut: 50,
@@ -166,15 +179,16 @@ describe("formatStatus", () => {
   })
 
   it("formats a failed status with error", () => {
+    const runId = "run-fail"
     const status = {
-      runId: "run-fail",
+      runId,
       workflow: "failing-wf",
       status: "failed",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: "2026-01-01T00:00:10.000Z",
       currentTask: null,
       tasks: [
-        { taskId: "task-1", taskSlug: "a1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
+        { taskId: `${runId}-task-1-abc`, taskSlug: "a1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
       ],
       totalTokensIn: 0,
       totalTokensOut: 0,
@@ -183,5 +197,42 @@ describe("formatStatus", () => {
     const output = formatStatus(status as any)
     expect(output).toContain("failed")
     expect(output).toContain("API error")
+  })
+
+  it("indents subtask instances with 3 spaces", () => {
+    const runId = "feature-dev-abc123"
+    const status = {
+      runId,
+      workflow: "feature-dev",
+      status: "running",
+      startedAt: "2026-01-01T00:00:00.000Z",
+      completedAt: null,
+      currentTask: `${runId}-implement-stories-0-x1y2z`,
+      tasks: [
+        { taskId: `${runId}-triage-x1y2z`, taskSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-implement-stories-0-x2y3z`, taskSlug: "implementer", status: "running", startedAt: "2026-01-01T00:00:30.000Z", completedAt: null, tokensIn: 1000, tokensOut: 500, errorMessage: null },
+        { taskId: `${runId}-implement-stories-1-x3y4z`, taskSlug: "implementer", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
+      ],
+      totalTokensIn: 1500,
+      totalTokensOut: 700,
+      errorMessage: null
+    }
+    const output = formatStatus(status as any)
+    const lines = output.split("\n")
+
+    const triageLine = lines.find((l) => l.includes("triage") && !l.includes("Task:"))
+    expect(triageLine).toBeDefined()
+    expect(triageLine!.startsWith("  ")).toBe(true)
+
+    const subtask0 = lines.find((l) => l.includes("implement-stories/0") && !l.includes("Task:"))
+    expect(subtask0).toBeDefined()
+    expect(subtask0!.startsWith("   ")).toBe(true)
+
+    const subtask1 = lines.find((l) => l.includes("implement-stories/1") && !l.includes("Task:"))
+    expect(subtask1).toBeDefined()
+    expect(subtask1!.startsWith("   ")).toBe(true)
+
+    expect(triageLine).toContain("(triager)")
+    expect(subtask0).not.toContain("(implementer)")
   })
 })
