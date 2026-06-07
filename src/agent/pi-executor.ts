@@ -76,6 +76,14 @@ function mapThinkingLevel(level?: string): ThinkingLevel {
   }
 }
 
+function buildToolSet(explicitTools?: string[]): string[] {
+  const base = explicitTools ?? ["read", "bash", "edit", "write", "grep", "find", "ls"]
+  if (!base.includes("write_step_output")) {
+    return [...base, "write_step_output"]
+  }
+  return base
+}
+
 export function executeWithPi(
   config: PiExecutorConfig
 ): Effect.Effect<Record<string, unknown>, PiExecutionError> {
@@ -111,9 +119,7 @@ export function executeWithPi(
         createAgentSession({
           model,
           thinkingLevel,
-          tools: config.settings?.tools ?? [
-            "read", "bash", "edit", "write", "grep", "find", "ls"
-          ],
+          tools: buildToolSet(config.settings?.tools),
           customTools: [writeStepOutputTool],
           agentDir,
           authStorage,
