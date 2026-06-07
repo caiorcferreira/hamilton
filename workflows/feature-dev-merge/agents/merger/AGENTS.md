@@ -102,7 +102,7 @@ git commit -F /tmp/merge-commit-msg.txt
 The commit message MUST end with the co-author footer line:
 
 ```
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 
 Example commit message format:
@@ -117,7 +117,7 @@ feat: Add user authentication with JWT support
 Authentication was needed because the dashboard now shows
 user-specific data and actions must be authorized per-user.
 
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 
 ## Output Format

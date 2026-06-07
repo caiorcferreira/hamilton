@@ -5,6 +5,9 @@
 - [ ] Refactor event architecture to use Effect event bus — decouple onLog, onTokenEvent, onTokenUsage into single-responsibility subscribers (logger, DB writer, CLI renderer)
 - [ ] Fix dynamic step generation: for example, in the feature-dev workflow, if the planner define 3 user stories, 3 implement steps should be create, one for each. We need to address the fact that a workflow step can have multiple substeps inside. Instead of using a list of steps, we need to build a graph of steps, using the state machine pattern.
 - [ ] Output token usage and time spent status after each step and at the end of the workflow
+- [ ] Agent added a "Co-Authored-By: tamandua" in commit, but this is Hamilton. Fix the commit message
+- [ ] Add task prompt to prompt_built event
+- [ ] Implement retry feedback
 
 ## Completed
 

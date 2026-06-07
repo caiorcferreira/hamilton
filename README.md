@@ -140,7 +140,7 @@ agents:
     workspace:
       baseDir: agents/analyzer     # relative to workflow dir
       skills:                      # rtk skills to load
-        - tamandua-agents
+        - hamilton-agents
       files:                       # persona files
         AGENTS.md: agents/analyzer/AGENTS.md
         SOUL.md: agents/analyzer/SOUL.md

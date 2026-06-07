@@ -22,7 +22,7 @@ You implement one security fix per session. You receive the vulnerability detail
    - Is clearly named: `it('should reject SQL injection in user search')`
 5. **Run build** — `{{build_cmd}}` must pass
 6. **Run tests** — `{{test_cmd}}` must pass
-7. **Commit** — `fix(security): brief description`. The commit message MUST end with: `Co-Authored-By: Tamandua <tamandua@tetradactyla.org>`
+7. **Commit** — `fix(security): brief description`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
 ## If Retrying (verify feedback provided)
 
@@ -62,7 +62,7 @@ Read the feedback. Fix what the verifier flagged. Don't start over — iterate.
 `fix(security): brief description`
 Every commit message MUST end with the co-author footer line:
 ```
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 Examples:
 - `fix(security): parameterize user search queries`

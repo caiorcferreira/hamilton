@@ -26,7 +26,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/planner/AGENTS.md
         soul: agents/planner/SOUL.md
@@ -37,7 +37,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: ../../agents/shared/setup/AGENTS.md
         soul: ../../agents/shared/setup/SOUL.md
@@ -48,7 +48,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/developer/AGENTS.md
         soul: agents/developer/SOUL.md
@@ -60,7 +60,7 @@ agents:
       model: default
       skills:
         - agent-browser
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: ../../agents/shared/verifier/AGENTS.md
         soul: ../../agents/shared/verifier/SOUL.md
@@ -71,7 +71,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/tester/AGENTS.md
         soul: agents/tester/SOUL.md
@@ -82,7 +82,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/merger/AGENTS.md
         soul: agents/merger/SOUL.md

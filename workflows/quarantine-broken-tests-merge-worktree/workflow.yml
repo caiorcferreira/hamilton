@@ -28,7 +28,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: ../../agents/shared/setup/AGENTS.md
         soul: ../../agents/shared/setup/SOUL.md
@@ -39,7 +39,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/quarantiner/AGENTS.md
         soul: agents/quarantiner/SOUL.md
@@ -50,7 +50,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/verifier/AGENTS.md
         soul: agents/verifier/SOUL.md
@@ -61,7 +61,7 @@ agents:
     settings:
       model: default
       skills:
-        - tamandua-agents
+        - hamilton-agents
       systemPrompt:
         agent: agents/merger/AGENTS.md
         soul: agents/merger/SOUL.md
@@ -135,7 +135,7 @@ tasks:
           5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
           6. Run {{test_cmd}} after each batch of changes
           7. Iterate until all tests pass — then run one final time to confirm stability
-          8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Tamandua <tamandua@tetradactyla.org>`
+          8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 
           Reply with:
           STATUS: done

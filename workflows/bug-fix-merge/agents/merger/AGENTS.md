@@ -86,7 +86,7 @@ git commit -F /tmp/merge-commit-msg.txt
 The commit message MUST end with the co-author footer line:
 
 ```
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 
 Example commit message format:
@@ -106,7 +106,7 @@ Regression test: Added "handles null results array" in search.test.ts
 that verifies the endpoint returns 200 with an empty array instead of
 crashing when no results match.
 
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 
 Do NOT use `feat:` prefix — this is a bug fix. Always use `fix:`.

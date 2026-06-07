@@ -13,7 +13,7 @@ You implement the bug fix and write a regression test. You receive the root caus
    - Be clearly named (e.g., `it('should not crash when user.name is null')`)
 5. **Run the build** — `{{build_cmd}}` must pass
 6. **Run all tests** — `{{test_cmd}}` must pass (including your new regression test)
-7. **Commit** — `fix: brief description of what was fixed`. The commit message MUST end with: `Co-Authored-By: Tamandua <tamandua@tetradactyla.org>`
+7. **Commit** — `fix: brief description of what was fixed`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
 8. **Verify your diff** — Run `git diff HEAD~1 --stat` and confirm:
    - The changed files are **inside the repo**, not external workspace files
    - The diff matches what you actually intended to change
@@ -37,7 +37,7 @@ The regression test is NOT optional. It must:
 Use conventional commit format: `fix: brief description`
 Every commit message MUST end with the co-author footer line:
 ```
-Co-Authored-By: Tamandua <tamandua@tetradactyla.org>
+Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>
 ```
 Examples:
 - `fix: handle null user name in search filter`
