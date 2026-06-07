@@ -10,6 +10,7 @@ import { runWorkflow } from "../../workflow/runner.js"
 import type { WorkflowSpec } from "../../types.js"
 import { EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
+import { CliRenderer } from "../subscribers.js"
 
 export class ResumeError extends Data.TaggedError("ResumeError")<{
   runId: string
@@ -66,6 +67,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
       Effect.scoped(
         Effect.gen(function* () {
           yield* FileLogger
+          yield* CliRenderer
           return yield* runWorkflow(spec as unknown as WorkflowSpec, context, {
             workflowsDir: wfDir
           }, runId).pipe(

@@ -8,6 +8,7 @@ import { runWorkflow } from "../../workflow/runner.js"
 import { WorkflowSpec as WfSpec } from "../../types.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
+import { CliRenderer } from "../subscribers.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -67,6 +68,7 @@ export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt 
       Effect.scoped(
         Effect.gen(function* () {
           yield* FileLogger
+          yield* CliRenderer
           return yield* executeRun({ workflowSlug: slug, prompt: promptText })
         })
       ).pipe(Effect.provide(EventBusLive))
