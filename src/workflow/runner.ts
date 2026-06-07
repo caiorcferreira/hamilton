@@ -194,9 +194,7 @@ export function runWorkflow(
             skills: agentSettings.skills,
             retryOnTransient: agentSettings.retryOnTransient,
             compactionEnabled: agentSettings.compactionEnabled
-          },
-          onTokenUsage: (tokensIn, tokensOut) =>
-            Ref.update(tokenRef, (prev) => ({ in: prev.in + tokensIn, out: prev.out + tokensOut }))
+          }
         }).pipe(
           Effect.timeout(Duration.seconds(timeoutSeconds)),
           Effect.retry(

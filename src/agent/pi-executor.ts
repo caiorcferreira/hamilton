@@ -1,4 +1,5 @@
 import { Effect, Data } from "effect"
+import { EventBus, EventBusLive } from "../events/bus.js"
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core"
 import {
   AuthStorage,
@@ -11,7 +12,6 @@ import {
 import { getModel } from "@earendil-works/pi-ai"
 import { piAgentDir } from "../paths.js"
 import { subscribePiEvents } from "../observability/streaming.js"
-import { appendStepLog } from "../observability/run-dir.js"
 
 import * as Fs from "node:fs"
 import * as Path from "node:path"
@@ -35,7 +35,7 @@ export interface PiExecutorConfig {
     retryOnTransient?: boolean
     compactionEnabled?: boolean
   }
-  onTokenUsage?: (tokensIn: number, tokensOut: number) => void
+  
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -147,32 +147,24 @@ export function executeWithPi(
       (session as any).setAutoCompactionEnabled?.(true)
     }
 
-    const handlePiEvent = subscribePiEvents({
-      runId: config.runId,
-      stepId: config.stepId,
-      onLog: (event) => appendStepLog(config.runId, config.stepId, event).pipe(
-        Effect.catchAll(() => Effect.void)
-      ),
-      onTokenEvent: ({ runId, stepId, tokensIn, tokensOut }) =>
-        Effect.gen(function* () {
-          yield* appendStepLog(runId, stepId, { event: "token_usage", tokens_in: tokensIn, tokens_out: tokensOut }).pipe(
-            Effect.catchAll(() => Effect.void)
-          )
-          if (config.onTokenUsage) {
-            config.onTokenUsage(tokensIn, tokensOut)
-          }
-        }),
-      getSessionStats: () => {
+    const handlePiEvent = subscribePiEvents(
+      config.runId,
+      config.stepId,
+      () => {
         const stats = session.getSessionStats?.()
         return {
           inputTokens: stats?.tokens?.input ?? 0,
           outputTokens: stats?.tokens?.output ?? 0
         }
       }
-    })
+    )
 
     const unsubscribe = session.subscribe((piEvent) => {
-      Effect.runPromise(handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]))
+      Effect.runPromise(
+        handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]).pipe(
+          Effect.provide(EventBusLive)
+        )
+      )
     })
 
     try {

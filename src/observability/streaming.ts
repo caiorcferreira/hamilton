@@ -1,4 +1,5 @@
 import { Effect } from "effect"
+import { EventBus } from "../events/bus.js"
 
 export interface PiEvent {
   type: string
@@ -12,20 +13,18 @@ export interface PiEvent {
   [key: string]: unknown
 }
 
-export interface SubscribeConfig {
-  runId: string
-  stepId: string
-  onLog: (event: Record<string, unknown>) => Effect.Effect<void>
-  onTokenEvent: (params: { runId: string; stepId: string; tokensIn: number; tokensOut: number }) => Effect.Effect<void>
+export function subscribePiEvents(
+  runId: string,
+  stepId: string,
   getSessionStats: () => { inputTokens: number; outputTokens: number }
-}
-
-export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => Effect.Effect<void> {
+): (event: PiEvent) => Effect.Effect<void, never, EventBus> {
   let buffer = ""
   let lastStats = { inputTokens: 0, outputTokens: 0 }
 
   return (event: PiEvent) =>
-    Effect.gen(function* () {
+    Effect.gen(function* (_) {
+      const bus = yield* _(EventBus)
+
       switch (event.type) {
         case "message_update":
           if (event.assistantMessageEvent?.type === "text_delta" && event.assistantMessageEvent.delta) {
@@ -36,23 +35,40 @@ export function subscribePiEvents(config: SubscribeConfig): (event: PiEvent) => 
           if (buffer) {
             const text = buffer
             buffer = ""
-            yield* config.onLog({ event: "llm_message", text, step_id: config.stepId })
+            yield* _(bus.publish({ _tag: "LlmMessage", runId, stepId, text }))
           }
           break
         case "tool_execution_start":
           buffer = ""
-          yield* config.onLog({ event: "tool_call", tool: event.toolName ?? "unknown", input: event.args ?? {}, step_id: config.stepId })
+          yield* _(
+            bus.publish({
+              _tag: "ToolCall",
+              runId,
+              stepId,
+              tool: event.toolName ?? "unknown",
+              input: event.args ?? {}
+            })
+          )
           break
         case "tool_execution_end":
-          yield* config.onLog({ event: "tool_result", tool: event.toolName ?? "unknown", isError: event.isError ?? false, step_id: config.stepId })
+          yield* _(
+            bus.publish({
+              _tag: "ToolResult",
+              runId,
+              stepId,
+              tool: event.toolName ?? "unknown",
+              isError: event.isError ?? false
+            })
+          )
           break
         case "turn_end":
-          const current = config.getSessionStats()
+          const current = getSessionStats()
           const tokensIn = current.inputTokens - lastStats.inputTokens
           const tokensOut = current.outputTokens - lastStats.outputTokens
           lastStats = current
-          yield* config.onLog({ event: "turn_end", tokens_in: tokensIn, tokens_out: tokensOut, step_id: config.stepId })
-          yield* config.onTokenEvent({ runId: config.runId, stepId: config.stepId, tokensIn, tokensOut })
+
+          yield* _(bus.publish({ _tag: "TurnEnd", runId, stepId, tokensIn, tokensOut }))
+          yield* _(bus.publish({ _tag: "TokenUsage", runId, stepId, tokensIn, tokensOut }))
           break
       }
     })
