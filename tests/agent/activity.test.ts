@@ -6,20 +6,22 @@ import {
 
 describe("buildAgentPrompt", () => {
   const baseParams: PromptParams = {
-    agentsMd: "You are a coder.",
-    identityMd: "",
-    soulMd: "",
-    stepInput: "Fix the bug",
-    context: {}
+    agentFile: "You are a coder.",
+    soulFile: "",
+    identityFile: "",
+    prompt: { content: "Fix the bug" },
+    context: {},
+    agentConfig: {}
   }
 
   it("returns systemPrompt and taskPrompt", () => {
     const params: PromptParams = {
-      agentsMd: "You are a coder.",
-      identityMd: "Senior Developer",
-      soulMd: "Concise and direct",
-      stepInput: "Fix the bug",
-      context: {}
+      agentFile: "You are a coder.",
+      identityFile: "Senior Developer",
+      soulFile: "Concise and direct",
+      prompt: { content: "Fix the bug" },
+      context: {},
+      agentConfig: { name: "coder", role: "coding" }
     }
     const result = buildAgentPrompt(params)
     expect(result).toHaveProperty("systemPrompt")
@@ -33,7 +35,7 @@ describe("buildAgentPrompt", () => {
   it("resolves template expressions in the task prompt", () => {
     const params: PromptParams = {
       ...baseParams,
-      stepInput: "Fix bug in {{repo}}",
+      prompt: { content: "Fix bug in {{repo}}" },
       context: { repo: "hamilton" }
     }
     const result = buildAgentPrompt(params)
@@ -43,7 +45,7 @@ describe("buildAgentPrompt", () => {
   it("resolves non-string template values as JSON", () => {
     const params: PromptParams = {
       ...baseParams,
-      stepInput: "Stories: {{stories_json}}",
+      prompt: { content: "Stories: {{stories_json}}" },
       context: { stories_json: [{ id: "US-001", title: "Add thing" }] }
     }
     const result = buildAgentPrompt(params)
@@ -71,23 +73,16 @@ describe("buildAgentPrompt", () => {
     expect(result.systemPrompt).toContain('"Story"')
   })
 
-  it("omits role and style sections when empty", () => {
+  it("omits identity and style sections when empty", () => {
     const result = buildAgentPrompt(baseParams)
     expect(result.systemPrompt).not.toContain("<identity>")
     expect(result.systemPrompt).not.toContain("<style>")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
-  it("includes Hamilton Workflow System section as first section", () => {
-    const params: PromptParams = {
-      agentsMd: "You are a coder.",
-      identityMd: "Senior Developer",
-      soulMd: "Concise and direct",
-      stepInput: "Fix the bug",
-      context: {}
-    }
-    const result = buildAgentPrompt(params)
-    const sections = result.systemPrompt.split("\n\n")
-    expect(sections[0]).toContain("<identity>")
+  it("uses task terminology in harness", () => {
+    const result = buildAgentPrompt(baseParams)
+    expect(result.systemPrompt).toContain("task within a Hamilton workflow")
+    expect(result.systemPrompt).toContain("finish your task")
   })
 })
