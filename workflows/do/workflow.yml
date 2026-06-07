@@ -1,47 +1,46 @@
-slug: do
-name: General Purpose Do Workflow
+name: do
 version: 1
 description: |
   Single general-purpose agent that takes an arbitrary task description
   and executes it end-to-end — plans, executes, and reports results.
   For quick tasks that don't need a full multi-step pipeline.
-polling:
-  model: default
-  timeoutSeconds: 300
+run:
+  entrypoint: execute
+  timeout: 300s
 
 agents:
-  - slug: doer
-    name: Doer
+  - name: doer
     role: coding
-    description: General-purpose agent that plans and executes any task.
-    workspace:
-      baseDir: agents/doer
-      files:
-        AGENTS.md: agents/doer/AGENTS.md
-        SOUL.md: agents/doer/SOUL.md
-        IDENTITY.md: agents/doer/IDENTITY.md
+    settings:
+      model: default
+      systemPrompt:
+        agent: agents/doer/AGENTS.md
+        soul: agents/doer/SOUL.md
+        identity: agents/doer/IDENTITY.md
 
-steps:
-  - slug: execute
-    agent: doer
-    input: |
-      Execute the following task end-to-end.
+tasks:
+  - name: execute
+    dependencies: []
+    agent:
+      ref: agents.doer
+      prompt:
+        content: |
+          Execute the following task end-to-end.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      Instructions:
-      1. Understand the task completely
-      2. Plan your approach before starting
-      3. Execute the plan step by step
-      4. Verify the result matches the task requirements
-      5. Report what you did
+          Instructions:
+          1. Understand the task completely
+          2. Plan your approach before starting
+          3. Execute the plan step by step
+          4. Verify the result matches the task requirements
+          5. Report what you did
 
-      Reply with:
-      STATUS: done
-      RESULT: Summary of what was accomplished
-      CHANGES: What files or changes were made
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          RESULT: Summary of what was accomplished
+          CHANGES: What files or changes were made
+    on_failure:
       max_retries: 4
       escalate_to: human

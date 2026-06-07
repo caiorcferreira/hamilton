@@ -1,7 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
 # session with clean context. Memory persists via git history and progress files.
-slug: feature-dev-merge-worktree
-name: Feature Development + Merge Workflow (Worktree)
+name: feature-dev-merge-worktree
 version: 1
 description: |
   Plan, implement, test, and squash-merge features story-by-story in a worktree with automated verification.
@@ -17,409 +16,408 @@ description: |
   in the origin repository: all workflow branch changes are squashed into one
   commit and merged back into the original branch.
 run:
+  entrypoint: plan
+  timeout: 300s
   workspace: worktree
 
-polling:
-  model: default
-  timeoutSeconds: 300
-
 agents:
-  - slug: planner
-    name: Planner
+  - name: planner
     role: analysis
-    description: Decomposes tasks into ordered user stories.
-    workspace:
-      baseDir: agents/planner
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/planner/AGENTS.md
-        SOUL.md: agents/planner/SOUL.md
-        IDENTITY.md: agents/planner/IDENTITY.md
+      systemPrompt:
+        agent: agents/planner/AGENTS.md
+        soul: agents/planner/SOUL.md
+        identity: agents/planner/IDENTITY.md
 
-  - slug: setup
-    name: Setup
+  - name: setup
     role: coding
-    description: Prepares environment, creates branch, establishes baseline.
-    workspace:
-      baseDir: agents/setup
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: ../../agents/shared/setup/AGENTS.md
-        SOUL.md: ../../agents/shared/setup/SOUL.md
-        IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
+      systemPrompt:
+        agent: ../../agents/shared/setup/AGENTS.md
+        soul: ../../agents/shared/setup/SOUL.md
+        identity: ../../agents/shared/setup/IDENTITY.md
 
-  - slug: developer
-    name: Developer
+  - name: developer
     role: coding
-    description: Implements features and writes tests.
-    workspace:
-      baseDir: agents/developer
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/developer/AGENTS.md
-        SOUL.md: agents/developer/SOUL.md
-        IDENTITY.md: agents/developer/IDENTITY.md
+      systemPrompt:
+        agent: agents/developer/AGENTS.md
+        soul: agents/developer/SOUL.md
+        identity: agents/developer/IDENTITY.md
 
-  - slug: verifier
-    name: Verifier
+  - name: verifier
     role: verification
-    description: Quick sanity check - did developer actually do the work?
-    workspace:
-      baseDir: agents/verifier
+    settings:
+      model: default
       skills:
         - agent-browser
         - tamandua-agents
-      files:
-        AGENTS.md: ../../agents/shared/verifier/AGENTS.md
-        SOUL.md: ../../agents/shared/verifier/SOUL.md
-        IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
+      systemPrompt:
+        agent: ../../agents/shared/verifier/AGENTS.md
+        soul: ../../agents/shared/verifier/SOUL.md
+        identity: ../../agents/shared/verifier/IDENTITY.md
 
-  - slug: tester
-    name: Tester
+  - name: tester
     role: testing
-    description: Integration and E2E testing after all stories are implemented.
-    workspace:
-      baseDir: agents/tester
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/tester/AGENTS.md
-        SOUL.md: agents/tester/SOUL.md
-        IDENTITY.md: agents/tester/IDENTITY.md
+      systemPrompt:
+        agent: agents/tester/AGENTS.md
+        soul: agents/tester/SOUL.md
+        identity: agents/tester/IDENTITY.md
 
-  - slug: merger
-    name: Merger
+  - name: merger
     role: pr
-    description: Squashes workflow branch changes and merges into the original branch in the origin repository.
-    workspace:
-      baseDir: agents/merger
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/merger/AGENTS.md
-        SOUL.md: agents/merger/SOUL.md
-        IDENTITY.md: agents/merger/IDENTITY.md
+      systemPrompt:
+        agent: agents/merger/AGENTS.md
+        soul: agents/merger/SOUL.md
+        identity: agents/merger/IDENTITY.md
 
-steps:
-  - slug: plan
-    agent: planner
-    input: |
-      Decompose the following task into ordered user stories for autonomous execution.
+tasks:
+  - name: plan
+    dependencies: []
+    agent:
+      ref: agents.planner
+      prompt:
+        content: |
+          Decompose the following task into ordered user stories for autonomous execution.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+          {{retry_feedback}}
 
-      Instructions:
-      1. Explore the codebase to understand the stack, conventions, and patterns
-      2. Break the task into small user stories (max 20)
-      3. Order by dependency: schema/DB first, backend, frontend, integration
-      4. Each story must fit in one developer session (one context window)
-      5. Every acceptance criterion must be mechanically verifiable
-      6. Always include "Typecheck passes" as the last criterion in every story
-      7. Every story MUST include test criteria — "Tests for [feature] pass"
-      8. The developer is expected to write tests as part of each story
+          Instructions:
+          1. Explore the codebase to understand the stack, conventions, and patterns
+          2. Break the task into small user stories (max 20)
+          3. Order by dependency: schema/DB first, backend, frontend, integration
+          4. Each story must fit in one developer session (one context window)
+          5. Every acceptance criterion must be mechanically verifiable
+          6. Always include "Typecheck passes" as the last criterion in every story
+          7. Every story MUST include test criteria — "Tests for [feature] pass"
+          8. The developer is expected to write tests as part of each story
 
-      Reply with:
-      STATUS: done
-      REPO: /path/to/repo
-      BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the setup step will `git checkout -b` this name and the finalize_merge step squashes it back into the original branch>
-      STORIES_JSON: [ ... array of story objects ... ]
+          Reply with:
+          STATUS: done
+          REPO: /path/to/repo
+          BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the setup step will `git checkout -b` this name and the finalize_merge step squashes it back into the original branch>
+          STORIES_JSON: [ ... array of story objects ... ]
 
-      The STORIES_JSON line is REQUIRED and MUST be a literal JSON array on a single line with no line breaks inside the JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
-      STORIES_JSON: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
+          The STORIES_JSON line is REQUIRED and MUST be a literal JSON array on a single line with no line breaks inside the JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
+          STORIES_JSON: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
 
-      ⚠️ ANTI-PATTERNS — DO NOT DO:
-      - Do NOT use triple backticks (```) around STORIES_JSON
-      - Do NOT add comments inside the JSON
-      - Do NOT put any text after the closing ] on the STORIES_JSON line
+          ⚠️ ANTI-PATTERNS — DO NOT DO:
+          - Do NOT use triple backticks (```) around STORIES_JSON
+          - Do NOT add comments inside the JSON
+          - Do NOT put any text after the closing ] on the STORIES_JSON line
 
-      Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
-    expects: "STATUS: done"
-    on_fail:
+          Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: setup
-    agent: setup
-    input: |
-      Prepare the development environment for this feature in a detached git worktree.
+  - name: setup
+    dependencies: [plan]
+    agent:
+      ref: agents.setup
+      prompt:
+        content: |
+          Prepare the development environment for this feature in a detached git worktree.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      ORIGINAL_BRANCH: {{original_branch}}
-      WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          ORIGINAL_BRANCH: {{original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
 
-      RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+          {{retry_feedback}}
 
-      Instructions:
-      1. cd into the repo (this is the worktree path)
-      2. ORIGINAL_BRANCH is {{original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
-      3. Create the feature branch (git checkout -b {{branch}})
-      4. Read package.json, CI config, test config to understand the build/test setup
-      5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-      6. Run the build to establish a baseline
-      7. Run the tests to establish a baseline
-      8. Report what you found
+          Instructions:
+          1. cd into the repo (this is the worktree path)
+          2. ORIGINAL_BRANCH is {{original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
+          3. Create the feature branch (git checkout -b {{branch}})
+          4. Read package.json, CI config, test config to understand the build/test setup
+          5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+          6. Run the build to establish a baseline
+          7. Run the tests to establish a baseline
+          8. Report what you found
 
-      Reply with:
-      STATUS: done
-      ORIGINAL_BRANCH: {{original_branch}}
-      BUILD_CMD: <build command>
-      TEST_CMD: <test command>
-      CI_NOTES: <brief CI notes>
-      BASELINE: <baseline status>
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          ORIGINAL_BRANCH: {{original_branch}}
+          BUILD_CMD: <build command>
+          TEST_CMD: <test command>
+          CI_NOTES: <brief CI notes>
+          BASELINE: <baseline status>
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: implement
-    agent: developer
-    type: loop
-    loop:
-      over: stories
-      completion: all_done
-      fresh_session: true
-      verify_each: true
-      verify_step: verify
-    input: |
-      Implement the following user story. You are working on ONE story in a fresh session.
+  - name: implement-stories
+    dependencies: [setup]
+    template: implement-story
+    forEach:
+      valueFrom:
+        ref: tasks.plan.outputs.stories_json
+      as: current_story
 
-      TASK (overall):
-      {{task}}
+  - name: implement-story
+    agent:
+      ref: agents.developer
+      prompt:
+        content: |
+          Implement the following user story. You are working on ONE story in a fresh session.
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
+          TASK (overall):
+          {{task}}
 
-      CURRENT STORY:
-      {{current_story}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
 
-      COMPLETED STORIES:
-      {{completed_stories}}
+          CURRENT STORY:
+          {{current_story}}
 
-      STORIES REMAINING: {{stories_remaining}}
+          COMPLETED STORIES:
+          {{completed_stories}}
 
-      VERIFY FEEDBACK (if retrying):
-      {{verify_feedback}}
+          STORIES REMAINING: {{stories_remaining}}
 
-      TIMEOUT RETRY (if previous attempt timed out):
-      {{timeout_retry}}
+          VERIFY FEEDBACK (if retrying):
+          {{verify_feedback}}
 
-      PROGRESS LOG:
-      {{progress}}
+          TIMEOUT RETRY (if previous attempt timed out):
+          {{timeout_retry}}
 
-      Instructions:
-      1. Read progress-{{run_id}}.txt — especially the Codebase Patterns section
-      2. Pull latest on the branch
-      3. Implement this story only
-      4. Write tests for this story's functionality
-      5. Run typecheck / build
-      6. Run tests to confirm they pass
-      7. Commit: feat: {{current_story_id}} - {{current_story_title}}
-      8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
-      9. Update Codebase Patterns if you found reusable patterns
+          PROGRESS LOG:
+          {{progress}}
 
-      Reply with:
-      STATUS: done
-      CHANGES: what you implemented
-      TESTS: what tests you wrote
-    expects: "STATUS: done"
-    on_fail:
+          Instructions:
+          1. Read progress-{{run_id}}.txt — especially the Codebase Patterns section
+          2. Pull latest on the branch
+          3. Implement this story only
+          4. Write tests for this story's functionality
+          5. Run typecheck / build
+          6. Run tests to confirm they pass
+          7. Commit: feat: {{current_story_id}} - {{current_story_title}}
+          8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
+          9. Update Codebase Patterns if you found reusable patterns
+
+          Reply with:
+          STATUS: done
+          CHANGES: what you implemented
+          TESTS: what tests you wrote
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: verify
-    agent: verifier
-    input: |
-      Verify the developer's work on this story.
+  - name: verify-stories
+    dependencies: [implement-stories]
+    template: verify-story
+    forEach:
+      valueFrom:
+        ref: tasks.plan.outputs.stories_json
+      as: current_story
 
-      TASK (overall):
-      {{task}}
+  - name: verify-story
+    agent:
+      ref: agents.verifier
+      prompt:
+        content: |
+          Verify the developer's work on this story.
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      CHANGES: {{changes}}
-      TEST_CMD: {{test_cmd}}
+          TASK (overall):
+          {{task}}
 
-      CURRENT STORY:
-      {{current_story}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          CHANGES: {{changes}}
+          TEST_CMD: {{test_cmd}}
 
-      PROGRESS LOG:
-      {{progress}}
+          CURRENT STORY:
+          {{current_story}}
 
-      Check:
-      1. Code exists (not just TODOs or placeholders)
-      2. Each acceptance criterion for the story is met
-      3. Tests were written for this story's functionality
-      4. Tests pass (run {{test_cmd}})
-      5. No obvious incomplete work
-      6. Typecheck passes
+          PROGRESS LOG:
+          {{progress}}
 
-      ## Visual Verification (Frontend Changes)
-      Has frontend changes: {{has_frontend_changes}}
+          Check:
+          1. Code exists (not just TODOs or placeholders)
+          2. Each acceptance criterion for the story is met
+          3. Tests were written for this story's functionality
+          4. Tests pass (run {{test_cmd}})
+          5. No obvious incomplete work
+          6. Typecheck passes
 
-      If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
-      1. Use the agent-browser skill to visually inspect the changed UI
-      2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
-      3. Take a screenshot of the rendered page
-      4. Visually confirm:
-         - Layout renders correctly (no broken/overlapping elements)
-         - Styling is applied as expected (colors, fonts, spacing)
-         - All visible elements from the story are present and properly positioned
-         - No missing images, icons, or visual assets
-         - Text is readable and not clipped or hidden
-      5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
-      6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
-      7. Include your visual findings in VERIFIED output
+          ## Visual Verification (Frontend Changes)
+          Has frontend changes: {{has_frontend_changes}}
 
-      If {{has_frontend_changes}} is 'false', skip visual verification entirely.
+          If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
+          1. Use the agent-browser skill to visually inspect the changed UI
+          2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
+          3. Take a screenshot of the rendered page
+          4. Visually confirm:
+             - Layout renders correctly (no broken/overlapping elements)
+             - Styling is applied as expected (colors, fonts, spacing)
+             - All visible elements from the story are present and properly positioned
+             - No missing images, icons, or visual assets
+             - Text is readable and not clipped or hidden
+          5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
+          6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
+          7. Include your visual findings in VERIFIED output
 
-      Reply with:
-      STATUS: done
-      VERIFIED: What you confirmed
+          If {{has_frontend_changes}} is 'false', skip visual verification entirely.
 
-      Or if incomplete:
-      STATUS: retry
-      ISSUES:
-      - What's missing or incomplete
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: implement
+          Reply with:
+          STATUS: done
+          VERIFIED: What you confirmed
+
+          Or if incomplete:
+          STATUS: retry
+          ISSUES:
+          - What's missing or incomplete
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human
 
-  - slug: test
-    agent: tester
-    input: |
-      Integration and E2E testing of the implementation.
+  - name: test
+    dependencies: [verify-stories]
+    agent:
+      ref: agents.tester
+      prompt:
+        content: |
+          Integration and E2E testing of the implementation.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      CHANGES: {{changes}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          CHANGES: {{changes}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
 
-      PROGRESS LOG:
-      {{progress}}
+          PROGRESS LOG:
+          {{progress}}
 
-      RETRY FEEDBACK (only present if the merger rebased the branch and needs re-validation — contains CONFLICT_NOTES describing what changed):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if merger rebased the branch and needs re-validation — contains CONFLICT_NOTES describing what changed):
+          {{retry_feedback}}
 
-      Your job (integration/E2E testing — unit tests were already written per-story):
-      1. Run the full test suite ({{test_cmd}}) to confirm everything passes together
-      2. Look for integration issues between stories
-      3. If this is a UI feature, use agent-browser to test it end-to-end
-      4. Check cross-cutting concerns: error handling, edge cases across features
-      5. Verify the overall feature works as a cohesive whole
-      6. If retry feedback is present, the merger rebased the branch to resolve conflicts — re-validate the rebased changes listed in the feedback
+          Your job (integration/E2E testing — unit tests were already written per-story):
+          1. Run the full test suite ({{test_cmd}}) to confirm everything passes together
+          2. Look for integration issues between stories
+          3. If this is a UI feature, use agent-browser to test it end-to-end
+          4. Check cross-cutting concerns: error handling, edge cases across features
+          5. Verify the overall feature works as a cohesive whole
+          6. If retry feedback is present, the merger rebased the branch to resolve conflicts — re-validate the rebased changes listed in the feedback
 
-      Reply with:
-      STATUS: done
-      RESULTS: What you tested and the outcomes
+          Reply with:
+          STATUS: done
+          RESULTS: What you tested and the outcomes
 
-      Or if issues found:
-      STATUS: retry
-      FAILURES:
-      - Specific test failures or bugs found
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: implement
+          Or if issues found:
+          STATUS: retry
+          FAILURES:
+          - Specific test failures or bugs found
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human
 
-  - slug: finalize_merge
-    agent: merger
-    input: |
-      Finalize this run by squashing workflow changes into one commit and merging
-      into the original branch in the origin repository. Follow the fast-forward-first
-      process described in your AGENTS.md.
+  - name: finalize-merge
+    dependencies: [test]
+    agent:
+      ref: agents.merger
+      prompt:
+        content: |
+          Finalize this run by squashing workflow changes into one commit and merging
+          into the original branch in the origin repository. Follow the fast-forward-first
+          process described in your AGENTS.md.
 
-      RUN_ID: {{run_id}}
+          RUN_ID: {{run_id}}
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      ORIGINAL_BRANCH: {{original_branch}}
-      WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          ORIGINAL_BRANCH: {{original_branch}}
+          WORKTREE_ORIGIN_REPOSITORY: {{worktree_origin_repository}}
 
-      PROGRESS LOG:
-      {{progress}}
+          PROGRESS LOG:
+          {{progress}}
 
-      RETRY FEEDBACK (only present if the tester re-validated a rebased branch — the tester has confirmed the rebased changes pass; proceed to Phase 3 squash merge):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if the tester re-validated a rebased branch — the tester has confirmed the rebased changes pass; proceed to Phase 3 squash merge):
+          {{retry_feedback}}
 
-      Follow the Required Process from your AGENTS.md.
+          Follow the Required Process from your AGENTS.md.
 
-      IMPORTANT — Worktree Mode: All git operations below (phases 1–3) must run
-      in the ORIGIN repository, NOT the worktree. Use:
-        git -C {{worktree_origin_repository}} <command>
-      for every git command. The worktree at {{repo}} contains the feature branch
-      changes; the origin at {{worktree_origin_repository}} is where the merge
-      must be finalized.
+          IMPORTANT — Worktree Mode: All git operations below (phases 1–3) must run
+          in the ORIGIN repository, NOT the worktree. Use:
+            git -C {{worktree_origin_repository}} <command>
+          for every git command. The worktree at {{repo}} contains the feature branch
+          changes; the origin at {{worktree_origin_repository}} is where the merge
+          must be finalized.
 
-      Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-      1. cd {{worktree_origin_repository}}
-      2. git checkout {{original_branch}}
-      3. git merge-base --is-ancestor {{original_branch}} {{branch}}
-         - Exit 0 (FF): proceed to Phase 3
-         - Exit non-zero (not FF): proceed to Phase 2
+          Phase 1 — Fast-Forward Check (ALWAYS FIRST):
+          1. cd {{worktree_origin_repository}}
+          2. git checkout {{original_branch}}
+          3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+             - Exit 0 (FF): proceed to Phase 3
+             - Exit non-zero (not FF): proceed to Phase 2
 
-      Phase 2 — Rebase (Non-Fast-Forward Path):
-      4. cd {{repo}}
-      5. git rebase {{original_branch}}
-      6. Fix any conflicts; `git rebase --continue` until complete
-      7. If rebase changed code/tests/docs/config:
-         - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
-         - Do NOT merge — tester must re-validate first
-      8. If rebase was clean: proceed to Phase 3
+          Phase 2 — Rebase (Non-Fast-Forward Path):
+          4. cd {{repo}}
+          5. git rebase {{original_branch}}
+          6. Fix any conflicts; `git rebase --continue` until complete
+          7. If rebase changed code/tests/docs/config:
+             - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
+             - Do NOT merge — tester must re-validate first
+          8. If rebase was clean: proceed to Phase 3
 
-      Phase 3 — Squash Merge (Fast-Forward-Safe):
-      9. cd {{worktree_origin_repository}}
-      10. git checkout {{original_branch}}
-      11. git merge --squash {{branch}}
-      12. Build a descriptive commit message (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
+          Phase 3 — Squash Merge (Fast-Forward-Safe):
+          9. cd {{worktree_origin_repository}}
+          10. git checkout {{original_branch}}
+          11. git merge --squash {{branch}}
+          12. Build a descriptive commit message (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
 
-      Verify the merge commit was created:
-      - MERGE_COMMIT=$(git rev-parse --short HEAD)
+          Verify the merge commit was created:
+          - MERGE_COMMIT=$(git rev-parse --short HEAD)
 
-      Reply with:
-      STATUS: done
-      REBASED: <true|false>
-      MERGE_COMMIT: <short commit hash>
-      MERGED_INTO: {{original_branch}}
+          Reply with:
+          STATUS: done
+          REBASED: <true|false>
+          MERGE_COMMIT: <short commit hash>
+          MERGED_INTO: {{original_branch}}
 
-      Or if rebase requires tester re-validation:
-      STATUS: retry
-      REBASED: true
-      CONFLICT_NOTES: <description of resolved conflicts>
-      RETRY_STEP: test
+          Or if rebase requires tester re-validation:
+          STATUS: retry
+          REBASED: true
+          CONFLICT_NOTES: <description of resolved conflicts>
+          RETRY_STEP: test
 
-      Or if merge cannot be completed:
-      STATUS: retry
-      REBASED: <true|false>
-      FAILURE: <reason>
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: test
+          Or if merge cannot be completed:
+          STATUS: retry
+          REBASED: <true|false>
+          FAILURE: <reason>
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human

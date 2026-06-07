@@ -1,6 +1,5 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
-slug: security-audit-merge
-name: Security Audit & Fix + Merge
+name: security-audit-merge
 version: 1
 description: |
   Scan, prioritize, fix, and squash-merge security vulnerabilities with automated verification.
@@ -10,425 +9,426 @@ description: |
   each fix with regression tests. Verifier confirms each fix. Tester runs final
   integration validation. Merger squash-merges the audit fixes back into the
   original branch (NO push, NO gh pr create).
-polling:
-  model: default
-  timeoutSeconds: 300
+run:
+  entrypoint: scan
+  timeout: 300s
 
 agents:
-  - slug: scanner
-    name: Scanner
+  - name: scanner
     role: scanning
-    description: Explores codebase and runs comprehensive security analysis.
-    workspace:
-      baseDir: agents/scanner
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/scanner/AGENTS.md
-        SOUL.md: agents/scanner/SOUL.md
-        IDENTITY.md: agents/scanner/IDENTITY.md
+      systemPrompt:
+        agent: agents/scanner/AGENTS.md
+        soul: agents/scanner/SOUL.md
+        identity: agents/scanner/IDENTITY.md
 
-  - slug: prioritizer
-    name: Prioritizer
+  - name: prioritizer
     role: analysis
-    description: Deduplicates, ranks, and groups findings into a fix plan.
-    workspace:
-      baseDir: agents/prioritizer
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/prioritizer/AGENTS.md
-        SOUL.md: agents/prioritizer/SOUL.md
-        IDENTITY.md: agents/prioritizer/IDENTITY.md
+      systemPrompt:
+        agent: agents/prioritizer/AGENTS.md
+        soul: agents/prioritizer/SOUL.md
+        identity: agents/prioritizer/IDENTITY.md
 
-  - slug: setup
-    name: Setup
+  - name: setup
     role: coding
-    description: Creates security branch, captures original branch, and establishes baseline.
-    workspace:
-      baseDir: agents/setup
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: ../../agents/shared/setup/AGENTS.md
-        SOUL.md: ../../agents/shared/setup/SOUL.md
-        IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
+      systemPrompt:
+        agent: ../../agents/shared/setup/AGENTS.md
+        soul: ../../agents/shared/setup/SOUL.md
+        identity: ../../agents/shared/setup/IDENTITY.md
 
-  - slug: fixer
-    name: Fixer
+  - name: fixer
     role: coding
-    description: Implements security fixes one at a time with regression tests.
-    workspace:
-      baseDir: agents/fixer
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/fixer/AGENTS.md
-        SOUL.md: agents/fixer/SOUL.md
-        IDENTITY.md: agents/fixer/IDENTITY.md
+      systemPrompt:
+        agent: agents/fixer/AGENTS.md
+        soul: agents/fixer/SOUL.md
+        identity: agents/fixer/IDENTITY.md
 
-  - slug: verifier
-    name: Verifier
+  - name: verifier
     role: verification
-    description: Verifies each fix is correct and the vulnerability is patched.
-    workspace:
-      baseDir: agents/verifier
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: ../../agents/shared/verifier/AGENTS.md
-        SOUL.md: ../../agents/shared/verifier/SOUL.md
-        IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
+      systemPrompt:
+        agent: ../../agents/shared/verifier/AGENTS.md
+        soul: ../../agents/shared/verifier/SOUL.md
+        identity: ../../agents/shared/verifier/IDENTITY.md
 
-  - slug: tester
-    name: Tester
+  - name: tester
     role: testing
-    description: Final integration testing and audit re-run after all fixes.
-    workspace:
-      baseDir: agents/tester
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/tester/AGENTS.md
-        SOUL.md: agents/tester/SOUL.md
-        IDENTITY.md: agents/tester/IDENTITY.md
+      systemPrompt:
+        agent: agents/tester/AGENTS.md
+        soul: agents/tester/SOUL.md
+        identity: agents/tester/IDENTITY.md
 
-  - slug: merger
-    name: Merger
+  - name: merger
     role: pr
-    description: Squashes security audit branch changes and merges into the original branch.
-    workspace:
-      baseDir: agents/merger
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/merger/AGENTS.md
-        SOUL.md: agents/merger/SOUL.md
-        IDENTITY.md: agents/merger/IDENTITY.md
+      systemPrompt:
+        agent: agents/merger/AGENTS.md
+        soul: agents/merger/SOUL.md
+        identity: agents/merger/IDENTITY.md
 
-steps:
-  - slug: scan
-    agent: scanner
-    input: |
-      Perform a comprehensive security audit of the codebase.
+tasks:
+  - name: scan
+    dependencies: []
+    agent:
+      ref: agents.scanner
+      prompt:
+        content: |
+          Perform a comprehensive security audit of the codebase.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      Instructions:
-      1. Explore the codebase — understand the stack, framework, dependencies
-      2. Run `npm audit` (or equivalent) if a package manager is present
-      3. Scan for hardcoded secrets: API keys, passwords, tokens, private keys in source
-      4. Check for .env files committed to the repo
-      5. Scan for common vulnerabilities:
-         - SQL injection (raw queries, string concatenation in queries)
-         - XSS (unescaped user input in templates/responses)
-         - CSRF (missing CSRF tokens on state-changing endpoints)
-         - Auth bypass (missing auth middleware, broken access control)
-         - Directory traversal (user input in file paths)
-         - SSRF (user-controlled URLs in server-side requests)
-         - Insecure deserialization
-         - Missing input validation on API endpoints
-         - Insecure file permissions
-         - Exposed environment variables
-      6. Review auth/session handling (token expiry, session fixation, cookie flags)
-      7. Check security headers (CORS, CSP, HSTS, X-Frame-Options)
-      8. Document every finding with severity, file, line, and description
+          Instructions:
+          1. Explore the codebase — understand the stack, framework, dependencies
+          2. Run `npm audit` (or equivalent) if a package manager is present
+          3. Scan for hardcoded secrets: API keys, passwords, tokens, private keys in source
+          4. Check for .env files committed to the repo
+          5. Scan for common vulnerabilities:
+             - SQL injection (raw queries, string concatenation in queries)
+             - XSS (unescaped user input in templates/responses)
+             - CSRF (missing CSRF tokens on state-changing endpoints)
+             - Auth bypass (missing auth middleware, broken access control)
+             - Directory traversal (user input in file paths)
+             - SSRF (user-controlled URLs in server-side requests)
+             - Insecure deserialization
+             - Missing input validation on API endpoints
+             - Insecure file permissions
+             - Exposed environment variables
+          6. Review auth/session handling (token expiry, session fixation, cookie flags)
+          7. Check security headers (CORS, CSP, HSTS, X-Frame-Options)
+          8. Document every finding with severity, file, line, and description
 
-      Reply with:
-      STATUS: done
-      REPO: /path/to/repo
-      BRANCH: security-audit-YYYY-MM-DD
-      VULNERABILITY_COUNT: <number>
-      FINDINGS: <detailed list of each vulnerability>
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          REPO: /path/to/repo
+          BRANCH: security-audit-YYYY-MM-DD
+          VULNERABILITY_COUNT: <number>
+          FINDINGS: <detailed list of each vulnerability>
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: prioritize
-    agent: prioritizer
-    input: |
-      Prioritize and group the security findings into a fix plan.
+  - name: prioritize
+    dependencies: [scan]
+    agent:
+      ref: agents.prioritizer
+      prompt:
+        content: |
+          Prioritize and group the security findings into a fix plan.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      VULNERABILITY_COUNT: {{vulnerability_count}}
-      FINDINGS: {{findings}}
+          REPO: {{repo}}
+          VULNERABILITY_COUNT: {{vulnerability_count}}
+          FINDINGS: {{findings}}
 
-      Instructions:
-      1. Deduplicate findings (same root cause = one fix)
-      2. Group related issues (e.g., multiple XSS from same missing sanitizer = one fix)
-      3. Rank by: exploitability × impact (critical > high > medium > low)
-      4. Create a prioritized fix plan — max 20 fixes
-      5. If more than 20 issues, pick the top 20 by severity; note deferred items
-      6. Output each fix as a story in STORIES_JSON format
+          Instructions:
+          1. Deduplicate findings (same root cause = one fix)
+          2. Group related issues (e.g., multiple XSS from same missing sanitizer = one fix)
+          3. Rank by: exploitability × impact (critical > high > medium > low)
+          4. Create a prioritized fix plan — max 20 fixes
+          5. If more than 20 issues, pick the top 20 by severity; note deferred items
+          6. Output each fix as a story in STORIES_JSON format
 
-      Each story object must have:
-      - slug: "fix-001", "fix-002", etc.
-      - title: brief description of the fix
-      - description: what vulnerability it addresses, affected files, what needs to change
-      - acceptance_criteria: list of criteria including "Vulnerability is no longer exploitable" and "Regression test passes"
-      - severity: critical|high|medium|low
+          Each story object must have:
+          - slug: "fix-001", "fix-002", etc.
+          - title: brief description of the fix
+          - description: what vulnerability it addresses, affected files, what needs to change
+          - acceptance_criteria: list of criteria including "Vulnerability is no longer exploitable" and "Regression test passes"
+          - severity: critical|high|medium|low
 
-      Reply with:
-      STATUS: done
-      FIX_PLAN: <ordered list of fixes with severity>
-      CRITICAL_COUNT: <number>
-      HIGH_COUNT: <number>
-      DEFERRED: <any issues skipped and why>
-      STORIES_JSON: [ ... array of story objects ... ]
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          FIX_PLAN: <ordered list of fixes with severity>
+          CRITICAL_COUNT: <number>
+          HIGH_COUNT: <number>
+          DEFERRED: <any issues skipped and why>
+          STORIES_JSON: [ ... array of story objects ... ]
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: setup
-    agent: setup
-    input: |
-      Prepare the environment for security fixes.
+  - name: setup
+    dependencies: [prioritize]
+    agent:
+      ref: agents.setup
+      prompt:
+        content: |
+          Prepare the environment for security fixes.
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
 
-      Instructions:
-      1. cd into the repo
-      2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
-      3. Create the security branch (git checkout -b {{branch}} from main)
-      4. Read package.json, CI config, test config to understand build/test setup
-      5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-      6. Run the build to establish a baseline
-      7. Run the tests to establish a baseline
+          Instructions:
+          1. cd into the repo
+          2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
+          3. Create the security branch (git checkout -b {{branch}} from main)
+          4. Read package.json, CI config, test config to understand build/test setup
+          5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+          6. Run the build to establish a baseline
+          7. Run the tests to establish a baseline
 
-      Reply with:
-      STATUS: done
-      ORIGINAL_BRANCH: <branch name captured before checkout>
-      BUILD_CMD: <build command>
-      TEST_CMD: <test command>
-      BASELINE: <baseline status>
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          ORIGINAL_BRANCH: <branch name captured before checkout>
+          BUILD_CMD: <build command>
+          TEST_CMD: <test command>
+          BASELINE: <baseline status>
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: fix
-    agent: fixer
-    type: loop
-    loop:
-      over: stories
-      completion: all_done
-      fresh_session: true
-      verify_each: true
-      verify_step: verify
-    input: |
-      Implement a security fix. You are working on ONE fix in a fresh session.
+  - name: fix-stories
+    dependencies: [setup]
+    template: fix-story
+    forEach:
+      valueFrom:
+        ref: tasks.prioritize.outputs.stories_json
+      as: current_story
 
-      TASK (overall):
-      {{task}}
+  - name: fix-story
+    agent:
+      ref: agents.fixer
+      prompt:
+        content: |
+          Implement a security fix. You are working on ONE fix in a fresh session.
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
+          TASK (overall):
+          {{task}}
 
-      CURRENT STORY:
-      {{current_story}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
 
-      COMPLETED STORIES:
-      {{completed_stories}}
+          CURRENT STORY:
+          {{current_story}}
 
-      STORIES REMAINING: {{stories_remaining}}
+          COMPLETED STORIES:
+          {{completed_stories}}
 
-      VERIFY FEEDBACK (if retrying):
-      {{verify_feedback}}
+          STORIES REMAINING: {{stories_remaining}}
 
-      TIMEOUT RETRY (if previous attempt timed out):
-      {{timeout_retry}}
+          VERIFY FEEDBACK (if retrying):
+          {{verify_feedback}}
 
-      PROGRESS LOG:
-      {{progress}}
+          TIMEOUT RETRY (if previous attempt timed out):
+          {{timeout_retry}}
 
-      Instructions:
-      1. cd into the repo, pull latest on the branch
-      2. Read the vulnerability description carefully
-      3. Implement the fix — minimal, targeted changes only
-      4. Write a regression test that verifies the vulnerability is patched
-      5. Run {{build_cmd}} to verify the build passes
-      6. Run {{test_cmd}} to verify all tests pass
-      7. Commit: fix(security): brief description
-      8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
+          PROGRESS LOG:
+          {{progress}}
 
-      Reply with:
-      STATUS: done
-      CHANGES: what was fixed
-      REGRESSION_TEST: what test was added
-    expects: "STATUS: done"
-    on_fail:
+          Instructions:
+          1. cd into the repo, pull latest on the branch
+          2. Read the vulnerability description carefully
+          3. Implement the fix — minimal, targeted changes only
+          4. Write a regression test that verifies the vulnerability is patched
+          5. Run {{build_cmd}} to verify the build passes
+          6. Run {{test_cmd}} to verify all tests pass
+          7. Commit: fix(security): brief description
+          8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
+
+          Reply with:
+          STATUS: done
+          CHANGES: what was fixed
+          REGRESSION_TEST: what test was added
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: verify
-    agent: verifier
-    input: |
-      Verify the security fix is correct and the vulnerability is patched.
+  - name: verify-stories
+    dependencies: [fix-stories]
+    template: verify-story
+    forEach:
+      valueFrom:
+        ref: tasks.prioritize.outputs.stories_json
+      as: current_story
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      TEST_CMD: {{test_cmd}}
-      CHANGES: {{changes}}
-      REGRESSION_TEST: {{regression_test}}
+  - name: verify-story
+    agent:
+      ref: agents.verifier
+      prompt:
+        content: |
+          Verify the security fix is correct and the vulnerability is patched.
 
-      CURRENT STORY:
-      {{current_story}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          TEST_CMD: {{test_cmd}}
+          CHANGES: {{changes}}
+          REGRESSION_TEST: {{regression_test}}
 
-      PROGRESS LOG:
-      {{progress}}
+          CURRENT STORY:
+          {{current_story}}
 
-      Instructions:
-      1. Run the full test suite with {{test_cmd}}
-      2. Confirm the regression test exists and tests the right thing
-      3. Review the fix — does it actually address the vulnerability?
-      4. Check for unintended side effects
-      5. Verify the regression test would fail without the fix
+          PROGRESS LOG:
+          {{progress}}
 
-      Security-specific verification — think about bypass scenarios:
-      - SQL Injection: Does it handle all query patterns, not just the one found?
-      - XSS: Does sanitization cover all output contexts (HTML, attributes, JS, URLs)?
-      - Path traversal: Does it handle URL-encoded sequences (%2e%2e), null bytes?
-      - Auth bypass: Does it cover all HTTP methods (GET, POST, PUT, DELETE)?
-      - CSRF: Does it validate the token server-side?
-      - If the fix only blocks one payload variant, it's insufficient — STATUS: retry
+          Instructions:
+          1. Run the full test suite with {{test_cmd}}
+          2. Confirm the regression test exists and tests the right thing
+          3. Review the fix — does it actually address the vulnerability?
+          4. Check for unintended side effects
+          5. Verify the regression test would fail without the fix
 
-      Reply with:
-      STATUS: done
-      VERIFIED: what was confirmed
+          Security-specific verification — think about bypass scenarios:
+          - SQL Injection: Does it handle all query patterns, not just the one found?
+          - XSS: Does sanitization cover all output contexts (HTML, attributes, JS, URLs)?
+          - Path traversal: Does it handle URL-encoded sequences (%2e%2e), null bytes?
+          - Auth bypass: Does it cover all HTTP methods (GET, POST, PUT, DELETE)?
+          - CSRF: Does it validate the token server-side?
+          - If the fix only blocks one payload variant, it's insufficient — STATUS: retry
 
-      Or if issues found:
-      STATUS: retry
-      ISSUES:
-      - What's wrong or incomplete
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: fix
+          Reply with:
+          STATUS: done
+          VERIFIED: what was confirmed
+
+          Or if issues found:
+          STATUS: retry
+          ISSUES:
+          - What's wrong or incomplete
+    on_failure:
       max_retries: 6
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human
 
-  - slug: test
-    agent: tester
-    input: |
-      Final integration testing after all security fixes.
+  - name: test
+    dependencies: [verify-stories]
+    agent:
+      ref: agents.tester
+      prompt:
+        content: |
+          Final integration testing after all security fixes.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
-      CHANGES: {{changes}}
-      VULNERABILITY_COUNT: {{vulnerability_count}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
+          CHANGES: {{changes}}
+          VULNERABILITY_COUNT: {{vulnerability_count}}
 
-      PROGRESS LOG:
-      {{progress}}
+          PROGRESS LOG:
+          {{progress}}
 
-      RETRY FEEDBACK (only present if merger rebased the branch and needs re-validation — contains CONFLICT_NOTES describing what changed):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if merger rebased the branch and needs re-validation — contains CONFLICT_NOTES describing what changed):
+          {{retry_feedback}}
 
-      Instructions:
-      1. Run the full test suite ({{test_cmd}}) — all tests must pass
-      2. Run the build ({{build_cmd}}) — must succeed
-      3. Run `npm audit` (or equivalent) again — compare before/after
-      4. Quick smoke test: does the app still start and work?
-      5. Verify no regressions from the security fixes
-      6. If retry feedback is present, the merger rebased the branch to resolve conflicts — re-validate the rebased changes listed in the feedback
-      7. Summarize: what improved, what remains
+          Instructions:
+          1. Run the full test suite ({{test_cmd}}) — all tests must pass
+          2. Run the build ({{build_cmd}}) — must succeed
+          3. Run `npm audit` (or equivalent) again — compare before/after
+          4. Quick smoke test: does the app still start and work?
+          5. Verify no regressions from the security fixes
+          6. If retry feedback is present, the merger rebased the branch to resolve conflicts — re-validate the rebased changes listed in the feedback
+          7. Summarize: what improved, what remains
 
-      Reply with:
-      STATUS: done
-      RESULTS: test outcomes
-      AUDIT_AFTER: remaining audit issues if any
+          Reply with:
+          STATUS: done
+          RESULTS: test outcomes
+          AUDIT_AFTER: remaining audit issues if any
 
-      Or if issues found:
-      STATUS: retry
-      FAILURES:
-      - What's broken
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: fix
+          Or if issues found:
+          STATUS: retry
+          FAILURES:
+          - What's broken
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human
 
-  - slug: finalize_merge
-    agent: merger
-    input: |
-      Finalize this run by squashing security audit changes into one commit and merging
-      into the original branch. Follow the fast-forward-first process described
-      in your AGENTS.md.
+  - name: finalize-merge
+    dependencies: [test]
+    agent:
+      ref: agents.merger
+      prompt:
+        content: |
+          Finalize this run by squashing security audit changes into one commit and merging
+          into the original branch. Follow the fast-forward-first process described
+          in your AGENTS.md.
 
-      RUN_ID: {{run_id}}
+          RUN_ID: {{run_id}}
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      ORIGINAL_BRANCH: {{original_branch}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          ORIGINAL_BRANCH: {{original_branch}}
 
-      PROGRESS LOG:
-      {{progress}}
+          PROGRESS LOG:
+          {{progress}}
 
-      RETRY FEEDBACK (only present if the tester re-validated a rebased branch — the tester has confirmed the rebased changes pass; proceed to Phase 3 squash merge):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if the tester re-validated a rebased branch — the tester has confirmed the rebased changes pass; proceed to Phase 3 squash merge):
+          {{retry_feedback}}
 
-      Follow the Required Process from your AGENTS.md:
+          Follow the Required Process from your AGENTS.md:
 
-      Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-      1. cd {{repo}}
-      2. git checkout {{original_branch}}
-      3. git merge-base --is-ancestor {{original_branch}} {{branch}}
-         - Exit 0 (FF): proceed to Phase 3
-         - Exit non-zero (not FF): proceed to Phase 2
+          Phase 1 — Fast-Forward Check (ALWAYS FIRST):
+          1. cd {{repo}}
+          2. git checkout {{original_branch}}
+          3. git merge-base --is-ancestor {{original_branch}} {{branch}}
+             - Exit 0 (FF): proceed to Phase 3
+             - Exit non-zero (not FF): proceed to Phase 2
 
-      Phase 2 — Rebase (Non-Fast-Forward Path):
-      4. git checkout {{branch}}
-      5. git rebase {{original_branch}}
-      6. Fix any conflicts; `git rebase --continue` until complete
-      7. If rebase changed code/tests/docs/config:
-         - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
-         - Do NOT merge — tester must re-validate first
-      8. If rebase was clean: proceed to Phase 3
+          Phase 2 — Rebase (Non-Fast-Forward Path):
+          4. git checkout {{branch}}
+          5. git rebase {{original_branch}}
+          6. Fix any conflicts; `git rebase --continue` until complete
+          7. If rebase changed code/tests/docs/config:
+             - Report STATUS: retry with REBASED: true, CONFLICT_NOTES, RETRY_STEP: test
+             - Do NOT merge — tester must re-validate first
+          8. If rebase was clean: proceed to Phase 3
 
-      Phase 3 — Squash Merge (Fast-Forward-Safe):
-      9. git checkout {{original_branch}}
-      10. git merge --squash {{branch}}
-      11. Build a descriptive commit message (see AGENTS.md for full instructions — use fix(security): prefix), write it to a temp file, then commit with `git commit -F <tempfile>`
+          Phase 3 — Squash Merge (Fast-Forward-Safe):
+          9. git checkout {{original_branch}}
+          10. git merge --squash {{branch}}
+          11. Build a descriptive commit message (see AGENTS.md for full instructions — use fix(security): prefix), write it to a temp file, then commit with `git commit -F <tempfile>`
 
-      Verify the merge commit was created:
-      - MERGE_COMMIT=$(git rev-parse --short HEAD)
+          Verify the merge commit was created:
+          - MERGE_COMMIT=$(git rev-parse --short HEAD)
 
-      Reply with:
-      STATUS: done
-      REBASED: <true|false>
-      MERGE_COMMIT: <short commit hash>
-      MERGED_INTO: {{original_branch}}
+          Reply with:
+          STATUS: done
+          REBASED: <true|false>
+          MERGE_COMMIT: <short commit hash>
+          MERGED_INTO: {{original_branch}}
 
-      Or if rebase requires tester re-validation:
-      STATUS: retry
-      REBASED: true
-      CONFLICT_NOTES: <description of resolved conflicts>
-      RETRY_STEP: test
+          Or if rebase requires tester re-validation:
+          STATUS: retry
+          REBASED: true
+          CONFLICT_NOTES: <description of resolved conflicts>
+          RETRY_STEP: test
 
-      Or if merge cannot be completed:
-      STATUS: retry
-      REBASED: <true|false>
-      FAILURE: <reason>
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: test
+          Or if merge cannot be completed:
+          STATUS: retry
+          REBASED: <true|false>
+          FAILURE: <reason>
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human

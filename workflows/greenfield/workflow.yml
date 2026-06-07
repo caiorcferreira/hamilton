@@ -1,98 +1,95 @@
-slug: greenfield
-name: Greenfield Project Scaffold
+name: greenfield
 version: 1
 description: |
   Scaffolds a new project from scratch. Asks for project name, tech stack,
   and description, then creates directory structure, initializes git, and
   writes a README.
-polling:
-  model: default
-  timeoutSeconds: 300
+run:
+  entrypoint: scaffold
+  timeout: 300s
 
 agents:
-  - slug: scaffolder
-    name: Scaffolder
+  - name: scaffolder
     role: coding
-    description: Creates project structure, initializes git, and writes initial files.
-    workspace:
-      baseDir: agents/scaffolder
-      files:
-        AGENTS.md: agents/scaffolder/AGENTS.md
-        SOUL.md: agents/scaffolder/SOUL.md
-        IDENTITY.md: agents/scaffolder/IDENTITY.md
+    settings:
+      model: default
+      systemPrompt:
+        agent: agents/scaffolder/AGENTS.md
+        soul: agents/scaffolder/SOUL.md
+        identity: agents/scaffolder/IDENTITY.md
 
-  - slug: verifier
-    name: Verifier
+  - name: verifier
     role: verification
-    description: Verifies the scaffolded project is valid and buildable.
-    workspace:
-      baseDir: ../../agents/shared/verifier
-      files:
-        AGENTS.md: ../../agents/shared/verifier/AGENTS.md
-        SOUL.md: ../../agents/shared/verifier/SOUL.md
-        IDENTITY.md: ../../agents/shared/verifier/IDENTITY.md
+    settings:
+      model: default
+      systemPrompt:
+        agent: ../../agents/shared/verifier/AGENTS.md
+        soul: ../../agents/shared/verifier/SOUL.md
+        identity: ../../agents/shared/verifier/IDENTITY.md
 
-steps:
-  - slug: scaffold
-    agent: scaffolder
-    input: |
-      Scaffold a new project based on the following requirements.
+tasks:
+  - name: scaffold
+    dependencies: []
+    agent:
+      ref: agents.scaffolder
+      prompt:
+        content: |
+          Scaffold a new project based on the following requirements.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      PROJECT NAME: {{project_name}}
-      TECH STACK: {{tech_stack}}
-      DESCRIPTION: {{description}}
+          PROJECT NAME: {{project_name}}
+          TECH STACK: {{tech_stack}}
+          DESCRIPTION: {{description}}
 
-      Instructions:
-      1. Create the project directory with the given name
-      2. Initialize git in the project directory
-      3. Create the appropriate directory structure for the tech stack
-      4. Write a README.md with project name, description, and setup instructions
-      5. Create initial configuration files (package.json/Cargo.toml/pyproject.toml etc.)
-      6. Create a .gitignore appropriate for the tech stack
-      7. Create a minimal hello-world entry point to verify the project is buildable
-      8. Commit the initial project structure
+          Instructions:
+          1. Create the project directory with the given name
+          2. Initialize git in the project directory
+          3. Create the appropriate directory structure for the tech stack
+          4. Write a README.md with project name, description, and setup instructions
+          5. Create initial configuration files (package.json/Cargo.toml/pyproject.toml etc.)
+          6. Create a .gitignore appropriate for the tech stack
+          7. Create a minimal hello-world entry point to verify the project is buildable
+          8. Commit the initial project structure
 
-      Reply with:
-      STATUS: done
-      PROJECT_DIR: /path/to/project
-      BUILD_CMD: <command to build>
-      TEST_CMD: <command to test>
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          PROJECT_DIR: /path/to/project
+          BUILD_CMD: <command to build>
+          TEST_CMD: <command to test>
+    on_failure:
       max_retries: 3
       escalate_to: human
 
-  - slug: verify
-    agent: verifier
-    input: |
-      Verify the scaffolded project is correct and buildable.
+  - name: verify
+    dependencies: [scaffold]
+    agent:
+      ref: agents.verifier
+      prompt:
+        content: |
+          Verify the scaffolded project is correct and buildable.
 
-      PROJECT_DIR: {{project_dir}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
-      TECH_STACK: {{tech_stack}}
+          PROJECT_DIR: {{project_dir}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
+          TECH_STACK: {{tech_stack}}
 
-      Check:
-      1. Project directory exists
-      2. README.md exists and contains project name and description
-      3. .gitignore exists and is appropriate
-      4. Build command works
-      5. Git is initialized with at least one commit
+          Check:
+          1. Project directory exists
+          2. README.md exists and contains project name and description
+          3. .gitignore exists and is appropriate
+          4. Build command works
+          5. Git is initialized with at least one commit
 
-      Reply with:
-      STATUS: done
-      VERIFIED: What you confirmed
+          Reply with:
+          STATUS: done
+          VERIFIED: What you confirmed
 
-      Or if issues found:
-      STATUS: retry
-      ISSUES:
-      - What's wrong
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: scaffold
+          Or if issues found:
+          STATUS: retry
+          ISSUES:
+          - What's wrong
+    on_failure:
       max_retries: 2
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human

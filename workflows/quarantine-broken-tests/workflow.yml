@@ -1,7 +1,5 @@
-# Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
-# session with clean context. Memory persists via git history.
-slug: quarantine-broken-tests
-name: Quarantine Broken Tests
+# Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
+name: quarantine-broken-tests
 version: 1
 description: |
   Detect failing tests, disable them minimally, and iterate until the full
@@ -18,161 +16,159 @@ description: |
   This is a local-only pipeline — no merge, no PR. Use
   quarantine-broken-tests-merge to squash-merge the quarantined results back
   into the original branch.
-polling:
-  model: default
-  timeoutSeconds: 300
+run:
+  entrypoint: setup
+  timeout: 300s
 
 agents:
-  - slug: setup
-    name: Setup
+  - name: setup
     role: coding
-    description: Prepares environment, creates branch, discovers build/test commands, establishes baseline.
-    workspace:
-      baseDir: agents/setup
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: ../../agents/shared/setup/AGENTS.md
-        SOUL.md: ../../agents/shared/setup/SOUL.md
-        IDENTITY.md: ../../agents/shared/setup/IDENTITY.md
+      systemPrompt:
+        agent: ../../agents/shared/setup/AGENTS.md
+        soul: ../../agents/shared/setup/SOUL.md
+        identity: ../../agents/shared/setup/IDENTITY.md
 
-  - slug: quarantiner
-    name: Quarantiner
+  - name: quarantiner
     role: coding
-    description: Finds failing tests and disables them minimally until the suite passes.
-    workspace:
-      baseDir: agents/quarantiner
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/quarantiner/AGENTS.md
-        SOUL.md: agents/quarantiner/SOUL.md
-        IDENTITY.md: agents/quarantiner/IDENTITY.md
+      systemPrompt:
+        agent: agents/quarantiner/AGENTS.md
+        soul: agents/quarantiner/SOUL.md
+        identity: agents/quarantiner/IDENTITY.md
 
-  - slug: verifier
-    name: Verifier
+  - name: verifier
     role: verification
-    description: Confirms test suite passes cleanly and only test files were modified.
-    workspace:
-      baseDir: agents/verifier
+    settings:
+      model: default
       skills:
         - tamandua-agents
-      files:
-        AGENTS.md: agents/verifier/AGENTS.md
-        SOUL.md: agents/verifier/SOUL.md
-        IDENTITY.md: agents/verifier/IDENTITY.md
+      systemPrompt:
+        agent: agents/verifier/AGENTS.md
+        soul: agents/verifier/SOUL.md
+        identity: agents/verifier/IDENTITY.md
 
-steps:
-  - slug: setup
-    agent: setup
-    input: |
-      Prepare the environment for test quarantine.
+tasks:
+  - name: setup
+    dependencies: []
+    agent:
+      ref: agents.setup
+      prompt:
+        content: |
+          Prepare the environment for test quarantine.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
 
-      RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+          {{retry_feedback}}
 
-      Instructions:
-      1. cd into the repo
-      2. Create the quarantine branch (git checkout -b {{branch}})
-      3. Read package.json, CI config, test config to understand the build/test setup
-      4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-      5. Run the build to establish a baseline
-      6. Run the tests to establish a baseline (note which tests fail — the quarantiner will handle them)
-      7. Report what you found
+          Instructions:
+          1. cd into the repo
+          2. Create the quarantine branch (git checkout -b {{branch}})
+          3. Read package.json, CI config, test config to understand the build/test setup
+          4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+          5. Run the build to establish a baseline
+          6. Run the tests to establish a baseline (note which tests fail — the quarantiner will handle them)
+          7. Report what you found
 
-      Reply with:
-      STATUS: done
-      BUILD_CMD: <build command>
-      TEST_CMD: <test command>
-      CI_NOTES: <brief CI notes>
-      BASELINE: <baseline status including test results>
-    expects: "STATUS: done"
-    on_fail:
+          Reply with:
+          STATUS: done
+          BUILD_CMD: <build command>
+          TEST_CMD: <test command>
+          CI_NOTES: <brief CI notes>
+          BASELINE: <baseline status including test results>
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: quarantine
-    agent: quarantiner
-    input: |
-      Find and disable failing tests until the test suite passes.
+  - name: quarantine
+    dependencies: [setup]
+    agent:
+      ref: agents.quarantiner
+      prompt:
+        content: |
+          Find and disable failing tests until the test suite passes.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
 
-      RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+          {{retry_feedback}}
 
-      Instructions:
-      1. cd into the repo and ensure you're on {{branch}}
-      2. Run {{build_cmd}} to confirm the project builds
-      3. Run {{test_cmd}} and parse the output to find failing tests
-      4. If zero failures on first run, run one more time to catch flaky tests
-      5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-      6. Run {{test_cmd}} after each batch of changes
-      7. Iterate until all tests pass — then run one final time to confirm stability
-      8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Tamandua <tamandua@tetradactyla.org>`
+          Instructions:
+          1. cd into the repo and ensure you're on {{branch}}
+          2. Run {{build_cmd}} to confirm the project builds
+          3. Run {{test_cmd}} and parse the output to find failing tests
+          4. If zero failures on first run, run one more time to catch flaky tests
+          5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
+          6. Run {{test_cmd}} after each batch of changes
+          7. Iterate until all tests pass — then run one final time to confirm stability
+          8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Tamandua <tamandua@tetradactyla.org>`
 
-      Reply with:
-      STATUS: done
-      DISABLED: <count>
-      FILES_CHANGED: <count>
-      SUMMARY: <what was disabled and why>
+          Reply with:
+          STATUS: done
+          DISABLED: <count>
+          FILES_CHANGED: <count>
+          SUMMARY: <what was disabled and why>
 
-      If unable to achieve clean suite after 5 iterations:
-      STATUS: failed
-      REASON: <why>
-    expects: "STATUS: done"
-    on_fail:
+          If unable to achieve clean suite after 5 iterations:
+          STATUS: failed
+          REASON: <why>
+    on_failure:
       max_retries: 4
       escalate_to: human
 
-  - slug: verify
-    agent: verifier
-    input: |
-      Verify the quarantiner's work — confirm all tests pass and only test files were modified.
+  - name: verify
+    dependencies: [quarantine]
+    agent:
+      ref: agents.verifier
+      prompt:
+        content: |
+          Verify the quarantiner's work — confirm all tests pass and only test files were modified.
 
-      TASK:
-      {{task}}
+          TASK:
+          {{task}}
 
-      REPO: {{repo}}
-      BRANCH: {{branch}}
-      BUILD_CMD: {{build_cmd}}
-      TEST_CMD: {{test_cmd}}
-      DISABLED: {{disabled}}
-      SUMMARY: {{summary}}
+          REPO: {{repo}}
+          BRANCH: {{branch}}
+          BUILD_CMD: {{build_cmd}}
+          TEST_CMD: {{test_cmd}}
+          DISABLED: {{disabled}}
+          SUMMARY: {{summary}}
 
-      RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-      {{retry_feedback}}
+          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+          {{retry_feedback}}
 
-      Check:
-      1. Run {{build_cmd}} — build must pass
-      2. Run {{test_cmd}} — all tests must pass (exit code 0)
-      3. Run {{test_cmd}} a second time — confirm stability
-      4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
-      5. Verify each disabled test has an explanatory comment
+          Check:
+          1. Run {{build_cmd}} — build must pass
+          2. Run {{test_cmd}} — all tests must pass (exit code 0)
+          3. Run {{test_cmd}} a second time — confirm stability
+          4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
+          5. Verify each disabled test has an explanatory comment
 
-      Reply with:
-      STATUS: done
-      VERIFIED: What you confirmed
+          Reply with:
+          STATUS: done
+          VERIFIED: What you confirmed
 
-      Or if issues found:
-      STATUS: retry
-      ISSUES:
-      - Specific issues
-    expects: "STATUS: done"
-    on_fail:
-      retry_step: quarantine
+          Or if issues found:
+          STATUS: retry
+          ISSUES:
+          - Specific issues
+    on_failure:
       max_retries: 4
-      on_exhausted:
-        escalate_to: human
+      escalate_to: human
