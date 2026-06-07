@@ -3,6 +3,7 @@ import { stepOutputsDir, stepOutputFile } from "../paths.js"
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent"
 import { defineTool } from "@earendil-works/pi-coding-agent"
 import { Type } from "typebox"
+import { Ajv } from "ajv"
 
 const paramsSchema = Type.Object({
   input: Type.String({ description: "JSON string with your results. Must be an object with a 'status' field." })
@@ -16,7 +17,15 @@ export interface StepCompleteCallback {
   onStepComplete: () => void
 }
 
-export function createWriteStepOutputTool(runId: string, stepId: string, cb?: StepCompleteCallback): ToolDefinition<typeof paramsSchema> {
+export function createWriteStepOutputTool(
+  runId: string,
+  stepId: string,
+  outputSchema?: Record<string, unknown>,
+  cb?: StepCompleteCallback
+): ToolDefinition<typeof paramsSchema> {
+  const ajv = outputSchema ? new Ajv({ strict: false }) : null
+  const validate = ajv && outputSchema ? ajv.compile(outputSchema) : null
+
   return defineTool({
     name: "write_step_output",
     label: "Write Step Output",
@@ -55,6 +64,16 @@ export function createWriteStepOutputTool(runId: string, stepId: string, cb?: St
       if (typeof obj.status !== "string") {
         return {
           content: [textContent("Error: Missing required field 'status' (must be a string). Example: { \"status\": \"done\", ... }")],
+          details: {}
+        }
+      }
+
+      if (validate && !validate(obj)) {
+        const errors = validate.errors
+          ? validate.errors.map((e) => `${e.instancePath} ${e.message}`).join("; ")
+          : "Unknown validation error"
+        return {
+          content: [textContent(`Error: Output failed schema validation: ${errors}. Please correct your output and try again.`)],
           details: {}
         }
       }

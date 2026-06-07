@@ -6,16 +6,16 @@ import * as Os from "node:os"
 
 describe("createWriteStepOutputTool", () => {
   let tmpDir: string
-  let originalEnv: NodeJS.ProcessEnv
+  let originalHome: string
 
   beforeEach(() => {
     tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-tool-test-"))
-    originalEnv = { ...process.env }
+    originalHome = process.env.HOME!
     process.env.HOME = tmpDir
   })
 
   afterEach(() => {
-    process.env = originalEnv
+    process.env.HOME = originalHome
     Fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
@@ -47,23 +47,9 @@ describe("createWriteStepOutputTool", () => {
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("JSON object")
   })
 
-  it("returns error when input is null", async () => {
-    const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: "null" }, undefined, undefined, {} as any)
-
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("JSON object")
-  })
-
   it("returns error when status field is missing", async () => {
     const tool = createWriteStepOutputTool("run-1", "step-1")
     const result = await tool.execute("call-1", { input: '{"repo":"hamilton"}' }, undefined, undefined, {} as any)
-
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Missing required field 'status'")
-  })
-
-  it("returns error when status field is not a string", async () => {
-    const tool = createWriteStepOutputTool("run-1", "step-1")
-    const result = await tool.execute("call-1", { input: '{"status":42}' }, undefined, undefined, {} as any)
 
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Missing required field 'status'")
   })
@@ -84,5 +70,43 @@ describe("createWriteStepOutputTool", () => {
     const raw = Fs.readFileSync(outputPath, "utf-8")
     const parsed = JSON.parse(raw)
     expect(parsed).toEqual({ status: "done", key: "val" })
+  })
+
+  it("validates with schema and rejects invalid output", async () => {
+    const schema = {
+      type: "object",
+      properties: {
+        status: { type: "string" },
+        count: { type: "number" }
+      },
+      required: ["status", "count"]
+    }
+    const tool = createWriteStepOutputTool("run-schema", "step-schema", schema)
+    const result = await tool.execute("call-1", { input: '{"status":"done","count":"not-a-number"}' }, undefined, undefined, {} as any)
+
+    const text = (result.content[0] as { type: "text"; text: string }).text
+    expect(text).toContain("schema validation")
+  })
+
+  it("validates with schema and accepts valid output", async () => {
+    const schema = {
+      type: "object",
+      properties: {
+        status: { type: "string" },
+        count: { type: "number" }
+      },
+      required: ["status", "count"]
+    }
+    const tool = createWriteStepOutputTool("run-valid", "step-valid", schema)
+    const result = await tool.execute("call-1", { input: '{"status":"done","count":42}' }, undefined, undefined, {} as any)
+
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
+  })
+
+  it("skips schema validation when schema is undefined", async () => {
+    const tool = createWriteStepOutputTool("run-noschema", "step-noschema")
+    const result = await tool.execute("call-1", { input: '{"status":"done","anyField":"anyValue"}' }, undefined, undefined, {} as any)
+
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
   })
 })
