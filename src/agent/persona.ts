@@ -1,21 +1,19 @@
+import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { Data, Effect } from "effect"
-import { agentsDir, workflowsDir } from "../paths.js"
+import type { SystemPromptPaths } from "../types.js"
 
 export interface Persona {
-  agents: string
-  identity: string
+  agent: string
   soul: string
+  identity: string
 }
 
-export class PersonaLoadError extends Data.TaggedError("PersonaLoadError")<{
-  agentId: string
-  workflowSlug: string
-  message: string
+export class PersonaNotFoundError extends Data.TaggedError("PersonaNotFoundError")<{
+  agentPath: string
 }> {}
 
-function tryReadFile(filePath: string): string {
+function tryReadOptional(filePath: string): string {
   try {
     return Fs.readFileSync(filePath, "utf-8")
   } catch {
@@ -23,32 +21,23 @@ function tryReadFile(filePath: string): string {
   }
 }
 
-function loadPersonaFromDir(dir: string): Persona | null {
-  const agentsPath = Path.join(dir, "AGENTS.md")
-  if (!Fs.existsSync(agentsPath)) return null
-  const agentsContent = Fs.readFileSync(agentsPath, "utf-8")
-  const identityContent = tryReadFile(Path.join(dir, "IDENTITY.md"))
-  const soulContent = tryReadFile(Path.join(dir, "SOUL.md"))
-  return { agents: agentsContent, identity: identityContent, soul: soulContent }
-}
-
 export function resolvePersona(
-  agentSlug: string,
-  workflowSlug: string
-): Effect.Effect<Persona, PersonaLoadError> {
-  return Effect.sync(() => {
-    const localDir = Path.join(workflowsDir(), workflowSlug, "agents", agentSlug)
-    const local = loadPersonaFromDir(localDir)
-    if (local) return local
+  paths: SystemPromptPaths,
+  workflowDir: string
+): Effect.Effect<Persona, PersonaNotFoundError> {
+  return Effect.gen(function* (_) {
+    const resolvePath = (p: string) => Path.resolve(workflowDir, p)
 
-    const sharedDir = Path.join(agentsDir(), agentSlug)
-    const shared = loadPersonaFromDir(sharedDir)
-    if (shared) return shared
+    const agent = yield* _(
+      Effect.try({
+        try: () => Fs.readFileSync(resolvePath(paths.agent), "utf-8"),
+        catch: () => new PersonaNotFoundError({ agentPath: paths.agent })
+      })
+    )
 
-    throw new PersonaLoadError({
-      agentId: agentSlug,
-      workflowSlug,
-      message: `Agent "${agentSlug}" not found in workflow "${workflowSlug}" or shared agents. Check "hamilton init".`
-    })
+    const soul = tryReadOptional(resolvePath(paths.soul))
+    const identity = tryReadOptional(resolvePath(paths.identity))
+
+    return { agent, soul, identity }
   })
 }
