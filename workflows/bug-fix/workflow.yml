@@ -10,7 +10,7 @@ description: |
   Verifier confirms correctness. No merge step.
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: triager

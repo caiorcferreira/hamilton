@@ -20,7 +20,7 @@ description: |
   into the original branch.
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: setup

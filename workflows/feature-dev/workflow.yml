@@ -16,7 +16,7 @@ description: |
   PR-creating pipeline, use `feature-dev-github-pr`.
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: planner

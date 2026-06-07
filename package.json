@@ -9,6 +9,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "bun --bun vitest run",
+    "test:file": "bun --bun vitest run --reporter=verbose",
+    "test:agent": "bun --bun vitest run 2>&1 | tail -8",
     "install-local": "bun run build && mkdir -p ~/.local/bin && ln -sf $(pwd)/dist/cli/main.js ~/.local/bin/hamilton && chmod +x dist/cli/main.js",
     "purge": "rm -f ~/.local/bin/hamilton; rm -rf ~/.hamilton/"
   },

@@ -22,7 +22,7 @@ description: |
   quarantine-broken-tests-merge-worktree.
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: setup

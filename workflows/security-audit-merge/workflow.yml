@@ -12,7 +12,7 @@ description: |
   original branch (NO push, NO gh pr create).
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: scanner

@@ -7,7 +7,7 @@ description: |
   writes a README.
 polling:
   model: default
-  timeoutSeconds: 120
+  timeoutSeconds: 300
 
 agents:
   - slug: scaffolder
