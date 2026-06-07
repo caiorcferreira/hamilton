@@ -5,28 +5,46 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadWorkflowSpec, WorkflowNotFoundError, WorkflowParseError } from "../../src/workflow/loader.js"
 
-const validYaml = `slug: bug-fix
-name: Bug Fix Workflow
-version: 1
-description: Triage and fix bugs
+const validYaml = `version: 1
+name: test-wf
+run:
+  entrypoint: t1
+  timeout: 300s
 agents:
-  - slug: triager
+  - name: a1
     role: analysis
-    workspace:
-      baseDir: agents/triager
-      files:
-        AGENTS.md: agents/triager/AGENTS.md
-steps:
-  - slug: triage
-    agent: triager
-    input: "Triage this bug"
+    settings:
+      systemPrompt:
+        agent: agents/a1/AGENTS.md
+        soul: agents/a1/SOUL.md
+        identity: agents/a1/IDENTITY.md
+tasks:
+  - name: t1
+    agent:
+      ref: agents.a1
+      prompt:
+        content: do it
 `
 
-const invalidYaml = `slug: bad
-name: Bad
-version: not-a-number
-agents: []
-steps: []
+const invalidYaml = `version: not-a-number
+name: bad
+run:
+  entrypoint: t1
+  timeout: 300s
+agents:
+  - name: a1
+    role: analysis
+    settings:
+      systemPrompt:
+        agent: agents/a1/AGENTS.md
+        soul: agents/a1/SOUL.md
+        identity: agents/a1/IDENTITY.md
+tasks:
+  - name: t1
+    agent:
+      ref: agents.a1
+      prompt:
+        content: do it
 `
 
 describe("loadWorkflowSpec", () => {
@@ -35,7 +53,7 @@ describe("loadWorkflowSpec", () => {
 
   beforeEach(() => {
     tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-test-"))
-    const wfDir = Path.join(tmpDir, "bug-fix")
+    const wfDir = Path.join(tmpDir, "test-wf")
     Fs.mkdirSync(wfDir, { recursive: true })
     Fs.writeFileSync(Path.join(wfDir, "workflow.yml"), validYaml)
 
@@ -53,12 +71,17 @@ describe("loadWorkflowSpec", () => {
     }
   })
 
-  it("loads a valid workflow YAML", async () => {
-    const exit = await Effect.runPromiseExit(loadWorkflowSpec(tmpDir, "bug-fix"))
+  it("loads a valid DAG workflow YAML", async () => {
+    const exit = await Effect.runPromiseExit(loadWorkflowSpec(tmpDir, "test-wf"))
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.slug).toBe("bug-fix")
-      expect(exit.value.name).toBe("Bug Fix Workflow")
+      expect(exit.value.name).toBe("test-wf")
       expect(exit.value.version).toBe(1)
+      expect(exit.value.run.entrypoint).toBe("t1")
+      expect(exit.value.run.timeout).toBe("300s")
+      expect(exit.value.agents).toHaveLength(1)
+      expect(exit.value.agents[0].name).toBe("a1")
+      expect(exit.value.tasks).toHaveLength(1)
+      expect(exit.value.tasks[0].name).toBe("t1")
     } else {
       expect.unreachable("Expected success but got failure")
     }
@@ -69,8 +92,8 @@ describe("loadWorkflowSpec", () => {
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const cause = exit.cause
-      const defects = cause._tag === "Fail" ? cause.error : undefined
-      expect(defects?._tag).toBe("WorkflowNotFoundError")
+      const defect = cause._tag === "Fail" ? cause.error : undefined
+      expect(defect?._tag).toBe("WorkflowNotFoundError")
     }
   })
 
@@ -79,8 +102,8 @@ describe("loadWorkflowSpec", () => {
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const cause = exit.cause
-      const defects = cause._tag === "Fail" ? cause.error : undefined
-      expect(defects?._tag).toBe("WorkflowParseError")
+      const defect = cause._tag === "Fail" ? cause.error : undefined
+      expect(defect?._tag).toBe("WorkflowParseError")
     }
   })
 })
