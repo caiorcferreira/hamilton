@@ -179,12 +179,22 @@ export function executeWithPi(
       yield* _(Effect.promise(() => session.prompt(config.taskPrompt)))
 
       const outputPath = stepOutputFile(config.runId, config.stepId)
+      const MAX_REMINDERS = 2
+      let reminders = 0
+      while (!Fs.existsSync(outputPath) && reminders < MAX_REMINDERS) {
+        reminders++
+        yield* _(
+          Effect.promise(() =>
+            session.prompt("REMINDER: You must call write_step_output to save your work. Call write_step_output now with your findings.")
+          )
+        )
+      }
       if (!Fs.existsSync(outputPath)) {
         return yield* _(
           Effect.fail(
             new PiExecutionError({
               stepId: config.stepId,
-              message: "Step did not call write_step_output"
+              message: `Step did not call write_step_output after ${reminders} reminders`
             })
           )
         )
