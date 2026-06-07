@@ -41,14 +41,17 @@ Each story in STORIES_JSON:
 
 ## Output Format
 
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "fix_plan": "1. [CRITICAL] fix-001: Parameterize SQL queries\n2. [HIGH] fix-002: Remove hardcoded API keys",
+  "critical_count": 2,
+  "high_count": 3,
+  "deferred": "5 low-severity issues deferred (missing rate limiting, verbose error messages, ...)",
+  "stories_json": []
+}
 ```
-STATUS: done
-FIX_PLAN:
-1. [CRITICAL] fix-001: Parameterize SQL queries in user search
-2. [HIGH] fix-002: Remove hardcoded API keys from source
-...
-CRITICAL_COUNT: 2
-HIGH_COUNT: 3
-DEFERRED: 5 low-severity issues deferred (missing rate limiting, verbose error messages, ...)
-STORIES_JSON: [ ... ]
-```
+
+The `stories_json` array is parsed by the pipeline to create trackable story records.

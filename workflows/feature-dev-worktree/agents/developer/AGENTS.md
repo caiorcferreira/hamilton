@@ -60,13 +60,17 @@ When creating the PR:
 
 ## Output Format
 
-```
-STATUS: done
-REPO: /path/to/repo
-BRANCH: feature-branch-name
-COMMITS: abc123, def456
-CHANGES: What you implemented
-TESTS: What tests you wrote
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "repo": "/path/to/repo",
+  "branch": "feature-branch-name",
+  "commits": "abc123, def456",
+  "changes": "What you implemented",
+  "tests": "What tests you wrote"
+}
 ```
 
 ## Story-Based Execution

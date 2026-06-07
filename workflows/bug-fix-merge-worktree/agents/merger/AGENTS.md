@@ -113,19 +113,25 @@ Do NOT use `feat:` prefix — this is a bug fix. Always use `fix:`.
 
 ## Output Format
 
-On successful merge:
-```text
-STATUS: done
-REBASED: <true|false>
-MERGE_COMMIT: <short commit hash>
-MERGED_INTO: <original branch>
+On successful merge, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "rebased": true,
+  "merge_commit": "abc1234",
+  "merged_into": "original branch"
+}
 ```
 
 On failure (cannot proceed):
-```text
-STATUS: retry
-REBASED: <true|false>
-FAILURE: <clear reason>
+
+```json
+{
+  "status": "retry",
+  "rebased": false,
+  "failure": "clear reason"
+}
 ```
 
 ## Guardrails

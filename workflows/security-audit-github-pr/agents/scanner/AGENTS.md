@@ -59,13 +59,14 @@ Each finding must include:
 
 ## Output Format
 
-```
-STATUS: done
-REPO: /path/to/repo
-BRANCH: security-audit-YYYY-MM-DD
-VULNERABILITY_COUNT: <number>
-FINDINGS:
-1. [CRITICAL] SQL Injection in src/db/users.ts:45 — User input concatenated into raw SQL query. Attacker can extract/modify database contents.
-2. [HIGH] Hardcoded API key in src/config.ts:12 — Production Stripe key committed to source.
-...
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "repo": "/path/to/repo",
+  "branch": "security-audit-YYYY-MM-DD",
+  "vulnerability_count": 5,
+  "findings": "1. [CRITICAL] SQL Injection in src/db/users.ts:45 — ...\n2. [HIGH] Hardcoded API key in src/config.ts:12 — ..."
+}
 ```

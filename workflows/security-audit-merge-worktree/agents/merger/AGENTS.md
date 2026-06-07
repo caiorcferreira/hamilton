@@ -136,27 +136,36 @@ Do NOT use `feat:` prefix — this is a security fix. Always use `fix(security):
 
 ## Output Format
 
-On successful merge:
-```text
-STATUS: done
-REBASED: <true|false>
-MERGE_COMMIT: <short commit hash>
-MERGED_INTO: <original branch>
+On successful merge, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "rebased": false,
+  "merge_commit": "abc1234",
+  "merged_into": "original branch"
+}
 ```
 
 On rebase-with-changes (tester loopback):
-```text
-STATUS: retry
-REBASED: true
-CONFLICT_NOTES: <description of resolved conflicts and changed files>
-RETRY_STEP: test
+
+```json
+{
+  "status": "retry",
+  "rebased": true,
+  "conflict_notes": "description of resolved conflicts and changed files",
+  "retry_step": "test"
+}
 ```
 
 On failure (cannot proceed):
-```text
-STATUS: retry
-REBASED: <true|false>
-FAILURE: <clear reason>
+
+```json
+{
+  "status": "retry",
+  "rebased": false,
+  "failure": "clear reason"
+}
 ```
 
 ## Guardrails

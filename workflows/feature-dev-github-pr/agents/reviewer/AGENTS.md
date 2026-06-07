@@ -38,19 +38,26 @@ Or: `gh pr review <url> --comment --body "..."`
 
 ## Output Format
 
-If approved:
-```
-STATUS: done
-DECISION: approved
+If approved, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "decision": "approved"
+}
 ```
 
 If changes needed:
-```
-STATUS: retry
-DECISION: changes_requested
-FEEDBACK:
-- Specific change needed 1
-- Specific change needed 2
+
+```json
+{
+  "status": "retry",
+  "decision": "changes_requested",
+  "feedback": [
+    "Specific change needed 1",
+    "Specific change needed 2"
+  ]
+}
 ```
 
 ## Standards

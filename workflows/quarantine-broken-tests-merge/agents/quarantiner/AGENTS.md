@@ -87,28 +87,38 @@ FAIL src/file.test.ts
 
 ## Output Format
 
-```
-STATUS: done
-DISABLED: <count of tests disabled>
-FILES_CHANGED: <count of test files modified>
-SUMMARY: <brief description of what was quarantined>
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "disabled": 3,
+  "files_changed": 2,
+  "summary": "brief description of what was quarantined"
+}
 ```
 
 If no failures found:
-```
-STATUS: done
-DISABLED: 0
-FILES_CHANGED: 0
-SUMMARY: No failing tests detected. Ran twice to verify — all passing.
+
+```json
+{
+  "status": "done",
+  "disabled": 0,
+  "files_changed": 0,
+  "summary": "No failing tests detected. Ran twice to verify — all passing."
+}
 ```
 
 If unable to achieve clean suite:
-```
-STATUS: failed
-DISABLED: <count>
-FILES_CHANGED: <count>
-REMAINING_FAILURES: <description of remaining failures>
-REASON: <why clean suite couldn't be achieved>
+
+```json
+{
+  "status": "failed",
+  "disabled": 5,
+  "files_changed": 3,
+  "remaining_failures": "description of remaining failures",
+  "reason": "why clean suite couldn't be achieved"
+}
 ```
 
 ## Security — Pre-Commit Checks

@@ -31,6 +31,18 @@ describe("mergeContext", () => {
     expect(result).toEqual({ a: "1", b: "2" })
     expect(existing).toEqual({ a: "1" })
   })
+
+  it("stringifies non-string values as JSON", () => {
+    const result = mergeContext({}, { items: [1, 2], obj: { key: "val" }, num: 42 })
+    expect(result.items).toBe("[1,2]")
+    expect(result.obj).toBe('{"key":"val"}')
+    expect(result.num).toBe("42")
+  })
+
+  it("skips null and undefined values", () => {
+    const result = mergeContext({}, { a: null, b: undefined, c: "keep" })
+    expect(result).toEqual({ c: "keep" })
+  })
 })
 
 describe("parseStoriesJson", () => {

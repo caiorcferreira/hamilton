@@ -76,65 +76,52 @@ Maximum **20 stories** per run. If the task genuinely needs more, the task is to
 
 ## Output Format
 
-Your output MUST include these KEY: VALUE lines:
+Call `write_step_output` with a JSON object. The `stories_json` field must contain a valid JSON array:
 
-STATUS: done
-REPO: /path/to/repo
-BRANCH: feature-branch-name
-STORIES_JSON: [{"id":"US-001","title":"Short descriptive title","description":"As a developer, I need to... so that...\n\nImplementation notes:\n- Detail 1\n- Detail 2","acceptanceCriteria":["Specific verifiable criterion 1","Specific verifiable criterion 2","Tests for [feature] pass","Typecheck passes"]},{"id":"US-002","title":"...","description":"...","acceptanceCriteria":["...","Typecheck passes"]}]
+```json
+{
+  "status": "done",
+  "repo": "/path/to/repo",
+  "branch": "feature-branch-name",
+  "stories_json": [
+    {"id": "US-001", "title": "Short descriptive title", "description": "As a developer, I need to... so that...", "acceptanceCriteria": ["Specific verifiable criterion 1", "Tests for [feature] pass", "Typecheck passes"]},
+    {"id": "US-002", "title": "...", "description": "...", "acceptanceCriteria": ["...", "Typecheck passes"]}
+  ]
+}
+```
 
-### STORIES_JSON Rules — CRITICAL
+### stories_json Rules — CRITICAL
 
-The STORIES_JSON line MUST be exactly ONE line: the literal key `STORIES_JSON: ` followed by valid minified JSON on the same line. The pipeline parses this line directly — any deviation breaks story creation.
+The `stories_json` value must be a valid JSON array inside the output object. The pipeline parses this array to create trackable story records.
 
 **You MUST follow these rules:**
 
-1. **Single line only.** The entire STORIES_JSON value (the key, the colon, the space, and the JSON array) must be on ONE line. No line breaks inside the JSON array.
-2. **Minified JSON.** JSON must be compact: no extra whitespace, no newlines, no pretty-printing. Property names and string values are quoted; everything else is compressed.
-3. **No markdown code fences.** Do NOT wrap STORIES_JSON in triple backticks (```). The pipeline parses raw text, not markdown. Code fences will be treated as invalid data.
-4. **No JSON comments.** JSON does not support `//` or `/* */` comments. Do not include them.
-5. **No trailing commas.** The last element of any array or object must NOT be followed by a comma.
-6. **No prose before or after the JSON array on the STORIES_JSON line.** The line must start with `STORIES_JSON: ` and end after the closing `]`. No explanation, no trailing text.
+1. **Valid JSON only.** The entire output must be valid JSON — no markdown code fences, no comments (`//` or `/* */`), no trailing commas.
+2. **No prose before or after the JSON array.** The stories_json value is the array itself — no explanation, no wrapping text.
+3. **Each story must have all required fields.** `id`, `title`, `description`, and `acceptanceCriteria` are required per story.
 
 ### Examples
 
 **CORRECT (this is what you MUST produce):**
 
-```
-STORIES_JSON: [{"id":"US-001","title":"Add status column","description":"As a developer, I need to add a status column to tasks.","acceptanceCriteria":["status column exists","Tests for status column pass","Typecheck passes"]},{"id":"US-002","title":"Update task list UI","description":"As a developer, I need to show status in the task list.","acceptanceCriteria":["Status column shown in UI","Tests for task list pass","Typecheck passes"]}]
+```json
+{"status": "done", "repo": "/path", "branch": "branch-name", "stories_json": [{"id": "US-001", "title": "Add status column", "description": "Add a status column to tasks.", "acceptanceCriteria": ["status column exists", "Tests for status column pass", "Typecheck passes"]}, {"id": "US-002", "title": "Update task list UI", "description": "Show status in the task list.", "acceptanceCriteria": ["Status column shown in UI", "Tests for task list pass", "Typecheck passes"]}]}
 ```
 
 **WRONG — code-fenced JSON (DO NOT DO THIS):**
-```
+
+~~~
 STORIES_JSON:
 ```json
 [{"id":"US-001","title":"...","description":"...","acceptanceCriteria":["...","Typecheck passes"]}]
 ```
-```
-
-**WRONG — multi-line pretty-printed JSON (DO NOT DO THIS):**
-```
-STORIES_JSON: [
-  {
-    "id": "US-001",
-    "title": "Add status column",
-    "description": "...",
-    "acceptanceCriteria": ["status column exists", "Typecheck passes"]
-  }
-]
-```
+~~~
 
 **WRONG — JSON with comments (DO NOT DO THIS):**
-```
-STORIES_JSON: [{"id":"US-001","title":"Add status column","description":"Adds status to tasks","acceptanceCriteria":["status column exists","Typecheck passes"], // end of US-001}]
-```
 
-**WRONG — text after closing bracket (DO NOT DO THIS):**
+```json
+{"stories_json": [{"id": "US-001", "title": "Add status column", "acceptanceCriteria": ["status column exists", "Typecheck passes"], // end of US-001}]}
 ```
-STORIES_JSON: [{"id":"US-001","title":"...","description":"...","acceptanceCriteria":["...","Typecheck passes"]}] ← end of stories
-```
-
-**STORIES_JSON** must be valid JSON. The array is parsed by the pipeline to create trackable story records.
 
 ## What NOT To Do
 

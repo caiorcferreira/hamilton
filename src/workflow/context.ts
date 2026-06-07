@@ -17,7 +17,11 @@ export function mergeContext(
 ): Record<string, string> {
   const result: Record<string, string> = { ...existing }
   for (const [key, value] of Object.entries(incoming)) {
-    result[key] = String(value)
+    if (typeof value === "string") {
+      result[key] = value
+    } else if (value !== null && value !== undefined) {
+      result[key] = JSON.stringify(value)
+    }
   }
   return result
 }

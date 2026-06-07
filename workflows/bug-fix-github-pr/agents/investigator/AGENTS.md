@@ -31,10 +31,14 @@ Do NOT write code. Describe the change in plain language.
 
 ## Output Format
 
-```
-STATUS: done
-ROOT_CAUSE: detailed explanation (e.g., "The `filterUsers` function in src/lib/search.ts compares against `user.name` but the schema changed to `user.displayName` in migration 042. The comparison always returns false, so search results are empty.")
-FIX_APPROACH: what needs to change (e.g., "Update `filterUsers` in src/lib/search.ts to use `user.displayName` instead of `user.name`. Update the test in search.test.ts to use the new field name.")
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "root_cause": "detailed explanation (e.g., \"The `filterUsers` function in src/lib/search.ts compares against `user.name` but the schema changed to `user.displayName` in migration 042. The comparison always returns false, so search results are empty.\")",
+  "fix_approach": "what needs to change (e.g., \"Update `filterUsers` in src/lib/search.ts to use `user.displayName` instead of `user.name`. Update the test in search.test.ts to use the new field name.\")"
+}
 ```
 
 ## What NOT To Do

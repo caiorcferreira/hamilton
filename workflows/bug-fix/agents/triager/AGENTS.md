@@ -34,14 +34,18 @@ Generate a descriptive branch name: `bugfix/<short-description>` (e.g., `bugfix/
 
 ## Output Format
 
-```
-STATUS: done
-REPO: /path/to/repo
-BRANCH: bugfix-branch-name
-SEVERITY: critical|high|medium|low
-AFFECTED_AREA: files and modules affected (e.g., "src/lib/search.ts, src/components/SearchBar.tsx")
-REPRODUCTION: how to reproduce (steps, failing test, or "see failing test X")
-PROBLEM_STATEMENT: clear 2-3 sentence description of what's wrong
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "repo": "/path/to/repo",
+  "branch": "bugfix-branch-name",
+  "severity": "critical|high|medium|low",
+  "affected_area": "files and modules affected (e.g., \"src/lib/search.ts, src/components/SearchBar.tsx\")",
+  "reproduction": "how to reproduce (steps, failing test, or \"see failing test X\")",
+  "problem_statement": "clear 2-3 sentence description of what's wrong"
+}
 ```
 
 ## What NOT To Do

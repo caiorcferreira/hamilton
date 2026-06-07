@@ -34,18 +34,25 @@ You confirm that the test suite is clean after quarantine. You are the final qua
 
 ## Output Format
 
-If everything passes:
-```
-STATUS: done
-VERIFIED: All tests pass. <N> tests were disabled across <M> files. No application code was modified. Confirmed stable across two runs.
+If everything passes, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "verified": "All tests pass. N tests were disabled across M files. No application code was modified. Confirmed stable across two runs."
+}
 ```
 
 If issues found:
-```
-STATUS: retry
-ISSUES:
-- Specific issue 1
-- Specific issue 2
+
+```json
+{
+  "status": "retry",
+  "issues": [
+    "Specific issue 1",
+    "Specific issue 2"
+  ]
+}
 ```
 
 ## Important

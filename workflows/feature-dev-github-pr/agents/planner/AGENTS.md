@@ -76,34 +76,36 @@ Maximum **20 stories** per run. If the task genuinely needs more, the task is to
 
 ## Output Format
 
-Your output MUST include these KEY: VALUE lines:
+Call `write_step_output` with a JSON object. The `stories_json` field must contain a valid JSON array:
 
-```
-STATUS: done
-REPO: /path/to/repo
-BRANCH: feature-branch-name
-STORIES_JSON: [
-  {
-    "id": "US-001",
-    "title": "Short descriptive title",
-    "description": "As a developer, I need to... so that...\n\nImplementation notes:\n- Detail 1\n- Detail 2",
-    "acceptanceCriteria": [
-      "Specific verifiable criterion 1",
-      "Specific verifiable criterion 2",
-      "Tests for [feature] pass",
-      "Typecheck passes"
-    ]
-  },
-  {
-    "id": "US-002",
-    "title": "...",
-    "description": "...",
-    "acceptanceCriteria": ["...", "Typecheck passes"]
-  }
-]
+```json
+{
+  "status": "done",
+  "repo": "/path/to/repo",
+  "branch": "feature-branch-name",
+  "stories_json": [
+    {
+      "id": "US-001",
+      "title": "Short descriptive title",
+      "description": "As a developer, I need to... so that...\n\nImplementation notes:\n- Detail 1\n- Detail 2",
+      "acceptanceCriteria": [
+        "Specific verifiable criterion 1",
+        "Specific verifiable criterion 2",
+        "Tests for [feature] pass",
+        "Typecheck passes"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "...",
+      "description": "...",
+      "acceptanceCriteria": ["...", "Typecheck passes"]
+    }
+  ]
+}
 ```
 
-**STORIES_JSON** must be valid JSON. The array is parsed by the pipeline to create trackable story records.
+**stories_json** must be a valid JSON array. The array is parsed by the pipeline to create trackable story records.
 
 ## What NOT To Do
 

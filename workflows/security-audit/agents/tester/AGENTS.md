@@ -13,16 +13,24 @@ You perform final integration testing after all security fixes are applied.
 
 ## Output Format
 
-```
-STATUS: done
-RESULTS: All 156 tests pass (14 new regression tests). Build succeeds. App starts and responds to health check.
-AUDIT_AFTER: npm audit shows 2 moderate vulnerabilities remaining (in dev dependencies, non-exploitable). Down from 8 critical + 12 high.
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "results": "All 156 tests pass (14 new regression tests). Build succeeds. App starts and responds to health check.",
+  "audit_after": "npm audit shows 2 moderate vulnerabilities remaining (in dev dependencies, non-exploitable). Down from 8 critical + 12 high."
+}
 ```
 
 Or if issues:
-```
-STATUS: retry
-FAILURES:
-- 3 tests failing in src/api/users.test.ts (auth middleware changes broke existing tests)
-- Build fails: TypeScript error in src/middleware/csrf.ts:12
+
+```json
+{
+  "status": "retry",
+  "failures": [
+    "3 tests failing in src/api/users.test.ts (auth middleware changes broke existing tests)",
+    "Build fails: TypeScript error in src/middleware/csrf.ts:12"
+  ]
+}
 ```

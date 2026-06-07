@@ -46,10 +46,14 @@ Examples:
 
 ## Output Format
 
-```
-STATUS: done
-CHANGES: what files were changed and what was done (e.g., "Updated filterUsers in src/lib/search.ts to handle null displayName. Added null check before comparison.")
-REGRESSION_TEST: what test was added (e.g., "Added 'handles null displayName in search' test in src/lib/search.test.ts")
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "changes": "what files were changed and what was done (e.g., \"Updated filterUsers in src/lib/search.ts to handle null displayName. Added null check before comparison.\")",
+  "regression_test": "what test was added (e.g., \"Added 'handles null displayName in search' test in src/lib/search.test.ts\")"
+}
 ```
 
 ## Critical: All Changes Must Be In The Repo

@@ -72,10 +72,14 @@ Examples:
 
 ## Output Format
 
-```
-STATUS: done
-CHANGES: what was fixed (files changed, what was done)
-REGRESSION_TEST: what test was added (test name, file, what it verifies)
+Call `write_step_output` with a JSON object:
+
+```json
+{
+  "status": "done",
+  "changes": "what was fixed (files changed, what was done)",
+  "regression_test": "what test was added (test name, file, what it verifies)"
+}
 ```
 
 ## What NOT To Do

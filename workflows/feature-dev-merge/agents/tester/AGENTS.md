@@ -39,18 +39,25 @@ For UI features, use the browser skill to:
 
 ## Output Format
 
-If everything passes:
-```
-STATUS: done
-RESULTS: What you tested and outcomes
+If everything passes, call `write_step_output` with:
+
+```json
+{
+  "status": "done",
+  "results": "What you tested and outcomes"
+}
 ```
 
 If issues found:
-```
-STATUS: retry
-FAILURES:
-- Specific failure 1
-- Specific failure 2
+
+```json
+{
+  "status": "retry",
+  "failures": [
+    "Specific failure 1",
+    "Specific failure 2"
+  ]
+}
 ```
 
 ## Learning
