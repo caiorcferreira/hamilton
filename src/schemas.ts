@@ -53,6 +53,7 @@ const WorkflowStepSchema = Schema.Struct({
   input: Schema.String,
   expects: Schema.optional(Schema.String),
   max_retries: Schema.optional(Schema.Number),
+  timeoutSeconds: Schema.optional(Schema.Number),
   on_fail: Schema.optional(OnFailConfigSchema)
 })
 

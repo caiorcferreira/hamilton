@@ -13,8 +13,10 @@ export function buildStepId(runId: string, stepSlug: string): string {
   return `${runId}-${stepSlug}-${nanoid(5)}`
 }
 
-export function resolveStepTimeout(spec: WorkflowSpec, agentSlug: string): number {
-  const agent = spec.agents.find((a) => a.slug === agentSlug)
+export function resolveStepTimeout(spec: WorkflowSpec, stepSlug: string): number {
+  const step = spec.steps.find((s) => s.slug === stepSlug)
+  if (step?.timeoutSeconds !== undefined) return step.timeoutSeconds
+  const agent = spec.agents.find((a) => a.slug === step?.agent)
   if (agent?.timeoutSeconds !== undefined) return agent.timeoutSeconds
   if (spec.polling?.timeoutSeconds !== undefined) return spec.polling.timeoutSeconds
   return 300

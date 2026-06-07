@@ -60,12 +60,21 @@ describe("buildStepId", () => {
 })
 
 describe("resolveStepTimeout", () => {
-  it("uses agent timeout when available", () => {
+  it("uses step timeout when available", () => {
+    const spec = makeSpec({
+      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 120 })],
+      steps: [makeStep({ slug: "step-1" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 45 })],
+      polling: { timeoutSeconds: 60 }
+    })
+    expect(resolveStepTimeout(spec, "step-1")).toBe(45)
+  })
+
+  it("falls back to agent timeout when step has no timeout", () => {
     const spec = makeSpec({
       agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 120 })],
       polling: { timeoutSeconds: 60 }
     })
-    expect(resolveStepTimeout(spec, "agent-1")).toBe(120)
+    expect(resolveStepTimeout(spec, "step-1")).toBe(120)
   })
 
   it("falls back to polling timeout when agent has no timeout", () => {
@@ -73,13 +82,39 @@ describe("resolveStepTimeout", () => {
       agents: [makeAgent({ slug: "agent-1" as AgentSlug })],
       polling: { timeoutSeconds: 60 }
     })
-    expect(resolveStepTimeout(spec, "agent-1")).toBe(60)
+    expect(resolveStepTimeout(spec, "step-1")).toBe(60)
   })
 
-  it("defaults to 300 when neither is set", () => {
+  it("defaults to 300 when nothing is set", () => {
     const spec = makeSpec({
       agents: [makeAgent({ slug: "agent-1" as AgentSlug })]
     })
-    expect(resolveStepTimeout(spec, "agent-1")).toBe(300)
+    expect(resolveStepTimeout(spec, "step-1")).toBe(300)
+  })
+
+  it("step timeout takes priority over agent and polling", () => {
+    const spec = makeSpec({
+      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 200 })],
+      steps: [makeStep({ slug: "step-1" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 50 })],
+      polling: { timeoutSeconds: 100 }
+    })
+    expect(resolveStepTimeout(spec, "step-1")).toBe(50)
+  })
+
+  it("resolves per-step with different timeouts", () => {
+    const spec = makeSpec({
+      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 200 })],
+      steps: [
+        makeStep({ slug: "step-a" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 30 }),
+        makeStep({ slug: "step-b" as StepSlug, agent: "agent-1" as AgentSlug })
+      ]
+    })
+    expect(resolveStepTimeout(spec, "step-a")).toBe(30)
+    expect(resolveStepTimeout(spec, "step-b")).toBe(200)
+  })
+
+  it("returns 300 for unknown step slug", () => {
+    const spec = makeSpec()
+    expect(resolveStepTimeout(spec, "nonexistent")).toBe(300)
   })
 })
