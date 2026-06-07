@@ -42,6 +42,6 @@ steps:
       RESULT: Summary of what was accomplished
       CHANGES: What files or changes were made
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human

@@ -135,8 +135,8 @@ steps:
 
       Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human
 
   - slug: setup
@@ -171,8 +171,8 @@ steps:
       CI_NOTES: <brief CI notes>
       BASELINE: <baseline status>
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human
 
   - slug: implement
@@ -228,8 +228,8 @@ steps:
       CHANGES: what you implemented
       TESTS: what tests you wrote
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human
 
   - slug: verify

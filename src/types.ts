@@ -56,7 +56,6 @@ export interface WorkflowStep {
   loop?: LoopConfig
   input: string
   expects?: string
-  max_retries?: number
   timeoutSeconds?: number
   on_fail?: OnFailConfig
 }

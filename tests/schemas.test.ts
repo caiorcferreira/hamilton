@@ -21,7 +21,7 @@ describe("WorkflowSpecSchema", () => {
     expect(spec.agents).toHaveLength(1)
     expect(spec.steps).toHaveLength(1)
     expect(spec.agents[0].role).toBe("analysis")
-    expect(spec.steps[0].max_retries).toBe(4)
+    expect(spec.steps[0].on_fail?.max_retries).toBe(4)
   })
 
   it("should reject a workflow with no agents", () => {

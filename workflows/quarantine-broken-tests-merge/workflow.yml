@@ -110,8 +110,8 @@ steps:
       CI_NOTES: <brief CI notes>
       BASELINE: <baseline status including test results>
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human
 
   - slug: quarantine
@@ -150,8 +150,8 @@ steps:
       STATUS: failed
       REASON: <why>
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human
 
   - slug: verify

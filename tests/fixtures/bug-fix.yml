@@ -17,6 +17,6 @@ steps:
     agent: triager
     input: "Triage this bug: {{task}}"
     expects: "STATUS: done"
-    max_retries: 4
     on_fail:
+      max_retries: 4
       escalate_to: human

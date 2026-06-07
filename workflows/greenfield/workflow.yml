@@ -61,8 +61,8 @@ steps:
       BUILD_CMD: <command to build>
       TEST_CMD: <command to test>
     expects: "STATUS: done"
-    max_retries: 3
     on_fail:
+      max_retries: 3
       escalate_to: human
 
   - slug: verify

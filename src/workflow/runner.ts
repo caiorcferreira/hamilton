@@ -99,7 +99,7 @@ export function runWorkflow(
 
         const step = spec.steps.find((s) => s.slug === stepSlug)!
         const agent = spec.agents.find((a) => a.slug === step.agent)!
-        const maxRetries = step.max_retries ?? 1
+        const maxRetries = step.on_fail?.max_retries ?? 1
         const timeoutSeconds = resolveStepTimeout(spec, step.slug)
         const model = agent.model
 
