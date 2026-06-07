@@ -285,3 +285,58 @@ describe("topological sort + context integration", () => {
     expect(reachable.map(t => t.name).sort()).toEqual(["a", "b", "c"])
   })
 })
+
+describe("shared/agents symlink verification", () => {
+  let tmpHome: string
+  const origHome = process.env.HOME
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-symlink-runner-"))
+    process.env.HOME = tmpHome
+    const hh = Path.join(tmpHome, ".hamilton")
+    Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
+    Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
+    Fs.mkdirSync(Path.join(hh, "agents"), { recursive: true })
+  })
+
+  afterEach(() => {
+    process.env.HOME = origHome
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  it("creates shared/agents symlink when missing before execution", async () => {
+    const spec = makeSpec()
+    const wfDir = Path.join(tmpHome, ".hamilton", "workflows", spec.name)
+    Fs.mkdirSync(wfDir, { recursive: true })
+
+    await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    const linkPath = Path.join(wfDir, "shared", "agents")
+    expect(Fs.existsSync(linkPath)).toBe(true)
+    expect(Fs.lstatSync(linkPath).isSymbolicLink()).toBe(true)
+  })
+
+  it("fixes broken shared/agents symlink before execution", async () => {
+    const spec = makeSpec()
+    const wfDir = Path.join(tmpHome, ".hamilton", "workflows", spec.name)
+    Fs.mkdirSync(wfDir, { recursive: true })
+    const sharedDir = Path.join(wfDir, "shared")
+    Fs.mkdirSync(sharedDir, { recursive: true })
+    const wrongDir = Path.join(tmpHome, "wrong")
+    Fs.mkdirSync(wrongDir, { recursive: true })
+    Fs.symlinkSync(wrongDir, Path.join(sharedDir, "agents"), "dir")
+
+    await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    const linkPath = Path.join(wfDir, "shared", "agents")
+    expect(Fs.readlinkSync(linkPath)).not.toBe(wrongDir)
+  })
+})

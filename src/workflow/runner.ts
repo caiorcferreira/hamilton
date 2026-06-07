@@ -16,6 +16,7 @@ import {
   appendEngineLog
 } from "../observability/run-dir.js"
 import { EventBus } from "../events/bus.js"
+import { ensureSharedAgentsSymlink } from "../workflow/shared-agents.js"
 import { DbWriter } from "../db/subscribers.js"
 
 export interface WorkflowRunnerConfig {
@@ -41,6 +42,8 @@ export function runWorkflow(
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
     const workflowDir = `${config.workflowsDir}/${spec.name}`
+
+    yield* _(ensureSharedAgentsSymlink(workflowDir))
 
     const staticTasks = collectReachableTasks(spec.tasks, spec.run.entrypoint)
     const sortedTasks = topologicalSort(staticTasks)
