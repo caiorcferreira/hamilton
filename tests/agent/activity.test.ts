@@ -24,9 +24,9 @@ describe("buildAgentPrompt", () => {
     const result = buildAgentPrompt(params)
     expect(result).toHaveProperty("systemPrompt")
     expect(result).toHaveProperty("taskPrompt")
-    expect(result.systemPrompt).toContain("Your role: Senior Developer")
-    expect(result.systemPrompt).toContain("Your style: Concise and direct")
-    expect(result.systemPrompt).toContain("You are a coder.")
+    expect(result.systemPrompt).toContain("<identity>\nSenior Developer\n</identity>")
+    expect(result.systemPrompt).toContain("<style>\nConcise and direct\n</style>")
+    expect(result.systemPrompt).toContain("<agent>You are a coder.</agent>")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
@@ -56,7 +56,7 @@ describe("buildAgentPrompt", () => {
       context: { branch: "main", status: "approved" }
     }
     const result = buildAgentPrompt(params)
-    expect(result.systemPrompt).toContain("Context from previous steps:")
+    expect(result.systemPrompt).toContain("<context>")
     expect(result.systemPrompt).toContain('"branch": "main"')
     expect(result.systemPrompt).toContain('"status": "approved"')
   })
@@ -73,8 +73,8 @@ describe("buildAgentPrompt", () => {
 
   it("omits role and style sections when empty", () => {
     const result = buildAgentPrompt(baseParams)
-    expect(result.systemPrompt).not.toContain("Your role:")
-    expect(result.systemPrompt).not.toContain("Your style:")
+    expect(result.systemPrompt).not.toContain("<identity>")
+    expect(result.systemPrompt).not.toContain("<style>")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
@@ -88,6 +88,6 @@ describe("buildAgentPrompt", () => {
     }
     const result = buildAgentPrompt(params)
     const sections = result.systemPrompt.split("\n\n")
-    expect(sections[0]).toContain("Hamilton Workflow System")
+    expect(sections[0]).toContain("<identity>")
   })
 })

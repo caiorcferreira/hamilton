@@ -1,3 +1,4 @@
+
 import { Effect } from "effect"
 import { resolveTemplate, type Context } from "../workflow/context.js"
 
@@ -17,7 +18,21 @@ export interface BuiltPrompt {
 export function buildAgentPrompt(params: PromptParams): BuiltPrompt {
   const systemParts: string[] = []
 
-  systemParts.push(`## Hamilton Workflow System
+  if (params.identityMd) {
+    systemParts.push(`<identity>\n${params.identityMd}\n</identity>`)
+  }
+
+  if (params.soulMd) {
+    systemParts.push(`<style>\n${params.soulMd}\n</style>`)
+  }
+
+  if (Object.keys(params.context).length > 0) {
+    const contextJson = JSON.stringify(params.context, null, 2)
+    systemParts.push(`<context>\n${contextJson}\n</context>`)
+  }
+
+  systemParts.push(`<harness>
+# Hamilton Workflow
 
 You are executing a step within a Hamilton workflow. A workflow is a sequence of steps
 that pass context between them. Your job is to complete one step and save your result.
@@ -31,22 +46,10 @@ subsequent steps.
 
 IMPORTANT:
 - You MUST call write_step_output exactly once — it will reject duplicate calls
-- The tool validates that your output is valid JSON with a "status" field`)
+- The tool validates that your output is valid JSON with a "status" field
+</harness>`)
 
-  if (params.identityMd) {
-    systemParts.push(`Your role: ${params.identityMd}`)
-  }
-
-  if (params.soulMd) {
-    systemParts.push(`Your style: ${params.soulMd}`)
-  }
-
-  if (Object.keys(params.context).length > 0) {
-    const contextJson = JSON.stringify(params.context, null, 2)
-    systemParts.push(`Context from previous steps:\n\`\`\`json\n${contextJson}\n\`\`\``)
-  }
-
-  systemParts.push(params.agentsMd)
+  systemParts.push(`<agent>${params.agentsMd}</agent>`)
 
   const resolvedInput = resolveTemplate(params.stepInput, params.context)
 
