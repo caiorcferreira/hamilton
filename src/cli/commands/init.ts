@@ -36,33 +36,6 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, In
   })
 }
 
-function copyWorkflowAgents(
-  workflowSlug: string,
-  options?: { force?: boolean }
-): Effect.Effect<void, InitError> {
-  return Effect.gen(function* () {
-    const workflowAgentsDir = Path.join(PROJECT_ROOT, "workflows", workflowSlug, "agents")
-    if (!Fs.existsSync(workflowAgentsDir)) return
-
-    const destAgents = agentsDir()
-    const entries = Fs.readdirSync(workflowAgentsDir, { withFileTypes: true })
-
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue
-      const srcPath = Path.join(workflowAgentsDir, entry.name)
-      const destPath = Path.join(destAgents, entry.name)
-
-      if (Fs.existsSync(destPath) && !options?.force) continue
-
-      yield* Effect.try({
-        try: () => Fs.cpSync(srcPath, destPath, { recursive: true, force: true }),
-        catch: (e) =>
-          new InitError({ message: `Failed to copy workflow agent "${entry.name}" from "${workflowSlug}": ${String(e)}` })
-      })
-    }
-  })
-}
-
 export function initHamilton(options?: { force?: boolean }): Effect.Effect<string[], InitError> {
   return Effect.gen(function* () {
     yield* Effect.try({
@@ -81,10 +54,6 @@ export function initHamilton(options?: { force?: boolean }): Effect.Effect<strin
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })
     )
-
-    for (const slug of workflowSlugs) {
-      yield* copyWorkflowAgents(slug, options)
-    }
 
     return workflowSlugs
   })

@@ -54,13 +54,14 @@ describe("initHamilton", () => {
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "workflow.yml"))).toBe(true)
   })
 
-  it("copies per-workflow agents to shared agents dir", async () => {
+  it("does NOT copy per-workflow agents to shared agents dir", async () => {
     const exit = await Effect.runPromiseExit(initHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
-    expect(Fs.existsSync(Path.join(agentsBase, "triager", "AGENTS.md"))).toBe(true)
-    expect(Fs.existsSync(Path.join(agentsBase, "investigator", "AGENTS.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(agentsBase, "triager", "AGENTS.md"))).toBe(false)
+    expect(Fs.existsSync(Path.join(agentsBase, "investigator", "AGENTS.md"))).toBe(false)
+    expect(Fs.existsSync(Path.join(agentsBase, "fixer", "AGENTS.md"))).toBe(false)
   })
 
   it("is idempotent", async () => {
