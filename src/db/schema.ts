@@ -8,12 +8,12 @@ export function createSchema(db: Database): void {
       status TEXT NOT NULL DEFAULT 'running',
       started_at TEXT NOT NULL,
       completed_at TEXT,
-      current_step TEXT,
+      current_task TEXT,
       error_message TEXT,
       context_json TEXT DEFAULT '{}'
     );
 
-    CREATE TABLE IF NOT EXISTS steps (
+    CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,
       agent_id TEXT NOT NULL,
@@ -31,7 +31,7 @@ export function createSchema(db: Database): void {
     CREATE TABLE IF NOT EXISTS token_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       run_id TEXT NOT NULL,
-      step_id TEXT NOT NULL,
+      task_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
       tokens_in INTEGER DEFAULT 0,
       tokens_out INTEGER DEFAULT 0,

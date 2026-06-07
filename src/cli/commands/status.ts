@@ -31,17 +31,17 @@ function computeElapsed(start: string, end?: string | null): string {
   return `${min}m ${sec}s`
 }
 
-function stepIndicator(status: string): string {
+function taskIndicator(status: string): string {
   if (status === "completed") return "\u2713"
   if (status === "running") return "\u23F3"
   if (status === "failed") return "\u2717"
   return "\u25CB"
 }
 
-function parseStepSlug(stepId: string, runId: string): string {
+function parseTaskSlug(taskId: string, runId: string): string {
   const prefix = runId + "-"
-  if (!stepId.startsWith(prefix)) return stepId
-  const afterRun = stepId.slice(prefix.length)
+  if (!taskId.startsWith(prefix)) return taskId
+  const afterRun = taskId.slice(prefix.length)
   const lastDash = afterRun.lastIndexOf("-")
   if (lastDash === -1) return afterRun
   return afterRun.slice(0, lastDash)
@@ -67,20 +67,20 @@ export function formatStatus(status: RunStatus): string {
 
   lines.push(`Run ID:    ${status.runId}`)
 
-  const stepsInOrder = status.steps.map((s, idx) => ({
-    ...s,
-    slug: parseStepSlug(s.stepId, status.runId),
+  const tasksInOrder = status.tasks.map((t, idx) => ({
+    ...t,
+    slug: parseTaskSlug(t.taskId, status.runId),
     order: idx
   }))
 
-  const currentIdx = stepsInOrder.findIndex((s) => s.status === "running")
-  if (status.currentStep && currentIdx >= 0) {
-    const step = stepsInOrder[currentIdx]
-    lines.push(`Step:      ${step.slug} (${currentIdx + 1}/${stepsInOrder.length}) \u2014 agent: ${step.agentSlug}`)
+  const currentIdx = tasksInOrder.findIndex((t) => t.status === "running")
+  if (status.currentTask && currentIdx >= 0) {
+    const task = tasksInOrder[currentIdx]
+    lines.push(`Task:      ${task.slug} (${currentIdx + 1}/${tasksInOrder.length}) — agent: ${task.taskSlug}`)
   }
 
-  const stepLine = stepsInOrder.map((s, idx) => `${s.slug}(${idx + 1}/${stepsInOrder.length}) ${stepIndicator(s.status)}`).join("  ")
-  lines.push(`Steps:     ${stepLine}`)
+  const taskLine = tasksInOrder.map((t, idx) => `${t.slug}(${idx + 1}/${tasksInOrder.length}) ${taskIndicator(t.status)}`).join("  ")
+  lines.push(`Tasks:     ${taskLine}`)
 
   const tokensIn = status.totalTokensIn.toLocaleString()
   const tokensOut = status.totalTokensOut.toLocaleString()

@@ -35,7 +35,7 @@ describe("createSchema", () => {
       .all()
       .map((r: any) => r.name)
     expect(tables).toContain("runs")
-    expect(tables).toContain("steps")
+    expect(tables).toContain("tasks")
     expect(tables).toContain("token_events")
     expect(tables).toContain("workflow_state")
     expect(tables).toContain("durable_deferred")
@@ -60,19 +60,19 @@ describe("createSchema", () => {
     expect(run.status).toBe("running")
   })
 
-  it("can insert and query steps", () => {
+  it("can insert and query tasks", () => {
     db = tempDb()
     createSchema(db)
     db.prepare(
       "INSERT INTO runs (id, workflow_id, status, started_at) VALUES (?, ?, ?, ?)"
     ).run("run-1", "wf-1", "running", new Date().toISOString())
     db.prepare(
-      "INSERT INTO steps (id, run_id, agent_id, status) VALUES (?, ?, ?, ?)"
-    ).run("run-1-step-1-abcde", "run-1", "agent-1", "pending")
-    const steps = db.prepare("SELECT * FROM steps WHERE run_id = ?").all("run-1") as any[]
-    expect(steps).toHaveLength(1)
-    expect(steps[0].id).toBe("run-1-step-1-abcde")
-    expect(steps[0].agent_id).toBe("agent-1")
+      "INSERT INTO tasks (id, run_id, agent_id, status) VALUES (?, ?, ?, ?)"
+    ).run("run-1-task-1-abcde", "run-1", "agent-1", "pending")
+    const tasks = db.prepare("SELECT * FROM tasks WHERE run_id = ?").all("run-1") as any[]
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].id).toBe("run-1-task-1-abcde")
+    expect(tasks[0].agent_id).toBe("agent-1")
   })
 
   it("can insert token events", () => {
@@ -82,12 +82,36 @@ describe("createSchema", () => {
       "INSERT INTO runs (id, workflow_id, status, started_at) VALUES (?, ?, ?, ?)"
     ).run("run-1", "wf-1", "running", new Date().toISOString())
     db.prepare(
-      "INSERT INTO token_events (run_id, step_id, event_type, tokens_in, tokens_out, timestamp) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run("run-1", "step-1", "completion", 100, 50, new Date().toISOString())
+      "INSERT INTO token_events (run_id, task_id, event_type, tokens_in, tokens_out, timestamp) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run("run-1", "task-1", "completion", 100, 50, new Date().toISOString())
     const events = db.prepare("SELECT * FROM token_events WHERE run_id = ?").all("run-1") as any[]
     expect(events).toHaveLength(1)
     expect(events[0].event_type).toBe("completion")
     expect(events[0].tokens_in).toBe(100)
     expect(events[0].tokens_out).toBe(50)
+  })
+
+  it("uses current_task column in runs", () => {
+    db = tempDb()
+    createSchema(db)
+    db.prepare(
+      "INSERT INTO runs (id, workflow_id, status, started_at, current_task) VALUES (?, ?, ?, ?, ?)"
+    ).run("run-1", "wf-1", "running", new Date().toISOString(), "task-1")
+    const run = db.prepare("SELECT * FROM runs WHERE id = ?").get("run-1") as any
+    expect(run.current_task).toBe("task-1")
+  })
+
+  it("uses task_id column in token_events", () => {
+    db = tempDb()
+    createSchema(db)
+    db.prepare(
+      "INSERT INTO runs (id, workflow_id, status, started_at) VALUES (?, ?, ?, ?)"
+    ).run("run-1", "wf-1", "running", new Date().toISOString())
+    db.prepare(
+      "INSERT INTO token_events (run_id, task_id, event_type, tokens_in, tokens_out, timestamp) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run("run-1", "task-1", "completion", 100, 50, new Date().toISOString())
+    const events = db.prepare("SELECT * FROM token_events WHERE task_id = ?").all("task-1") as any[]
+    expect(events).toHaveLength(1)
+    expect(events[0].task_id).toBe("task-1")
   })
 })

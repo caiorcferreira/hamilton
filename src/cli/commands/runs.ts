@@ -32,7 +32,7 @@ const runColumns: Column<RunSummary>[] = [
   { header: "STATUS", width: 10, render: (r) => statusColor(r.status)(r.status) },
   { header: "STARTED", width: 20, render: (r) => dim(r.started_at.slice(0, 19)) },
   { header: "DURATION", width: 10, render: (r) => dim(computeDuration(r.started_at, r.completed_at)) },
-  { header: "STEP", width: 12, render: (r) => r.current_step ?? "-" }
+  { header: "TASK", width: 12, render: (r) => r.current_task ?? "-" }
 ]
 
 export const runsCommand = Command.make("runs", { status: statusOpt, limit: limitOpt }, ({ status, limit }) =>

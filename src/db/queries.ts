@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite"
-import { buildStepId } from "../workflow/engine.js"
+import { buildTaskId } from "../workflow/engine.js"
 
 export interface RunRow {
   id: string
@@ -7,12 +7,12 @@ export interface RunRow {
   status: string
   started_at: string
   completed_at: string | null
-  current_step: string | null
+  current_task: string | null
   error_message: string | null
   context_json: string
 }
 
-export interface StepRow {
+export interface TaskRow {
   id: string
   run_id: string
   agent_id: string
@@ -32,10 +32,10 @@ export interface RunStatusRow {
   status: string
   startedAt: string
   completedAt: string | null
-  currentStep: string | null
-  steps: Array<{
-    stepId: string
-    agentSlug: string
+  currentTask: string | null
+  tasks: Array<{
+    taskId: string
+    taskSlug: string
     status: string
     startedAt: string | null
     completedAt: string | null
@@ -59,68 +59,79 @@ export function insertRun(
   ).run(runId, workflowId, startedAt)
 }
 
-export function insertSteps(
+export function insertTasks(
   db: Database,
   runId: string,
-  steps: Array<{ stepSlug: string; agentSlug: string }>
+  tasks: Array<{ taskSlug: string; agentName: string }>
 ): void {
   const stmt = db.prepare(
-    `INSERT OR REPLACE INTO steps (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
   )
-  for (const step of steps) {
-    stmt.run(buildStepId(runId, step.stepSlug), runId, step.agentSlug)
+  for (const task of tasks) {
+    stmt.run(buildTaskId(runId, task.taskSlug), runId, task.agentName)
   }
 }
 
-export function updateStepStarted(
+export function insertTask(
   db: Database,
   runId: string,
-  stepId: string,
+  taskId: string,
+  agentName: string
+): void {
+  db.prepare(
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
+  ).run(taskId, runId, agentName)
+}
+
+export function updateTaskStarted(
+  db: Database,
+  runId: string,
+  taskId: string,
   startedAt: string
 ): void {
   db.prepare(
-    `UPDATE steps SET status = 'running', started_at = ? WHERE id = ?`
-  ).run(startedAt, stepId)
+    `UPDATE tasks SET status = 'running', started_at = ? WHERE id = ?`
+  ).run(startedAt, taskId)
   db.prepare(
-    `UPDATE runs SET current_step = ? WHERE id = ?`
-  ).run(stepId, runId)
+    `UPDATE runs SET current_task = ? WHERE id = ?`
+  ).run(taskId, runId)
 }
 
-export function updateStepCompleted(
+export function updateTaskCompleted(
   db: Database,
   runId: string,
-  stepId: string,
+  taskId: string,
   completedAt: string,
   data: { tokensIn?: number; tokensOut?: number; output?: unknown }
 ): void {
   const outputJson = data.output ? JSON.stringify(data.output) : null
   db.prepare(
-    `UPDATE steps SET status = 'completed', completed_at = ?, tokens_in = ?, tokens_out = ?, output_json = ? WHERE id = ?`
-  ).run(completedAt, data.tokensIn ?? 0, data.tokensOut ?? 0, outputJson, stepId)
+    `UPDATE tasks SET status = 'completed', completed_at = ?, tokens_in = ?, tokens_out = ?, output_json = ? WHERE id = ?`
+  ).run(completedAt, data.tokensIn ?? 0, data.tokensOut ?? 0, outputJson, taskId)
 }
 
-export function updateStepFailed(
+export function updateTaskFailed(
   db: Database,
   runId: string,
-  stepId: string,
+  taskId: string,
   errorMessage: string
 ): void {
   db.prepare(
-    `UPDATE steps SET status = 'failed', error_message = ? WHERE id = ?`
-  ).run(errorMessage, stepId)
+    `UPDATE tasks SET status = 'failed', error_message = ? WHERE id = ?`
+  ).run(errorMessage, taskId)
 }
 
 export function insertTokenEvent(
   db: Database,
   runId: string,
-  stepId: string,
+  taskId: string,
   eventType: string,
   tokensIn: number,
   tokensOut: number
 ): void {
   db.prepare(
-    `INSERT INTO token_events (run_id, step_id, event_type, tokens_in, tokens_out, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(runId, stepId, eventType, tokensIn, tokensOut, new Date().toISOString())
+    `INSERT INTO token_events (run_id, task_id, event_type, tokens_in, tokens_out, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(runId, taskId, eventType, tokensIn, tokensOut, new Date().toISOString())
 }
 
 export function updateRunCompleted(
@@ -129,7 +140,7 @@ export function updateRunCompleted(
   completedAt: string
 ): void {
   db.prepare(
-    `UPDATE runs SET status = 'completed', completed_at = ?, current_step = NULL WHERE id = ?`
+    `UPDATE runs SET status = 'completed', completed_at = ?, current_task = NULL WHERE id = ?`
   ).run(completedAt, runId)
 }
 
@@ -147,15 +158,15 @@ export function getRunById(db: Database, runId: string): RunRow | null {
   return db.prepare(`SELECT * FROM runs WHERE id = ?`).get(runId) as RunRow | null ?? null
 }
 
-export function getStepsByRunId(db: Database, runId: string): StepRow[] {
-  return db.prepare(`SELECT * FROM steps WHERE run_id = ? ORDER BY id`).all(runId) as StepRow[]
+export function getTasksByRunId(db: Database, runId: string): TaskRow[] {
+  return db.prepare(`SELECT * FROM tasks WHERE run_id = ? ORDER BY id`).all(runId) as TaskRow[]
 }
 
 export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
   const run = getRunById(db, runId)
   if (!run) return null
 
-  const steps = getStepsByRunId(db, runId)
+  const tasks = getTasksByRunId(db, runId)
   const tokenResult = db.prepare(
     `SELECT COALESCE(SUM(tokens_in), 0) as total_in, COALESCE(SUM(tokens_out), 0) as total_out FROM token_events WHERE run_id = ?`
   ).get(runId) as { total_in: number; total_out: number }
@@ -166,16 +177,16 @@ export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
     status: run.status,
     startedAt: run.started_at,
     completedAt: run.completed_at,
-    currentStep: run.current_step,
-    steps: steps.map((s) => ({
-      stepId: s.id,
-      agentSlug: s.agent_id,
-      status: s.status,
-      startedAt: s.started_at,
-      completedAt: s.completed_at,
-      tokensIn: s.tokens_in,
-      tokensOut: s.tokens_out,
-      errorMessage: s.error_message
+    currentTask: run.current_task,
+    tasks: tasks.map((t) => ({
+      taskId: t.id,
+      taskSlug: t.agent_id,
+      status: t.status,
+      startedAt: t.started_at,
+      completedAt: t.completed_at,
+      tokensIn: t.tokens_in,
+      tokensOut: t.tokens_out,
+      errorMessage: t.error_message
     })),
     totalTokensIn: tokenResult.total_in,
     totalTokensOut: tokenResult.total_out,
@@ -243,7 +254,7 @@ export interface RunSummary {
   status: string
   started_at: string
   completed_at: string | null
-  current_step: string | null
+  current_task: string | null
 }
 
 export function listRuns(
@@ -253,7 +264,7 @@ export function listRuns(
   const status = opts?.status ?? null
   const limit = opts?.limit ?? 20
   const rows = db.prepare(
-    `SELECT id, workflow_id, status, started_at, completed_at, current_step
+    `SELECT id, workflow_id, status, started_at, completed_at, current_task
      FROM runs
      WHERE (? IS NULL OR status = ?)
      ORDER BY started_at DESC

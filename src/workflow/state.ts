@@ -15,10 +15,10 @@ export interface RunStatus {
   status: string
   startedAt: string
   completedAt: string | null
-  currentStep: string | null
-  steps: Array<{
-    stepId: string
-    agentSlug: string
+  currentTask: string | null
+  tasks: Array<{
+    taskId: string
+    taskSlug: string
     status: string
     startedAt: string | null
     completedAt: string | null
