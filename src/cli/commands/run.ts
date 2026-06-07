@@ -22,7 +22,7 @@ export interface RunResult {
 function formatEvent(event: WorkflowEvent): string {
   switch (event.type) {
     case "workflow_started":
-      return `Workflow started`
+      return `Workflow started [${event.runId}]`
     case "step_started":
       return `  Step ${event.stepId ?? ""} started`
     case "step_completed":
