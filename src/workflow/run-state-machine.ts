@@ -3,26 +3,27 @@ import { Database } from "bun:sqlite"
 import { openDb } from "../workflow/state.js"
 import {
   insertRun,
-  insertSteps,
+  insertTasks,
+  insertTask,
   getRunById,
-  getStepsByRunId,
-  updateStepStarted,
-  updateStepCompleted,
-  updateStepFailed,
+  getTasksByRunId,
+  updateTaskStarted,
+  updateTaskCompleted,
+  updateTaskFailed,
   updateRunCompleted,
   updateRunFailed,
   setDurableDeferred,
   getDurableDeferred,
   updateRunContext
 } from "../db/queries.js"
-import { buildRunId, buildStepId } from "../workflow/engine.js"
+import { buildRunId, buildTaskId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
 import type { Context } from "../workflow/context.js"
 
-function parseStepSlug(stepId: string, runId: string): string {
+function parseTaskSlug(taskId: string, runId: string): string {
   const prefix = runId + "-"
-  if (!stepId.startsWith(prefix)) return stepId
-  const afterRun = stepId.slice(prefix.length)
+  if (!taskId.startsWith(prefix)) return taskId
+  const afterRun = taskId.slice(prefix.length)
   const lastDash = afterRun.lastIndexOf("-")
   if (lastDash === -1) return afterRun
   return afterRun.slice(0, lastDash)
@@ -35,7 +36,7 @@ export class EngineError extends Data.TaggedError("EngineError")<{
 
 export type RunState = "idle" | "running" | "paused" | "completed" | "failed"
 
-export type StepState = "pending" | "running" | "completed" | "failed"
+export type TaskState = "pending" | "running" | "completed" | "failed"
 
 const RUN_TRANSITIONS: Record<RunState, RunState[]> = {
   idle: ["running"],
@@ -45,14 +46,14 @@ const RUN_TRANSITIONS: Record<RunState, RunState[]> = {
   failed: []
 }
 
-const STEP_TRANSITIONS: Record<StepState, StepState[]> = {
+const TASK_TRANSITIONS: Record<TaskState, TaskState[]> = {
   pending: ["running"],
   running: ["completed", "failed"],
   completed: [],
   failed: []
 }
 
-const STEP_TRANSITION_MAP: Record<string, StepState> = {
+const TASK_TRANSITION_MAP: Record<string, TaskState> = {
   start: "running",
   complete: "completed",
   fail: "failed"
@@ -63,11 +64,12 @@ export interface WorkflowRuntime {
   readonly runId: string
   readonly state: RunState
   readonly spec: WorkflowSpec
-  readonly compoundStepIds: ReadonlyMap<string, string>
+  readonly compoundTaskIds: ReadonlyMap<string, string>
 
-  readonly shouldExecuteStep: (stepId: string) => Effect.Effect<boolean, EngineError>
+  readonly shouldExecuteTask: (taskName: string) => Effect.Effect<boolean, EngineError>
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
-  readonly transitionStep: (stepId: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
+  readonly transitionTask: (taskName: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
+  readonly insertDynamicTask: (taskName: string, agentName: string) => Effect.Effect<void, EngineError>
   readonly pause: () => Effect.Effect<void, EngineError>
   readonly complete: () => Effect.Effect<void, EngineError>
   readonly fail: (error: string) => Effect.Effect<void, EngineError>
@@ -76,32 +78,32 @@ export interface WorkflowRuntime {
 
 class WorkflowRuntimeImpl implements WorkflowRuntime {
   private _state: RunState
-  private _stepStates: Map<string, StepState> = new Map()
-  private _compoundStepIds: Map<string, string> = new Map()
+  private _taskStates: Map<string, TaskState> = new Map()
+  private _compoundTaskIds: Map<string, string> = new Map()
 
   constructor(
     private readonly _db: Database,
     private readonly _runId: string,
     private readonly _spec: WorkflowSpec,
     initialState: RunState,
-    stepStates: Map<string, StepState>,
-    compoundStepIds: Map<string, string>
+    taskStates: Map<string, TaskState>,
+    compoundTaskIds: Map<string, string>
   ) {
     this._state = initialState
-    this._stepStates = stepStates
-    this._compoundStepIds = compoundStepIds
+    this._taskStates = taskStates
+    this._compoundTaskIds = compoundTaskIds
   }
 
   get db(): Database { return this._db }
   get runId(): string { return this._runId }
   get state(): RunState { return this._state }
   get spec(): WorkflowSpec { return this._spec }
-  get compoundStepIds(): ReadonlyMap<string, string> { return this._compoundStepIds }
+  get compoundTaskIds(): ReadonlyMap<string, string> { return this._compoundTaskIds }
 
-  shouldExecuteStep(stepId: string): Effect.Effect<boolean, EngineError> {
+  shouldExecuteTask(taskName: string): Effect.Effect<boolean, EngineError> {
     return Effect.sync(() => {
-      const stepState = this._stepStates.get(stepId)
-      return stepState !== "completed"
+      const taskState = this._taskStates.get(taskName)
+      return taskState !== "completed"
     })
   }
 
@@ -112,32 +114,41 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     })
   }
 
-  transitionStep(stepId: string, transition: "start" | "complete" | "fail"): Effect.Effect<void, EngineError> {
+  transitionTask(taskName: string, transition: "start" | "complete" | "fail"): Effect.Effect<void, EngineError> {
     return Effect.gen(this, function* (_) {
-      const currentStepState = this._stepStates.get(stepId) ?? "pending"
-      const newStepState = STEP_TRANSITION_MAP[transition] as StepState
-      const allowed = STEP_TRANSITIONS[currentStepState]
+      const currentTaskState = this._taskStates.get(taskName) ?? "pending"
+      const newTaskState = TASK_TRANSITION_MAP[transition] as TaskState
+      const allowed = TASK_TRANSITIONS[currentTaskState]
 
-      if (!allowed.includes(newStepState)) {
+      if (!allowed.includes(newTaskState)) {
         return yield* Effect.fail(
           new EngineError({
             runId: this._runId,
-            message: `Invalid step transition: ${stepId} from ${currentStepState} via ${transition}`
+            message: `Invalid task transition: ${taskName} from ${currentTaskState} via ${transition}`
           })
         )
       }
 
-      const compoundId = this._compoundStepIds.get(stepId) ?? stepId
+      const compoundId = this._compoundTaskIds.get(taskName) ?? taskName
       const now = new Date().toISOString()
       if (transition === "start") {
-        updateStepStarted(this._db, this._runId, compoundId, now)
+        updateTaskStarted(this._db, this._runId, compoundId, now)
       } else if (transition === "complete") {
-        updateStepCompleted(this._db, this._runId, compoundId, now, {})
+        updateTaskCompleted(this._db, this._runId, compoundId, now, {})
       } else {
-        updateStepFailed(this._db, this._runId, compoundId, "Step failed")
+        updateTaskFailed(this._db, this._runId, compoundId, "Task failed")
       }
 
-      this._stepStates.set(stepId, newStepState)
+      this._taskStates.set(taskName, newTaskState)
+    })
+  }
+
+  insertDynamicTask(taskName: string, agentName: string): Effect.Effect<void, EngineError> {
+    return Effect.sync(() => {
+      const taskId = buildTaskId(this._runId, taskName)
+      insertTask(this._db, this._runId, taskId, agentName)
+      this._taskStates.set(taskName, "pending")
+      this._compoundTaskIds.set(taskName, taskId)
     })
   }
 
@@ -202,6 +213,24 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   }
 }
 
+function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agentName: string }> {
+  const result: Array<{ taskName: string; agentName: string }> = []
+
+  function walk(tasks: WorkflowSpec["tasks"]): void {
+    for (const t of tasks) {
+      if (t.agent) {
+        result.push({ taskName: t.name, agentName: t.agent.ref })
+      }
+      if (t.tasks) {
+        walk(t.tasks)
+      }
+    }
+  }
+
+  walk(spec.tasks)
+  return result
+}
+
 export function createWorkflowRuntime(
   spec: WorkflowSpec,
   context: Context,
@@ -227,23 +256,23 @@ export function createWorkflowRuntime(
         )
       }
 
-      const stepRows = getStepsByRunId(db, existingRunId)
-      const stepStates = new Map<string, StepState>()
-      const compoundStepIds = new Map<string, string>()
-      for (const step of stepRows) {
-        const state = step.status as StepState
-        const slug = parseStepSlug(step.id, existingRunId)
-        stepStates.set(slug, state)
-        compoundStepIds.set(slug, step.id)
+      const taskRows = getTasksByRunId(db, existingRunId)
+      const taskStates = new Map<string, TaskState>()
+      const compoundTaskIds = new Map<string, string>()
+      for (const task of taskRows) {
+        const state = task.status as TaskState
+        const slug = parseTaskSlug(task.id, existingRunId)
+        taskStates.set(slug, state)
+        compoundTaskIds.set(slug, task.id)
       }
 
-      const deferredSteps = stepRows.filter((s) => s.status === "deferred")
-      for (const s of deferredSteps) {
+      const deferredTasks = taskRows.filter((t) => t.status === "deferred")
+      for (const t of deferredTasks) {
         db.prepare(
-          `UPDATE steps SET status = 'pending' WHERE id = ?`
-        ).run(s.id)
-        const slug = parseStepSlug(s.id, existingRunId)
-        stepStates.set(slug, "pending")
+          `UPDATE tasks SET status = 'pending' WHERE id = ?`
+        ).run(t.id)
+        const slug = parseTaskSlug(t.id, existingRunId)
+        taskStates.set(slug, "pending")
       }
 
       updateRunContext(db, existingRunId, JSON.stringify(context))
@@ -252,24 +281,25 @@ export function createWorkflowRuntime(
         `UPDATE runs SET status = 'running' WHERE id = ?`
       ).run(existingRunId)
 
-      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", stepStates, compoundStepIds)
+      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", taskStates, compoundTaskIds)
     }
 
-    const runId = buildRunId(spec.slug)
+    const runId = buildRunId(spec.name)
 
-    insertRun(db, runId, spec.slug, new Date().toISOString())
-    insertSteps(db, runId, spec.steps.map((s) => ({ stepSlug: s.slug, agentSlug: s.agent })))
+    insertRun(db, runId, spec.name, new Date().toISOString())
+    const taskEntries = collectAllTaskNames(spec)
+    insertTasks(db, runId, taskEntries.map((t) => ({ taskSlug: t.taskName, agentName: t.agentName })))
     updateRunContext(db, runId, JSON.stringify(context))
 
-    const stepRows = getStepsByRunId(db, runId)
-    const stepStates = new Map<string, StepState>()
-    const compoundStepIds = new Map<string, string>()
-    for (const step of stepRows) {
-      const slug = parseStepSlug(step.id, runId)
-      stepStates.set(slug, "pending")
-      compoundStepIds.set(slug, step.id)
+    const taskRows = getTasksByRunId(db, runId)
+    const taskStates = new Map<string, TaskState>()
+    const compoundTaskIds = new Map<string, string>()
+    for (const task of taskRows) {
+      const slug = parseTaskSlug(task.id, runId)
+      taskStates.set(slug, "pending")
+      compoundTaskIds.set(slug, task.id)
     }
 
-    return new WorkflowRuntimeImpl(db, runId, spec, "running", stepStates, compoundStepIds)
+    return new WorkflowRuntimeImpl(db, runId, spec, "running", taskStates, compoundTaskIds)
   })
 }
