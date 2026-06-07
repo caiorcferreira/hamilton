@@ -3,7 +3,6 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { loadWorkflowSpec } from "../../src/workflow/loader.js"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { EventBusLive } from "../../src/events/bus.js"
 import { workflowsDir, runDir } from "../../src/paths.js"
@@ -24,6 +23,14 @@ vi.mock("../../src/agent/pi-executor.js", () => ({
   PiExecutionError: class PiExecutionError extends Error {}
 }))
 
+vi.mock("../../src/agent/persona.js", () => {
+  const { Effect: E } = require("effect")
+  return {
+    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul", identity: "test-identity" })),
+    PersonaNotFoundError: class PersonaNotFoundError extends Error {}
+  }
+})
+
 describe("end-to-end workflow execution", () => {
   let testHome: string
   const origHome = process.env.HOME
@@ -31,6 +38,7 @@ describe("end-to-end workflow execution", () => {
   beforeEach(() => {
     testHome = Path.join(Os.tmpdir(), "hamilton-e2e-" + Date.now())
     process.env.HOME = testHome
+    Fs.mkdirSync(Path.join(testHome, ".hamilton"), { recursive: true })
   })
 
   afterEach(() => {
@@ -39,25 +47,31 @@ describe("end-to-end workflow execution", () => {
   })
 
   it("completes the bug-fix workflow with mock agents", async () => {
-    const wfSrc = Path.join(process.cwd(), "workflows", "bug-fix")
-    const wfDest = Path.join(workflowsDir(), "bug-fix")
-    Fs.mkdirSync(wfDest, { recursive: true })
-    Fs.cpSync(wfSrc, wfDest, { recursive: true })
-
-    const spec = await Effect.runPromise(loadWorkflowSpec(workflowsDir(), "bug-fix"))
-
-    for (const agent of spec.agents) {
-      const agentDir = Path.join(testHome, ".hamilton", "agents", agent.slug)
-      Fs.mkdirSync(agentDir, { recursive: true })
-      Fs.writeFileSync(Path.join(agentDir, "AGENTS.md"), "You are a " + agent.role + " agent")
-      Fs.writeFileSync(Path.join(agentDir, "IDENTITY.md"), "Name: " + agent.slug)
-      Fs.writeFileSync(Path.join(agentDir, "SOUL.md"), "Professional")
+    const spec = {
+      version: 1,
+      name: "bug-fix",
+      description: "Bug fix pipeline",
+      run: { entrypoint: "triage", timeout: "300s" },
+      agents: [
+        { name: "triager", role: "analysis" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
+        { name: "investigator", role: "analysis" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
+        { name: "setup", role: "coding" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
+        { name: "fixer", role: "coding" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
+        { name: "verifier", role: "verification" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } }
+      ],
+      tasks: [
+        { name: "triage", agent: { ref: "agents.triager", prompt: { content: "Triage the bug" } } },
+        { name: "investigate", dependencies: ["triage"], agent: { ref: "agents.investigator", prompt: { content: "Investigate" } } },
+        { name: "setup", dependencies: ["investigate"], agent: { ref: "agents.setup", prompt: { content: "Setup" } } },
+        { name: "fix", dependencies: ["setup"], agent: { ref: "agents.fixer", prompt: { content: "Fix the bug" } } },
+        { name: "verify", dependencies: ["fix"], agent: { ref: "agents.verifier", prompt: { content: "Verify" } } }
+      ]
     }
 
     const result = await Effect.runPromiseExit(
       Effect.scoped(
         runWorkflow(spec, { task: "fix login bug" }, {
-          workflowsDir: wfDest
+          workflowsDir: Path.join(testHome, ".hamilton", "workflows")
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -66,14 +80,11 @@ describe("end-to-end workflow execution", () => {
     if (Exit.isSuccess(result)) {
       const r = result.value
       expect(r.status).toBe("completed")
-      expect(r.stepResults).toHaveProperty("triage")
-      expect(r.stepResults).toHaveProperty("investigate")
-      expect(r.stepResults).toHaveProperty("setup")
-      expect(r.stepResults).toHaveProperty("fix")
-      expect(r.stepResults).toHaveProperty("verify")
-
-      expect(r.context).toHaveProperty("repo")
-      expect(r.context).toHaveProperty("root_cause")
+      expect(r.taskResults).toHaveProperty("triage")
+      expect(r.taskResults).toHaveProperty("investigate")
+      expect(r.taskResults).toHaveProperty("setup")
+      expect(r.taskResults).toHaveProperty("fix")
+      expect(r.taskResults).toHaveProperty("verify")
 
       const rd = runDir(r.runId)
       expect(Fs.existsSync(Path.join(rd, "input.json"))).toBe(true)

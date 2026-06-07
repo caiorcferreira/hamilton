@@ -17,7 +17,7 @@ export interface RunParams {
 export interface RunResult {
   runId: string
   status: "completed" | "failed" | "paused"
-  stepResults: Record<string, string>
+  taskResults: Record<string, string>
 }
 
 export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, EventBus | Scope.Scope> {
@@ -52,7 +52,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     return {
       runId: result.runId,
       status: result.status,
-      stepResults: result.stepResults
+      taskResults: result.taskResults
     }
   })
 }
@@ -77,7 +77,7 @@ export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt 
     }
     yield* Console.log(`Run ID: ${result.value.runId}`)
     yield* Console.log(`Status: ${result.value.status}`)
-    for (const [step, status] of Object.entries(result.value.stepResults)) {
+    for (const [step, status] of Object.entries(result.value.taskResults)) {
       yield* Console.log(`  ${step}: ${status}`)
     }
   })

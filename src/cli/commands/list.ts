@@ -7,11 +7,10 @@ import { renderTable, Column } from "../formatting/table.js"
 import { categoryColor, dim } from "../formatting/colors.js"
 
 export interface WorkflowListItem {
-  slug: string
   name: string
   description: string | undefined
   version: number
-  stepCount: number
+  taskCount: number
   agentCount: number
 }
 
@@ -31,11 +30,10 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
     const spec = yield* loadWorkflowSpec(dir, slug).pipe(Effect.option)
     if (spec._tag === "Some") {
       results.push({
-        slug: spec.value.slug,
         name: spec.value.name,
         description: spec.value.description,
         version: spec.value.version,
-        stepCount: spec.value.steps.length,
+        taskCount: spec.value.tasks.length,
         agentCount: spec.value.agents.length
       })
     }
@@ -44,10 +42,10 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
 })
 
 const workflowColumns: Column<WorkflowListItem>[] = [
-  { header: "SLUG", width: 24, render: (i) => categoryColor(i.slug)(i.slug) },
-  { header: "NAME", width: 46, render: (i) => i.name },
+  { header: "NAME", width: 24, render: (i) => categoryColor(i.name)(i.name) },
+  { header: "DESCRIPTION", width: 46, render: (i) => i.description ?? "" },
   { header: "VERSION", width: 4, render: (i) => dim(`v${i.version}`) },
-  { header: "STEPS", width: 9, render: (i) => dim(`${i.stepCount} steps`) },
+  { header: "TASKS", width: 9, render: (i) => dim(`${i.taskCount} tasks`) },
   { header: "AGENTS", width: 10, render: (i) => dim(`${i.agentCount} agents`) }
 ]
 

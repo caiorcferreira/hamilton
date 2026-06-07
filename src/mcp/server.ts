@@ -98,7 +98,7 @@ export function createMcpServer(): McpServer {
       for (const slug of entries) {
         const spec = await Effect.runPromise(Effect.option(loadWorkflowSpec(dir, slug)))
         if (spec._tag === "Some") {
-          results.push({ slug: spec.value.slug, name: spec.value.name, version: spec.value.version, steps: spec.value.steps.length, agents: spec.value.agents.length })
+          results.push({ name: spec.value.name, version: spec.value.version, tasks: spec.value.tasks.length, agents: spec.value.agents.length })
         }
       }
       return textResult(JSON.stringify(results, null, 2))
@@ -116,7 +116,14 @@ export function createMcpServer(): McpServer {
         .map((e) => e.name)
       const results = []
       for (const slug of entries) {
-        const persona = await Effect.runPromise(Effect.option(resolvePersona(slug, "_mcp")))
+        const agentsPath = Path.join(dir, slug, "AGENTS.md")
+        if (!Fs.existsSync(agentsPath)) continue
+        const persona = await Effect.runPromise(Effect.option(
+          resolvePersona(
+            { agent: agentsPath, identity: Path.join(dir, slug, "IDENTITY.md"), soul: Path.join(dir, slug, "SOUL.md") },
+            dir
+          )
+        ))
         if (persona._tag === "Some") {
           results.push({ slug, identity: persona.value.identity, soul: persona.value.soul })
         }

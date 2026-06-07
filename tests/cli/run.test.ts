@@ -20,19 +20,33 @@ vi.mock("../../src/agent/pi-executor.js", () => {
   }
 })
 
-const validYaml = `slug: test-wf
-name: Test Workflow
+vi.mock("../../src/agent/persona.js", () => {
+  const { Effect: E } = require("effect")
+  return {
+    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul", identity: "test-identity" })),
+    PersonaNotFoundError: class PersonaNotFoundError extends Error {}
+  }
+})
+
+const validYaml = `name: test-wf
 version: 1
+run:
+  entrypoint: step-1
+  timeout: 300s
 agents:
-  - slug: agent-1
+  - name: agent-1
     role: coding
-    workspace:
-      baseDir: .
-      files: {}
-steps:
-  - slug: step-1
-    agent: agent-1
-    input: "Do the thing"
+    settings:
+      systemPrompt:
+        agent: agents/agent-1/AGENTS.md
+        soul: agents/agent-1/soul.md
+        identity: agents/agent-1/identity.md
+tasks:
+  - name: step-1
+    agent:
+      ref: agents.agent-1
+      prompt:
+        content: "Do the thing"
 `
 
 describe("executeRun", () => {
@@ -46,10 +60,6 @@ describe("executeRun", () => {
     const wfDir = Path.join(tmpHome, ".hamilton", "workflows", "test-wf")
     Fs.mkdirSync(wfDir, { recursive: true })
     Fs.writeFileSync(Path.join(wfDir, "workflow.yml"), validYaml)
-
-    const agentDir = Path.join(tmpHome, ".hamilton", "agents", "agent-1")
-    Fs.mkdirSync(agentDir, { recursive: true })
-    Fs.writeFileSync(Path.join(agentDir, "AGENTS.md"), "Test agent")
   })
 
   afterEach(() => {
@@ -71,7 +81,7 @@ describe("executeRun", () => {
     if (Exit.isSuccess(result)) {
       const r = result.value
       expect(r.status).toBe("completed")
-      expect(r.stepResults["step-1"]).toBe("done")
+      expect(r.taskResults["step-1"]).toBe("done")
       expect(typeof r.runId).toBe("string")
       expect(r.runId).toContain("test-wf")
     }

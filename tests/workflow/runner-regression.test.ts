@@ -2,12 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
-import { Effect, Exit, Stream } from "effect"
+import { Effect, Exit, Stream, Scope } from "effect"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
 import { FileLogger } from "../../src/observability/subscribers.js"
 import type { WorkflowSpec } from "../../src/types.js"
-import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
 vi.mock("../../src/agent/pi-executor.js", () => {
   const { Effect: E } = require("effect")
@@ -17,16 +16,24 @@ vi.mock("../../src/agent/pi-executor.js", () => {
   }
 })
 
+vi.mock("../../src/agent/persona.js", () => {
+  const { Effect: E } = require("effect")
+  return {
+    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul", identity: "test-identity" })),
+    PersonaNotFoundError: class PersonaNotFoundError extends Error {}
+  }
+})
+
 const testSpec: WorkflowSpec = {
-  slug: "test-flow" as WorkflowSlug,
-  name: "Test Flow",
   version: 1,
+  name: "test-flow",
+  run: { entrypoint: "step-1", timeout: "300s" },
   agents: [
-    { slug: "agent-a" as AgentSlug, role: "coding" as const, workspace: { baseDir: ".", files: {} } }
+    { name: "agent-a", role: "coding", settings: { systemPrompt: { agent: "a.md", soul: "soul.md", identity: "id.md" } } }
   ],
-  steps: [
-    { slug: "step-1" as StepSlug, agent: "agent-a" as AgentSlug, input: "Do something" },
-    { slug: "step-2" as StepSlug, agent: "agent-a" as AgentSlug, input: "Do another thing" }
+  tasks: [
+    { name: "step-1", agent: { ref: "agents.agent-a", prompt: { content: "Do something" } } },
+    { name: "step-2", dependencies: ["step-1"], agent: { ref: "agents.agent-a", prompt: { content: "Do another thing" } } }
   ]
 }
 
@@ -39,9 +46,6 @@ describe("runWorkflow regression tests", () => {
     process.env.HOME = tmpHome
 
     const hh = Path.join(tmpHome, ".hamilton")
-    Fs.mkdirSync(Path.join(hh, "agents", "agent-a"), { recursive: true })
-    Fs.writeFileSync(Path.join(hh, "agents", "agent-a", "AGENTS.md"), "Test agent")
-
     Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
   })

@@ -6,12 +6,13 @@ import { Effect, Exit } from "effect"
 import { pauseWorkflow } from "../../src/cli/commands/pause.js"
 import { createWorkflowRuntime } from "../../src/workflow/run-state-machine.js"
 import type { WorkflowSpec } from "../../src/types.js"
-import { WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
 
 const makeSpec = (): WorkflowSpec => ({
-  slug: "test-wf" as WorkflowSlug, name: "Test", version: 1,
-  agents: [{ slug: "a" as AgentSlug, role: "coding", workspace: { baseDir: "x", files: {} } }],
-  steps: [{ slug: "step1" as StepSlug, agent: "a" as AgentSlug, input: "do it" }]
+  name: "test-wf",
+  version: 1,
+  run: { entrypoint: "step1", timeout: "300s" },
+  agents: [{ name: "a", role: "coding", settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } }],
+  tasks: [{ name: "step1", agent: { ref: "agents.a", prompt: { content: "do it" } } }]
 })
 
 describe("pauseWorkflow", () => {
