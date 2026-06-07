@@ -1,120 +1,124 @@
 import { describe, it, expect } from "vitest"
-import { computeStepOrder, buildRunId, buildStepId, resolveStepTimeout } from "../../src/workflow/engine.js"
-import { WorkflowSpec, WorkflowAgent, WorkflowStep, WorkflowSlug, AgentSlug, StepSlug } from "../../src/types.js"
+import { parseDuration, topologicalSort, collectReachableTasks, buildRunId, buildTaskId, resolveTaskTimeout } from "../../src/workflow/engine.js"
+import type { WorkflowTask } from "../../src/types.js"
 
-const makeAgent = (overrides: Partial<WorkflowAgent> = {}): WorkflowAgent => ({
-  slug: "agent-1" as AgentSlug,
-  role: "coding",
-  workspace: { baseDir: "/tmp", files: {} },
-  ...overrides
+describe("parseDuration", () => {
+  it("parses seconds", () => {
+    expect(parseDuration("30s")).toBe(30)
+  })
+
+  it("parses minutes", () => {
+    expect(parseDuration("5m")).toBe(300)
+  })
+
+  it("parses hours", () => {
+    expect(parseDuration("1h")).toBe(3600)
+  })
+
+  it("parses just a number string as seconds", () => {
+    expect(parseDuration("300")).toBe(300)
+  })
+
+  it("falls back to 300 for invalid duration", () => {
+    expect(parseDuration("invalid")).toBe(300)
+  })
 })
 
-const makeStep = (overrides: Partial<WorkflowStep> = {}): WorkflowStep => ({
-  slug: "step-1" as StepSlug,
-  agent: "agent-1" as AgentSlug,
-  input: "do stuff",
-  ...overrides
+describe("topologicalSort", () => {
+  it("sorts tasks by dependency order", () => {
+    const tasks: WorkflowTask[] = [
+      { name: "review", dependencies: ["test"], agent: { ref: "agents.v", prompt: { content: "" } } },
+      { name: "test", dependencies: ["implement"], agent: { ref: "agents.t", prompt: { content: "" } } },
+      { name: "implement", agent: { ref: "agents.d", prompt: { content: "" } } }
+    ]
+    const sorted = topologicalSort(tasks)
+    expect(sorted.map(t => t.name)).toEqual(["implement", "test", "review"])
+  })
+
+  it("handles tasks with no dependencies first", () => {
+    const tasks: WorkflowTask[] = [
+      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } },
+      { name: "a", agent: { ref: "agents.x", prompt: { content: "" } } }
+    ]
+    expect(topologicalSort(tasks).map(t => t.name)).toEqual(["a", "b"])
+  })
+
+  it("handles multiple independent tasks", () => {
+    const tasks: WorkflowTask[] = [
+      { name: "x", agent: { ref: "agents.a", prompt: { content: "" } } },
+      { name: "y", agent: { ref: "agents.a", prompt: { content: "" } } },
+      { name: "z", dependencies: ["x", "y"], agent: { ref: "agents.a", prompt: { content: "" } } }
+    ]
+    expect(topologicalSort(tasks).map(t => t.name)).toEqual(["x", "y", "z"])
+  })
+
+  it("throws on circular dependency", () => {
+    const tasks: WorkflowTask[] = [
+      { name: "a", dependencies: ["b"], agent: { ref: "agents.x", prompt: { content: "" } } },
+      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } }
+    ]
+    expect(() => topologicalSort(tasks)).toThrow("circular")
+  })
+
+  it("handles empty tasks list", () => {
+    expect(topologicalSort([])).toEqual([])
+  })
 })
 
-const makeSpec = (overrides: Partial<WorkflowSpec> = {}): WorkflowSpec => ({
-  slug: "wf-1" as WorkflowSlug,
-  name: "Test Workflow",
-  version: 1,
-  agents: [makeAgent()],
-  steps: [makeStep()],
-  ...overrides
-})
-
-describe("computeStepOrder", () => {
-  it("returns step slugs in definition order", () => {
-    const spec = makeSpec({
-      steps: [
-        makeStep({ slug: "first" as StepSlug, agent: "agent-1" as AgentSlug }),
-        makeStep({ slug: "second" as StepSlug, agent: "agent-1" as AgentSlug }),
-        makeStep({ slug: "third" as StepSlug, agent: "agent-1" as AgentSlug })
-      ]
-    })
-    expect(computeStepOrder(spec)).toEqual(["first", "second", "third"])
+describe("collectReachableTasks", () => {
+  it("collects tasks reachable from entrypoint", () => {
+    const tasks: WorkflowTask[] = [
+      { name: "plan", agent: { ref: "agents.p", prompt: { content: "" } } },
+      { name: "setup", dependencies: ["plan"], agent: { ref: "agents.s", prompt: { content: "" } } },
+      { name: "orphan", agent: { ref: "agents.o", prompt: { content: "" } } }
+    ]
+    const collected = collectReachableTasks(tasks, "plan")
+    expect(collected.map(t => t.name)).toEqual(["plan", "setup"])
   })
 })
 
 describe("buildRunId", () => {
-  it("generates a run ID with workflow slug prefix and 5-char nanoid", () => {
-    const runId = buildRunId("my-workflow")
-    expect(runId).toMatch(/^my-workflow-[A-Za-z0-9_-]{5}$/)
+  it("generates a run ID with workflow name prefix", () => {
+    const runId = buildRunId("feature-dev")
+    expect(runId).toMatch(/^feature-dev-[A-Za-z0-9_-]{5}$/)
   })
 })
 
-describe("buildStepId", () => {
-  it("generates a compound step ID with runId, step slug, and 5-char nanoid", () => {
-    const stepId = buildStepId("my-workflow-abcde", "plan")
-    expect(stepId).toMatch(/^my-workflow-abcde-plan-[A-Za-z0-9_-]{5}$/)
+describe("buildTaskId", () => {
+  it("generates a compound task ID", () => {
+    const taskId = buildTaskId("feature-dev-abcde", "plan")
+    expect(taskId).toMatch(/^feature-dev-abcde-plan-[A-Za-z0-9_-]{5}$/)
   })
 
-  it("generates unique IDs on successive calls", () => {
-    const runId = "test-wf-x1y2z"
-    const a = buildStepId(runId, "step-a")
-    const b = buildStepId(runId, "step-a")
-    expect(a).not.toBe(b)
+  it("sanitizes forward slashes in task names", () => {
+    const taskId = buildTaskId("test-run", "codify/0")
+    expect(taskId).toMatch(/^test-run-codify-0-[A-Za-z0-9_-]{5}$/)
+    expect(taskId).not.toContain("/")
   })
 })
 
-describe("resolveStepTimeout", () => {
-  it("uses step timeout when available", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 120 })],
-      steps: [makeStep({ slug: "step-1" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 45 })],
-      polling: { timeoutSeconds: 60 }
-    })
-    expect(resolveStepTimeout(spec, "step-1")).toBe(45)
+describe("resolveTaskTimeout", () => {
+  it("uses task-level timeout", () => {
+    const task: WorkflowTask = {
+      name: "t",
+      agent: { ref: "agents.a", timeout: { fixed: "120s" }, prompt: { content: "" } }
+    }
+    expect(resolveTaskTimeout(task, "300s")).toBe(120)
   })
 
-  it("falls back to agent timeout when step has no timeout", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 120 })],
-      polling: { timeoutSeconds: 60 }
-    })
-    expect(resolveStepTimeout(spec, "step-1")).toBe(120)
+  it("falls back to global run timeout", () => {
+    const task: WorkflowTask = {
+      name: "t",
+      agent: { ref: "agents.a", prompt: { content: "" } }
+    }
+    expect(resolveTaskTimeout(task, "300s")).toBe(300)
   })
 
-  it("falls back to polling timeout when agent has no timeout", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug })],
-      polling: { timeoutSeconds: 60 }
-    })
-    expect(resolveStepTimeout(spec, "step-1")).toBe(60)
-  })
-
-  it("defaults to 300 when nothing is set", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug })]
-    })
-    expect(resolveStepTimeout(spec, "step-1")).toBe(300)
-  })
-
-  it("step timeout takes priority over agent and polling", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 200 })],
-      steps: [makeStep({ slug: "step-1" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 50 })],
-      polling: { timeoutSeconds: 100 }
-    })
-    expect(resolveStepTimeout(spec, "step-1")).toBe(50)
-  })
-
-  it("resolves per-step with different timeouts", () => {
-    const spec = makeSpec({
-      agents: [makeAgent({ slug: "agent-1" as AgentSlug, timeoutSeconds: 200 })],
-      steps: [
-        makeStep({ slug: "step-a" as StepSlug, agent: "agent-1" as AgentSlug, timeoutSeconds: 30 }),
-        makeStep({ slug: "step-b" as StepSlug, agent: "agent-1" as AgentSlug })
-      ]
-    })
-    expect(resolveStepTimeout(spec, "step-a")).toBe(30)
-    expect(resolveStepTimeout(spec, "step-b")).toBe(200)
-  })
-
-  it("returns 300 for unknown step slug", () => {
-    const spec = makeSpec()
-    expect(resolveStepTimeout(spec, "nonexistent")).toBe(300)
+  it("returns 300 when both are missing or invalid", () => {
+    const task: WorkflowTask = {
+      name: "t",
+      agent: { ref: "agents.a", prompt: { content: "" } }
+    }
+    expect(resolveTaskTimeout(task, "invalid")).toBe(300)
   })
 })
