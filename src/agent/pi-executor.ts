@@ -1,5 +1,5 @@
 import { Effect, Data } from "effect"
-import { EventBus, EventBusLive } from "../events/bus.js"
+import { EventBus } from "../events/bus.js"
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core"
 import {
   AuthStorage,
@@ -89,7 +89,7 @@ function buildToolSet(explicitTools?: string[]): string[] {
 
 export function executeWithPi(
   config: PiExecutorConfig
-): Effect.Effect<Record<string, unknown>, PiExecutionError> {
+): Effect.Effect<Record<string, unknown>, PiExecutionError, EventBus> {
   return Effect.gen(function* (_) {
     const cwd = config.cwd ?? process.cwd()
     const agentDir = piAgentDir()
@@ -159,12 +159,12 @@ export function executeWithPi(
       }
     )
 
+    const bus = yield* _(EventBus)
+
     const unsubscribe = session.subscribe((piEvent) => {
-      Effect.runPromise(
-        handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]).pipe(
-          Effect.provide(EventBusLive)
-        )
-      )
+      Effect.runPromise(handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]).pipe(
+        Effect.provideService(EventBus, bus)
+      ))
     })
 
     try {
