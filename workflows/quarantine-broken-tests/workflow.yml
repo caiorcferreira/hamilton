@@ -94,7 +94,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             original_branch:
               type: string
             build_cmd:
@@ -210,7 +210,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done, retry]
+              enum: [done, retry, failed]
             verified:
               type: string
             issues:

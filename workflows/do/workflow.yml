@@ -48,7 +48,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             result:
               type: string
             changes:

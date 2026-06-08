@@ -131,7 +131,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             repo:
               type: string
             branch:
@@ -183,7 +183,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             original_branch:
               type: string
             build_cmd:
@@ -260,7 +260,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             repo:
               type: string
             branch:
@@ -346,7 +346,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done, retry]
+              enum: [done, retry, failed]
             verified:
               type: string
             issues:
@@ -401,7 +401,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done, retry]
+              enum: [done, retry, failed]
             results:
               type: string
             failures:
@@ -484,7 +484,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done, retry]
+              enum: [done, retry, failed]
             merged_branch:
               type: string
             merged_into:

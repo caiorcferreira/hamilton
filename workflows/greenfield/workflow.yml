@@ -65,7 +65,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done]
+              enum: [done, failed]
             project_dir:
               type: string
             stack:
@@ -115,7 +115,7 @@ tasks:
           properties:
             status:
               type: string
-              enum: [done, retry]
+              enum: [done, retry, failed]
             verified:
               type: string
             issues:
