@@ -3,15 +3,13 @@
 ## Next Up
 
 - [ ] Output token usage and time spent status after each step and at the end of the workflow
-- [ ] Implement retry feedback
-- [ ] Add output schema to all workflows based on the output defined in markdown prompts
 - [ ] Fix run command printing nothing. No run id, status, nothing until de workflow ended
-- [ ] Make write_step_output accept a JSON object, not only a JSON string
-- [ ] Task prompt template is not being rendered
-- [ ] Fix status command: it shows the tasks in wrong order (develop as first), should show the task list as last item, with tasks separated by new line, subtasks identended
 
 ## Completed
 
+- [x] Fix status command — topological task ordering and newline display, tasks separated by new line, subtasks indented
+- [x] Allow 'failed' in status enum on all task output schemas
+- [x] Add output schema to all workflows based on the output defined in markdown prompts
 - [x] Fix shared agent distribution — remove per-workflow agent duplication from ~/.hamilton/agents/, add shared/agents symlink per workflow dir, change YAML paths from ../../agents/shared/ to shared/agents/
 - [x] Rename tamandua → hamilton branding in workflows and agent Co-Authored-By footers
 - [x] Refactor event architecture to use Effect event bus — decouple onLog, onTokenEvent, onTokenUsage into single-responsibility subscribers (logger, DB writer, CLI renderer)
