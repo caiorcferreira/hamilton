@@ -179,4 +179,28 @@ describe("initHamilton", () => {
     const auth = JSON.parse(Fs.readFileSync(Path.join(agentDir, "auth.json"), "utf-8"))
     expect(auth).toEqual({ key: "secret" })
   })
+
+  it("creates default settings.yaml on init", async () => {
+    const exit = await Effect.runPromiseExit(initHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
+    expect(Fs.existsSync(settingsPath)).toBe(true)
+
+    const content = Fs.readFileSync(settingsPath, "utf-8")
+    expect(content).toContain("name: rtk")
+    expect(content).toContain("name: lsp")
+  })
+
+  it("does not overwrite existing settings.yaml on re-init", async () => {
+    await Effect.runPromiseExit(initHamilton())
+
+    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
+    Fs.writeFileSync(settingsPath, "extensions:\n  - name: rtk\n    enabled: false\n")
+
+    await Effect.runPromiseExit(initHamilton())
+
+    const content = Fs.readFileSync(settingsPath, "utf-8")
+    expect(content).toContain("enabled: false")
+  })
 })

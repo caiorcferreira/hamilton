@@ -2,7 +2,7 @@ import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { ensureHamiltonHome, agentsDir } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, settingsPath } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
@@ -62,6 +62,18 @@ function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<vo
   })
 }
 
+function writeDefaultSettings(): Effect.Effect<void, InitError> {
+  return Effect.try({
+    try: () => {
+      const path = settingsPath()
+      if (!Fs.existsSync(path)) {
+        Fs.writeFileSync(path, "extensions:\n  - name: rtk\n    enabled: true\n  - name: lsp\n    enabled: true\n")
+      }
+    },
+    catch: (e) => new InitError({ message: `Failed to write settings: ${String(e)}` })
+  })
+}
+
 function copyPiConfigsFromHome(): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
     const piSource = Path.join(process.env.HOME ?? "", ".pi", "agent")
@@ -102,6 +114,7 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
       yield* copyPiConfigsFromHome()
     }
     yield* createDefaultPiConfigs(options)
+    yield* writeDefaultSettings()
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })
