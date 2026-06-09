@@ -33,11 +33,9 @@ export function rewriteCommand(
 }
 
 export function createRtkExtension(options: RtkExtensionOptions): (pi: unknown) => void {
-  if (options.disabled || process.env.RTK_DISABLED === "1") {
+  if (options.disabled) {
     return () => {}
   }
-
-  return () => {}
 
   return (pi: unknown) => {
     const api = pi as PiExtensionApi | null

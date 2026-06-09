@@ -7,25 +7,10 @@ describe("createRtkExtension", () => {
     expect(typeof factory).toBe("function")
   })
 
-  it("respects RTK_DISABLED environment variable", () => {
-    const origEnv = process.env.RTK_DISABLED
-    process.env.RTK_DISABLED = "1"
-    const factory = createRtkExtension({})
-    const mockPi = { addEventListener: () => {} }
-    factory(mockPi)
-    expect(typeof factory).toBe("function")
-    process.env.RTK_DISABLED = origEnv
-  })
-
-  it("does not throw when options.disabled is true", () => {
+  it("returns no-op when disabled", () => {
     const factory = createRtkExtension({ disabled: true })
     const mockPi = { addEventListener: () => {} }
     factory(mockPi)
-    expect(typeof factory).toBe("function")
-  })
-
-  it("passes model through options", () => {
-    const factory = createRtkExtension({ model: "anthropic/claude-sonnet-4-20250514" })
     expect(typeof factory).toBe("function")
   })
 
