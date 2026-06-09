@@ -13,11 +13,14 @@ import {
   writeInput,
   writeStepOutput,
   writeSummary,
-  appendEngineLog
+  appendEngineLog,
+  ensureProgressFile
 } from "../observability/run-dir.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { ensureSharedAgentsSymlink } from "../workflow/shared-agents.js"
 import { DbWriter } from "../db/subscribers.js"
+import * as Fs from "node:fs"
+import { loadInstructionFiles } from "../agent/instructions.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -66,7 +69,14 @@ export function runWorkflow(
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.name }))
 
-    const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId }
+    const instructionFiles = yield* _(loadInstructionFiles(process.cwd()))
+
+    const progressFilePath = yield* _(ensureProgressFile(runId))
+    const progressContent = Fs.existsSync(progressFilePath)
+      ? Fs.readFileSync(progressFilePath, "utf-8")
+      : ""
+
+    const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId, progress_file: progressFilePath, progress: progressContent }
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0
     let totalTokensOut = 0
@@ -126,6 +136,7 @@ export function runWorkflow(
             timeoutSeconds,
             model: resolved.model,
             outputSchema: outputSchema?.content,
+            instructionFiles,
             settings: {
               skills: resolved.skills,
               thinking: undefined,

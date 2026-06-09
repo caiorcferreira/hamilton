@@ -37,6 +37,7 @@ export interface PiExecutorConfig {
     compactionEnabled?: boolean
   }
   outputSchema?: Record<string, unknown>
+  instructionFiles?: Array<{name: string; content: string}>
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -110,6 +111,12 @@ export function executeWithPi(
       cwd,
       agentDir,
       systemPromptOverride: () => config.systemPrompt,
+      agentsFilesOverride: (current: any) => ({
+        agentsFiles: [
+          ...(current?.agentsFiles ?? []),
+          ...(config.instructionFiles ?? []).map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
+        ]
+      }),
       extensionFactories: [
         rtkExtension,
         ...(config.extensions ?? []) as Array<(pi: unknown) => void>
