@@ -3,7 +3,12 @@
 ## Next Up
 
 - [ ] Output token usage and time spent status after each step and at the end of the workflow
-- [ ] Fix run command printing nothing. No run id, status, nothing until de workflow ended
+- [ ] Fix run command printing nothing at the start. No run id, status, nothing until a step end or the workflow end; also it didn't print plan task had started, just completed.
+- [ ] Status command not showing indication of which current task is running
+- [ ] Status command task order is still wrong; showing test/implement-story before plan.
+- [ ] Add total time and token usage to workflow summary
+
+- [ ] Change progress file location
 
 ## Completed
 
