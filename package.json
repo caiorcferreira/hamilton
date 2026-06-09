@@ -23,6 +23,7 @@
     "@effect/schema": "0.75.5",
     "@effect/workflow": "0.18.2",
     "@modelcontextprotocol/sdk": "1.12.0",
+    "@spences10/pi-lsp": "0.0.34",
     "ajv": "^8.20.0",
     "effect": "3.21.3",
     "go-duration-js": "^0.1.3",

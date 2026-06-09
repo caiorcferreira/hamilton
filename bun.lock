@@ -13,6 +13,7 @@
         "@effect/schema": "0.75.5",
         "@effect/workflow": "0.18.2",
         "@modelcontextprotocol/sdk": "1.12.0",
+        "@spences10/pi-lsp": "0.0.34",
         "ajv": "^8.20.0",
         "effect": "3.21.3",
         "go-duration-js": "^0.1.3",
@@ -274,6 +275,16 @@
     "@smithy/util-buffer-from": ["@smithy/util-buffer-from@2.2.0", "", { "dependencies": { "@smithy/is-array-buffer": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA=="],
 
     "@smithy/util-utf8": ["@smithy/util-utf8@2.3.0", "", { "dependencies": { "@smithy/util-buffer-from": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A=="],
+
+    "@spences10/pi-child-env": ["@spences10/pi-child-env@0.1.8", "", {}, "sha512-ENQzIXFhgYi4ZzBLTZcdFWIHpWBQdlYV45Hspr1J3OR9uqnchwSv0urNzTD/RtoQd5LZRnsRCfpY97SHzs5e5w=="],
+
+    "@spences10/pi-lsp": ["@spences10/pi-lsp@0.0.34", "", { "dependencies": { "@spences10/pi-child-env": "0.1.8", "@spences10/pi-project-trust": "0.0.13", "@spences10/pi-tui-modal": "0.0.20" }, "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "typebox": "*" } }, "sha512-Xc3w07EhW7k3/PnuokPb+CNz66VwotgBIaYikgjCDIckhr6AI1DqzKxUzbqpfPPVeixyuRBVmOIG0Gb6jikGIg=="],
+
+    "@spences10/pi-project-trust": ["@spences10/pi-project-trust@0.0.13", "", { "dependencies": { "@spences10/pi-settings": "0.0.0" }, "peerDependencies": { "@earendil-works/pi-coding-agent": "*" } }, "sha512-ZOLJFGBzavUtjVQWVUcB85fNL5OGLyzDCbI5l5TqF77gU6qu55PVsLrLoafZ/pmruQR+YbC68UROdDbGDiLAAQ=="],
+
+    "@spences10/pi-settings": ["@spences10/pi-settings@0.0.0", "", { "peerDependencies": { "@earendil-works/pi-coding-agent": "*" } }, "sha512-LjcTMNAubYKFrmT4A47OcH+v1Zc9vACLg8wQ0EjjBM5IKZGO8idnZUN1bIEIB7f5T6Lr0k5G6y6EMKyo3S9lsw=="],
+
+    "@spences10/pi-tui-modal": ["@spences10/pi-tui-modal@0.0.20", "", { "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*" } }, "sha512-GdyZ7yVN80NZJI6hTrkKvQM4eXZHgnsFxzA+V16utdnp1F+c2eaFvbHXzBTjP5T/72cmk8V++Wo6DGqly3gE5A=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
