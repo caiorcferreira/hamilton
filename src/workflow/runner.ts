@@ -1,8 +1,9 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
 import { WorkflowSpec, WorkflowTask } from "../types.js"
-import { buildAgentPrompt } from "../agent/activity.js"
-import { buildAutoContext, resolveDottedPath, type Context } from "../workflow/context.js"
-import { resolvePersona } from "../agent/persona.js"
+import { buildAgentPrompt } from "../prompts/builder.js"
+import { buildAutoContext, type Context } from "../workflow/context.js"
+import { resolveDottedPath } from "../prompts/template.js"
+import { resolvePersona } from "../prompts/persona.js"
 import { resolveAgentDefaults } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
@@ -20,7 +21,7 @@ import { EventBus, createSubscriber } from "../events/bus.js"
 import { ensureSharedAgentsSymlink } from "../workflow/shared-agents.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
-import { loadInstructionFiles } from "../agent/instructions.js"
+import { loadInstructionFiles } from "../prompts/instructions.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -112,7 +113,7 @@ export function runWorkflow(
           prompt: task.agent!.prompt,
           context: taskContext,
           agentConfig: agent
-        })
+        }, instructionFiles)
 
         yield* _(bus.publish({
           _tag: "PromptBuilt",
@@ -128,15 +129,13 @@ export function runWorkflow(
 
         const output = yield* _(
           executeWithPi({
-            systemPrompt: prompt.systemPrompt,
-            taskPrompt: prompt.taskPrompt,
+            prompt,
             stepId: taskId,
             agentId: agent.name,
             runId,
             timeoutSeconds,
             model: resolved.model,
             outputSchema: outputSchema?.content,
-            instructionFiles,
             settings: {
               skills: resolved.skills,
               thinking: undefined,

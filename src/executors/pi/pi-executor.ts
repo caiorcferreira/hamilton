@@ -18,10 +18,10 @@ import * as Path from "node:path"
 import { createWriteStepOutputTool } from "./write-step-output-tool.js"
 import { buildExtensions, readExtensionSettings } from "./extensions.js"
 import { stepOutputFile } from "../../paths.js"
+import type { ResolvablePrompt } from "../../prompts/types.js"
 
 export interface PiExecutorConfig {
-  systemPrompt: string
-  taskPrompt: string
+  prompt: ResolvablePrompt
   stepId: string
   agentId: string
   runId: string
@@ -37,7 +37,6 @@ export interface PiExecutorConfig {
     compactionEnabled?: boolean
   }
   outputSchema?: Record<string, unknown>
-  instructionFiles?: Array<{name: string; content: string}>
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -105,17 +104,19 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
+    const { systemPrompt, taskPrompt, instructionFiles } = config.prompt
+
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
 
     const loader = new DefaultResourceLoader({
       cwd,
       agentDir,
-      systemPromptOverride: () => config.systemPrompt,
+      systemPromptOverride: () => systemPrompt,
       agentsFilesOverride: (current: any) => ({
         agentsFiles: [
           ...(current?.agentsFiles ?? []),
-          ...(config.instructionFiles ?? []).map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
+          ...instructionFiles.map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
         ]
       }),
       extensionFactories,
@@ -184,7 +185,7 @@ export function executeWithPi(
     })
 
     try {
-      yield* _(Effect.promise(() => session.prompt(config.taskPrompt)))
+      yield* _(Effect.promise(() => session.prompt(taskPrompt)))
 
       const outputPath = stepOutputFile(config.runId, config.stepId)
       const MAX_REMINDERS = 2
