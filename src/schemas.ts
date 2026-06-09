@@ -47,13 +47,29 @@ const OnFailureSchema = Schema.Struct({
   on_exhausted: Schema.optional(OnExhaustedSchema)
 })
 
+const SchemaConfigSchema = Schema.Struct({
+  content: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  file: Schema.optional(Schema.String)
+}).pipe(
+  Schema.filter(
+    (s: any) => s.content || s.file,
+    { message: () => "schema must have at least one of 'content' or 'file'" }
+  )
+)
+
 const OutputConfigSchema = Schema.Struct({
-  schema: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown }))
+  schema: Schema.optional(SchemaConfigSchema)
 })
 
 const PromptSchema = Schema.Struct({
-  content: Schema.String
-})
+  content: Schema.optional(Schema.String),
+  file: Schema.optional(Schema.String)
+}).pipe(
+  Schema.filter(
+    (p: any) => (p.content ? !p.file : !!p.file),
+    { message: () => "prompt must have exactly one of 'content' or 'file'" }
+  )
+)
 
 const TaskAgentSchema = Schema.Struct({
   ref: Schema.String,

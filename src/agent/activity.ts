@@ -52,7 +52,7 @@ IMPORTANT:
 
   systemParts.push(`<agent>${params.agentFile}</agent>`)
 
-  const resolvedInput = resolveTemplate(params.prompt.content, params.context)
+  const resolvedInput = resolveTemplate(params.prompt.content ?? "", params.context)
 
   return {
     systemPrompt: systemParts.join("\n\n"),

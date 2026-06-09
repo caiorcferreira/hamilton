@@ -125,7 +125,7 @@ export function runWorkflow(
             runId,
             timeoutSeconds,
             model: resolved.model,
-            outputSchema,
+            outputSchema: outputSchema?.content,
             settings: {
               skills: resolved.skills,
               thinking: undefined,
