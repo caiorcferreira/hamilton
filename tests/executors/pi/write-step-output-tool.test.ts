@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { createWriteStepOutputTool } from "../../src/executors/pi/write-step-output-tool.js"
+import { createWriteStepOutputTool } from "../../../src/executors/pi/write-step-output-tool.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"

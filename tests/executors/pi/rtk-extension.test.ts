@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { createRtkExtension } from "../../src/agent/rtk-extension.js"
+import { createRtkExtension } from "../../../src/executors/pi/rtk-extension.js"
 
 describe("createRtkExtension", () => {
   it("returns a function (the extension factory)", () => {
