@@ -318,7 +318,7 @@ tasks:
           5. Run {{tasks.setup.outputs.build_cmd}} to verify the build passes
           6. Run {{tasks.setup.outputs.test_cmd}} to verify all tests pass
           7. Commit: fix(security): brief description
-          8. Rewrite progress-{{run_id}}.txt with updated story results and patterns
+          8. Rewrite {{progress_file}} with updated story results and patterns
 
           Reply with:
           STATUS: done

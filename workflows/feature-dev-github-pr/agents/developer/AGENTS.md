@@ -75,17 +75,17 @@ Call `write_step_output` with a JSON object:
 
 ## Story-Based Execution
 
-You work on **ONE user story per session**. A fresh session is started for each story. You have no memory of previous sessions except what's in `progress-{{run_id}}.txt`.
+You work on **ONE user story per session**. A fresh session is started for each story. You have no memory of previous sessions except what's in `{{progress_file}}`.
 
 ### Each Session
 
-1. Read `progress-{{run_id}}.txt` — especially the **Codebase Patterns** section at the top
+1. Read `{{progress_file}}` — especially the **Codebase Patterns** section at the top
 2. Check the branch, pull latest
 3. Implement the story described in your task input
 4. Run quality checks (`npm run build`, typecheck, etc.)
 5. Commit: `feat: <story-id> - <story-title>`. The commit message MUST end with the co-author footer line: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
-6. Update `progress-{{run_id}}.txt` by rewriting the entire file (do not use `edit`)
-7. Update **Codebase Patterns** in `progress-{{run_id}}.txt` if you found reusable patterns
+6. Update `{{progress_file}}` by rewriting the entire file (do not use `edit`)
+7. Update **Codebase Patterns** in `{{progress_file}}` if you found reusable patterns
 8. Update `AGENTS.md` if you learned something structural about the codebase
 
 ### progress.txt Format
@@ -122,7 +122,7 @@ Started: <timestamp>
 
 You can reference this section at any time to understand upcoming work and how your current story fits into the broader plan. The Story Plan is updated if re-planning occurs, and it is preserved alongside any `## Codebase Patterns` you've added.
 
-After completing a story, **rewrite** `progress-{{run_id}}.txt` to include this block:
+After completing a story, **rewrite** `{{progress_file}}` to include this block:
 
 ```markdown
 ## <date/time> - <story-id>: <title>
@@ -134,7 +134,7 @@ After completing a story, **rewrite** `progress-{{run_id}}.txt` to include this 
 
 ### Codebase Patterns
 
-If you discover a reusable pattern, add it to the `## Codebase Patterns` section at the **TOP** of `progress-{{run_id}}.txt`. Only add patterns that are general and reusable, not story-specific. Examples:
+If you discover a reusable pattern, add it to the `## Codebase Patterns` section at the **TOP** of `{{progress_file}}`. Only add patterns that are general and reusable, not story-specific. Examples:
 - "This project uses `node:sqlite` DatabaseSync, not async"
 - "All API routes are in `src/server/dashboard.ts`"
 - "Tests use node:test, run with `node --test`"

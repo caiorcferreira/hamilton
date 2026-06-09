@@ -72,7 +72,7 @@ Do NOT use a hardcoded one-line commit message. Instead, generate a descriptive,
 
 1. Read the task description from `{{task}}` to understand the overall goal
 2. Get the git log of the feature branch: `git log {{tasks.setup.outputs.original_branch}}..{{tasks.setup.outputs.branch}} --oneline`
-3. Read the progress file `progress-{{run_id}}.txt` to see what was implemented story-by-story
+3. Read the progress file `{{progress_file}}` to see what was implemented story-by-story
 
 ### Generating the Message
 

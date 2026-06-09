@@ -72,7 +72,7 @@ Do NOT use a hardcoded one-line commit message. Instead, generate a descriptive,
 
 1. Read the security audit task from `{{task}}` to understand what was audited
 2. Get the git log of the security audit branch: `git log {{tasks.setup.outputs.original_branch}}..{{tasks.setup.outputs.branch}} --oneline`
-3. Read the progress file `progress-{{run_id}}.txt` to see what vulnerabilities were found and fixed
+3. Read the progress file `{{progress_file}}` to see what vulnerabilities were found and fixed
 
 ### Generating the Message
 
