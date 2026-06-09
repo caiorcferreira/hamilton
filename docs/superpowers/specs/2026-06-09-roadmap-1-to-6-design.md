@@ -199,7 +199,10 @@ In `src/cli/commands/init.ts`:
   ```json
   { "defaultProvider": "openai", "defaultModel": "glm-5.1" }
   ```
-- Writes `models.json` to `piAgentDir()` with a minimal provider registry
+- Writes `models.json` to `piAgentDir()`:
+  ```json
+  { "providers": {} }
+  ```
 - Writes `auth.json` to `piAgentDir()` as `{}`
 - Only creates each file if it doesn't already exist (idempotent)
 
