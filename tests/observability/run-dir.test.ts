@@ -8,7 +8,8 @@ import {
   writeInput,
   writeStepOutput,
   appendStepLog,
-  writeSummary
+  writeSummary,
+  ensureProgressFile
 } from "../../src/observability/run-dir.js"
 
 const testRunId = "test-run-001"
@@ -84,5 +85,48 @@ describe("run directory management", () => {
 
     const content = JSON.parse(Fs.readFileSync(Path.join(base, "summary.json"), "utf-8"))
     expect(content).toEqual({ result: "success" })
+  })
+
+  it("ensureProgressFile creates directory and seeds file", async () => {
+    const base = Path.join(tmpHome, ".hamilton", "runs", testRunId)
+    Fs.mkdirSync(base, { recursive: true })
+
+    const cwdSpy = process.cwd
+    try {
+      (process as any).cwd = () => tmpHome
+      const exit = await Effect.runPromiseExit(ensureProgressFile(testRunId))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const pgDir = Path.join(tmpHome, ".hamilton", "workflows")
+      expect(Fs.existsSync(pgDir)).toBe(true)
+
+      const today = new Date().toISOString().slice(0, 10)
+      const progressPath = Path.join(pgDir, `progress-${today}.txt`)
+      expect(Fs.existsSync(progressPath)).toBe(true)
+
+      const content = Fs.readFileSync(progressPath, "utf-8")
+      expect(content).toContain(`# Progress Log — ${today}`)
+      expect(content).toContain(testRunId)
+    } finally {
+      process.cwd = cwdSpy
+    }
+  })
+
+  it("ensureProgressFile returns file path", async () => {
+    const base = Path.join(tmpHome, ".hamilton", "runs", testRunId)
+    Fs.mkdirSync(base, { recursive: true })
+
+    const cwdSpy = process.cwd
+    try {
+      (process as any).cwd = () => tmpHome
+      const exit = await Effect.runPromiseExit(ensureProgressFile(testRunId))
+      expect(Exit.isSuccess(exit)).toBe(true)
+      if (Exit.isSuccess(exit)) {
+        const today = new Date().toISOString().slice(0, 10)
+        expect(exit.value).toContain(`progress-${today}.txt`)
+      }
+    } finally {
+      process.cwd = cwdSpy
+    }
   })
 })
