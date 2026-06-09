@@ -1,19 +1,15 @@
 import * as Fs from "node:fs"
-import { Ajv } from "ajv"
 import { stepOutputsDir, stepOutputFile } from "../paths.js"
-
-export interface ValidateResult {
-  success: boolean
-  error?: string
-}
+import { Ajv } from "ajv"
 
 export function validateAndWrite(
   runId: string,
   stepId: string,
   outputSchema: Record<string, unknown> | undefined,
   input: unknown
-): ValidateResult {
+): { success: true } | { success: false; error: string } {
   const outputPath = stepOutputFile(runId, stepId)
+  const outputsDir = stepOutputsDir(runId)
 
   if (Fs.existsSync(outputPath)) {
     return { success: false, error: "Output already written for this step. write_step_output can only be called once." }
@@ -25,7 +21,7 @@ export function validateAndWrite(
 
   const obj = input as Record<string, unknown>
   if (typeof obj.status !== "string" || obj.status.length === 0) {
-    return { success: false, error: "Missing required field 'status' (must be a non-empty string)." }
+    return { success: false, error: "Missing required field 'status' (must be a non-empty string). Example: { \"status\": \"done\", ... }" }
   }
 
   if (outputSchema) {
@@ -39,7 +35,6 @@ export function validateAndWrite(
     }
   }
 
-  const outputsDir = stepOutputsDir(runId)
   Fs.mkdirSync(outputsDir, { recursive: true })
   Fs.writeFileSync(outputPath, JSON.stringify(obj, null, 2))
 

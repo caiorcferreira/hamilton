@@ -15,7 +15,7 @@ import { subscribePiEvents } from "../observability/streaming.js"
 
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { createWriteStepOutputTool } from "./write-step-output-tool.js"
+import { createWriteStepOutputTool } from "../executors/pi/write-step-output-tool.js"
 import { createRtkExtension } from "./rtk-extension.js"
 import { stepOutputFile } from "../paths.js"
 
