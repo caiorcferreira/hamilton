@@ -9,7 +9,9 @@ import {
   stepLogFile,
   inputFile,
   summaryFile,
-  eventsFilePath
+  eventsFilePath,
+  progressDir,
+  progressFile
 } from "../paths.js"
 
 export class RunDirError extends Data.TaggedError("RunDirError")<{
@@ -75,5 +77,21 @@ export function appendEngineLog(
       Fs.appendFileSync(path, line + "\n", "utf-8")
     },
     catch: () => new RunDirError({ runId, message: "Failed to append engine log" })
+  })
+}
+
+export function ensureProgressFile(runId: string): Effect.Effect<string, RunDirError> {
+  return Effect.try({
+    try: () => {
+      const dir = progressDir()
+      Fs.mkdirSync(dir, { recursive: true })
+      const filePath = progressFile()
+      if (!Fs.existsSync(filePath)) {
+        const header = `# Progress Log — ${new Date().toISOString().slice(0, 10)}\n\n## Run ${runId}\n\n`
+        Fs.writeFileSync(filePath, header)
+      }
+      return filePath
+    },
+    catch: (e) => new RunDirError({ runId, message: `Failed to create progress file: ${String(e)}` })
   })
 }
