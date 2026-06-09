@@ -16,7 +16,7 @@ import { subscribePiEvents } from "./streaming.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { createWriteStepOutputTool } from "./write-step-output-tool.js"
-import { createRtkExtension } from "./rtk-extension.js"
+import { buildExtensions, readExtensionSettings } from "./extensions.js"
 import { stepOutputFile } from "../../paths.js"
 
 export interface PiExecutorConfig {
@@ -105,7 +105,8 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
-    const rtkExtension = createRtkExtension({ disabled: process.env.RTK_DISABLED === "1" })
+    const extSettings = readExtensionSettings()
+    const extensionFactories = buildExtensions(extSettings)
 
     const loader = new DefaultResourceLoader({
       cwd,
@@ -117,10 +118,7 @@ export function executeWithPi(
           ...(config.instructionFiles ?? []).map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
         ]
       }),
-      extensionFactories: [
-        rtkExtension,
-        ...(config.extensions ?? []) as Array<(pi: unknown) => void>
-      ],
+      extensionFactories,
       settingsManager
     })
 
