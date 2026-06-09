@@ -2,7 +2,7 @@ import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { ensureHamiltonHome, agentsDir } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, piAgentDir } from "../../paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
 
@@ -36,7 +36,53 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, In
   })
 }
 
-export function initHamilton(options?: { force?: boolean }): Effect.Effect<string[], InitError> {
+function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+  return Effect.gen(function* () {
+    const agentDir = piAgentDir()
+
+    yield* Effect.try({
+      try: () => {
+        const settings = Path.join(agentDir, "settings.json")
+        const models = Path.join(agentDir, "models.json")
+        const auth = Path.join(agentDir, "auth.json")
+
+        if (options?.force || !Fs.existsSync(settings)) {
+          Fs.writeFileSync(settings, JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }, null, 2))
+        }
+        if (options?.force || !Fs.existsSync(models)) {
+          Fs.writeFileSync(models, JSON.stringify({ providers: {} }, null, 2))
+        }
+        if (options?.force || !Fs.existsSync(auth)) {
+          Fs.writeFileSync(auth, JSON.stringify({}, null, 2))
+        }
+      },
+      catch: (e) => new InitError({ message: `Failed to create default Pi configs: ${String(e)}` })
+    })
+  })
+}
+
+function copyPiConfigsFromHome(): Effect.Effect<void, InitError> {
+  return Effect.gen(function* () {
+    const piSource = Path.join(process.env.HOME ?? "", ".pi", "agent")
+    if (!Fs.existsSync(piSource)) return
+
+    const agentDir = piAgentDir()
+    const files = ["settings.json", "models.json", "auth.json"]
+
+    for (const file of files) {
+      const src = Path.join(piSource, file)
+      const dest = Path.join(agentDir, file)
+      if (!Fs.existsSync(src)) continue
+
+      yield* Effect.try({
+        try: () => Fs.copyFileSync(src, dest),
+        catch: (e) => new InitError({ message: `Failed to copy ${file}: ${String(e)}` })
+      })
+    }
+  })
+}
+
+export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolean }): Effect.Effect<string[], InitError> {
   return Effect.gen(function* () {
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
@@ -51,6 +97,11 @@ export function initHamilton(options?: { force?: boolean }): Effect.Effect<strin
 
     yield* copySharedAgents(options)
 
+    if (options?.copyPiConfigs) {
+      yield* copyPiConfigsFromHome()
+    }
+    yield* createDefaultPiConfigs(options)
+
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })
     )
@@ -60,10 +111,11 @@ export function initHamilton(options?: { force?: boolean }): Effect.Effect<strin
 }
 
 const force = Options.boolean("force")
+const copyPiConfigs = Options.boolean("copy-pi-configs")
 
-export const initCommand = Command.make("init", { force }, ({ force }) =>
+export const initCommand = Command.make("init", { force, copyPiConfigs }, ({ force, copyPiConfigs }) =>
   Effect.gen(function* () {
-    const result = yield* Effect.exit(initHamilton({ force }))
+    const result = yield* Effect.exit(initHamilton({ force, copyPiConfigs }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Init failed: ${String(result.cause)}`)
       return
