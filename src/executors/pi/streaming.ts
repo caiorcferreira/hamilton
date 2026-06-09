@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { EventBus } from "../events/bus.js"
+import { EventBus } from "../../events/bus.js"
 
 export interface PiEvent {
   type: string
