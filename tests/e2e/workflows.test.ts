@@ -15,7 +15,7 @@ const stepResponses: Record<string, Record<string, unknown>> = {
   verify: { status: "done", verified: "fix confirmed correct" }
 }
 
-vi.mock("../../src/agent/pi-executor.js", () => ({
+vi.mock("../../src/executors/pi/pi-executor.js", () => ({
   executeWithPi: vi.fn((config: { stepId: string }) => {
     const slug = Object.keys(stepResponses).find((k) => config.stepId.includes(k)) ?? config.stepId
     return Effect.succeed(stepResponses[slug] ?? { status: "done" })

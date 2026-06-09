@@ -8,7 +8,7 @@ import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
 import { FileLogger } from "../../src/observability/subscribers.js"
 import type { WorkflowSpec } from "../../src/types.js"
 
-vi.mock("../../src/agent/pi-executor.js", () => {
+vi.mock("../../src/executors/pi/pi-executor.js", () => {
   const { Effect: E } = require("effect")
   return {
     executeWithPi: vi.fn(() => E.succeed({ status: "done" })),

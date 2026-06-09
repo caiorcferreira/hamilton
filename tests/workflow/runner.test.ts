@@ -8,7 +8,7 @@ import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
 import type { WorkflowSpec } from "../../src/types.js"
 import { collectReachableTasks, topologicalSort } from "../../src/workflow/engine.js"
 
-vi.mock("../../src/agent/pi-executor.js", () => {
+vi.mock("../../src/executors/pi/pi-executor.js", () => {
   const { Effect: E } = require("effect")
   return {
     executeWithPi: vi.fn(() => E.succeed({ status: "done", result: "ok" })),
