@@ -137,15 +137,15 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
 
           RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
           {{retry_feedback}}
 
           Instructions:
           1. cd into the repo
-          2. Create the feature branch (git checkout -b {{tasks.setup.outputs.branch}})
+          2. Create the feature branch (git checkout -b {{tasks.plan.outputs.branch}})
           3. Read package.json, CI config, test config to understand the build/test setup
           4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           5. Run the build to establish a baseline
@@ -198,8 +198,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -275,8 +275,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           CHANGES: {{changes}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -348,8 +348,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           CHANGES: {{changes}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}

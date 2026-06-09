@@ -138,8 +138,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
           WORKTREE_ORIGIN_REPOSITORY: {{tasks.setup.outputs.worktree_origin_repository}}
 
@@ -149,7 +149,7 @@ tasks:
           Instructions:
           1. cd into the repo (this is the worktree path)
           2. ORIGINAL_BRANCH is {{tasks.setup.outputs.original_branch}} — pre-seeded by the harness since the worktree starts detached; do NOT run `git branch --show-current`
-          3. Create the feature branch (git checkout -b {{tasks.setup.outputs.branch}})
+          3. Create the feature branch (git checkout -b {{tasks.plan.outputs.branch}})
           4. Read package.json, CI config, test config to understand the build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -205,8 +205,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -282,8 +282,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           CHANGES: {{changes}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -355,8 +355,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.plan.outputs.repo}}
+          BRANCH: {{tasks.plan.outputs.branch}}
           CHANGES: {{changes}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}

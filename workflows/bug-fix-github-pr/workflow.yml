@@ -144,7 +144,7 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
+          REPO: {{tasks.triage.outputs.repo}}
           SEVERITY: {{severity}}
           AFFECTED_AREA: {{affected_area}}
           REPRODUCTION: {{reproduction}}
@@ -192,12 +192,12 @@ tasks:
         content: |
           Prepare the environment for the bugfix.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
 
           Instructions:
           1. cd into the repo
-          2. Create the bugfix branch (git checkout -b {{tasks.setup.outputs.branch}} from main)
+          2. Create the bugfix branch (git checkout -b {{tasks.triage.outputs.branch}} from main)
           3. Read package.json, CI config, test config to understand build/test setup
           4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           5. Run the build to establish a baseline
@@ -241,8 +241,8 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           AFFECTED_AREA: {{affected_area}}
@@ -295,8 +295,8 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
@@ -311,7 +311,7 @@ tasks:
           5. Verify the regression test would fail without the fix (review the diff logic)
 
           MANDATORY first step:
-          - Run `git diff main..{{tasks.setup.outputs.branch}} --stat` and `git diff main..{{tasks.setup.outputs.branch}}`
+          - Run `git diff main..{{tasks.triage.outputs.branch}} --stat` and `git diff main..{{tasks.triage.outputs.branch}}`
           - If the diff is empty or only contains trivial changes (version bumps, lockfiles), REJECT immediately
           - Compare the diff against CHANGES claimed above — if they don't match, REJECT
 
@@ -354,8 +354,8 @@ tasks:
         content: |
           Create a pull request for the bug fix.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           PROBLEM_STATEMENT: {{problem_statement}}
           SEVERITY: {{severity}}
           ROOT_CAUSE: {{root_cause}}

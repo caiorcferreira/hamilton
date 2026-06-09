@@ -145,7 +145,7 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
+          REPO: {{tasks.triage.outputs.repo}}
           SEVERITY: {{severity}}
           AFFECTED_AREA: {{affected_area}}
           REPRODUCTION: {{reproduction}}
@@ -193,13 +193,13 @@ tasks:
         content: |
           Prepare the environment for the bugfix.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
 
           Instructions:
           1. cd into the repo
           2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
-          3. Create the bugfix branch (git checkout -b {{tasks.setup.outputs.branch}} from main)
+          3. Create the bugfix branch (git checkout -b {{tasks.triage.outputs.branch}} from main)
           4. Read package.json, CI config, test config to understand build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -244,8 +244,8 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           AFFECTED_AREA: {{affected_area}}
@@ -298,8 +298,8 @@ tasks:
           BUG REPORT:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
@@ -314,7 +314,7 @@ tasks:
           5. Verify the regression test would fail without the fix (review the diff logic)
 
           MANDATORY first step:
-          - Run `git diff main..{{tasks.setup.outputs.branch}} --stat` and `git diff main..{{tasks.setup.outputs.branch}}`
+          - Run `git diff main..{{tasks.triage.outputs.branch}} --stat` and `git diff main..{{tasks.triage.outputs.branch}}`
           - If the diff is empty or only contains trivial changes (version bumps, lockfiles), REJECT immediately
           - Compare the diff against CHANGES claimed above — if they don't match, REJECT
 
@@ -362,8 +362,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.triage.outputs.repo}}
+          BRANCH: {{tasks.triage.outputs.branch}}
           ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
           PROBLEM_STATEMENT: {{problem_statement}}
           ROOT_CAUSE: {{root_cause}}
@@ -374,14 +374,14 @@ tasks:
           Follow the Required Process from your AGENTS.md:
 
           Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-          1. cd {{tasks.setup.outputs.repo}}
+          1. cd {{tasks.triage.outputs.repo}}
           2. git checkout {{tasks.setup.outputs.original_branch}}
-          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}
+          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.triage.outputs.branch}}
              - Exit 0 (FF): proceed to Phase 3
              - Exit non-zero (not FF): proceed to Phase 2
 
           Phase 2 — Rebase (Non-Fast-Forward Path):
-          4. git checkout {{tasks.setup.outputs.branch}}
+          4. git checkout {{tasks.triage.outputs.branch}}
           5. git rebase {{tasks.setup.outputs.original_branch}}
           6. Fix any conflicts; `git rebase --continue` until complete
           7. After rebase (clean or with conflict resolution), proceed to Phase 3.
@@ -389,7 +389,7 @@ tasks:
 
           Phase 3 — Squash Merge (Fast-Forward-Safe):
           8. git checkout {{tasks.setup.outputs.original_branch}}
-          9. git merge --squash {{tasks.setup.outputs.branch}}
+          9. git merge --squash {{tasks.triage.outputs.branch}}
           10. Build a descriptive commit message with `fix:` prefix (see AGENTS.md for full instructions), write it to a temp file, then commit with `git commit -F <tempfile>`
 
           Verify the merge commit was created:

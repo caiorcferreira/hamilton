@@ -111,6 +111,10 @@ tasks:
             status:
               type: string
               enum: [done, failed]
+            repo:
+              type: string
+            branch:
+              type: string
             original_branch:
               type: string
             build_cmd:

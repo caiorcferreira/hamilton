@@ -143,6 +143,8 @@ tasks:
               type: string
             repo:
               type: string
+            branch:
+              type: string
             vulnerability_count:
               type: string
     on_failure:
@@ -160,7 +162,7 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
+          REPO: {{tasks.scan.outputs.repo}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
 
@@ -216,13 +218,13 @@ tasks:
         content: |
           Prepare the environment for security fixes.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
 
           Instructions:
           1. cd into the repo
           2. Capture the current branch before switching: ORIGINAL_BRANCH=$(git branch --show-current)
-          3. Create the security branch (git checkout -b {{tasks.setup.outputs.branch}} from main)
+          3. Create the security branch (git checkout -b {{tasks.scan.outputs.branch}} from main)
           4. Read package.json, CI config, test config to understand build/test setup
           5. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
           6. Run the build to establish a baseline
@@ -274,8 +276,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -341,8 +343,8 @@ tasks:
         content: |
           Verify the security fix is correct and the vulnerability is patched.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
@@ -403,8 +405,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
@@ -465,8 +467,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           ORIGINAL_BRANCH: {{tasks.setup.outputs.original_branch}}
 
           PROGRESS LOG:
@@ -478,14 +480,14 @@ tasks:
           Follow the Required Process from your AGENTS.md:
 
           Phase 1 — Fast-Forward Check (ALWAYS FIRST):
-          1. cd {{tasks.setup.outputs.repo}}
+          1. cd {{tasks.scan.outputs.repo}}
           2. git checkout {{tasks.setup.outputs.original_branch}}
-          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.setup.outputs.branch}}
+          3. git merge-base --is-ancestor {{tasks.setup.outputs.original_branch}} {{tasks.scan.outputs.branch}}
              - Exit 0 (FF): proceed to Phase 3
              - Exit non-zero (not FF): proceed to Phase 2
 
           Phase 2 — Rebase (Non-Fast-Forward Path):
-          4. git checkout {{tasks.setup.outputs.branch}}
+          4. git checkout {{tasks.scan.outputs.branch}}
           5. git rebase {{tasks.setup.outputs.original_branch}}
           6. Fix any conflicts; `git rebase --continue` until complete
           7. If rebase changed code/tests/docs/config:
@@ -495,7 +497,7 @@ tasks:
 
           Phase 3 — Squash Merge (Fast-Forward-Safe):
           9. git checkout {{tasks.setup.outputs.original_branch}}
-          10. git merge --squash {{tasks.setup.outputs.branch}}
+          10. git merge --squash {{tasks.scan.outputs.branch}}
           11. Build a descriptive commit message (see AGENTS.md for full instructions — use fix(security): prefix), write it to a temp file, then commit with `git commit -F <tempfile>`
 
           Verify the merge commit was created:

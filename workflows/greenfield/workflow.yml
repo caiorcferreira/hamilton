@@ -89,8 +89,8 @@ tasks:
           Verify the scaffolded project is correct and buildable.
 
           PROJECT_DIR: {{project_dir}}
-          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+          BUILD_CMD: {{tasks.scaffold.outputs.build_cmd}}
+          TEST_CMD: {{tasks.scaffold.outputs.test_cmd}}
           TECH_STACK: {{tech_stack}}
 
           Check:

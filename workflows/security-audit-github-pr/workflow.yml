@@ -141,6 +141,8 @@ tasks:
               type: string
             repo:
               type: string
+            branch:
+              type: string
             vulnerability_count:
               type: string
     on_failure:
@@ -158,7 +160,7 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
+          REPO: {{tasks.scan.outputs.repo}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
 
@@ -214,12 +216,12 @@ tasks:
         content: |
           Prepare the environment for security fixes.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
 
           Instructions:
           1. cd into the repo
-          2. Create the security branch (git checkout -b {{tasks.setup.outputs.branch}} from main)
+          2. Create the security branch (git checkout -b {{tasks.scan.outputs.branch}} from main)
           3. Read package.json, CI config, test config to understand build/test setup
           4. Run the build to establish a baseline
           5. Run the tests to establish a baseline
@@ -269,8 +271,8 @@ tasks:
           TASK (overall):
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
 
@@ -336,8 +338,8 @@ tasks:
         content: |
           Verify the security fix is correct and the vulnerability is patched.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
           REGRESSION_TEST: {{regression_test}}
@@ -398,8 +400,8 @@ tasks:
           TASK:
           {{task}}
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
           TEST_CMD: {{tasks.setup.outputs.test_cmd}}
           CHANGES: {{changes}}
@@ -449,8 +451,8 @@ tasks:
         content: |
           Create a pull request for the security fixes.
 
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
+          REPO: {{tasks.scan.outputs.repo}}
+          BRANCH: {{tasks.scan.outputs.branch}}
           VULNERABILITY_COUNT: {{vulnerability_count}}
           FINDINGS: {{findings}}
           FIX_PLAN: {{fix_plan}}
