@@ -2,16 +2,15 @@
 
 ## Next Up
 
-- [ ] Output token usage and time spent status after each step and at the end of the workflow
-- [ ] Fix run command printing nothing at the start. No run id, status, nothing until a step end or the workflow end; also it didn't print plan task had started, just completed.
-- [ ] Status command not showing indication of which current task is running
-- [ ] Status command task order is still wrong; showing test/implement-story before plan.
-- [ ] Add total time and token usage to workflow summary
-
 - [ ] Change progress file location
 
 ## Completed
 
+- [x] Fix status command task order for template/forEach tasks — resolveDagBase handles nested compound slugs, matching against DAG parent names
+- [x] Fix status command running task indicator — parse currentTask slug and highlight in task list with ⏳
+- [x] Fix run command printing nothing at start — subscriber race condition fixed with yieldNow() after forkScoped
+- [x] Add per-step token/time output — CliRenderer accumulates TokenUsage deltas per step and prints on StepCompleted
+- [x] Add total time and token usage to workflow summary — summary.json includes totalTokensIn, totalTokensOut, elapsedSeconds
 - [x] Fix status command — topological task ordering and newline display, tasks separated by new line, subtasks indented
 - [x] Allow 'failed' in status enum on all task output schemas
 - [x] Add output schema to all workflows based on the output defined in markdown prompts

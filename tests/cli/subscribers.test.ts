@@ -71,6 +71,6 @@ describe("CliRenderer", () => {
     expect(logs[0]).toContain("r1")
     expect(logs[1]).toContain("s1")
     expect(logs.some((l) => l.includes("completed"))).toBe(true)
-    expect(logs.some((l) => l.includes("finished"))).toBe(true)
+    expect(logs.some((l) => l.includes("completed") && l.includes("r1"))).toBe(true)
   })
 })

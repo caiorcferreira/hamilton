@@ -70,4 +70,5 @@ export const createSubscriber = <E extends Event>(
         Stream.runDrain
       )
     ))
+    yield* _(Effect.yieldNow())
   })

@@ -60,6 +60,22 @@ function taskIndicator(status: string): string {
   return "\u25CB"
 }
 
+function resolveDagBase(slug: string, orderMap: Map<string, number>): string {
+  if (slug.includes("/")) {
+    return slug.split("/")[0]
+  }
+  if (orderMap.has(slug)) return slug
+  let current = slug
+  while (current.includes("-")) {
+    current = current.replace(/-[^-]+$/, "")
+    const withSlash = current.replace(/^(.+)-(\d+)$/, "$1/$2")
+    if (orderMap.has(current) || orderMap.has(withSlash)) return current
+    const baseSlash = current.replace(/^(.+?)-(\d+)-(.+)$/, "$1")
+    if (orderMap.has(baseSlash)) return baseSlash
+  }
+  return slug
+}
+
 function parseTaskSlug(taskId: string, runId: string): string {
   const prefix = runId + "-"
   if (!taskId.startsWith(prefix)) return taskId
@@ -107,11 +123,9 @@ export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
     sorted.forEach((t, i) => orderMap.set(t.name, i))
     const expandedOrder = new Map<string, number>()
     tasksInOrder.forEach((t) => {
-      const baseName = t.slug.includes("/")
-        ? t.slug.split("/")[0]
-        : t.slug
-      if (orderMap.has(baseName)) {
-        expandedOrder.set(t.slug, orderMap.get(baseName)!)
+      const resolved = resolveDagBase(t.slug, orderMap)
+      if (orderMap.has(resolved)) {
+        expandedOrder.set(t.slug, orderMap.get(resolved)!)
       } else {
         expandedOrder.set(t.slug, Infinity)
       }
@@ -124,10 +138,13 @@ export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
     })
   }
 
-  const currentIdx = tasksInOrder.findIndex((t) => t.status === "running")
-  if (status.currentTask && currentIdx >= 0) {
-    const task = tasksInOrder[currentIdx]
-    lines.push(`Task:      ${task.slug} (${currentIdx + 1}/${tasksInOrder.length})`)
+  let currentTaskSlug: string | null = null
+  if (status.currentTask) {
+    currentTaskSlug = parseTaskSlug(status.currentTask, status.runId)
+    const currentIdx = tasksInOrder.findIndex((t) => t.slug === currentTaskSlug)
+    if (currentIdx >= 0) {
+      lines.push(`Task:      ${currentTaskSlug} (${currentIdx + 1}/${tasksInOrder.length})`)
+    }
   }
 
   const tokensIn = status.totalTokensIn.toLocaleString()
@@ -144,7 +161,8 @@ export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
   lines.push("Tasks:")
 
   for (const t of tasksInOrder) {
-    const indicator = taskIndicator(t.status)
+    const isCurrent = currentTaskSlug !== null && t.slug === currentTaskSlug
+    const indicator = isCurrent ? "\u23F3" : taskIndicator(t.status)
     const isSubtask = t.slug.includes("/")
     const indent = isSubtask ? "   " : "  "
     const agentName = isSubtask ? "" : ` (${t.taskSlug})`

@@ -15,7 +15,7 @@ import {
   writeSummary,
   appendEngineLog
 } from "../observability/run-dir.js"
-import { EventBus } from "../events/bus.js"
+import { EventBus, createSubscriber } from "../events/bus.js"
 import { ensureSharedAgentsSymlink } from "../workflow/shared-agents.js"
 import { DbWriter } from "../db/subscribers.js"
 
@@ -68,6 +68,8 @@ export function runWorkflow(
 
     const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId }
     const taskResults: Record<string, string> = {}
+    let totalTokensIn = 0
+    let totalTokensOut = 0
     let workflowStatus: string = "completed"
 
     const executeSingleTask = (
@@ -162,6 +164,14 @@ export function runWorkflow(
       })
 
     const body = Effect.gen(function* () {
+      yield* _(createSubscriber(
+        (b) => b.subscribeTo("TokenUsage"),
+        (event) => Effect.sync(() => {
+          totalTokensIn += event.tokensIn
+          totalTokensOut += event.tokensOut
+        })
+      ))
+
       for (const task of sortedTasks) {
         if (workflowStatus === "failed") break
 
@@ -223,7 +233,8 @@ export function runWorkflow(
         yield* _(ctx.fail(workflowStatus).pipe(Effect.catchAll(() => Effect.void)))
       }
 
-      const summary = { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt }
+      const elapsedSeconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
+      const summary = { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
       yield* _(writeSummary(runId, summary))
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
       yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
@@ -239,7 +250,7 @@ export function runWorkflow(
           yield* _(bus.publish({ _tag: "WorkflowCompleted", runId, message: String(error) }))
           yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
-          yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt }))
+          yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds: Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) }))
           return { runId, status: "failed" as const, taskResults, context: runningContext, startedAt, completedAt }
         })
       ),
