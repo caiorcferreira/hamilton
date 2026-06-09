@@ -54,12 +54,18 @@ export interface OnFailure {
   on_exhausted?: OnExhausted
 }
 
+export interface SchemaConfig {
+  content?: Record<string, unknown>
+  file?: string
+}
+
 export interface OutputConfig {
-  schema?: Record<string, unknown>
+  schema?: SchemaConfig
 }
 
 export interface Prompt {
-  content: string
+  content?: string
+  file?: string
 }
 
 export interface TaskAgent {
