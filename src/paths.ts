@@ -55,6 +55,19 @@ export function piAgentDir(): string {
   return Path.join(hamiltonHome(), "executors", "pi", "agent")
 }
 
+export function instructionDir(): string {
+  return Path.join(hamiltonHome(), "instruction")
+}
+
+export function progressDir(): string {
+  return Path.join(process.cwd(), ".hamilton", "workflows")
+}
+
+export function progressFile(): string {
+  const day = new Date().toISOString().slice(0, 10)
+  return Path.join(progressDir(), `progress-${day}.txt`)
+}
+
 export function eventsFilePath(runId: string): string {
   return Path.join(runDir(runId), "events.jsonl")
 }
@@ -65,7 +78,8 @@ export function ensureHamiltonHome(): void {
     agentsDir(),
     workflowsDir(),
     runsDir(),
-    piAgentDir()
+    piAgentDir(),
+    instructionDir()
   ]
   for (const dir of dirs) {
     if (!Fs.existsSync(dir)) {
