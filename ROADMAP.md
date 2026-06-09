@@ -2,10 +2,16 @@
 
 ## Next Up
 
-- [ ] Change progress file location
+- [ ] Connect LSP to Pi
 
 ## Completed
 
+- [x] Change progress file location — store in ./.hamilton/workflows/progress-<YYYY-MM-DD>.txt, active management with ensureProgressFile
+- [x] Create Pi configs on init — --copy-pi-configs flag copies from ~/.pi/agent, fallback to sensible defaults (settings.json, models.json, auth.json)
+- [x] Refactor `output.schema` to `output.schema.content` — nest schema under content, add SchemaConfig type
+- [x] Support `output.schema.file` in workflow yaml — resolveWorkflowSpec reads JSON schema from file
+- [x] Support `prompt.file` in workflow yaml — resolveWorkflowSpec reads prompt content from file
+- [x] Load context files based on file type — ~/.hamilton/instruction with markdown + YAML frontmatter (name, extensions), scan project for extensions, inject matching instructions via agentsFilesOverride
 - [x] Fix status command task order for template/forEach tasks — resolveDagBase handles nested compound slugs, matching against DAG parent names
 - [x] Fix status command running task indicator — parse currentTask slug and highlight in task list with ⏳
 - [x] Fix run command printing nothing at start — subscriber race condition fixed with yieldNow() after forkScoped
