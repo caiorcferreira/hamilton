@@ -4,10 +4,10 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { executeRun } from "../../src/cli/commands/run.js"
-import { PiExecutionError } from "../../src/agent/pi-executor.js"
+import { PiExecutionError } from "../../src/executors/pi/pi-executor.js"
 import { EventBusLive } from "../../src/events/bus.js"
 
-vi.mock("../../src/agent/pi-executor.js", () => {
+vi.mock("../../src/executors/pi/pi-executor.js", () => {
   const { Effect: E } = require("effect")
   return {
     executeWithPi: vi.fn(() => E.succeed({ status: "done" })),
@@ -88,7 +88,7 @@ describe("executeRun", () => {
   })
 
   it("returns failed status when executeWithPi fails", async () => {
-    const { executeWithPi } = await import("../../src/agent/pi-executor.js")
+    const { executeWithPi } = await import("../../src/executors/pi/pi-executor.js")
     vi.mocked(executeWithPi).mockImplementationOnce(
       () => Effect.fail(new PiExecutionError({ stepId: "step-1", message: "agent error" }))
     )
