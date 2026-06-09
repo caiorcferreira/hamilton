@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { Effect, Stream } from "effect"
 import { subscribePiEvents, type PiEvent } from "../../../src/executors/pi/streaming.js"
-import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
+import { Event, EventBus, EventBusLive } from "../../../src/events/bus.js"
 
 describe("subscribePiEvents", () => {
   let sessionStats: { inputTokens: number; outputTokens: number }
