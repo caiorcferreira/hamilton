@@ -1,5 +1,5 @@
 import { Effect, Data } from "effect"
-import { EventBus } from "../events/bus.js"
+import { EventBus } from "../../events/bus.js"
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core"
 import {
   AuthStorage,
@@ -10,14 +10,14 @@ import {
   SettingsManager
 } from "@earendil-works/pi-coding-agent"
 import { getModel } from "@earendil-works/pi-ai"
-import { piAgentDir } from "../executors/pi/paths.js"
-import { subscribePiEvents } from "../observability/streaming.js"
+import { piAgentDir } from "./paths.js"
+import { subscribePiEvents } from "./streaming.js"
 
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { createWriteStepOutputTool } from "../executors/pi/write-step-output-tool.js"
+import { createWriteStepOutputTool } from "./write-step-output-tool.js"
 import { createRtkExtension } from "./rtk-extension.js"
-import { stepOutputFile } from "../paths.js"
+import { stepOutputFile } from "../../paths.js"
 
 export interface PiExecutorConfig {
   systemPrompt: string
