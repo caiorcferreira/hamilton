@@ -116,4 +116,67 @@ describe("initHamilton", () => {
       expect.unreachable("Expected success")
     }
   })
+
+  it("creates default Pi config files", async () => {
+    const exit = await Effect.runPromiseExit(initHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+
+    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
+    expect(settings.defaultProvider).toBe("openai")
+    expect(settings.defaultModel).toBe("glm-5.1")
+
+    const models = JSON.parse(Fs.readFileSync(Path.join(agentDir, "models.json"), "utf-8"))
+    expect(models.providers).toEqual({})
+
+    const auth = JSON.parse(Fs.readFileSync(Path.join(agentDir, "auth.json"), "utf-8"))
+    expect(auth).toEqual({})
+  })
+
+  it("does not overwrite existing Pi configs on re-init", async () => {
+    await Effect.runPromiseExit(initHamilton())
+
+    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+    Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
+
+    await Effect.runPromiseExit(initHamilton())
+
+    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
+    expect(settings.defaultProvider).toBe("custom")
+  })
+
+  it("overwrites Pi configs with --force", async () => {
+    await Effect.runPromiseExit(initHamilton())
+
+    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+    Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
+
+    await Effect.runPromiseExit(initHamilton({ force: true }))
+
+    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
+    expect(settings.defaultProvider).toBe("openai")
+  })
+
+  it("copies Pi configs from ~/.pi/agent when --copy-pi-configs is set", async () => {
+    const piSource = Path.join(tmpHome, ".pi", "agent")
+    Fs.mkdirSync(piSource, { recursive: true })
+    Fs.writeFileSync(Path.join(piSource, "settings.json"), JSON.stringify({ defaultProvider: "from-pi", defaultModel: "custom-model" }))
+    Fs.writeFileSync(Path.join(piSource, "models.json"), JSON.stringify({ providers: { openai: {} } }))
+    Fs.writeFileSync(Path.join(piSource, "auth.json"), JSON.stringify({ key: "secret" }))
+
+    await Effect.runPromiseExit(initHamilton({ copyPiConfigs: true }))
+
+    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+
+    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
+    expect(settings.defaultProvider).toBe("from-pi")
+    expect(settings.defaultModel).toBe("custom-model")
+
+    const models = JSON.parse(Fs.readFileSync(Path.join(agentDir, "models.json"), "utf-8"))
+    expect(models.providers).toEqual({ openai: {} })
+
+    const auth = JSON.parse(Fs.readFileSync(Path.join(agentDir, "auth.json"), "utf-8"))
+    expect(auth).toEqual({ key: "secret" })
+  })
 })
