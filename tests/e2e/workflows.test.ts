@@ -23,7 +23,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => ({
   PiExecutionError: class PiExecutionError extends Error {}
 }))
 
-vi.mock("../../src/agent/persona.js", () => {
+vi.mock("../../src/prompts/persona.js", () => {
   const { Effect: E } = require("effect")
   return {
     resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul", identity: "test-identity" })),

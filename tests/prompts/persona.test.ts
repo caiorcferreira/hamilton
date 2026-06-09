@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { resolvePersona, PersonaNotFoundError } from "../../src/agent/persona.js"
+import { resolvePersona, PersonaNotFoundError } from "../../src/prompts/persona.js"
 
 describe("resolvePersona", () => {
   let tmpDir: string

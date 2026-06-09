@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { loadInstructionFiles } from "../../src/agent/instructions.js"
+import { loadInstructionFiles } from "../../src/prompts/instructions.js"
 
 describe("loadInstructionFiles", () => {
   let tmpHome: string

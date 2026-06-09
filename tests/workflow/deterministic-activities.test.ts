@@ -4,7 +4,7 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import { Database } from "bun:sqlite"
 import { Effect, Exit } from "effect"
-import { resolvePersona } from "../../src/agent/persona.js"
+import { resolvePersona } from "../../src/prompts/persona.js"
 import { createSchema } from "../../src/db/schema.js"
 
 function tempDb(): Database {

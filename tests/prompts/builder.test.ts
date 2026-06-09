@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   buildAgentPrompt,
   PromptParams
-} from "../../src/agent/activity.js"
+} from "../../src/prompts/builder.js"
 
 describe("buildAgentPrompt", () => {
   const baseParams: PromptParams = {
@@ -84,5 +84,16 @@ describe("buildAgentPrompt", () => {
     const result = buildAgentPrompt(baseParams)
     expect(result.systemPrompt).toContain("task within a Hamilton workflow")
     expect(result.systemPrompt).toContain("finish your task")
+  })
+
+  it("passes instructionFiles through to BuiltPrompt", () => {
+    const instructions = [{ name: "typescript", content: "Use strict mode" }]
+    const result = buildAgentPrompt(baseParams, instructions)
+    expect(result.instructionFiles).toEqual(instructions)
+  })
+
+  it("defaults instructionFiles to empty array", () => {
+    const result = buildAgentPrompt(baseParams)
+    expect(result.instructionFiles).toEqual([])
   })
 })

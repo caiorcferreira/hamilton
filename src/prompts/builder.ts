@@ -1,6 +1,6 @@
 import type { Prompt, WorkflowAgent } from "../types.js"
 import type { Context } from "../workflow/context.js"
-import { resolveTemplate } from "../workflow/context.js"
+import { resolveTemplate } from "./template.js"
 
 export interface PromptParams {
   agentFile: string
@@ -14,9 +14,13 @@ export interface PromptParams {
 export interface BuiltPrompt {
   systemPrompt: string
   taskPrompt: string
+  instructionFiles: Array<{ name: string; content: string }>
 }
 
-export function buildAgentPrompt(params: PromptParams): BuiltPrompt {
+export function buildAgentPrompt(
+  params: PromptParams,
+  instructionFiles: Array<{ name: string; content: string }> = []
+): BuiltPrompt {
   const systemParts: string[] = []
 
   if (params.identityFile) {
@@ -56,6 +60,7 @@ IMPORTANT:
 
   return {
     systemPrompt: systemParts.join("\n\n"),
-    taskPrompt: resolvedInput
+    taskPrompt: resolvedInput,
+    instructionFiles
   }
 }
