@@ -21,6 +21,17 @@ const compareSemver = (a: string, b: string): number => {
   return 0
 }
 
+function makeBinaryCheck(name: string, binary: string, installHint: string): Effect.Effect<CheckResult> {
+  return Effect.sync(() => {
+    try {
+      const path = ChildProcess.execSync(`which ${binary}`, { encoding: "utf-8" }).trim()
+      return { name, pass: true, detail: path }
+    } catch {
+      return { name, pass: false, detail: `not found (install: ${installHint})` }
+    }
+  })
+}
+
 const checkRtk: Effect.Effect<CheckResult> = Effect.gen(function* () {
   return yield* Effect.sync(() => {
     const rtkPath = (() => {
@@ -52,7 +63,18 @@ const checkRtk: Effect.Effect<CheckResult> = Effect.gen(function* () {
   })
 })
 
-const checks: Array<Effect.Effect<CheckResult>> = [checkRtk]
+const checkLspTs = makeBinaryCheck("lsp-ts", "typescript-language-server", "npm install -g typescript-language-server")
+const checkLspPython = makeBinaryCheck("lsp-py", "pylsp", "pip install python-lsp-server")
+const checkLspGo = makeBinaryCheck("lsp-go", "gopls", "go install golang.org/x/tools/gopls@latest")
+const checkLspJava = makeBinaryCheck("lsp-java", "jdtls", "brew install jdtls")
+
+const checks: Array<Effect.Effect<CheckResult>> = [
+  checkRtk,
+  checkLspTs,
+  checkLspPython,
+  checkLspGo,
+  checkLspJava,
+]
 
 export const doctorCommand = Command.make("doctor", {}, () =>
   Effect.gen(function* () {
