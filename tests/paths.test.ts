@@ -14,7 +14,8 @@ import {
   summaryFile,
   progressDir,
   progressFile,
-  instructionDir
+  instructionDir,
+  settingsPath
 } from "../src/paths.js"
 
 describe("paths", () => {
@@ -110,5 +111,9 @@ describe("paths", () => {
 
   it("instructionDir returns ~/.hamilton/instruction", () => {
     expect(instructionDir()).toBe("/tmp/test-home/.hamilton/instruction")
+  })
+
+  it("settingsPath returns ~/.hamilton/settings.yaml", () => {
+    expect(settingsPath()).toBe("/tmp/test-home/.hamilton/settings.yaml")
   })
 })

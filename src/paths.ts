@@ -55,6 +55,10 @@ export function instructionDir(): string {
   return Path.join(hamiltonHome(), "instruction")
 }
 
+export function settingsPath(): string {
+  return Path.join(hamiltonHome(), "settings.yaml")
+}
+
 export function progressDir(): string {
   return Path.join(process.cwd(), ".hamilton", "workflows")
 }
