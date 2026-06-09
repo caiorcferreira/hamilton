@@ -43,9 +43,10 @@ tasks:
           CHANGES: What files or changes were made
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]

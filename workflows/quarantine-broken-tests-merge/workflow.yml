@@ -105,9 +105,10 @@ tasks:
           BASELINE: <baseline status including test results>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -169,9 +170,10 @@ tasks:
           REASON: <why>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -226,9 +228,10 @@ tasks:
           - Specific issues
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]
@@ -309,9 +312,10 @@ tasks:
           FAILURE: <reason>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]

@@ -60,9 +60,10 @@ tasks:
           TEST_CMD: <command to test>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -110,9 +111,10 @@ tasks:
           - What's wrong
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]

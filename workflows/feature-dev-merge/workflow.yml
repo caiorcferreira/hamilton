@@ -126,9 +126,10 @@ tasks:
           Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -178,9 +179,10 @@ tasks:
           BASELINE: <baseline status>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -255,9 +257,10 @@ tasks:
           TESTS: what tests you wrote
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, failed]
@@ -341,9 +344,10 @@ tasks:
           - What's missing or incomplete
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]
@@ -396,9 +400,10 @@ tasks:
           - Specific test failures or bugs found
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]
@@ -479,9 +484,10 @@ tasks:
           FAILURE: <reason>
       output:
         schema:
-          type: object
-          required: [status]
-          properties:
+          content:
+            type: object
+            required: [status]
+            properties:
             status:
               type: string
               enum: [done, retry, failed]
