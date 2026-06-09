@@ -51,10 +51,6 @@ export function dbPath(): string {
   return Path.join(hamiltonHome(), "hamilton.db")
 }
 
-export function piAgentDir(): string {
-  return Path.join(hamiltonHome(), "executors", "pi", "agent")
-}
-
 export function instructionDir(): string {
   return Path.join(hamiltonHome(), "instruction")
 }
@@ -78,7 +74,7 @@ export function ensureHamiltonHome(): void {
     agentsDir(),
     workflowsDir(),
     runsDir(),
-    piAgentDir(),
+    Path.join(hamiltonHome(), "executors", "pi", "agent"),
     instructionDir()
   ]
   for (const dir of dirs) {

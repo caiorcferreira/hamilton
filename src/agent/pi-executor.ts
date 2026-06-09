@@ -10,7 +10,7 @@ import {
   SettingsManager
 } from "@earendil-works/pi-coding-agent"
 import { getModel } from "@earendil-works/pi-ai"
-import { piAgentDir } from "../paths.js"
+import { piAgentDir } from "../executors/pi/paths.js"
 import { subscribePiEvents } from "../observability/streaming.js"
 
 import * as Fs from "node:fs"
