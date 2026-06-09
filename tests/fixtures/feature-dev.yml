@@ -68,6 +68,15 @@ tasks:
           Decompose the task.
           TASK:
           {{task}}
+      output:
+        schema:
+          content:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [done, failed]
   - name: setup
     dependencies:
       - plan
@@ -107,6 +116,15 @@ tasks:
             escalate_to: human
           prompt:
             content: Implement the story.
+          output:
+            schema:
+              content:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [done, failed]
       - name: test
         dependencies:
           - implement

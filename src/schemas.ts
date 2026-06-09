@@ -47,14 +47,17 @@ const OnFailureSchema = Schema.Struct({
   on_exhausted: Schema.optional(OnExhaustedSchema)
 })
 
-const SchemaConfigSchema = Schema.Struct({
-  content: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
-  file: Schema.optional(Schema.String)
-}).pipe(
-  Schema.filter(
-    (s: any) => s.content || s.file,
-    { message: () => "schema must have at least one of 'content' or 'file'" }
-  )
+const SchemaConfigSchema = Schema.Union(
+  Schema.Struct({
+    content: Schema.Record({ key: Schema.String, value: Schema.Unknown })
+  }),
+  Schema.Struct({
+    file: Schema.String
+  }),
+  Schema.Struct({
+    content: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+    file: Schema.String
+  })
 )
 
 const OutputConfigSchema = Schema.Struct({
