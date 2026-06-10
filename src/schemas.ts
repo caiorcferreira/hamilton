@@ -111,11 +111,18 @@ const RunConfigSchema = Schema.Struct({
   timeout: Schema.String
 })
 
+const VariantsConfigSchema = Schema.optional(
+  Schema.Struct({
+    supported: Schema.Array(Schema.String)
+  })
+)
+
 export const WorkflowSpecSchema = Schema.Struct({
   version: Schema.Number,
   name: Schema.String,
   description: Schema.optional(Schema.String),
   run: RunConfigSchema,
+  variants: VariantsConfigSchema,
   agents: Schema.NonEmptyArray(WorkflowAgentSchema),
   tasks: Schema.Array(WorkflowTaskSchema)
 }).pipe(
