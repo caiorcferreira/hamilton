@@ -21,6 +21,8 @@ import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
 import { loadInstructionFiles } from "../prompts/instructions.js"
+import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
+import { skillsDir } from "../paths.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -67,6 +69,8 @@ export function runWorkflow(
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
 
     const instructionFiles = yield* _(loadInstructionFiles(process.cwd()))
+
+    const skillRegistry = loadSkillRegistry(skillsDir())
 
     const progressFilePath = yield* _(ensureProgressFile(runId))
     const progressContent = Fs.existsSync(progressFilePath)
@@ -134,7 +138,7 @@ export function runWorkflow(
             model,
             outputSchema: outputSchema?.content,
             settings: {
-              skills: resolved.skills,
+              skills: resolveSkills(resolved.skills, skillRegistry),
               thinking: undefined,
               tools: undefined,
               retryOnTransient: undefined,

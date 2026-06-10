@@ -4,11 +4,13 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core"
 import {
   AuthStorage,
   createAgentSession,
+  createSyntheticSourceInfo,
   DefaultResourceLoader,
   ModelRegistry,
   SessionManager,
   SettingsManager
 } from "@earendil-works/pi-coding-agent"
+import type { Skill, ResourceDiagnostic } from "@earendil-works/pi-coding-agent"
 import { getModel } from "@earendil-works/pi-ai"
 import { piAgentDir } from "./paths.js"
 import { subscribePiEvents } from "./streaming.js"
@@ -32,7 +34,7 @@ export interface PiExecutorConfig {
   settings?: {
     thinking?: string
     tools?: string[]
-    skills?: string[] | null
+    skills?: import("../../skills/registry.js").SkillEntry[] | null
     retryOnTransient?: boolean
     compactionEnabled?: boolean
   }
@@ -109,7 +111,8 @@ export function executeWithPi(
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
 
-    const loader = new DefaultResourceLoader({
+    const resolvedSkills = config.settings?.skills ?? null
+    const loaderOptions: any = {
       cwd,
       agentDir,
       systemPromptOverride: () => systemPrompt,
@@ -121,7 +124,30 @@ export function executeWithPi(
       }),
       extensionFactories,
       settingsManager
-    })
+    }
+
+    if (!resolvedSkills || resolvedSkills.length === 0) {
+      loaderOptions.noSkills = true
+    } else {
+      loaderOptions.skillsOverride = (base: { skills: Skill[]; diagnostics: ResourceDiagnostic[] }) => {
+        const skills: Skill[] = resolvedSkills.map((entry) => ({
+          name: entry.name,
+          description: entry.description,
+          filePath: entry.filePath,
+          baseDir: entry.baseDir,
+          sourceInfo: createSyntheticSourceInfo(entry.filePath, {
+            source: "hamilton",
+            scope: "user" as const,
+            origin: "package" as const,
+            baseDir: entry.baseDir
+          }),
+          disableModelInvocation: false
+        }))
+        return { skills, diagnostics: base.diagnostics }
+      }
+    }
+
+    const loader = new DefaultResourceLoader(loaderOptions)
 
     yield* _(Effect.promise(() => loader.reload()))
 
