@@ -7,28 +7,18 @@ describe("resolveWorkflowSlug", () => {
     expect(resolveWorkflowSlug("bug-fix", available)).toBe("bug-fix")
   })
 
-  it("resolves --merge-worktree to -merge-worktree variant", () => {
-    const available = new Set(["bug-fix-merge-worktree"])
-    expect(resolveWorkflowSlug("bug-fix--merge-worktree", available)).toBe("bug-fix-merge-worktree")
-  })
-
-  it("resolves --github-pr to -github-pr variant", () => {
-    const available = new Set(["bug-fix-github-pr"])
-    expect(resolveWorkflowSlug("bug-fix--github-pr", available)).toBe("bug-fix-github-pr")
-  })
-
-  it("falls back to base workflow when no variant matches", () => {
+  it("strips --variants suffix and matches base", () => {
     const available = new Set(["bug-fix"])
-    expect(resolveWorkflowSlug("bug-fix--merge", available)).toBe("bug-fix")
+    expect(resolveWorkflowSlug("bug-fix--variants", available)).toBe("bug-fix")
   })
 
-  it("returns input unchanged when no -- separator", () => {
+  it("returns input unchanged when no match", () => {
+    const available = new Set(["feature"])
+    expect(resolveWorkflowSlug("unknown", available)).toBe("unknown")
+  })
+
+  it("handles input without double-dash", () => {
     const available = new Set(["bug-fix"])
     expect(resolveWorkflowSlug("bug-fix", available)).toBe("bug-fix")
-  })
-
-  it("returns original input when nothing matches", () => {
-    const available = new Set(["feature"])
-    expect(resolveWorkflowSlug("unknown-workflow", available)).toBe("unknown-workflow")
   })
 })

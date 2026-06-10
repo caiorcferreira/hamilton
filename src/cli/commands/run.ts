@@ -1,4 +1,4 @@
-import { Args, Command } from "@effect/cli"
+import { Args, Command, Options } from "@effect/cli"
 import { Console, Effect, Exit, Scope } from "effect"
 import * as Fs from "node:fs"
 import { workflowsDir, hamiltonHome, runDir } from "../../paths.js"
@@ -13,6 +13,7 @@ import { CliRenderer } from "../subscribers.js"
 export interface RunParams {
   workflowSlug: string
   prompt: string
+  variants?: string
 }
 
 export interface RunResult {
@@ -39,8 +40,12 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       }).pipe(Effect.orElseSucceed(() => [] as string[]))
     )
 
+    const activeVariants = params.variants
+      ? params.variants.split(",").map(v => v.trim()).filter(v => v.length > 0)
+      : []
+
     const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
-    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug)
+    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, activeVariants)
 
     const result = yield* _(
       runWorkflow(spec as unknown as WfSpec, { task: params.prompt }, {
@@ -60,8 +65,9 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
 
 const slug = Args.text({ name: "slug" })
 const prompt = Args.text({ name: "prompt" }).pipe(Args.repeated)
+const variants = Options.text("variants").pipe(Options.optional)
 
-export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt }) =>
+export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slug, prompt, variants }) =>
   Effect.gen(function* () {
     const promptText = prompt.join(" ")
     const result = yield* Effect.exit(
@@ -69,7 +75,7 @@ export const runCommand = Command.make("run", { slug, prompt }, ({ slug, prompt 
         Effect.gen(function* () {
           yield* FileLogger
           yield* CliRenderer
-          return yield* executeRun({ workflowSlug: slug, prompt: promptText })
+          return yield* executeRun({ workflowSlug: slug, prompt: promptText, variants: variants._tag === "Some" ? variants.value : undefined })
         })
       ).pipe(Effect.provide(EventBusLive))
     )

@@ -1,36 +1,9 @@
-const VARIANT_SUFFIXES = ["-merge-worktree", "-github-pr", "-merge", "-worktree"] as const
-
-const SUFFIX_MAP: Record<string, string> = {
-  "--merge-worktree": "-merge-worktree",
-  "--github-pr": "-github-pr",
-  "--merge": "-merge",
-  "--worktree": "-worktree"
-}
-
 export function resolveWorkflowSlug(
   input: string,
   available: ReadonlySet<string>
 ): string {
-  if (available.has(input)) return input
-
-  const lastSep = input.lastIndexOf("--")
-  if (lastSep === -1) return input
-
-  const base = input.substring(0, lastSep)
-  const suffix = input.substring(lastSep)
-
-  const mapped = SUFFIX_MAP[suffix]
-  if (mapped !== undefined) {
-    const candidate = base + mapped
-    if (available.has(candidate)) return candidate
-  }
-
-  for (const vs of VARIANT_SUFFIXES) {
-    const candidate = base + vs
-    if (available.has(candidate)) return candidate
-  }
-
+  const idx = input.indexOf("--variants")
+  const base = idx === -1 ? input : input.substring(0, idx)
   if (available.has(base)) return base
-
   return input
 }
