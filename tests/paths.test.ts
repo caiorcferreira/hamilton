@@ -14,7 +14,7 @@ import {
   summaryFile,
   progressDir,
   progressFile,
-  instructionDir,
+  guidelinesDir,
   settingsPath,
   skillsDir
 } from "../src/paths.js"
@@ -110,8 +110,8 @@ describe("paths", () => {
     }
   })
 
-  it("instructionDir returns ~/.hamilton/instruction", () => {
-    expect(instructionDir()).toBe("/tmp/test-home/.hamilton/instruction")
+  it("guidelinesDir returns ~/.hamilton/guidelines", () => {
+    expect(guidelinesDir()).toBe("/tmp/test-home/.hamilton/guidelines")
   })
 
   it("settingsPath returns ~/.hamilton/settings.yaml", () => {
