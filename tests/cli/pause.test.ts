@@ -8,20 +8,24 @@ import { createWorkflowRuntime } from "../../src/workflow/run-state-machine.js"
 import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 const makeAgentManifest = (name: string): AgentManifest => ({
-  name,
+  metadata: { name },
   dirPath: `/agents/${name}`,
-  settings: { model: "default" },
+  spec: {
+    settings: { model: "default" },
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  },
   systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
 })
 
 const makeSpec = (): WorkflowSpec => ({
-  name: "test-wf",
-  version: 1,
-  run: { entrypoint: "step1", timeout: "300s" },
+  metadata: { name: "test-wf", version: 1 },
+  spec: {
+    run: { entrypoint: "step1", timeout: "300s" },
+    tasks: [{ name: "step1", agent: { executorRef: "a", prompt: { content: "do it" } } }]
+  },
   agentRegistry: new Map([
     ["a", makeAgentManifest("a")]
-  ]),
-  tasks: [{ name: "step1", agent: { executorRef: "a", prompt: { content: "do it" } } }]
+  ])
 })
 
 describe("pauseWorkflow", () => {

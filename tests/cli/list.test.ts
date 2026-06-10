@@ -5,25 +5,29 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { listWorkflows } from "../../src/cli/commands/list.js"
 
-const validYaml = (name: string, desc?: string) => `name: ${name}
-version: 1
-${desc ? `description: "${desc}"` : ""}
-run:
-  entrypoint: step-1
-  timeout: 300s
-tasks:
-  - name: step-1
-    agent:
-      executorRef: agent-1
-      prompt:
-        content: "Do stuff"
+const validYaml = (name: string, desc?: string) => `apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: ${name}
+  version: 1
+  ${desc ? `description: "${desc}"` : ""}
+spec:
+  run:
+    entrypoint: step-1
+    timeout: 300s
+  tasks:
+    - name: step-1
+      agent:
+        executorRef: agent-1
+        prompt:
+          content: "Do stuff"
 `
 
 function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
   Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(dir, "agent.yml"), `name: ${name}\nsettings:\n  model: default\n`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 
 describe("listWorkflows", () => {

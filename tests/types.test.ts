@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest"
 import type {
   WorkflowSpec,
-  WorkflowAgent,
+  AgentManifest,
   WorkflowTask,
-  AgentRole,
   AgentName,
   TaskName,
   RunId,
@@ -19,24 +18,27 @@ import type {
 
 describe("types", () => {
   it("should exist as type-level exports", () => {
-    const role: AgentRole = "analysis"
-    expect(role).toBe("analysis")
-
-    const agent: WorkflowAgent = {
-      name: "planner",
-      role: "analysis",
-      description: "Decomposes tasks",
-      settings: {
-        model: "deepseek-v4-pro-official",
+    const agent: AgentManifest = {
+      metadata: { name: "planner" },
+      dirPath: "/agents/planner",
+      spec: {
+        settings: {
+          model: "deepseek-v4-pro-official",
+          skills: ["hamilton-agents"]
+        },
         systemPrompt: {
           agent: "agents/planner/AGENTS.md",
           soul: "agents/planner/SOUL.md",
           identity: "agents/planner/IDENTITY.md"
-        },
-        skills: ["hamilton-agents"]
+        }
+      },
+      systemPrompt: {
+        agent: "agents/planner/AGENTS.md",
+        soul: "agents/planner/SOUL.md",
+        identity: "agents/planner/IDENTITY.md"
       }
     }
-    expect(agent.name).toBe("planner")
+    expect(agent.metadata.name).toBe("planner")
 
     const onFailure: OnFailure = {
       max_retries: 4,
@@ -48,10 +50,10 @@ describe("types", () => {
       name: "plan",
       dependencies: [],
       agent: {
-        ref: "agents.planner",
+        executorRef: "planner",
         timeout: { fixed: "300s" },
         on_failure: onFailure,
-        output: { schema: { type: "object", properties: {} } },
+        output: { schema: { content: { type: "object", properties: {} } } },
         prompt: { content: "Do the thing {{task}}" }
       }
     }
@@ -64,13 +66,14 @@ describe("types", () => {
     expect(runConfig.entrypoint).toBe("plan")
 
     const spec: WorkflowSpec = {
-      version: 1,
-      name: "feature-dev",
-      run: runConfig,
-      agents: [agent],
-      tasks: [task]
+      metadata: { version: 1, name: "feature-dev" },
+      spec: {
+        run: runConfig,
+        tasks: [task]
+      },
+      agentRegistry: new Map()
     }
-    expect(spec.version).toBe(1)
+    expect(spec.metadata.version).toBe(1)
   })
 
   it("WorkflowTask with template and forEach", () => {
@@ -96,8 +99,8 @@ describe("types", () => {
     const task: WorkflowTask = {
       name: "develop",
       tasks: [
-        { name: "implement", agent: { ref: "agents.developer", prompt: { content: "Implement" } } },
-        { name: "test", dependencies: ["implement"], agent: { ref: "agents.tester", prompt: { content: "Test" } } }
+        { name: "implement", agent: { executorRef: "developer", prompt: { content: "Implement" } } },
+        { name: "test", dependencies: ["implement"], agent: { executorRef: "tester", prompt: { content: "Test" } } }
       ]
     }
     expect(task.tasks).toHaveLength(2)

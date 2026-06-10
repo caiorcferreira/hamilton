@@ -1,151 +1,155 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
-name: quarantine-broken-tests
-version: 2
-description: |
-  Detect failing tests, disable them minimally, and iterate until the full
-  test suite passes. Useful for establishing a clean baseline on a branch
-  with known test failures before starting other work.
-
-  Setup prepares the environment and establishes the baseline (build + test).
-  Quarantiner runs the test suite, identifies failing tests, disables them
-  with the least invasive technique (.skip, decorator, comment), and iterates
-  until all tests pass. If no failures on first run, runs a second time to
-  catch flaky tests. Verifier confirms the suite is clean and only test
-  files were modified.
-
-  This is a local-only pipeline — no merge, no PR. Use
-  quarantine-broken-tests-merge to squash-merge the quarantined results back
-  into the original branch.
-run:
-  entrypoint: setup
-  timeout: 300s
-
-variants:
-  supported: [branchout, merge, worktree]
-
-tasks:
-  - name: setup
-    dependencies: []
-    agent:
-      executorRef: setup
-      prompt:
-        content: |
-          Prepare the environment for test quarantine.
-
-          TASK:
-          {{task}}
-
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
-
-          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-          {{retry_feedback}}
-
-          Instructions:
-          1. cd into the repo
-          2. Read package.json, CI config, test config to understand the build/test setup
-          3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-          4. Run the build to establish a baseline
-          5. Run the tests to establish a baseline (note which tests fail — the quarantiner will handle them)
-          6. Report what you found
-
-          Reply with:
-          STATUS: done
-          BUILD_CMD: <build command>
-          TEST_CMD: <test command>
-          CI_NOTES: <brief CI notes>
-          BASELINE: <baseline status including test results>
-      output:
-        schema:
-          file: schemas/setup.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: quarantine
-    dependencies: [setup]
-    agent:
-      executorRef: quarantiner
-      prompt:
-        content: |
-          Find and disable failing tests until the test suite passes.
-
-          TASK:
-          {{task}}
-
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
-          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-
-          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-          {{retry_feedback}}
-
-          Instructions:
-          1. cd into the repo and ensure you're on {{tasks.setup.outputs.branch}}
-          2. Run {{tasks.setup.outputs.build_cmd}} to confirm the project builds
-          3. Run {{tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
-          4. If zero failures on first run, run one more time to catch flaky tests
-          5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-          6. Run {{tasks.setup.outputs.test_cmd}} after each batch of changes
-          7. Iterate until all tests pass — then run one final time to confirm stability
-          8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
-
-          Reply with:
-          STATUS: done
-          DISABLED: <count>
-          FILES_CHANGED: <count>
-          SUMMARY: <what was disabled and why>
-
-          If unable to achieve clean suite after 5 iterations:
-          STATUS: failed
-          REASON: <why>
-      output:
-        schema:
-          file: schemas/quarantine.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: verify
-    dependencies: [quarantine]
-    agent:
-      executorRef: qa-verifier
-      prompt:
-        content: |
-          Verify the quarantiner's work — confirm all tests pass and only test files were modified.
-
-          TASK:
-          {{task}}
-
-          REPO: {{tasks.setup.outputs.repo}}
-          BRANCH: {{tasks.setup.outputs.branch}}
-          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-          DISABLED: {{disabled}}
-          SUMMARY: {{summary}}
-
-          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-          {{retry_feedback}}
-
-          Check:
-          1. Run {{tasks.setup.outputs.build_cmd}} — build must pass
-          2. Run {{tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
-          3. Run {{tasks.setup.outputs.test_cmd}} a second time — confirm stability
-          4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
-          5. Verify each disabled test has an explanatory comment
-
-          Reply with:
-          STATUS: done
-          VERIFIED: What you confirmed
-
-          Or if issues found:
-          STATUS: retry
-          ISSUES:
-          - Specific issues
-      output:
-        schema:
-          file: schemas/verify.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: quarantine-broken-tests
+  version: 2
+  description: |
+    Detect failing tests, disable them minimally, and iterate until the full
+    test suite passes. Useful for establishing a clean baseline on a branch
+    with known test failures before starting other work.
+  
+    Setup prepares the environment and establishes the baseline (build + test).
+    Quarantiner runs the test suite, identifies failing tests, disables them
+    with the least invasive technique (.skip, decorator, comment), and iterates
+    until all tests pass. If no failures on first run, runs a second time to
+    catch flaky tests. Verifier confirms the suite is clean and only test
+    files were modified.
+  
+    This is a local-only pipeline — no merge, no PR. Use
+    quarantine-broken-tests-merge to squash-merge the quarantined results back
+    into the original branch.
+spec:
+  run:
+    entrypoint: setup
+    timeout: 300s
+  
+  variants:
+    supported: [branchout, merge, worktree]
+  
+  tasks:
+    - name: setup
+      dependencies: []
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Prepare the environment for test quarantine.
+  
+            TASK:
+            {{task}}
+  
+            REPO: {{tasks.setup.outputs.repo}}
+            BRANCH: {{tasks.setup.outputs.branch}}
+  
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+  
+            Instructions:
+            1. cd into the repo
+            2. Read package.json, CI config, test config to understand the build/test setup
+            3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+            4. Run the build to establish a baseline
+            5. Run the tests to establish a baseline (note which tests fail — the quarantiner will handle them)
+            6. Report what you found
+  
+            Reply with:
+            STATUS: done
+            BUILD_CMD: <build command>
+            TEST_CMD: <test command>
+            CI_NOTES: <brief CI notes>
+            BASELINE: <baseline status including test results>
+        output:
+          schema:
+            file: schemas/setup.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: quarantine
+      dependencies: [setup]
+      agent:
+        executorRef: quarantiner
+        prompt:
+          content: |
+            Find and disable failing tests until the test suite passes.
+  
+            TASK:
+            {{task}}
+  
+            REPO: {{tasks.setup.outputs.repo}}
+            BRANCH: {{tasks.setup.outputs.branch}}
+            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+  
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+  
+            Instructions:
+            1. cd into the repo and ensure you're on {{tasks.setup.outputs.branch}}
+            2. Run {{tasks.setup.outputs.build_cmd}} to confirm the project builds
+            3. Run {{tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
+            4. If zero failures on first run, run one more time to catch flaky tests
+            5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
+            6. Run {{tasks.setup.outputs.test_cmd}} after each batch of changes
+            7. Iterate until all tests pass — then run one final time to confirm stability
+            8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
+  
+            Reply with:
+            STATUS: done
+            DISABLED: <count>
+            FILES_CHANGED: <count>
+            SUMMARY: <what was disabled and why>
+  
+            If unable to achieve clean suite after 5 iterations:
+            STATUS: failed
+            REASON: <why>
+        output:
+          schema:
+            file: schemas/quarantine.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: verify
+      dependencies: [quarantine]
+      agent:
+        executorRef: qa-verifier
+        prompt:
+          content: |
+            Verify the quarantiner's work — confirm all tests pass and only test files were modified.
+  
+            TASK:
+            {{task}}
+  
+            REPO: {{tasks.setup.outputs.repo}}
+            BRANCH: {{tasks.setup.outputs.branch}}
+            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            DISABLED: {{disabled}}
+            SUMMARY: {{summary}}
+  
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+  
+            Check:
+            1. Run {{tasks.setup.outputs.build_cmd}} — build must pass
+            2. Run {{tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
+            3. Run {{tasks.setup.outputs.test_cmd}} a second time — confirm stability
+            4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
+            5. Verify each disabled test has an explanatory comment
+  
+            Reply with:
+            STATUS: done
+            VERIFIED: What you confirmed
+  
+            Or if issues found:
+            STATUS: retry
+            ISSUES:
+            - Specific issues
+        output:
+          schema:
+            file: schemas/verify.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human

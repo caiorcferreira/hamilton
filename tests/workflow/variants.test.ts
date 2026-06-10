@@ -3,16 +3,21 @@ import { composeVariants, UnsupportedVariantError } from "../../src/workflow/var
 import type { AgentManifest, WorkflowSpec, WorkflowTask } from "../../src/types.js"
 
 function baseSpec(tasks: WorkflowTask[]): WorkflowSpec {
-  const agentRegistry = new Map<string, AgentManifest>([
-    ["setup", { name: "setup", dirPath: "/agents/setup", settings: { model: "default" }, systemPrompt: { agent: "AGENTS.md", soul: "SOUL.md", identity: "IDENTITY.md" } }]
-  ])
+  const agent: AgentManifest = {
+    metadata: { name: "setup" },
+    dirPath: "/agents/setup",
+    spec: { settings: { model: "default" }, systemPrompt: { agent: "AGENTS.md", soul: "SOUL.md", identity: "IDENTITY.md" } },
+    systemPrompt: { agent: "AGENTS.md", soul: "SOUL.md", identity: "IDENTITY.md" }
+  }
+  const agentRegistry = new Map<string, AgentManifest>([["setup", agent]])
   return {
-    version: 1,
-    name: "test-wf",
-    run: { entrypoint: "plan", timeout: "300s" },
-    variants: { supported: ["branchout", "worktree", "merge"] },
-    agentRegistry,
-    tasks
+    metadata: { version: 1, name: "test-wf" },
+    spec: {
+      run: { entrypoint: "plan", timeout: "300s" },
+      variants: { supported: ["branchout", "worktree", "merge"] },
+      tasks
+    },
+    agentRegistry
   }
 }
 
@@ -22,7 +27,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, [])
-    expect(result.tasks.map(t => t.name)).toEqual(["plan"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["plan"])
   })
 
   it("injects start task before entrypoint", () => {
@@ -30,7 +35,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["branchout"])
-    expect(result.tasks.map(t => t.name)).toEqual(["create-branch", "plan"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-branch", "plan"])
   })
 
   it("injects end task after DAG leaves", () => {
@@ -38,7 +43,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["merge"])
-    expect(result.tasks.map(t => t.name)).toEqual(["plan", "finalize-merge"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["plan", "finalize-merge"])
   })
 
   it("applies replaces: worktree supersedes branchout", () => {
@@ -46,7 +51,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["branchout", "worktree"])
-    expect(result.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
   })
 
   it("chains multiple end tasks in supported order", () => {
@@ -54,7 +59,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["merge", "worktree"])
-    expect(result.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree", "finalize-merge"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree", "finalize-merge"])
   })
 
   it("throws on unsupported variant", () => {
@@ -69,16 +74,16 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["worktree", "branchout"])
-    expect(result.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
   })
 
   it("does not mutate input spec", () => {
     const spec = baseSpec([
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
-    const originalTaskCount = spec.tasks.length
+    const originalTaskCount = spec.spec.tasks.length
     composeVariants(spec, spec.agentRegistry, ["merge"])
-    expect(spec.tasks.length).toBe(originalTaskCount)
+    expect(spec.spec.tasks.length).toBe(originalTaskCount)
   })
 
   it("handles DAG with branching leaves", () => {
@@ -88,8 +93,8 @@ describe("composeVariants", () => {
       { name: "task-b", dependencies: ["plan"], agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["merge"])
-    expect(result.tasks.map(t => t.name)).toEqual(["plan", "task-a", "task-b", "finalize-merge"])
-    const mergeTask = result.tasks.find(t => t.name === "finalize-merge")
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["plan", "task-a", "task-b", "finalize-merge"])
+    const mergeTask = result.spec.tasks.find(t => t.name === "finalize-merge")
     expect(mergeTask!.dependencies).toEqual(["task-a", "task-b"])
   })
 })

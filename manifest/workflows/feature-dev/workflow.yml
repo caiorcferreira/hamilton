@@ -1,275 +1,279 @@
 # Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
 # session with clean context. Memory persists via git history and progress files.
-name: feature-dev
-version: 6
-description: |
-  Plan, implement, test, and verify features story-by-story in a local-only pipeline without merge or PR.
-  Story-based execution pipeline for local-only repos. Planner decomposes tasks
-  into user stories. Setup prepares the environment and establishes baseline.
-  Developer implements each story (with tests) in a fresh session. Verifier
-  checks each story. Then integration/E2E testing.
-
-  Stops after testing — does NOT create a pull request or run code review.
-  Use this workflow when the repo has no remote (or no `gh` CLI), or when you
-  just want the work committed locally on a feature branch. For the full
-  PR-creating pipeline, use `feature-dev-github-pr`.
-run:
-  entrypoint: plan
-  timeout: 300s
-
-variants:
-  supported: [branchout, merge, worktree, github_pr]
-
-tasks:
-  - name: plan
-    dependencies: []
-    agent:
-      executorRef: planner
-      prompt:
-        content: |
-          Decompose the following task into ordered user stories for autonomous execution.
-
-          TASK:
-          {{task}}
-
-          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-          {{retry_feedback}}
-
-          Instructions:
-          1. Explore the codebase to understand the stack, conventions, and patterns
-          2. Break the task into small user stories (max 20)
-          3. Order by dependency: schema/DB first, backend, frontend, integration
-          4. Each story must fit in one developer session (one context window)
-          5. Every acceptance criterion must be mechanically verifiable
-          6. Always include "Typecheck passes" as the last criterion in every story
-          7. Every story MUST include test criteria — "Tests for [feature] pass"
-          8. The developer is expected to write tests as part of each story
-
-          Reply with:
-          STATUS: done
-          REPO: /path/to/repo
-          BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the create-branch step will `git checkout -b` this name>
-          STORIES_JSON: [ ... array of story objects ... ]
-
-          The STORIES_JSON line is REQUIRED and MUST be a literal JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
-          STORIES_JSON: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
-          Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
-      output:
-        schema:
-          file: schemas/plan.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: setup
-    dependencies: [plan]
-    agent:
-      executorRef: setup
-      prompt:
-        content: |
-          Prepare the development environment for this feature.
-
-          TASK:
-          {{task}}
-
-          REPO: {{tasks.plan.outputs.repo}}
-          BRANCH: {{tasks.plan.outputs.branch}}
-
-          RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
-          {{retry_feedback}}
-
-          Instructions:
-          1. cd into the repo
-          2. Read package.json, CI config, test config to understand the build/test setup
-          3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-          4. Run the build to establish a baseline
-          5. Run the tests to establish a baseline
-          6. Report what you found
-
-          Reply with:
-          STATUS: done
-          BUILD_CMD: <build command>
-          TEST_CMD: <test command>
-          CI_NOTES: <brief CI notes>
-          BASELINE: <baseline status>
-      output:
-        schema:
-          file: schemas/setup.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: implement-stories
-    dependencies: [setup]
-    template: implement-story
-    forEach:
-      valueFrom:
-        ref: tasks.plan.outputs.stories_json
-      as: current_story
-
-  - name: implement-story
-    agent:
-      executorRef: developer
-      prompt:
-        content: |
-          Implement the following user story. You are working on ONE story in a fresh session.
-
-          TASK (overall):
-          {{task}}
-
-          REPO: {{tasks.plan.outputs.repo}}
-          BRANCH: {{tasks.plan.outputs.branch}}
-          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-
-          CURRENT STORY:
-          {{vars.current_story}}
-
-          COMPLETED STORIES:
-          {{completed_stories}}
-
-          STORIES REMAINING: {{stories_remaining}}
-
-          VERIFY FEEDBACK (if retrying):
-          {{verify_feedback}}
-
-          TIMEOUT RETRY (if previous attempt timed out):
-          {{timeout_retry}}
-
-          PROGRESS LOG:
-          {{progress}}
-
-          Instructions:
-          1. Read {{progress_file}} — especially the Codebase Patterns section
-          2. Pull latest on the branch
-          3. Implement this story only
-          4. Write tests for this story's functionality
-          5. Run typecheck / build
-          6. Run tests to confirm they pass
-          7. Commit: feat: {{vars.current_story.id}} - {{vars.current_story.title}}
-          8. Rewrite {{progress_file}} with updated story results and patterns
-          9. Update Codebase Patterns if you found reusable patterns
-
-          Reply with:
-          STATUS: done
-          CHANGES: what you implemented
-          TESTS: what tests you wrote
-      output:
-        schema:
-          file: schemas/implement-story.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: verify-stories
-    dependencies: [implement-stories]
-    template: verify-story
-    forEach:
-      valueFrom:
-        ref: tasks.plan.outputs.stories_json
-      as: current_story
-
-  - name: verify-story
-    agent:
-      executorRef: verifier
-      prompt:
-        content: |
-          Verify the developer's work on this story.
-
-          TASK (overall):
-          {{task}}
-
-          REPO: {{tasks.plan.outputs.repo}}
-          BRANCH: {{tasks.plan.outputs.branch}}
-          CHANGES: {{changes}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-
-          CURRENT STORY:
-          {{vars.current_story}}
-
-          PROGRESS LOG:
-          {{progress}}
-
-          Check:
-          1. Code exists (not just TODOs or placeholders)
-          2. Each acceptance criterion for the story is met
-          3. Tests were written for this story's functionality
-          4. Tests pass (run {{tasks.setup.outputs.test_cmd}})
-          5. No obvious incomplete work
-          6. Typecheck passes
-
-          ## Visual Verification (Frontend Changes)
-          Has frontend changes: {{has_frontend_changes}}
-
-          If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
-          1. Use the agent-browser skill to visually inspect the changed UI
-          2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
-          3. Take a screenshot of the rendered page
-          4. Visually confirm:
-             - Layout renders correctly (no broken/overlapping elements)
-             - Styling is applied as expected (colors, fonts, spacing)
-             - All visible elements from the story are present and properly positioned
-             - No missing images, icons, or visual assets
-             - Text is readable and not clipped or hidden
-          5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
-          6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
-          7. Include your visual findings in VERIFIED output
-
-          If {{has_frontend_changes}} is 'false', skip visual verification entirely.
-
-          Reply with:
-          STATUS: done
-          VERIFIED: What you confirmed
-
-          Or if incomplete:
-          STATUS: retry
-          ISSUES:
-          - What's missing or incomplete
-      output:
-        schema:
-          file: schemas/verify-story.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
-
-  - name: test
-    dependencies: [verify-stories]
-    agent:
-      executorRef: tester
-      prompt:
-        content: |
-          Integration and E2E testing of the implementation.
-
-          TASK:
-          {{task}}
-
-          REPO: {{tasks.plan.outputs.repo}}
-          BRANCH: {{tasks.plan.outputs.branch}}
-          CHANGES: {{changes}}
-          BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-          TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-
-          PROGRESS LOG:
-          {{progress}}
-
-          Your job (integration/E2E testing — unit tests were already written per-story):
-          1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) to confirm everything passes together
-          2. Look for integration issues between stories
-          3. If this is a UI feature, use agent-browser to test it end-to-end
-          4. Check cross-cutting concerns: error handling, edge cases across features
-          5. Verify the overall feature works as a cohesive whole
-
-          Reply with:
-          STATUS: done
-          RESULTS: What you tested and the outcomes
-
-          Or if issues found:
-          STATUS: retry
-          FAILURES:
-          - Specific test failures or bugs found
-      output:
-        schema:
-          file: schemas/test.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: feature-dev
+  version: 6
+  description: |
+    Plan, implement, test, and verify features story-by-story in a local-only pipeline without merge or PR.
+    Story-based execution pipeline for local-only repos. Planner decomposes tasks
+    into user stories. Setup prepares the environment and establishes baseline.
+    Developer implements each story (with tests) in a fresh session. Verifier
+    checks each story. Then integration/E2E testing.
+  
+    Stops after testing — does NOT create a pull request or run code review.
+    Use this workflow when the repo has no remote (or no `gh` CLI), or when you
+    just want the work committed locally on a feature branch. For the full
+    PR-creating pipeline, use `feature-dev-github-pr`.
+spec:
+  run:
+    entrypoint: plan
+    timeout: 300s
+  
+  variants:
+    supported: [branchout, merge, worktree, github_pr]
+  
+  tasks:
+    - name: plan
+      dependencies: []
+      agent:
+        executorRef: planner
+        prompt:
+          content: |
+            Decompose the following task into ordered user stories for autonomous execution.
+  
+            TASK:
+            {{task}}
+  
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+  
+            Instructions:
+            1. Explore the codebase to understand the stack, conventions, and patterns
+            2. Break the task into small user stories (max 20)
+            3. Order by dependency: schema/DB first, backend, frontend, integration
+            4. Each story must fit in one developer session (one context window)
+            5. Every acceptance criterion must be mechanically verifiable
+            6. Always include "Typecheck passes" as the last criterion in every story
+            7. Every story MUST include test criteria — "Tests for [feature] pass"
+            8. The developer is expected to write tests as part of each story
+  
+            Reply with:
+            STATUS: done
+            REPO: /path/to/repo
+            BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the create-branch step will `git checkout -b` this name>
+            STORIES_JSON: [ ... array of story objects ... ]
+  
+            The STORIES_JSON line is REQUIRED and MUST be a literal JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
+            STORIES_JSON: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
+            Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
+        output:
+          schema:
+            file: schemas/plan.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: setup
+      dependencies: [plan]
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Prepare the development environment for this feature.
+  
+            TASK:
+            {{task}}
+  
+            REPO: {{tasks.plan.outputs.repo}}
+            BRANCH: {{tasks.plan.outputs.branch}}
+  
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+  
+            Instructions:
+            1. cd into the repo
+            2. Read package.json, CI config, test config to understand the build/test setup
+            3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+            4. Run the build to establish a baseline
+            5. Run the tests to establish a baseline
+            6. Report what you found
+  
+            Reply with:
+            STATUS: done
+            BUILD_CMD: <build command>
+            TEST_CMD: <test command>
+            CI_NOTES: <brief CI notes>
+            BASELINE: <baseline status>
+        output:
+          schema:
+            file: schemas/setup.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: implement-stories
+      dependencies: [setup]
+      template: implement-story
+      forEach:
+        valueFrom:
+          ref: tasks.plan.outputs.stories_json
+        as: current_story
+  
+    - name: implement-story
+      agent:
+        executorRef: developer
+        prompt:
+          content: |
+            Implement the following user story. You are working on ONE story in a fresh session.
+  
+            TASK (overall):
+            {{task}}
+  
+            REPO: {{tasks.plan.outputs.repo}}
+            BRANCH: {{tasks.plan.outputs.branch}}
+            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+  
+            CURRENT STORY:
+            {{vars.current_story}}
+  
+            COMPLETED STORIES:
+            {{completed_stories}}
+  
+            STORIES REMAINING: {{stories_remaining}}
+  
+            VERIFY FEEDBACK (if retrying):
+            {{verify_feedback}}
+  
+            TIMEOUT RETRY (if previous attempt timed out):
+            {{timeout_retry}}
+  
+            PROGRESS LOG:
+            {{progress}}
+  
+            Instructions:
+            1. Read {{progress_file}} — especially the Codebase Patterns section
+            2. Pull latest on the branch
+            3. Implement this story only
+            4. Write tests for this story's functionality
+            5. Run typecheck / build
+            6. Run tests to confirm they pass
+            7. Commit: feat: {{vars.current_story.id}} - {{vars.current_story.title}}
+            8. Rewrite {{progress_file}} with updated story results and patterns
+            9. Update Codebase Patterns if you found reusable patterns
+  
+            Reply with:
+            STATUS: done
+            CHANGES: what you implemented
+            TESTS: what tests you wrote
+        output:
+          schema:
+            file: schemas/implement-story.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: verify-stories
+      dependencies: [implement-stories]
+      template: verify-story
+      forEach:
+        valueFrom:
+          ref: tasks.plan.outputs.stories_json
+        as: current_story
+  
+    - name: verify-story
+      agent:
+        executorRef: verifier
+        prompt:
+          content: |
+            Verify the developer's work on this story.
+  
+            TASK (overall):
+            {{task}}
+  
+            REPO: {{tasks.plan.outputs.repo}}
+            BRANCH: {{tasks.plan.outputs.branch}}
+            CHANGES: {{changes}}
+            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+  
+            CURRENT STORY:
+            {{vars.current_story}}
+  
+            PROGRESS LOG:
+            {{progress}}
+  
+            Check:
+            1. Code exists (not just TODOs or placeholders)
+            2. Each acceptance criterion for the story is met
+            3. Tests were written for this story's functionality
+            4. Tests pass (run {{tasks.setup.outputs.test_cmd}})
+            5. No obvious incomplete work
+            6. Typecheck passes
+  
+            ## Visual Verification (Frontend Changes)
+            Has frontend changes: {{has_frontend_changes}}
+  
+            If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
+            1. Use the agent-browser skill to visually inspect the changed UI
+            2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
+            3. Take a screenshot of the rendered page
+            4. Visually confirm:
+               - Layout renders correctly (no broken/overlapping elements)
+               - Styling is applied as expected (colors, fonts, spacing)
+               - All visible elements from the story are present and properly positioned
+               - No missing images, icons, or visual assets
+               - Text is readable and not clipped or hidden
+            5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
+            6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
+            7. Include your visual findings in VERIFIED output
+  
+            If {{has_frontend_changes}} is 'false', skip visual verification entirely.
+  
+            Reply with:
+            STATUS: done
+            VERIFIED: What you confirmed
+  
+            Or if incomplete:
+            STATUS: retry
+            ISSUES:
+            - What's missing or incomplete
+        output:
+          schema:
+            file: schemas/verify-story.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: test
+      dependencies: [verify-stories]
+      agent:
+        executorRef: tester
+        prompt:
+          content: |
+            Integration and E2E testing of the implementation.
+  
+            TASK:
+            {{task}}
+  
+            REPO: {{tasks.plan.outputs.repo}}
+            BRANCH: {{tasks.plan.outputs.branch}}
+            CHANGES: {{changes}}
+            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+  
+            PROGRESS LOG:
+            {{progress}}
+  
+            Your job (integration/E2E testing — unit tests were already written per-story):
+            1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) to confirm everything passes together
+            2. Look for integration issues between stories
+            3. If this is a UI feature, use agent-browser to test it end-to-end
+            4. Check cross-cutting concerns: error handling, edge cases across features
+            5. Verify the overall feature works as a cohesive whole
+  
+            Reply with:
+            STATUS: done
+            RESULTS: What you tested and the outcomes
+  
+            Or if issues found:
+            STATUS: retry
+            FAILURES:
+            - Specific test failures or bugs found
+        output:
+          schema:
+            file: schemas/test.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human

@@ -1,6 +1,5 @@
 import { Args, Command } from "@effect/cli"
 import { Console, Effect, Exit } from "effect"
-import { Schema } from "@effect/schema"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
@@ -8,18 +7,16 @@ import { hamiltonHome, runDir, workflowsDir } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { collectReachableTasks, topologicalSort } from "../../workflow/engine.js"
 import type { WorkflowSpec } from "../../types.js"
-import { WorkflowSpecSchema } from "../../schemas.js"
 import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 
 export type RunStatus = import("../../workflow/state.js").RunStatus
-type DecodedSpec = Schema.Schema.Type<typeof WorkflowSpecSchema>
 
 export interface GetRunStatusOpts {
   runId: string
   loadSpec?: boolean
 }
 
-export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<{ status: RunStatus; spec: DecodedSpec | null }, RunStateError> {
+export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<{ status: RunStatus; spec: WorkflowSpec | null }, RunStateError> {
   return Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new RunStateError({
@@ -30,7 +27,7 @@ export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<{ status: Ru
 
     const status = yield* _(loadRunState(opts.runId))
 
-    let spec: DecodedSpec | null = null
+    let spec: WorkflowSpec | null = null
     if (opts.loadSpec) {
       const wfDir = workflowsDir()
       const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
@@ -100,7 +97,7 @@ function parseTaskSlug(taskId: string, runId: string): string {
   return slug
 }
 
-export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
+export function formatStatus(status: RunStatus, spec?: WorkflowSpec): string {
   const lines: string[] = []
 
   const elapsed = computeElapsed(status.startedAt, status.completedAt)
@@ -126,7 +123,7 @@ export function formatStatus(status: RunStatus, spec?: DecodedSpec): string {
   }))
 
   if (spec) {
-    const staticTasks = collectReachableTasks(spec.tasks as WorkflowSpec["tasks"], spec.run.entrypoint)
+    const staticTasks = collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint)
     const sorted = topologicalSort(staticTasks)
     const orderMap = new Map<string, number>()
     sorted.forEach((t, i) => orderMap.set(t.name, i))

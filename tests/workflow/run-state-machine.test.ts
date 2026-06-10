@@ -8,24 +8,28 @@ import { getRunById, getTasksByRunId } from "../../src/db/queries.js"
 import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 const makeAgentManifest = (name: string): AgentManifest => ({
-  name,
+  metadata: { name },
   dirPath: `/agents/${name}`,
-  settings: { model: "default" },
+  spec: {
+    settings: { model: "default" },
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  },
   systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
 })
 
 const makeSpec = (): WorkflowSpec => ({
-  name: "test-wf",
-  version: 1,
-  run: { entrypoint: "task-1", timeout: "300s" },
+  metadata: { name: "test-wf", version: 1 },
+  spec: {
+    run: { entrypoint: "task-1", timeout: "300s" },
+    tasks: [
+      { name: "task-1", agent: { executorRef: "agent-a", prompt: { content: "do it" } } },
+      { name: "task-2", agent: { executorRef: "agent-b", prompt: { content: "check it" } } }
+    ]
+  },
   agentRegistry: new Map([
     ["agent-a", makeAgentManifest("agent-a")],
     ["agent-b", makeAgentManifest("agent-b")]
-  ]),
-  tasks: [
-    { name: "task-1", agent: { executorRef: "agent-a", prompt: { content: "do it" } } },
-    { name: "task-2", agent: { executorRef: "agent-b", prompt: { content: "check it" } } }
-  ]
+  ])
 })
 
 describe("WorkflowRuntime state machine", () => {

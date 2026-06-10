@@ -216,7 +216,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
 function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agentName: string }> {
   const result: Array<{ taskName: string; agentName: string }> = []
 
-  function walk(tasks: WorkflowSpec["tasks"]): void {
+  function walk(tasks: WorkflowSpec["spec"]["tasks"]): void {
     for (const t of tasks) {
       if (t.agent) {
         result.push({ taskName: t.name, agentName: t.agent.executorRef })
@@ -227,7 +227,7 @@ function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agen
     }
   }
 
-  walk(spec.tasks)
+  walk(spec.spec.tasks)
   return result
 }
 
@@ -284,9 +284,9 @@ export function createWorkflowRuntime(
       return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", taskStates, compoundTaskIds)
     }
 
-    const runId = buildRunId(spec.name)
+const runId = buildRunId(spec.metadata.name)
 
-    insertRun(db, runId, spec.name, new Date().toISOString())
+insertRun(db, runId, spec.metadata.name, new Date().toISOString())
     const taskEntries = collectAllTaskNames(spec)
     insertTasks(db, runId, taskEntries.map((t) => ({ taskSlug: t.taskName, agentName: t.agentName })))
     updateRunContext(db, runId, JSON.stringify(context))

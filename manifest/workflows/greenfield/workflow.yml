@@ -1,82 +1,86 @@
-name: greenfield
-version: 2
-description: |
-  Scaffolds a new project from scratch. Asks for project name, tech stack,
-  and description, then creates directory structure, initializes git, and
-  writes a README.
-run:
-  entrypoint: scaffold
-  timeout: 300s
-
-tasks:
-  - name: scaffold
-    dependencies: []
-    agent:
-      executorRef: scaffolder
-      prompt:
-        content: |
-          Scaffold a new project based on the following requirements.
-
-          TASK:
-          {{task}}
-
-          PROJECT NAME: {{project_name}}
-          TECH STACK: {{tech_stack}}
-          DESCRIPTION: {{description}}
-
-          Instructions:
-          1. Create the project directory with the given name
-          2. Initialize git in the project directory
-          3. Create the appropriate directory structure for the tech stack
-          4. Write a README.md with project name, description, and setup instructions
-          5. Create initial configuration files (package.json/Cargo.toml/pyproject.toml etc.)
-          6. Create a .gitignore appropriate for the tech stack
-          7. Create a minimal hello-world entry point to verify the project is buildable
-          8. Commit the initial project structure
-
-          Reply with:
-          STATUS: done
-          PROJECT_DIR: /path/to/project
-          BUILD_CMD: <command to build>
-          TEST_CMD: <command to test>
-      output:
-        schema:
-          file: schemas/scaffold.json
-    on_failure:
-      max_retries: 3
-      escalate_to: human
-
-  - name: verify
-    dependencies: [scaffold]
-    agent:
-      executorRef: verifier
-      prompt:
-        content: |
-          Verify the scaffolded project is correct and buildable.
-
-          PROJECT_DIR: {{project_dir}}
-          BUILD_CMD: {{tasks.scaffold.outputs.build_cmd}}
-          TEST_CMD: {{tasks.scaffold.outputs.test_cmd}}
-          TECH_STACK: {{tech_stack}}
-
-          Check:
-          1. Project directory exists
-          2. README.md exists and contains project name and description
-          3. .gitignore exists and is appropriate
-          4. Build command works
-          5. Git is initialized with at least one commit
-
-          Reply with:
-          STATUS: done
-          VERIFIED: What you confirmed
-
-          Or if issues found:
-          STATUS: retry
-          ISSUES:
-          - What's wrong
-      output:
-        schema:
-          file: schemas/verify.json
-    on_failure:
-      max_retries: 2
-      escalate_to: human
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: greenfield
+  version: 2
+  description: |
+    Scaffolds a new project from scratch. Asks for project name, tech stack,
+    and description, then creates directory structure, initializes git, and
+    writes a README.
+spec:
+  run:
+    entrypoint: scaffold
+    timeout: 300s
+  
+  tasks:
+    - name: scaffold
+      dependencies: []
+      agent:
+        executorRef: scaffolder
+        prompt:
+          content: |
+            Scaffold a new project based on the following requirements.
+  
+            TASK:
+            {{task}}
+  
+            PROJECT NAME: {{project_name}}
+            TECH STACK: {{tech_stack}}
+            DESCRIPTION: {{description}}
+  
+            Instructions:
+            1. Create the project directory with the given name
+            2. Initialize git in the project directory
+            3. Create the appropriate directory structure for the tech stack
+            4. Write a README.md with project name, description, and setup instructions
+            5. Create initial configuration files (package.json/Cargo.toml/pyproject.toml etc.)
+            6. Create a .gitignore appropriate for the tech stack
+            7. Create a minimal hello-world entry point to verify the project is buildable
+            8. Commit the initial project structure
+  
+            Reply with:
+            STATUS: done
+            PROJECT_DIR: /path/to/project
+            BUILD_CMD: <command to build>
+            TEST_CMD: <command to test>
+        output:
+          schema:
+            file: schemas/scaffold.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human
+  
+    - name: verify
+      dependencies: [scaffold]
+      agent:
+        executorRef: verifier
+        prompt:
+          content: |
+            Verify the scaffolded project is correct and buildable.
+  
+            PROJECT_DIR: {{project_dir}}
+            BUILD_CMD: {{tasks.scaffold.outputs.build_cmd}}
+            TEST_CMD: {{tasks.scaffold.outputs.test_cmd}}
+            TECH_STACK: {{tech_stack}}
+  
+            Check:
+            1. Project directory exists
+            2. README.md exists and contains project name and description
+            3. .gitignore exists and is appropriate
+            4. Build command works
+            5. Git is initialized with at least one commit
+  
+            Reply with:
+            STATUS: done
+            VERIFIED: What you confirmed
+  
+            Or if issues found:
+            STATUS: retry
+            ISSUES:
+            - What's wrong
+        output:
+          schema:
+            file: schemas/verify.json
+      on_failure:
+        max_retries: 2
+        escalate_to: human

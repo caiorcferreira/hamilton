@@ -101,7 +101,7 @@ export function createMcpServer(): McpServer {
       for (const slug of entries) {
         const spec = await Effect.runPromise(Effect.option(loadWorkflowSpec(dir, slug, sharedAgentsDir, workflowEntries)))
         if (spec._tag === "Some") {
-          results.push({ name: spec.value.name, version: spec.value.version, tasks: spec.value.tasks.length, agents: spec.value.agentRegistry.size })
+          results.push({ name: spec.value.metadata.name, version: spec.value.metadata.version, tasks: spec.value.spec.tasks.length, agents: spec.value.agentRegistry.size })
         }
       }
       return textResult(JSON.stringify(results, null, 2))

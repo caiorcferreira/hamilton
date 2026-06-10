@@ -33,9 +33,12 @@ vi.mock("../../src/prompts/persona.js", () => {
 })
 
 const makeAgentManifest = (name: string): AgentManifest => ({
-  name,
+  metadata: { name },
   dirPath: `/agents/${name}`,
-  settings: { model: "default" },
+  spec: {
+    settings: { model: "default" },
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  },
   systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
 })
 
@@ -67,18 +70,18 @@ describe("end-to-end workflow execution", () => {
     ])
 
     const spec: WorkflowSpec = {
-      version: 1,
-      name: "bug-fix",
-      description: "Bug fix pipeline",
-      run: { entrypoint: "triage", timeout: "300s" },
-      agentRegistry,
-      tasks: [
-        { name: "triage", agent: { executorRef: "triager", prompt: { content: "Triage the bug" } } },
-        { name: "investigate", dependencies: ["triage"], agent: { executorRef: "investigator", prompt: { content: "Investigate" } } },
-        { name: "setup", dependencies: ["investigate"], agent: { executorRef: "setup", prompt: { content: "Setup" } } },
-        { name: "fix", dependencies: ["setup"], agent: { executorRef: "fixer", prompt: { content: "Fix the bug" } } },
-        { name: "verify", dependencies: ["fix"], agent: { executorRef: "verifier", prompt: { content: "Verify" } } }
-      ]
+      metadata: { version: 1, name: "bug-fix", description: "Bug fix pipeline" },
+      spec: {
+        run: { entrypoint: "triage", timeout: "300s" },
+        tasks: [
+          { name: "triage", agent: { executorRef: "triager", prompt: { content: "Triage the bug" } } },
+          { name: "investigate", dependencies: ["triage"], agent: { executorRef: "investigator", prompt: { content: "Investigate" } } },
+          { name: "setup", dependencies: ["investigate"], agent: { executorRef: "setup", prompt: { content: "Setup" } } },
+          { name: "fix", dependencies: ["setup"], agent: { executorRef: "fixer", prompt: { content: "Fix the bug" } } },
+          { name: "verify", dependencies: ["fix"], agent: { executorRef: "verifier", prompt: { content: "Verify" } } }
+        ]
+      },
+      agentRegistry
     }
 
     const result = await Effect.runPromiseExit(

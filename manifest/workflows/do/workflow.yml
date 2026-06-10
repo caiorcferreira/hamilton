@@ -1,39 +1,43 @@
-name: do
-version: 2
-description: |
-  Single general-purpose agent that takes an arbitrary task description
-  and executes it end-to-end — plans, executes, and reports results.
-  For quick tasks that don't need a full multi-step pipeline.
-run:
-  entrypoint: execute
-  timeout: 300s
-
-tasks:
-  - name: execute
-    dependencies: []
-    agent:
-      executorRef: doer
-      prompt:
-        content: |
-          Execute the following task end-to-end.
-
-          TASK:
-          {{task}}
-
-          Instructions:
-          1. Understand the task completely
-          2. Plan your approach before starting
-          3. Execute the plan step by step
-          4. Verify the result matches the task requirements
-          5. Report what you did
-
-          Reply with:
-          STATUS: done
-          RESULT: Summary of what was accomplished
-          CHANGES: What files or changes were made
-      output:
-        schema:
-          file: schemas/execute.json
-    on_failure:
-      max_retries: 4
-      escalate_to: human
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: do
+  version: 2
+  description: |
+    Single general-purpose agent that takes an arbitrary task description
+    and executes it end-to-end — plans, executes, and reports results.
+    For quick tasks that don't need a full multi-step pipeline.
+spec:
+  run:
+    entrypoint: execute
+    timeout: 300s
+  
+  tasks:
+    - name: execute
+      dependencies: []
+      agent:
+        executorRef: doer
+        prompt:
+          content: |
+            Execute the following task end-to-end.
+  
+            TASK:
+            {{task}}
+  
+            Instructions:
+            1. Understand the task completely
+            2. Plan your approach before starting
+            3. Execute the plan step by step
+            4. Verify the result matches the task requirements
+            5. Report what you did
+  
+            Reply with:
+            STATUS: done
+            RESULT: Summary of what was accomplished
+            CHANGES: What files or changes were made
+        output:
+          schema:
+            file: schemas/execute.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human

@@ -45,7 +45,7 @@ export function runWorkflow(
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
 
-    const staticTasks = collectReachableTasks(spec.tasks, spec.run.entrypoint)
+    const staticTasks = collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint)
     const sortedTasks = topologicalSort(staticTasks)
 
     const ctx: WorkflowRuntime = yield* _(
@@ -61,10 +61,10 @@ export function runWorkflow(
     yield* _(writeInput(runId, {
       spec,
       initialContext,
-      executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.name }
+      executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
     }))
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
-    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.name }))
+    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
 
     const instructionFiles = yield* _(loadInstructionFiles(process.cwd()))
 
@@ -118,8 +118,8 @@ export function runWorkflow(
           taskPrompt: prompt.taskPrompt
         }))
 
-        const timeoutSeconds = resolveTaskTimeout(task, spec.run.timeout)
-        const resolved = resolveAgentDefaults(agent.settings)
+        const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
+        const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
         const aliases = loadModelAliases()
         const model = resolveModelAlias(resolved.model, aliases)
         const outputSchema = task.agent!.output?.schema
@@ -128,7 +128,7 @@ export function runWorkflow(
           executeWithPi({
             prompt,
             stepId: taskId,
-            agentId: agent.name,
+            agentId: agent.metadata.name,
             runId,
             timeoutSeconds,
             model,
@@ -183,7 +183,7 @@ export function runWorkflow(
         if (workflowStatus === "failed") break
 
         if (task.template) {
-          const templateTask = spec.tasks.find(t => t.name === task.template)
+          const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
           if (!templateTask) continue
 
           const arrValue = task.forEach

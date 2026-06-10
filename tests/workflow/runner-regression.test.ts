@@ -25,23 +25,27 @@ vi.mock("../../src/prompts/persona.js", () => {
 })
 
 const makeAgentManifest = (name: string): AgentManifest => ({
-  name,
+  metadata: { name },
   dirPath: `/agents/${name}`,
-  settings: { model: "default" },
+  spec: {
+    settings: { model: "default" },
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  },
   systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
 })
 
 const testSpec: WorkflowSpec = {
-  version: 1,
-  name: "test-flow",
-  run: { entrypoint: "step-1", timeout: "300s" },
+  metadata: { version: 1, name: "test-flow" },
+  spec: {
+    run: { entrypoint: "step-1", timeout: "300s" },
+    tasks: [
+      { name: "step-1", agent: { executorRef: "agent-a", prompt: { content: "Do something" } } },
+      { name: "step-2", dependencies: ["step-1"], agent: { executorRef: "agent-a", prompt: { content: "Do another thing" } } }
+    ]
+  },
   agentRegistry: new Map([
     ["agent-a", makeAgentManifest("agent-a")]
-  ]),
-  tasks: [
-    { name: "step-1", agent: { executorRef: "agent-a", prompt: { content: "Do something" } } },
-    { name: "step-2", dependencies: ["step-1"], agent: { executorRef: "agent-a", prompt: { content: "Do another thing" } } }
-  ]
+  ])
 }
 
 describe("runWorkflow regression tests", () => {

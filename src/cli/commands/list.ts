@@ -35,10 +35,10 @@ export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.ge
     const spec = yield* loadWorkflowSpec(wfDir, slug, sharedAgentsDir, workflowEntries).pipe(Effect.option)
     if (spec._tag === "Some") {
       results.push({
-        name: spec.value.name,
-        description: spec.value.description,
-        version: spec.value.version,
-        taskCount: spec.value.tasks.length,
+        name: spec.value.metadata.name,
+        description: spec.value.metadata.description,
+        version: spec.value.metadata.version,
+        taskCount: spec.value.spec.tasks.length,
         agentCount: spec.value.agentRegistry.size
       })
     }

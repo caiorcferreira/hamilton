@@ -7,7 +7,6 @@ import { resolveWorkflowSlug } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
-import { WorkflowSpec as WfSpec } from "../../types.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
@@ -56,10 +55,10 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
     const workflows = discoverWorkflows(wfDir)
     const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
-    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
+const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
-    const result = yield* _(
-      runWorkflow(spec as unknown as WfSpec, { task: params.prompt }, {
+const result = yield* _(
+      runWorkflow(spec, { task: params.prompt }, {
         workflowsDir: wfDir
       }).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))

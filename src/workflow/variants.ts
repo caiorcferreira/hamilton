@@ -115,7 +115,7 @@ export function composeVariants(
 ): WorkflowSpec {
   if (activeVariants.length === 0) return spec
 
-  const supported = spec.variants?.supported ?? []
+  const supported = spec.spec.variants?.supported ?? []
   for (const v of activeVariants) {
     if (!supported.includes(v)) {
       throw new UnsupportedVariantError({ variant: v, supported })
@@ -154,7 +154,7 @@ export function composeVariants(
   const keptStart = kept.filter(vt => vt.placement === "start")
   const keptEnd = kept.filter(vt => vt.placement === "end")
 
-  const composedTasks: WorkflowTask[] = [...spec.tasks]
+  const composedTasks: WorkflowTask[] = [...spec.spec.tasks]
   const startTaskDefs: { task: WorkflowTask; name: string }[] = []
 
   if (keptStart.length > 0) {
@@ -167,7 +167,7 @@ export function composeVariants(
       startTaskDefs.push({ task, name: vt.task.name })
       prevName = vt.task.name
     }
-    const entryTask = composedTasks.find(t => t.name === spec.run.entrypoint)
+    const entryTask = composedTasks.find(t => t.name === spec.spec.run.entrypoint)
     if (entryTask && prevName) {
       entryTask.dependencies = [...(entryTask.dependencies ?? []), prevName]
     }
@@ -197,5 +197,5 @@ export function composeVariants(
     }
   }
 
-  return { ...spec, tasks: composedTasks }
+  return { ...spec, spec: { ...spec.spec, tasks: composedTasks } }
 }

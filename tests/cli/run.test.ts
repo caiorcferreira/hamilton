@@ -28,26 +28,30 @@ vi.mock("../../src/prompts/persona.js", () => {
   }
 })
 
-const validYaml = `name: test-wf
-version: 1
-run:
-  entrypoint: step-1
-  timeout: 300s
-variants:
-  supported: [branchout]
-tasks:
-  - name: step-1
-    agent:
-      executorRef: agent-1
-      prompt:
-        content: "Do the thing"
+const validYaml = `apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test-wf
+  version: 1
+spec:
+  run:
+    entrypoint: step-1
+    timeout: 300s
+  variants:
+    supported: [branchout]
+  tasks:
+    - name: step-1
+      agent:
+        executorRef: agent-1
+        prompt:
+          content: "Do the thing"
 `
 
 function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
   Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(dir, "agent.yml"), `name: ${name}\nsettings:\n  model: default\n`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 
 describe("executeRun", () => {

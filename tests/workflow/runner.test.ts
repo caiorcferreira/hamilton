@@ -25,24 +25,28 @@ vi.mock("../../src/prompts/persona.js", () => {
 })
 
 const makeAgentManifest = (name: string): AgentManifest => ({
-  name,
+  metadata: { name },
   dirPath: `/agents/${name}`,
-  settings: { model: "default" },
+  spec: {
+    settings: { model: "default" },
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  },
   systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
 })
 
 const makeSpec = (overrides?: Partial<WorkflowSpec>): WorkflowSpec => ({
-  version: 1,
-  name: "test-flow",
-  run: { entrypoint: "plan", timeout: "300s" },
+  metadata: { version: 1, name: "test-flow" },
+  spec: {
+    run: { entrypoint: "plan", timeout: "300s" },
+    tasks: [
+      { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan the feature" } } },
+      { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Implement it" } } }
+    ]
+  },
   agentRegistry: new Map([
     ["planner", makeAgentManifest("planner")],
     ["coder", makeAgentManifest("coder")]
   ]),
-  tasks: [
-    { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan the feature" } } },
-    { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Implement it" } } }
-  ],
   ...overrides
 })
 
@@ -133,13 +137,17 @@ describe("runWorkflow DAG-aware executor", () => {
   })
 
   it("handles linear chain with 3 tasks", async () => {
-    const spec = makeSpec({
-      tasks: [
-        { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
-        { name: "code", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
-        { name: "verify", dependencies: ["code"], agent: { executorRef: "planner", prompt: { content: "Verify" } } }
-      ]
-    } as Partial<WorkflowSpec>)
+    const spec: WorkflowSpec = {
+      ...makeSpec(),
+      spec: {
+        ...makeSpec().spec,
+        tasks: [
+          { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
+          { name: "code", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
+          { name: "verify", dependencies: ["code"], agent: { executorRef: "planner", prompt: { content: "Verify" } } }
+        ]
+      }
+    }
 
     const events = await collectEvents(
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
@@ -162,14 +170,17 @@ describe("runWorkflow DAG-aware executor", () => {
   })
 
   it("handles fan-out pattern (one task depends on two)", async () => {
-    const spec = makeSpec({
-      run: { entrypoint: "a", timeout: "300s" },
-      tasks: [
-        { name: "a", agent: { executorRef: "planner", prompt: { content: "A" } } },
-        { name: "b", agent: { executorRef: "coder", prompt: { content: "B" } } },
-        { name: "c", dependencies: ["a", "b"], agent: { executorRef: "planner", prompt: { content: "C" } } }
-      ]
-    } as Partial<WorkflowSpec>)
+    const spec: WorkflowSpec = {
+      ...makeSpec(),
+      spec: {
+        run: { entrypoint: "a", timeout: "300s" },
+        tasks: [
+          { name: "a", agent: { executorRef: "planner", prompt: { content: "A" } } },
+          { name: "b", agent: { executorRef: "coder", prompt: { content: "B" } } },
+          { name: "c", dependencies: ["a", "b"], agent: { executorRef: "planner", prompt: { content: "C" } } }
+        ]
+      }
+    }
 
     const events = await collectEvents(
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
@@ -187,14 +198,17 @@ describe("runWorkflow DAG-aware executor", () => {
   })
 
   it("only executes reachable tasks from entrypoint", async () => {
-    const spec = makeSpec({
-      run: { entrypoint: "plan", timeout: "300s" },
-      tasks: [
-        { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
-        { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
-        { name: "orphan", agent: { executorRef: "coder", prompt: { content: "Orphan" } } }
-      ]
-    } as Partial<WorkflowSpec>)
+    const spec: WorkflowSpec = {
+      ...makeSpec(),
+      spec: {
+        run: { entrypoint: "plan", timeout: "300s" },
+        tasks: [
+          { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
+          { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
+          { name: "orphan", agent: { executorRef: "coder", prompt: { content: "Orphan" } } }
+        ]
+      }
+    }
 
     const events = await collectEvents(
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
@@ -248,7 +262,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
 describe("topological sort + context integration", () => {
   it("topological sort produces valid execution order for DAG with multiple paths", () => {
-    const tasks: WorkflowSpec["tasks"] = [
+    const tasks: WorkflowSpec["spec"]["tasks"] = [
       { name: "setup", agent: { executorRef: "a", prompt: { content: "" } } },
       { name: "plan", dependencies: ["setup"], agent: { executorRef: "b", prompt: { content: "" } } },
       { name: "test", dependencies: ["setup"], agent: { executorRef: "c", prompt: { content: "" } } },
@@ -265,7 +279,7 @@ describe("topological sort + context integration", () => {
   })
 
   it("collectReachableTasks excludes unreachable branches", () => {
-    const tasks: WorkflowSpec["tasks"] = [
+    const tasks: WorkflowSpec["spec"]["tasks"] = [
       { name: "a", agent: { executorRef: "x", prompt: { content: "" } } },
       { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } },
       { name: "c", agent: { executorRef: "x", prompt: { content: "" } } },
@@ -277,7 +291,7 @@ describe("topological sort + context integration", () => {
   })
 
   it("collectReachableTasks includes both dependencies and dependents", () => {
-    const tasks: WorkflowSpec["tasks"] = [
+    const tasks: WorkflowSpec["spec"]["tasks"] = [
       { name: "a", agent: { executorRef: "x", prompt: { content: "" } } },
       { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } },
       { name: "c", dependencies: ["b"], agent: { executorRef: "x", prompt: { content: "" } } }

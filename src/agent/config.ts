@@ -2,12 +2,12 @@ import { Data } from "effect"
 import * as Yaml from "yaml"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import type { AgentManifestSettings } from "../types.js"
+import type { AgentManifestSettings, SystemPromptPaths } from "../types.js"
 import { settingsPath, hamiltonHome } from "../paths.js"
 
 export interface ResolvedDefaults {
   model: string
-  systemPrompt: AgentManifestSettings["systemPrompt"]
+  systemPrompt?: SystemPromptPaths
   skills: string[] | null
 }
 
@@ -19,10 +19,10 @@ export class CircularModelAliasError extends Data.TaggedError("CircularModelAlia
   readonly alias: string
 }> {}
 
-export function resolveAgentDefaults(settings: AgentManifestSettings): ResolvedDefaults {
+export function resolveAgentDefaults(settings: AgentManifestSettings, systemPrompt?: SystemPromptPaths): ResolvedDefaults {
   return {
     model: settings.model ?? "default",
-    systemPrompt: settings.systemPrompt,
+    systemPrompt,
     skills: settings.skills ?? null
   }
 }
