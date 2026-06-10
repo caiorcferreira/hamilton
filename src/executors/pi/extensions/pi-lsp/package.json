@@ -1,0 +1,69 @@
+{
+	"name": "@spences10/pi-lsp",
+	"version": "0.0.34",
+	"description": "Language Server Protocol tools for Pi agents to inspect diagnostics, hovers, definitions, references, and symbols",
+	"keywords": [
+		"language-server",
+		"lsp",
+		"pi",
+		"pi-package"
+	],
+	"homepage": "https://github.com/spences10/my-pi/tree/main/packages/pi-lsp#readme",
+	"license": "MIT",
+	"author": "Scott Spence <me@scottspence.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/spences10/my-pi.git",
+		"directory": "packages/pi-lsp"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "pnpm --filter \"$npm_package_name^...\" run build:self && pnpm run build:self",
+		"build:self": "vp exec tsc -p tsconfig.build.json",
+		"check": "pnpm --filter \"$npm_package_name^...\" run build:self && pnpm run check:self",
+		"check:self": "vp exec tsc --noEmit -p tsconfig.json",
+		"test": "pnpm --filter \"$npm_package_name^...\" run build:self && pnpm run test:self",
+		"test:self": "vp exec vitest run",
+		"coverage:self": "vp exec vitest run --coverage",
+		"coverage": "pnpm --filter \"$npm_package_name^...\" run build:self && pnpm run coverage:self"
+	},
+	"dependencies": {
+		"@spences10/pi-child-env": "workspace:*",
+		"@spences10/pi-project-trust": "workspace:*",
+		"@spences10/pi-tui-modal": "workspace:*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-coding-agent": "catalog:",
+		"@types/node": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"typebox": "*"
+	},
+	"engines": {
+		"node": ">=24.15.0"
+	},
+	"pi": {
+		"extensions": [
+			"./dist/index.js"
+		],
+		"image": "https://raw.githubusercontent.com/spences10/my-pi/main/assets/pi-package-preview.png"
+	}
+}
