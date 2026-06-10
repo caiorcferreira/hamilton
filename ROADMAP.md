@@ -2,10 +2,18 @@
 
 ## Next Up
 
-- [ ] Connect LSP to Pi
+- [ ] Update workflow files to use external schema files and prompt files
+- [ ] Implement YAML Agent manifest
 
 ## Completed
 
+- [x] Add settings, workflow-yaml, and agent-instructions documentation
+- [x] Extract prompts package — `src/prompts/` (template, types, persona, instructions, builder), unify executor on `ResolvablePrompt`, delete old `src/agent/activity.ts`, `persona.ts`, `instructions.ts`
+- [x] Create default settings.yaml on init — extensions: rtk + lsp enabled by default
+- [x] Add LSP binary checks to doctor command — `checkLspBun`, `checkLspNode`, `checkLspPyright`
+- [x] Add extension registry with settings-driven loading — `readExtensionSettings()` from `~/.hamilton/settings.yaml`, `buildExtensions()` with RTK and LSP factories, `ExtensionRegistry` service
+- [x] Remove RTK_DISABLED env var — settings.yaml replaces env vars entirely
+- [x] Add LSP extension wrapper — `createLspExtension()` wrapping `@spences10/pi-lsp@0.0.34`
 - [x] Change progress file location — store in ./.hamilton/workflows/progress-<YYYY-MM-DD>.txt, active management with ensureProgressFile
 - [x] Create Pi configs on init — --copy-pi-configs flag copies from ~/.pi/agent, fallback to sensible defaults (settings.json, models.json, auth.json)
 - [x] Refactor `output.schema` to `output.schema.content` — nest schema under content, add SchemaConfig type
@@ -38,7 +46,7 @@
 - [x] Make timeout configurable at the step level (step.timeoutSeconds → agent.timeoutSeconds → polling.timeoutSeconds → 300)
 - [x] Print run ID at workflow start (in workflow_started event formatter), not only at the end
 - [x] change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
-- [x] rename step id to step slug, for example `triage` is the step slug 
+- [x] rename step id to step slug, for example `triage` is the step slug
 - [x] the workflow id must have the format `<workflow-slug>-<uuid>`
 - [x] step id must have format `<workflow-id>-<step-slug>-<uuid>`
 - [x] Add greenfield workflow — scaffold new projects from scratch with a bootstrapper agent that sets up project structure, dependencies, and initial files before the planner/developer loop
