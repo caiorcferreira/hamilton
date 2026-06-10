@@ -62,7 +62,7 @@ export function askModelAliases(): Effect.Effect<Record<string, string>, InitErr
 
 function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
-    const sharedDir = Path.join(PROJECT_ROOT, "agents", "shared")
+    const sharedDir = Path.join(PROJECT_ROOT, "manifest", "agents")
     if (!Fs.existsSync(sharedDir)) return
 
     const destAgents = agentsDir()

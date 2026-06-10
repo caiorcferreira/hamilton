@@ -27,8 +27,8 @@ src/workflow/         # Runner, state machine, engine, loader, context merging
 src/db/               # bun:sqlite queries + schema
 src/observability/    # Run dirs, streaming, JSONL logs
 tests/                # vitest, mirrors src/ structure
-workflows/            # Bundled workflow YAML specs + agent personas
-agents/shared/        # Shared agent personas (installed to ~/.hamilton/agents/)
+manifest/workflows/   # Bundled workflow YAML specs + agent personas
+manifest/agents/      # Shared agent personas (installed to ~/.hamilton/agents/)
 docs/superpowers/     # Design specs + implementation plans
 ```
 
