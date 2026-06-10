@@ -1,8 +1,8 @@
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Yaml from "yaml"
-import { settingsPath } from "../paths.js"
-import { piAgentDir } from "../executors/pi/paths.js"
+import { settingsPath } from "../../paths.js"
+import { piAgentDir } from "./paths.js"
 
 export function reconcileLspConfig(): void {
   const settingsFile = settingsPath()
@@ -16,4 +16,8 @@ export function reconcileLspConfig(): void {
     Fs.mkdirSync(Path.dirname(dest), { recursive: true })
   }
   Fs.writeFileSync(dest, JSON.stringify(servers.servers, null, 2) + "\n")
+}
+
+export function reconcileSettingsToPi(): void {
+  reconcileLspConfig()
 }

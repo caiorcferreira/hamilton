@@ -9,7 +9,7 @@ import { WorkflowSpec as WfSpec } from "../../types.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
-import { reconcileLspConfig } from "../../agent/reconcile.js"
+import { reconcileSettingsToPi } from "../../executors/pi/reconcile.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -28,7 +28,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new Error('Hamilton is not initialized. Run "hamilton init" first.')))
     }
-    yield* _(Effect.sync(() => reconcileLspConfig()))
+    yield* _(Effect.sync(() => reconcileSettingsToPi()))
     const wfDir = workflowsDir()
     const availableSlugs = yield* _(
       Effect.try({
