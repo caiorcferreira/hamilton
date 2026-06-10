@@ -1,4 +1,11 @@
+import { Data } from "effect"
+
 import type { WorkflowAgent, WorkflowSpec, WorkflowTask, VariantTask } from "../types.js"
+
+export class UnsupportedVariantError extends Data.TaggedError("UnsupportedVariantError")<{
+  variant: string
+  supported: string[]
+}> {}
 
 interface VariantDefinition {
   agents: WorkflowAgent[]
@@ -151,7 +158,7 @@ export function composeVariants(
   const supported = spec.variants?.supported ?? []
   for (const v of activeVariants) {
     if (!supported.includes(v)) {
-      throw new Error(`unsupported variant "${v}" — supported: ${supported.join(", ")}`)
+      throw new UnsupportedVariantError({ variant: v, supported })
     }
   }
 
@@ -208,7 +215,6 @@ export function composeVariants(
   }
 
   if (keptEnd.length > 0) {
-    const taskNames = new Set(composedTasks.map(t => t.name))
     const dependents = new Set<string>()
     for (const t of composedTasks) {
       for (const dep of t.dependencies ?? []) {
@@ -232,16 +238,17 @@ export function composeVariants(
   }
 
   const agentNames = new Set(spec.agents.map(a => a.name))
+  const newAgents = [...spec.agents]
   for (const v of orderedBySupported) {
     const def = VARIANT_REGISTRY[v]
     if (!def) continue
     for (const agent of def.agents) {
       if (!agentNames.has(agent.name)) {
-        spec.agents.push(agent)
+        newAgents.push(agent)
         agentNames.add(agent.name)
       }
     }
   }
 
-  return { ...spec, tasks: composedTasks }
+  return { ...spec, agents: newAgents, tasks: composedTasks }
 }
