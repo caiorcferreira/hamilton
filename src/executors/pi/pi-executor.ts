@@ -18,9 +18,11 @@ import { subscribePiEvents } from "./streaming.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { createWriteStepOutputTool } from "./write-step-output-tool.js"
-import { buildExtensions, readExtensionSettings } from "./extensions.js"
+import { buildExtensions, readExtensionSettings, type ExtensionFactory } from "./extensions.js"
 import { stepOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
+import { createGuidelineExtension } from "./guideline-extension.js"
+import type { CompiledRule } from "../../guidelines/types.js"
 
 export interface PiExecutorConfig {
   prompt: ResolvablePrompt
@@ -39,6 +41,7 @@ export interface PiExecutorConfig {
     compactionEnabled?: boolean
   }
   outputSchema?: Record<string, unknown>
+  rules?: CompiledRule[]
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -106,10 +109,14 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
-    const { systemPrompt, taskPrompt, instructionFiles } = config.prompt
+    const { systemPrompt, taskPrompt, guidelineFiles } = config.prompt
 
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
+
+    if (config.rules && config.rules.length > 0) {
+      extensionFactories.push(createGuidelineExtension(config.rules) as ExtensionFactory)
+    }
 
     const resolvedSkills = config.settings?.skills ?? null
     const loaderOptions: any = {
@@ -119,7 +126,7 @@ export function executeWithPi(
       agentsFilesOverride: (current: any) => ({
         agentsFiles: [
           ...(current?.agentsFiles ?? []),
-          ...instructionFiles.map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
+          ...guidelineFiles.map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
         ]
       }),
       extensionFactories,

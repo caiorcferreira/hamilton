@@ -20,9 +20,9 @@ import {
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
-import { loadInstructionFiles } from "../prompts/instructions.js"
+import { loadGuidelines } from "../guidelines/loader.js"
 import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
-import { skillsDir } from "../paths.js"
+import { skillsDir, guidelinesDir } from "../paths.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -68,7 +68,23 @@ export function runWorkflow(
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
     yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
 
-    const instructionFiles = yield* _(loadInstructionFiles(process.cwd()))
+    const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
+
+    const guidelineFiles: Array<{ name: string; content: string }> = []
+    const allRules: import("../guidelines/types.js").CompiledRule[] = []
+
+    for (const g of loadedGuidelines) {
+      if (g.instructions) {
+        for (const inst of g.instructions) {
+          guidelineFiles.push(inst)
+        }
+      }
+      if (g.rules) {
+        for (const rule of g.rules) {
+          allRules.push(rule)
+        }
+      }
+    }
 
     const skillRegistry = loadSkillRegistry(skillsDir())
 
@@ -112,7 +128,7 @@ export function runWorkflow(
           prompt: task.agent!.prompt,
           context: taskContext,
           agentConfig: agent
-        }, instructionFiles)
+        }, guidelineFiles)
 
         yield* _(bus.publish({
           _tag: "PromptBuilt",
@@ -137,6 +153,7 @@ export function runWorkflow(
             timeoutSeconds,
             model,
             outputSchema: outputSchema?.content,
+            rules: allRules.length > 0 ? allRules : undefined,
             settings: {
               skills: resolveSkills(resolved.skills, skillRegistry),
               thinking: undefined,

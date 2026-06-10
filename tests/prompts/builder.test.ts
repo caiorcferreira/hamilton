@@ -86,14 +86,14 @@ describe("buildAgentPrompt", () => {
     expect(result.systemPrompt).toContain("finish your task")
   })
 
-  it("passes instructionFiles through to BuiltPrompt", () => {
+  it("passes guidelineFiles through to BuiltPrompt", () => {
     const instructions = [{ name: "typescript", content: "Use strict mode" }]
     const result = buildAgentPrompt(baseParams, instructions)
-    expect(result.instructionFiles).toEqual(instructions)
+    expect(result.guidelineFiles).toEqual(instructions)
   })
 
-  it("defaults instructionFiles to empty array", () => {
+  it("defaults guidelineFiles to empty array", () => {
     const result = buildAgentPrompt(baseParams)
-    expect(result.instructionFiles).toEqual([])
+    expect(result.guidelineFiles).toEqual([])
   })
 })

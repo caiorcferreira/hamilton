@@ -10,10 +10,9 @@
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
 - [ ] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
 - [ ] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
-- [ ] Extend instructions to support similar feature as [coding-preferences](https://github.com/spences10/my-pi/blob/main/packages/pi-coding-preferences/README.md)
-
 ## Completed
 
+- [x] Refactor instructions to guidelines with rule-based tool call interception
 - [x] Implement YAML Agent manifest
 - [x] Update workflow files to use external schema files and prompt files
 

@@ -14,12 +14,12 @@ export interface PromptParams {
 export interface BuiltPrompt {
   systemPrompt: string
   taskPrompt: string
-  instructionFiles: Array<{ name: string; content: string }>
+  guidelineFiles: Array<{ name: string; content: string }>
 }
 
 export function buildAgentPrompt(
   params: PromptParams,
-  instructionFiles: Array<{ name: string; content: string }> = []
+  guidelineFiles: Array<{ name: string; content: string }> = []
 ): BuiltPrompt {
   const systemParts: string[] = []
 
@@ -61,6 +61,6 @@ IMPORTANT:
   return {
     systemPrompt: systemParts.join("\n\n"),
     taskPrompt: resolvedInput,
-    instructionFiles
+    guidelineFiles
   }
 }
