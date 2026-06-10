@@ -105,7 +105,7 @@ tasks:
           Reply with:
           STATUS: done
           REPO: /path/to/repo
-          BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the setup step will `git checkout -b` this name>
+          BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the create-branch step will `git checkout -b` this name>
           STORIES_JSON: [ ... array of story objects ... ]
 
           The STORIES_JSON line is REQUIRED and MUST be a literal JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
