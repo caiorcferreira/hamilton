@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { WorkflowSpecSchema, AgentManifestSchema } from "../src/schemas.js"
+import { WorkflowSpecSchema, AgentManifestSchema, GuidelineSpecSchema } from "../src/schemas.js"
 import { Schema } from "@effect/schema"
 import * as Yaml from "yaml"
 import * as Fs from "node:fs"
@@ -120,5 +120,108 @@ describe("AgentManifestSchema (k8s envelope)", () => {
       spec: { settings: {} }
     }
     expect(() => Schema.decodeUnknownSync(AgentManifestSchema)(raw)).toThrow()
+  })
+})
+
+describe("GuidelineSpecSchema", () => {
+  it("parses a valid guideline with instructions and rules", () => {
+    const raw = {
+      apiVersion: "dag.hamilton.io/v1alpha1",
+      kind: "Guideline",
+      metadata: { name: "js-standards" },
+      spec: {
+        instructions: {
+          extensions: [".js", ".ts"],
+          files: ["code-style.md"]
+        },
+        rules: [
+          {
+            name: "no-npm",
+            toolNames: ["bash"],
+            target: "command",
+            pattern: "^npm",
+            reason: "Use pnpm."
+          }
+        ]
+      }
+    }
+    const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
+    expect(spec.metadata.name).toBe("js-standards")
+    expect(spec.spec.instructions?.extensions).toEqual([".js", ".ts"])
+    expect(spec.spec.instructions?.files).toEqual(["code-style.md"])
+    expect(spec.spec.rules).toHaveLength(1)
+    expect(spec.spec.rules![0].name).toBe("no-npm")
+    expect(spec.spec.rules![0].pattern).toBe("^npm")
+  })
+
+  it("parses a rules-only guideline", () => {
+    const raw = {
+      apiVersion: "dag.hamilton.io/v1alpha1",
+      kind: "Guideline",
+      metadata: { name: "no-npm-only" },
+      spec: {
+        rules: [
+          {
+            name: "no-npm",
+            toolNames: ["bash"],
+            target: "command",
+            pattern: "^npm",
+            reason: "Use pnpm."
+          }
+        ]
+      }
+    }
+    const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
+    expect(spec.metadata.name).toBe("no-npm-only")
+    expect(spec.spec.instructions).toBeUndefined()
+    expect(spec.spec.rules).toHaveLength(1)
+  })
+
+  it("parses an instructions-only guideline", () => {
+    const raw = {
+      apiVersion: "dag.hamilton.io/v1alpha1",
+      kind: "Guideline",
+      metadata: { name: "code-style" },
+      spec: {
+        instructions: {
+          extensions: [".ts"],
+          files: ["style.md"]
+        }
+      }
+    }
+    const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
+    expect(spec.metadata.name).toBe("code-style")
+    expect(spec.spec.instructions?.extensions).toEqual([".ts"])
+    expect(spec.spec.rules).toBeUndefined()
+  })
+
+  it("parses a guideline with multiple rules", () => {
+    const raw = {
+      apiVersion: "dag.hamilton.io/v1alpha1",
+      kind: "Guideline",
+      metadata: { name: "multi-rule" },
+      spec: {
+        rules: [
+          { name: "r1", toolNames: ["bash"], target: "command", pattern: "^npm", reason: "no npm." },
+          { name: "r2", toolNames: ["read"], target: "path", pattern: "secret", reason: "no secrets." }
+        ]
+      }
+    }
+    const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
+    expect(spec.spec.rules).toHaveLength(2)
+    expect(spec.spec.rules![1].toolNames).toEqual(["read"])
+  })
+
+  it("parses a minimal empty guideline", () => {
+    const raw = {
+      apiVersion: "dag.hamilton.io/v1alpha1",
+      kind: "Guideline",
+      metadata: { name: "minimal" },
+      spec: {}
+    }
+    const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
+    expect(spec.metadata.name).toBe("minimal")
+    expect(spec.spec.instructions).toBeUndefined()
+    expect(spec.spec.rules).toBeUndefined()
   })
 })
