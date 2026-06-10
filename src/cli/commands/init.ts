@@ -10,6 +10,7 @@ import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
 import { runDoctorChecks } from "./doctor.js"
 import { green, red } from "../formatting/colors.js"
+import { reconcileLspConfig } from "../../agent/reconcile.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -115,7 +116,39 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
     extensions: [
       { name: "rtk", enabled: true },
       { name: "lsp", enabled: true }
-    ]
+    ],
+    lsp: {
+      servers: {
+        biome: {
+          command: ["biome", "lsp-proxy"],
+          extensions: [".astro", ".css", ".ts", ".tsx", ".js", ".jsx", ".json", ".jsonc", ".html", ".vue", ".mjs", ".mts", ".cjs", ".cts"]
+        },
+        ty: {
+          command: ["ty", "server"],
+          extensions: [".py", ".pyi"]
+        },
+        ruff: {
+          command: ["ruff", "server"],
+          extensions: [".py", ".pyi"]
+        },
+        typescript: {
+          command: ["typescript-language-server", "--stdio"],
+          extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"]
+        },
+        python: {
+          command: ["pylsp"],
+          extensions: [".py", ".pyi"]
+        },
+        go: {
+          command: ["gopls", "serve"],
+          extensions: [".go"]
+        },
+        rust: {
+          command: ["rust-analyzer"],
+          extensions: [".rs"]
+        }
+      }
+    }
   } as any
   if (modelAliases && Object.keys(modelAliases).length > 0) {
     ;(doc.contents as any).models = { aliases: modelAliases }
@@ -176,6 +209,7 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
     }
     yield* createDefaultPiConfigs(options)
     yield* writeDefaultSettings(options?.modelAliases)
+    reconcileLspConfig()
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })

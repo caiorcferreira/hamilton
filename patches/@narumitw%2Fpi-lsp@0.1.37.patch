@@ -1,0 +1,21 @@
+diff --git a/node_modules/@narumitw/pi-lsp/index.d.ts b/index.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..31f94eeacff41fa0de27cb4c72d1e44a04dd5b7e
+--- /dev/null
++++ b/index.d.ts
+@@ -0,0 +1,2 @@
++declare const lsp: (pi: unknown) => void
++export default lsp
+diff --git a/package.json b/package.json
+index 77ce8aa0e0de5979a3e832c98eb1bdd0a52aa31e..f85c5e31da151a6054df04a0fc1f2500e55b84bb 100644
+--- a/package.json
++++ b/package.json
+@@ -3,6 +3,8 @@
+ 	"version": "0.1.37",
+ 	"description": "Pi extension that exposes configurable, language-agnostic LSP tools through a shared runner.",
+ 	"type": "module",
++	"main": "src/pi-lsp.ts",
++	"types": "index.d.ts",
+ 	"license": "MIT",
+ 	"private": false,
+ 	"keywords": [

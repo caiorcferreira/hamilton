@@ -2,7 +2,7 @@ import * as Fs from "node:fs"
 import * as Yaml from "yaml"
 import { settingsPath } from "../../paths.js"
 import { createRtkExtension } from "./rtk-extension.js"
-import { createLspExtension } from "./lsp-extension.js"
+import lsp from "@narumitw/pi-lsp"
 
 export interface ExtensionEntry {
   name: string
@@ -45,7 +45,7 @@ export function buildExtensions(
         factories.push(createRtkExtension({ disabled: false }) as ExtensionFactory)
         break
       case "lsp":
-        factories.push(createLspExtension() as ExtensionFactory)
+        factories.push(lsp as ExtensionFactory)
         break
     }
   }
