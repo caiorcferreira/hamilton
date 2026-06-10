@@ -1,11 +1,3 @@
-export type AgentRole =
-  | "analysis"
-  | "coding"
-  | "verification"
-  | "testing"
-  | "pr"
-  | "scanning"
-
 export type TaskName = string & { readonly __brand: "TaskName" }
 export type AgentName = string & { readonly __brand: "AgentName" }
 export type RunId = string & { readonly __brand: "RunId" }
@@ -22,21 +14,17 @@ export interface SystemPromptPaths {
   identity: string
 }
 
-export interface AgentSettings {
+export interface AgentManifestSettings {
   model?: string
-  systemPrompt: SystemPromptPaths
+  systemPrompt?: SystemPromptPaths
   skills?: string[]
 }
 
-export interface WorkflowAgent {
+export interface AgentManifest {
   name: string
-  role: AgentRole
-  description?: string
-  settings: AgentSettings
-}
-
-export interface RefPath {
-  ref: string
+  dirPath: string
+  settings: AgentManifestSettings
+  systemPrompt: SystemPromptPaths
 }
 
 export interface Timeout {
@@ -69,7 +57,7 @@ export interface Prompt {
 }
 
 export interface TaskAgent {
-  ref: string
+  executorRef: string
   timeout?: Timeout
   on_failure?: OnFailure
   output?: OutputConfig
@@ -77,13 +65,13 @@ export interface TaskAgent {
 }
 
 export interface ForEach {
-  valueFrom: RefPath
+  valueFrom: { ref: string }
   as: string
 }
 
 export interface ContextField {
   name: string
-  valueFrom: RefPath
+  valueFrom: { ref: string }
 }
 
 export interface ContextFields {
@@ -121,6 +109,6 @@ export interface WorkflowSpec {
   variants?: {
     supported: string[]
   }
-  agents: WorkflowAgent[]
+  agentRegistry: Map<string, AgentManifest>
   tasks: WorkflowTask[]
 }
