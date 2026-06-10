@@ -66,14 +66,11 @@ const checkRtk: Effect.Effect<CheckResult> = Effect.gen(function* () {
 const checkLspTs = makeBinaryCheck("lsp-ts", "typescript-language-server", "npm install -g typescript-language-server")
 const checkLspPython = makeBinaryCheck("lsp-py", "pylsp", "pip install python-lsp-server")
 const checkLspGo = makeBinaryCheck("lsp-go", "gopls", "go install golang.org/x/tools/gopls@latest")
-const checkLspJava = makeBinaryCheck("lsp-java", "jdtls", "brew install jdtls")
-
 const checks: Array<Effect.Effect<CheckResult>> = [
   checkRtk,
   checkLspTs,
   checkLspPython,
   checkLspGo,
-  checkLspJava,
 ]
 
 export function runDoctorChecks(): Effect.Effect<CheckResult[]> {
