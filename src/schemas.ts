@@ -34,13 +34,17 @@ const SystemPromptPathsSchema = Schema.Struct({
 
 const AgentManifestSettingsSchema = Schema.Struct({
   model: Schema.optional(Schema.String),
-  systemPrompt: Schema.optional(SystemPromptPathsSchema),
   skills: Schema.optional(Schema.Array(Schema.String))
 })
 
 export const AgentManifestSchema = Schema.Struct({
-  name: Schema.String,
-  settings: AgentManifestSettingsSchema
+  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  kind: Schema.Literal("Agent"),
+  metadata: AgentMetadataSchema,
+  spec: Schema.Struct({
+    settings: AgentManifestSettingsSchema,
+    systemPrompt: Schema.optional(SystemPromptPathsSchema)
+  })
 })
 
 const TimeoutSchema = Schema.Struct({
@@ -127,18 +131,20 @@ const VariantsConfigSchema = Schema.Struct({
 })
 
 export const WorkflowSpecSchema = Schema.Struct({
-  version: Schema.Number,
-  name: Schema.String,
-  description: Schema.optional(Schema.String),
-  run: RunConfigSchema,
-  variants: Schema.optional(VariantsConfigSchema),
-  tasks: Schema.Array(WorkflowTaskSchema)
+  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  kind: Schema.Literal("Workflow"),
+  metadata: WorkflowMetadataSchema,
+  spec: Schema.Struct({
+    run: RunConfigSchema,
+    variants: Schema.optional(VariantsConfigSchema),
+    tasks: Schema.Array(WorkflowTaskSchema)
+  })
 }).pipe(
   Schema.filter(
     (spec: any) => {
-      const taskNames = new Set(spec.tasks.map((t: any) => t.name))
+      const taskNames = new Set(spec.spec.tasks.map((t: any) => t.name))
       let valid = true
-      for (const task of spec.tasks) {
+      for (const task of spec.spec.tasks) {
         if (!task.agent && !task.template && !task.tasks) {
           valid = false
           break

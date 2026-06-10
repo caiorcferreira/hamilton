@@ -16,14 +16,19 @@ export interface SystemPromptPaths {
 
 export interface AgentManifestSettings {
   model?: string
-  systemPrompt?: SystemPromptPaths
   skills?: string[]
 }
 
 export interface AgentManifest {
-  name: string
+  metadata: {
+    name: string
+    description?: string
+  }
   dirPath: string
-  settings: AgentManifestSettings
+  spec: {
+    settings: AgentManifestSettings
+    systemPrompt?: SystemPromptPaths
+  }
   systemPrompt: SystemPromptPaths
 }
 
@@ -102,13 +107,17 @@ export interface VariantTask {
 }
 
 export interface WorkflowSpec {
-  version: number
-  name: string
-  description?: string
-  run: RunConfig
-  variants?: {
-    supported: string[]
+  metadata: {
+    version: number
+    name: string
+    description?: string
+  }
+  spec: {
+    run: RunConfig
+    variants?: {
+      supported: string[]
+    }
+    tasks: WorkflowTask[]
   }
   agentRegistry: Map<string, AgentManifest>
-  tasks: WorkflowTask[]
 }

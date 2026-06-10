@@ -1,87 +1,91 @@
-version: 1
-name: feature-dev
-description: Feature development workflow
-run:
-  entrypoint: plan
-  timeout: 300s
-tasks:
-  - name: plan
-    agent:
-      executorRef: planner
-      on_failure:
-        max_retries: 4
-        escalate_to: human
-      prompt:
-        content: |
-          Decompose the task.
-          TASK:
-          {{task}}
-      output:
-        schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-              status:
-                type: string
-                enum: [done, failed]
-  - name: setup
-    dependencies:
-      - plan
-    agent:
-      executorRef: setup
-      timeout:
-        fixed: 300s
-      on_failure:
-        max_retries: 4
-        escalate_to: human
-      prompt:
-        content: |
-          Setup environment.
-          REPO: {{tasks.setup.outputs.repo}}
-  - name: codify
-    dependencies:
-      - setup
-    template: develop
-    forEach:
-      valueFrom:
-        ref: tasks.plan.outputs.user_stories
-      as: user_story
-    context:
-      fields:
-        - name: repository
-          valueFrom:
-            ref: tasks.setup.outputs.repo
-  - name: develop
-    tasks:
-      - name: implement
-        agent:
-          executorRef: developer
-          timeout:
-            fixed: 600s
-          on_failure:
-            max_retries: 4
-            escalate_to: human
-          prompt:
-            content: Implement the story.
-          output:
-            schema:
-              content:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [done, failed]
-      - name: test
-        dependencies:
-          - implement
-        agent:
-          executorRef: tester
-          on_failure:
-            retry_step: implement
-            max_retries: 4
-            on_exhausted:
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  version: 1
+  name: feature-dev
+  description: Feature development workflow
+spec:
+  run:
+    entrypoint: plan
+    timeout: 300s
+  tasks:
+    - name: plan
+      agent:
+        executorRef: planner
+        on_failure:
+          max_retries: 4
+          escalate_to: human
+        prompt:
+          content: |
+            Decompose the task.
+            TASK:
+            {{task}}
+        output:
+          schema:
+            content:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [done, failed]
+    - name: setup
+      dependencies:
+        - plan
+      agent:
+        executorRef: setup
+        timeout:
+          fixed: 300s
+        on_failure:
+          max_retries: 4
+          escalate_to: human
+        prompt:
+          content: |
+            Setup environment.
+            REPO: {{tasks.setup.outputs.repo}}
+    - name: codify
+      dependencies:
+        - setup
+      template: develop
+      forEach:
+        valueFrom:
+          ref: tasks.plan.outputs.user_stories
+        as: user_story
+      context:
+        fields:
+          - name: repository
+            valueFrom:
+              ref: tasks.setup.outputs.repo
+    - name: develop
+      tasks:
+        - name: implement
+          agent:
+            executorRef: developer
+            timeout:
+              fixed: 600s
+            on_failure:
+              max_retries: 4
               escalate_to: human
-          prompt:
-            content: Test the implementation.
+            prompt:
+              content: Implement the story.
+            output:
+              schema:
+                content:
+                  type: object
+                  required: [status]
+                  properties:
+                    status:
+                      type: string
+                      enum: [done, failed]
+        - name: test
+          dependencies:
+            - implement
+          agent:
+            executorRef: tester
+            on_failure:
+              retry_step: implement
+              max_retries: 4
+              on_exhausted:
+                escalate_to: human
+            prompt:
+              content: Test the implementation.
