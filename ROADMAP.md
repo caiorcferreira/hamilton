@@ -2,10 +2,10 @@
 
 ## Next Up
 
-- [ ] Update workflow files to use external schema files and prompt files
-- [ ] Implement YAML Agent manifest
-
 ## Completed
+
+- [x] Implement YAML Agent manifest
+- [x] Update workflow files to use external schema files and prompt files
 
 - [x] Add settings, workflow-yaml, and agent-instructions documentation
 - [x] Extract prompts package — `src/prompts/` (template, types, persona, instructions, builder), unify executor on `ResolvablePrompt`, delete old `src/agent/activity.ts`, `persona.ts`, `instructions.ts`
