@@ -8,6 +8,8 @@ import { ensureHamiltonHome, agentsDir, settingsPath } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
+import { runDoctorChecks } from "./doctor.js"
+import { green, red } from "../formatting/colors.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -205,6 +207,14 @@ export const initCommand = Command.make("init", { force, copyPiConfigs, modelAli
     yield* Console.log(`Installed ${installed.length} workflows.`)
     for (const id of installed) {
       yield* Console.log(`  ${id}`)
+    }
+
+    yield* Console.log("")
+    yield* Console.log("Running prerequisite checks...")
+    const checkResults = yield* runDoctorChecks()
+    for (const r of checkResults) {
+      const mark = r.pass ? green("  ✓") : red("  ✗")
+      yield* Console.log(`${mark} ${r.name.padEnd(10)}  ${r.detail}`)
     }
   })
 ).pipe(Command.withDescription("Bootstrap Hamilton directories and install workflows"))

@@ -3,7 +3,7 @@ import { Console, Effect } from "effect"
 import * as ChildProcess from "node:child_process"
 import { green, red } from "../formatting/colors.js"
 
-interface CheckResult {
+export interface CheckResult {
   name: string
   pass: boolean
   detail: string
@@ -75,6 +75,10 @@ const checks: Array<Effect.Effect<CheckResult>> = [
   checkLspGo,
   checkLspJava,
 ]
+
+export function runDoctorChecks(): Effect.Effect<CheckResult[]> {
+  return Effect.all(checks, { concurrency: "unbounded" })
+}
 
 export const doctorCommand = Command.make("doctor", {}, () =>
   Effect.gen(function* () {
