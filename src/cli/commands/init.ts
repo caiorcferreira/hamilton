@@ -2,6 +2,8 @@ import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
+import * as Readline from "node:readline"
+import * as Yaml from "yaml"
 import { ensureHamiltonHome, agentsDir, settingsPath } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
@@ -12,6 +14,49 @@ const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 export class InitError extends Data.TaggedError("InitError")<{
   message: string
 }> {}
+
+export function parseModelAliasArgs(entries: string[]): Record<string, string> {
+  const aliases: Record<string, string> = {}
+  for (const entry of entries) {
+    const eq = entry.indexOf("=")
+    if (eq === -1) continue
+    aliases[entry.slice(0, eq)] = entry.slice(eq + 1)
+  }
+  return aliases
+}
+
+export function askModelAliases(): Effect.Effect<Record<string, string>, InitError> {
+  return Effect.gen(function* () {
+    yield* Console.log("Configure model aliases (optional)")
+    yield* Console.log("Aliases let you reference models by name in workflow YAMLs.")
+
+    const rl = Readline.createInterface({ input: process.stdin, output: process.stdout })
+    const question = (q: string): Effect.Effect<string, InitError> =>
+      Effect.tryPromise({
+        try: () => new Promise<string>(resolve => rl.question(q, resolve)),
+        catch: (e) => new InitError({ message: `Failed to read input: ${String(e)}` })
+      })
+
+    const answer = (yield* question("Add a model alias? (y/n) ")).trim().toLowerCase()
+    if (answer !== "y" && answer !== "yes") {
+      rl.close()
+      return {}
+    }
+
+    const aliases: Record<string, string> = {}
+    while (true) {
+      const name = (yield* question("  Alias name: ")).trim()
+      if (!name) break
+      const model = (yield* question("  Model ID: ")).trim()
+      if (!model) break
+      aliases[name] = model
+      const again = (yield* question("  Add another? (y/n) ")).trim().toLowerCase()
+      if (again !== "y" && again !== "yes") break
+    }
+    rl.close()
+    return aliases
+  })
+}
 
 function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
@@ -62,12 +107,26 @@ function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<vo
   })
 }
 
-function writeDefaultSettings(): Effect.Effect<void, InitError> {
+export function buildSettingsYaml(modelAliases?: Record<string, string>): string {
+  const doc = new Yaml.Document()
+  doc.contents = {
+    extensions: [
+      { name: "rtk", enabled: true },
+      { name: "lsp", enabled: true }
+    ]
+  } as any
+  if (modelAliases && Object.keys(modelAliases).length > 0) {
+    ;(doc.contents as any).models = { aliases: modelAliases }
+  }
+  return String(doc)
+}
+
+function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Effect<void, InitError> {
   return Effect.try({
     try: () => {
       const path = settingsPath()
       if (!Fs.existsSync(path)) {
-        Fs.writeFileSync(path, "extensions:\n  - name: rtk\n    enabled: true\n  - name: lsp\n    enabled: true\n")
+        Fs.writeFileSync(path, buildSettingsYaml(modelAliases))
       }
     },
     catch: (e) => new InitError({ message: `Failed to write settings: ${String(e)}` })
@@ -95,7 +154,7 @@ function copyPiConfigsFromHome(): Effect.Effect<void, InitError> {
   })
 }
 
-export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolean }): Effect.Effect<string[], InitError> {
+export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string> }): Effect.Effect<string[], InitError> {
   return Effect.gen(function* () {
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
@@ -114,7 +173,7 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
       yield* copyPiConfigsFromHome()
     }
     yield* createDefaultPiConfigs(options)
-    yield* writeDefaultSettings()
+    yield* writeDefaultSettings(options?.modelAliases)
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })
@@ -126,10 +185,17 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
 
 const force = Options.boolean("force")
 const copyPiConfigs = Options.boolean("copy-pi-configs")
+const modelAlias = Options.text("model-alias").pipe(Options.repeated)
 
-export const initCommand = Command.make("init", { force, copyPiConfigs }, ({ force, copyPiConfigs }) =>
+export const initCommand = Command.make("init", { force, copyPiConfigs, modelAlias }, ({ force, copyPiConfigs, modelAlias }) =>
   Effect.gen(function* () {
-    const result = yield* Effect.exit(initHamilton({ force, copyPiConfigs }))
+    const flagAliases = parseModelAliasArgs(modelAlias)
+    const modelAliases = Object.keys(flagAliases).length > 0
+      ? flagAliases
+      : !Fs.existsSync(settingsPath())
+        ? yield* askModelAliases()
+        : undefined
+    const result = yield* Effect.exit(initHamilton({ force, copyPiConfigs, modelAliases }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Init failed: ${String(result.cause)}`)
       return

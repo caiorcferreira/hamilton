@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
+import * as Yaml from "yaml"
 import { Effect, Exit } from "effect"
-import { initHamilton } from "../../src/cli/commands/init.js"
+import { initHamilton, parseModelAliasArgs, buildSettingsYaml } from "../../src/cli/commands/init.js"
 
 describe("initHamilton", () => {
   let tmpHome: string
@@ -202,5 +203,81 @@ describe("initHamilton", () => {
 
     const content = Fs.readFileSync(settingsPath, "utf-8")
     expect(content).toContain("enabled: false")
+  })
+
+  it("writes model aliases to settings.yaml when provided", async () => {
+    const exit = await Effect.runPromiseExit(initHamilton({
+      modelAliases: { cheap: "deepseek-v4", thinking: "o3-pro" }
+    }))
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const content = Fs.readFileSync(Path.join(tmpHome, ".hamilton", "settings.yaml"), "utf-8")
+    const parsed = Yaml.parse(content)
+    expect(parsed.models.aliases.cheap).toBe("deepseek-v4")
+    expect(parsed.models.aliases.thinking).toBe("o3-pro")
+  })
+
+  it("omits models section when no aliases provided", async () => {
+    const exit = await Effect.runPromiseExit(initHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const content = Fs.readFileSync(Path.join(tmpHome, ".hamilton", "settings.yaml"), "utf-8")
+    const parsed = Yaml.parse(content)
+    expect(parsed.models).toBeUndefined()
+  })
+
+  it("skips model aliases on re-init even if provided", async () => {
+    await Effect.runPromiseExit(initHamilton())
+    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
+    Fs.writeFileSync(settingsPath, "extensions:\n  - name: rtk\n    enabled: false\n")
+
+    await Effect.runPromiseExit(initHamilton({ modelAliases: { cheap: "deepseek-v4" } }))
+
+    const content = Fs.readFileSync(settingsPath, "utf-8")
+    expect(content).toContain("enabled: false")
+    expect(content).not.toContain("cheap")
+  })
+})
+
+describe("parseModelAliasArgs", () => {
+  it("parses NAME=VALUE entries", () => {
+    expect(parseModelAliasArgs(["cheap=deepseek-v4", "thinking=o3-pro"])).toEqual({
+      cheap: "deepseek-v4",
+      thinking: "o3-pro"
+    })
+  })
+
+  it("skips entries without =", () => {
+    expect(parseModelAliasArgs(["invalid", "ok=value"])).toEqual({ ok: "value" })
+  })
+
+  it("returns empty object for empty array", () => {
+    expect(parseModelAliasArgs([])).toEqual({})
+  })
+
+  it("handles value containing =", () => {
+    expect(parseModelAliasArgs(["model=a=b"])).toEqual({ model: "a=b" })
+  })
+})
+
+describe("buildSettingsYaml", () => {
+  it("produces valid YAML with extensions only", () => {
+    const yaml = buildSettingsYaml()
+    const parsed = Yaml.parse(yaml)
+    expect(parsed.extensions).toHaveLength(2)
+    expect(parsed.models).toBeUndefined()
+  })
+
+  it("produces valid YAML with extensions and model aliases", () => {
+    const yaml = buildSettingsYaml({ cheap: "deepseek-v4" })
+    const parsed = Yaml.parse(yaml)
+    expect(parsed.extensions).toHaveLength(2)
+    expect(parsed.models.aliases.cheap).toBe("deepseek-v4")
+  })
+
+  it("omits models section when aliases is empty", () => {
+    const yaml = buildSettingsYaml({})
+    const parsed = Yaml.parse(yaml)
+    expect(parsed.models).toBeUndefined()
   })
 })
