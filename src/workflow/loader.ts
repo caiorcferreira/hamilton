@@ -4,7 +4,7 @@ import * as Yaml from "yaml"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import type { WorkflowSpec } from "../types.js"
-import { WorkflowSpecSchema } from "../schemas.js"
+import { WorkflowSpecSchema, InvalidManifestEnvelopeError } from "../schemas.js"
 import { composeVariants } from "./variants.js"
 import { loadAgentManifests, DuplicateAgentError, AgentManifestParseError } from "./agent-registry.js"
 import type { WorkflowDescriptor } from "./agent-registry.js"
@@ -32,7 +32,7 @@ function walkTasks(tasks: any[]): any[] {
 }
 
 export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
-  const tasks = walkTasks(spec.tasks)
+  const tasks = walkTasks(spec.spec.tasks)
   for (const task of tasks) {
     if (!task.agent) continue
     if (task.agent.prompt?.file) {
@@ -65,7 +65,7 @@ export function loadWorkflowSpec(
   sharedAgentsDir: string,
   workflows: WorkflowDescriptor[],
   activeVariants: string[] = []
-): Effect.Effect<WorkflowSpec, WorkflowNotFoundError | WorkflowParseError | AgentNotFoundError | DuplicateAgentError | AgentManifestParseError> {
+): Effect.Effect<WorkflowSpec, WorkflowNotFoundError | WorkflowParseError | AgentNotFoundError | DuplicateAgentError | AgentManifestParseError | InvalidManifestEnvelopeError> {
   return Effect.gen(function* (_) {
     const agentRegistry = yield* _(loadAgentManifests(sharedAgentsDir, workflows))
 
@@ -86,6 +86,20 @@ export function loadWorkflowSpec(
       })
     )
 
+    yield* _(
+      Effect.try({
+        try: () => {
+          if ((raw as any).apiVersion !== "dag.hamilton.io/v1alpha1") {
+            throw new Error(`Invalid apiVersion: ${(raw as any).apiVersion}`)
+          }
+          if ((raw as any).kind !== "Workflow") {
+            throw new Error(`Invalid kind: ${(raw as any).kind}, expected Workflow`)
+          }
+        },
+        catch: (e) => new InvalidManifestEnvelopeError({ message: String(e) })
+      })
+    )
+
     const spec = yield* _(
       Effect.try({
         try: () => {
@@ -96,12 +110,12 @@ export function loadWorkflowSpec(
       })
     )
 
-    for (const task of walkTasks((spec as any).tasks as any[])) {
+    for (const task of walkTasks((spec as any).spec.tasks as any[])) {
       if (task.agent && !agentRegistry.has(task.agent.executorRef)) {
         yield* _(Effect.fail(new AgentNotFoundError({ taskName: task.name, executorRef: task.agent.executorRef })))
       }
     }
 
-    return { ...spec, agentRegistry } as WorkflowSpec
+    return { ...spec, agentRegistry } as unknown as WorkflowSpec
   })
 }

@@ -5,37 +5,45 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadWorkflowSpec, resolveWorkflowSpec, WorkflowNotFoundError, WorkflowParseError, AgentNotFoundError } from "../../src/workflow/loader.js"
 
-const validYaml = `version: 1
-name: test-wf
-run:
-  entrypoint: t1
-  timeout: 300s
-tasks:
-  - name: t1
-    agent:
-      executorRef: a1
-      prompt:
-        content: do it
+const validYaml = `apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test-wf
+  version: 1
+spec:
+  run:
+    entrypoint: t1
+    timeout: 300s
+  tasks:
+    - name: t1
+      agent:
+        executorRef: a1
+        prompt:
+          content: do it
 `
 
-const invalidYaml = `version: not-a-number
-name: bad
-run:
-  entrypoint: t1
-  timeout: 300s
-tasks:
-  - name: t1
-    agent:
-      executorRef: a1
-      prompt:
-        content: do it
+const invalidYaml = `apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: bad
+  version: not-a-number
+spec:
+  run:
+    entrypoint: t1
+    timeout: 300s
+  tasks:
+    - name: t1
+      agent:
+        executorRef: a1
+        prompt:
+          content: do it
 `
 
 function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
   Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(dir, "agent.yml"), `name: ${name}\nsettings:\n  model: default\n`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 
 describe("loadWorkflowSpec", () => {
@@ -71,13 +79,13 @@ describe("loadWorkflowSpec", () => {
     const workflows = [{ name: "test-wf", dir: Path.join(wfDir, "test-wf") }]
     const exit = await Effect.runPromiseExit(loadWorkflowSpec(wfDir, "test-wf", agentsDir, workflows))
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.name).toBe("test-wf")
-      expect(exit.value.version).toBe(1)
-      expect(exit.value.run.entrypoint).toBe("t1")
-      expect(exit.value.run.timeout).toBe("300s")
+      expect(exit.value.metadata.name).toBe("test-wf")
+      expect(exit.value.metadata.version).toBe(1)
+      expect(exit.value.spec.run.entrypoint).toBe("t1")
+      expect(exit.value.spec.run.timeout).toBe("300s")
       expect(exit.value.agentRegistry.has("a1")).toBe(true)
-      expect(exit.value.tasks).toHaveLength(1)
-      expect(exit.value.tasks[0].name).toBe("t1")
+      expect(exit.value.spec.tasks).toHaveLength(1)
+      expect(exit.value.spec.tasks[0].name).toBe("t1")
     } else {
       expect.unreachable("Expected success but got failure")
     }
@@ -117,17 +125,21 @@ describe("loadWorkflowSpec", () => {
     const agentsDir = Path.join(tmpDir, "agents")
     const workflows = [{ name: "test-wf", dir: Path.join(wfDir, "test-wf") }]
 
-    const missingRefYaml = `version: 1
-name: test-wf
-run:
-  entrypoint: t1
-  timeout: 300s
-tasks:
-  - name: t1
-    agent:
-      executorRef: nonexistent
-      prompt:
-        content: do it
+    const missingRefYaml = `apiVersion: dag.hamilton.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test-wf
+  version: 1
+spec:
+  run:
+    entrypoint: t1
+    timeout: 300s
+  tasks:
+    - name: t1
+      agent:
+        executorRef: nonexistent
+        prompt:
+          content: do it
 `
     Fs.writeFileSync(Path.join(wfDir, "test-wf", "workflow.yml"), missingRefYaml)
 
@@ -150,13 +162,16 @@ describe("resolveWorkflowSpec", () => {
       Fs.mkdirSync(promptsDir, { recursive: true })
       Fs.writeFileSync(Path.join(promptsDir, "my-prompt.md"), "prompt from file")
       const spec = {
-        version: 1,
-        name: "prompt-file-wf",
-        run: { entrypoint: "t1", timeout: "300s" },
-        tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "prompts/my-prompt.md" } } }]
+        apiVersion: "dag.hamilton.io/v1alpha1",
+        kind: "Workflow",
+        metadata: { name: "prompt-file-wf", version: 1 },
+        spec: {
+          run: { entrypoint: "t1", timeout: "300s" },
+          tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "prompts/my-prompt.md" } } }]
+        }
       }
       const resolved = resolveWorkflowSpec(wfDir, spec)
-      expect(resolved.tasks[0].agent.prompt.content).toBe("prompt from file")
+      expect(resolved.spec.tasks[0].agent.prompt.content).toBe("prompt from file")
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
     }
@@ -170,13 +185,16 @@ describe("resolveWorkflowSpec", () => {
       Fs.mkdirSync(schemasDir, { recursive: true })
       Fs.writeFileSync(Path.join(schemasDir, "out.json"), JSON.stringify({ type: "object", required: ["status"], properties: { status: { type: "string" } } }))
       const spec = {
-        version: 1,
-        name: "schema-file-wf",
-        run: { entrypoint: "t1", timeout: "300s" },
-        tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "schemas/out.json" } } } }]
+        apiVersion: "dag.hamilton.io/v1alpha1",
+        kind: "Workflow",
+        metadata: { name: "schema-file-wf", version: 1 },
+        spec: {
+          run: { entrypoint: "t1", timeout: "300s" },
+          tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "schemas/out.json" } } } }]
+        }
       }
       const resolved = resolveWorkflowSpec(wfDir, spec)
-      expect(resolved.tasks[0].agent.output.schema.content).toEqual({ type: "object", required: ["status"], properties: { status: { type: "string" } } })
+      expect(resolved.spec.tasks[0].agent.output.schema.content).toEqual({ type: "object", required: ["status"], properties: { status: { type: "string" } } })
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
     }
@@ -186,10 +204,13 @@ describe("resolveWorkflowSpec", () => {
     const tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-resolve-"))
     try {
       const spec = {
-        version: 1,
-        name: "bad",
-        run: { entrypoint: "t1", timeout: "300s" },
-        tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "nonexistent.md" } } }]
+        apiVersion: "dag.hamilton.io/v1alpha1",
+        kind: "Workflow",
+        metadata: { name: "bad", version: 1 },
+        spec: {
+          run: { entrypoint: "t1", timeout: "300s" },
+          tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "nonexistent.md" } } }]
+        }
       }
       expect(() => resolveWorkflowSpec(tmpDir, spec)).toThrow("Prompt file not found: nonexistent.md")
     } finally {
@@ -201,10 +222,13 @@ describe("resolveWorkflowSpec", () => {
     const tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-resolve-"))
     try {
       const spec = {
-        version: 1,
-        name: "bad",
-        run: { entrypoint: "t1", timeout: "300s" },
-        tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "nonexistent.json" } } } }]
+        apiVersion: "dag.hamilton.io/v1alpha1",
+        kind: "Workflow",
+        metadata: { name: "bad", version: 1 },
+        spec: {
+          run: { entrypoint: "t1", timeout: "300s" },
+          tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "nonexistent.json" } } } }]
+        }
       }
       expect(() => resolveWorkflowSpec(tmpDir, spec)).toThrow("Schema file not found: nonexistent.json")
     } finally {
