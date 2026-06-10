@@ -62,6 +62,9 @@ describe("executeRun", () => {
     const wfDir = Path.join(tmpHome, ".hamilton", "workflows", "test-wf")
     Fs.mkdirSync(wfDir, { recursive: true })
     Fs.writeFileSync(Path.join(wfDir, "workflow.yml"), validYaml)
+    const piDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
   })
 
   afterEach(() => {

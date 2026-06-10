@@ -58,6 +58,9 @@ describe("runWorkflow DAG-aware executor", () => {
     Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "agents"), { recursive: true })
+    const piDir = Path.join(hh, "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
   })
 
   afterEach(() => {
@@ -297,6 +300,9 @@ describe("shared/agents symlink verification", () => {
     Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "agents"), { recursive: true })
+    const piDir = Path.join(hh, "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
   })
 
   afterEach(() => {

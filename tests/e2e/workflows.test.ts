@@ -39,6 +39,9 @@ describe("end-to-end workflow execution", () => {
     testHome = Path.join(Os.tmpdir(), "hamilton-e2e-" + Date.now())
     process.env.HOME = testHome
     Fs.mkdirSync(Path.join(testHome, ".hamilton"), { recursive: true })
+    const piDir = Path.join(testHome, ".hamilton", "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
   })
 
   afterEach(() => {

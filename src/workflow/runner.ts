@@ -4,7 +4,7 @@ import { buildAgentPrompt } from "../prompts/builder.js"
 import { buildAutoContext, type Context } from "../workflow/context.js"
 import { resolveDottedPath } from "../prompts/template.js"
 import { resolvePersona } from "../prompts/persona.js"
-import { resolveAgentDefaults } from "../agent/config.js"
+import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
@@ -125,6 +125,8 @@ export function runWorkflow(
 
         const timeoutSeconds = resolveTaskTimeout(task, spec.run.timeout)
         const resolved = resolveAgentDefaults(agent.settings)
+        const aliases = loadModelAliases()
+        const model = resolveModelAlias(resolved.model, aliases)
         const outputSchema = task.agent!.output?.schema
 
         const output = yield* _(
@@ -134,7 +136,7 @@ export function runWorkflow(
             agentId: agent.name,
             runId,
             timeoutSeconds,
-            model: resolved.model,
+            model,
             outputSchema: outputSchema?.content,
             settings: {
               skills: resolved.skills,

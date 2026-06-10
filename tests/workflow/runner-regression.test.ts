@@ -48,6 +48,9 @@ describe("runWorkflow regression tests", () => {
     const hh = Path.join(tmpHome, ".hamilton")
     Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
     Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
+    const piDir = Path.join(hh, "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
   })
 
   afterEach(() => {
