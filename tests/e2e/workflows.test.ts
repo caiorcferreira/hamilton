@@ -6,6 +6,7 @@ import { Effect, Exit } from "effect"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { EventBusLive } from "../../src/events/bus.js"
 import { workflowsDir, runDir } from "../../src/paths.js"
+import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 const stepResponses: Record<string, Record<string, unknown>> = {
   triage: { status: "done", repo: "/tmp/test-repo", branch: "bugfix-login", severity: "high", affected_area: "src/auth.ts", reproduction: "open /login", problem_statement: "race condition in session" },
@@ -31,6 +32,13 @@ vi.mock("../../src/prompts/persona.js", () => {
   }
 })
 
+const makeAgentManifest = (name: string): AgentManifest => ({
+  name,
+  dirPath: `/agents/${name}`,
+  settings: { model: "default" },
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+})
+
 describe("end-to-end workflow execution", () => {
   let testHome: string
   const origHome = process.env.HOME
@@ -50,24 +58,26 @@ describe("end-to-end workflow execution", () => {
   })
 
   it("completes the bug-fix workflow with mock agents", async () => {
-    const spec = {
+    const agentRegistry = new Map<string, AgentManifest>([
+      ["triager", makeAgentManifest("triager")],
+      ["investigator", makeAgentManifest("investigator")],
+      ["setup", makeAgentManifest("setup")],
+      ["fixer", makeAgentManifest("fixer")],
+      ["verifier", makeAgentManifest("verifier")]
+    ])
+
+    const spec: WorkflowSpec = {
       version: 1,
       name: "bug-fix",
       description: "Bug fix pipeline",
       run: { entrypoint: "triage", timeout: "300s" },
-      agents: [
-        { name: "triager", role: "analysis" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
-        { name: "investigator", role: "analysis" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
-        { name: "setup", role: "coding" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
-        { name: "fixer", role: "coding" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } },
-        { name: "verifier", role: "verification" as const, settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } }
-      ],
+      agentRegistry,
       tasks: [
-        { name: "triage", agent: { ref: "agents.triager", prompt: { content: "Triage the bug" } } },
-        { name: "investigate", dependencies: ["triage"], agent: { ref: "agents.investigator", prompt: { content: "Investigate" } } },
-        { name: "setup", dependencies: ["investigate"], agent: { ref: "agents.setup", prompt: { content: "Setup" } } },
-        { name: "fix", dependencies: ["setup"], agent: { ref: "agents.fixer", prompt: { content: "Fix the bug" } } },
-        { name: "verify", dependencies: ["fix"], agent: { ref: "agents.verifier", prompt: { content: "Verify" } } }
+        { name: "triage", agent: { executorRef: "triager", prompt: { content: "Triage the bug" } } },
+        { name: "investigate", dependencies: ["triage"], agent: { executorRef: "investigator", prompt: { content: "Investigate" } } },
+        { name: "setup", dependencies: ["investigate"], agent: { executorRef: "setup", prompt: { content: "Setup" } } },
+        { name: "fix", dependencies: ["setup"], agent: { executorRef: "fixer", prompt: { content: "Fix the bug" } } },
+        { name: "verify", dependencies: ["fix"], agent: { executorRef: "verifier", prompt: { content: "Verify" } } }
       ]
     }
 

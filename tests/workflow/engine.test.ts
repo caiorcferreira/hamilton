@@ -27,9 +27,9 @@ describe("parseDuration", () => {
 describe("topologicalSort", () => {
   it("sorts tasks by dependency order", () => {
     const tasks: WorkflowTask[] = [
-      { name: "review", dependencies: ["test"], agent: { ref: "agents.v", prompt: { content: "" } } },
-      { name: "test", dependencies: ["implement"], agent: { ref: "agents.t", prompt: { content: "" } } },
-      { name: "implement", agent: { ref: "agents.d", prompt: { content: "" } } }
+      { name: "review", dependencies: ["test"], agent: { executorRef: "v", prompt: { content: "" } } },
+      { name: "test", dependencies: ["implement"], agent: { executorRef: "t", prompt: { content: "" } } },
+      { name: "implement", agent: { executorRef: "d", prompt: { content: "" } } }
     ]
     const sorted = topologicalSort(tasks)
     expect(sorted.map(t => t.name)).toEqual(["implement", "test", "review"])
@@ -37,25 +37,25 @@ describe("topologicalSort", () => {
 
   it("handles tasks with no dependencies first", () => {
     const tasks: WorkflowTask[] = [
-      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "a", agent: { ref: "agents.x", prompt: { content: "" } } }
+      { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "a", agent: { executorRef: "x", prompt: { content: "" } } }
     ]
     expect(topologicalSort(tasks).map(t => t.name)).toEqual(["a", "b"])
   })
 
   it("handles multiple independent tasks", () => {
     const tasks: WorkflowTask[] = [
-      { name: "x", agent: { ref: "agents.a", prompt: { content: "" } } },
-      { name: "y", agent: { ref: "agents.a", prompt: { content: "" } } },
-      { name: "z", dependencies: ["x", "y"], agent: { ref: "agents.a", prompt: { content: "" } } }
+      { name: "x", agent: { executorRef: "a", prompt: { content: "" } } },
+      { name: "y", agent: { executorRef: "a", prompt: { content: "" } } },
+      { name: "z", dependencies: ["x", "y"], agent: { executorRef: "a", prompt: { content: "" } } }
     ]
     expect(topologicalSort(tasks).map(t => t.name)).toEqual(["x", "y", "z"])
   })
 
   it("throws on circular dependency", () => {
     const tasks: WorkflowTask[] = [
-      { name: "a", dependencies: ["b"], agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } }
+      { name: "a", dependencies: ["b"], agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } }
     ]
     expect(() => topologicalSort(tasks)).toThrow("circular")
   })
@@ -68,9 +68,9 @@ describe("topologicalSort", () => {
 describe("collectReachableTasks", () => {
   it("collects tasks reachable from entrypoint", () => {
     const tasks: WorkflowTask[] = [
-      { name: "plan", agent: { ref: "agents.p", prompt: { content: "" } } },
-      { name: "setup", dependencies: ["plan"], agent: { ref: "agents.s", prompt: { content: "" } } },
-      { name: "orphan", agent: { ref: "agents.o", prompt: { content: "" } } }
+      { name: "plan", agent: { executorRef: "p", prompt: { content: "" } } },
+      { name: "setup", dependencies: ["plan"], agent: { executorRef: "s", prompt: { content: "" } } },
+      { name: "orphan", agent: { executorRef: "o", prompt: { content: "" } } }
     ]
     const collected = collectReachableTasks(tasks, "plan")
     expect(collected.map(t => t.name)).toEqual(["plan", "setup"])
@@ -101,7 +101,7 @@ describe("resolveTaskTimeout", () => {
   it("uses task-level timeout", () => {
     const task: WorkflowTask = {
       name: "t",
-      agent: { ref: "agents.a", timeout: { fixed: "120s" }, prompt: { content: "" } }
+      agent: { executorRef: "a", timeout: { fixed: "120s" }, prompt: { content: "" } }
     }
     expect(resolveTaskTimeout(task, "300s")).toBe(120)
   })
@@ -109,7 +109,7 @@ describe("resolveTaskTimeout", () => {
   it("falls back to global run timeout", () => {
     const task: WorkflowTask = {
       name: "t",
-      agent: { ref: "agents.a", prompt: { content: "" } }
+      agent: { executorRef: "a", prompt: { content: "" } }
     }
     expect(resolveTaskTimeout(task, "300s")).toBe(300)
   })
@@ -117,7 +117,7 @@ describe("resolveTaskTimeout", () => {
   it("returns 300 when both are missing or invalid", () => {
     const task: WorkflowTask = {
       name: "t",
-      agent: { ref: "agents.a", prompt: { content: "" } }
+      agent: { executorRef: "a", prompt: { content: "" } }
     }
     expect(resolveTaskTimeout(task, "invalid")).toBe(300)
   })

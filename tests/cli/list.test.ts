@@ -11,21 +11,20 @@ ${desc ? `description: "${desc}"` : ""}
 run:
   entrypoint: step-1
   timeout: 300s
-agents:
-  - name: agent-1
-    role: coding
-    settings:
-      systemPrompt:
-        agent: agents/agent-1/AGENTS.md
-        soul: agents/agent-1/soul.md
-        identity: agents/agent-1/identity.md
 tasks:
   - name: step-1
     agent:
-      ref: agents.agent-1
+      executorRef: agent-1
       prompt:
         content: "Do stuff"
 `
+
+function makeAgentDir(agentsDir: string, name: string): void {
+  const dir = Path.join(agentsDir, name)
+  Fs.mkdirSync(dir, { recursive: true })
+  Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `name: ${name}\nsettings:\n  model: default\n`)
+}
 
 describe("listWorkflows", () => {
   let tmpHome: string
@@ -34,6 +33,9 @@ describe("listWorkflows", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-list-"))
     process.env.HOME = tmpHome
+
+    const agentsDir = Path.join(tmpHome, ".hamilton", "agents")
+    makeAgentDir(agentsDir, "agent-1")
   })
 
   afterEach(() => {

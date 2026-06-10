@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
 import { Effect } from "effect"
 import { loadWorkflowSpec } from "../workflow/loader.js"
+import type { WorkflowDescriptor } from "../workflow/agent-registry.js"
 import { resolvePersona } from "../prompts/persona.js"
 import { openDb } from "../workflow/state.js"
 import { getRunStatus as getDbRunStatus, listRuns } from "../db/queries.js"
@@ -94,11 +95,13 @@ export function createMcpServer(): McpServer {
       const entries = Fs.readdirSync(dir, { withFileTypes: true })
         .filter((e) => e.isDirectory())
         .map((e) => e.name)
+      const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
+      const workflowEntries: WorkflowDescriptor[] = entries.map((name) => ({ name, dir: Path.join(dir, name) }))
       const results = []
       for (const slug of entries) {
-        const spec = await Effect.runPromise(Effect.option(loadWorkflowSpec(dir, slug)))
+        const spec = await Effect.runPromise(Effect.option(loadWorkflowSpec(dir, slug, sharedAgentsDir, workflowEntries)))
         if (spec._tag === "Some") {
-          results.push({ name: spec.value.name, version: spec.value.version, tasks: spec.value.tasks.length, agents: spec.value.agents.length })
+          results.push({ name: spec.value.name, version: spec.value.version, tasks: spec.value.tasks.length, agents: spec.value.agentRegistry.size })
         }
       }
       return textResult(JSON.stringify(results, null, 2))

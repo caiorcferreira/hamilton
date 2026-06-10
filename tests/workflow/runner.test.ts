@@ -5,7 +5,7 @@ import * as Os from "node:os"
 import { Effect, Exit, Stream, Scope } from "effect"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
-import type { WorkflowSpec } from "../../src/types.js"
+import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 import { collectReachableTasks, topologicalSort } from "../../src/workflow/engine.js"
 
 vi.mock("../../src/executors/pi/pi-executor.js", () => {
@@ -24,25 +24,24 @@ vi.mock("../../src/prompts/persona.js", () => {
   }
 })
 
-const makeAgentFile = (dir: string, name: string): void => {
-  const agentDir = Path.join(dir, name)
-  Fs.mkdirSync(agentDir, { recursive: true })
-  Fs.writeFileSync(Path.join(agentDir, "AGENTS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(agentDir, "soul.md"), `Soul for ${name}`)
-  Fs.writeFileSync(Path.join(agentDir, "identity.md"), `Identity for ${name}`)
-}
+const makeAgentManifest = (name: string): AgentManifest => ({
+  name,
+  dirPath: `/agents/${name}`,
+  settings: { model: "default" },
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+})
 
 const makeSpec = (overrides?: Partial<WorkflowSpec>): WorkflowSpec => ({
   version: 1,
   name: "test-flow",
   run: { entrypoint: "plan", timeout: "300s" },
-  agents: [
-    { name: "planner", role: "analysis", settings: { systemPrompt: { agent: "agents/planner/AGENTS.md", soul: "agents/planner/soul.md", identity: "agents/planner/identity.md" } } },
-    { name: "coder", role: "coding", settings: { systemPrompt: { agent: "agents/coder/AGENTS.md", soul: "agents/coder/soul.md", identity: "agents/coder/identity.md" } } }
-  ],
+  agentRegistry: new Map([
+    ["planner", makeAgentManifest("planner")],
+    ["coder", makeAgentManifest("coder")]
+  ]),
   tasks: [
-    { name: "plan", agent: { ref: "agents.planner", prompt: { content: "Plan the feature" } } },
-    { name: "implement", dependencies: ["plan"], agent: { ref: "agents.coder", prompt: { content: "Implement it" } } }
+    { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan the feature" } } },
+    { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Implement it" } } }
   ],
   ...overrides
 })
@@ -136,9 +135,9 @@ describe("runWorkflow DAG-aware executor", () => {
   it("handles linear chain with 3 tasks", async () => {
     const spec = makeSpec({
       tasks: [
-        { name: "plan", agent: { ref: "agents.planner", prompt: { content: "Plan" } } },
-        { name: "code", dependencies: ["plan"], agent: { ref: "agents.coder", prompt: { content: "Code" } } },
-        { name: "verify", dependencies: ["code"], agent: { ref: "agents.planner", prompt: { content: "Verify" } } }
+        { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
+        { name: "code", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
+        { name: "verify", dependencies: ["code"], agent: { executorRef: "planner", prompt: { content: "Verify" } } }
       ]
     } as Partial<WorkflowSpec>)
 
@@ -166,9 +165,9 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec({
       run: { entrypoint: "a", timeout: "300s" },
       tasks: [
-        { name: "a", agent: { ref: "agents.planner", prompt: { content: "A" } } },
-        { name: "b", agent: { ref: "agents.coder", prompt: { content: "B" } } },
-        { name: "c", dependencies: ["a", "b"], agent: { ref: "agents.planner", prompt: { content: "C" } } }
+        { name: "a", agent: { executorRef: "planner", prompt: { content: "A" } } },
+        { name: "b", agent: { executorRef: "coder", prompt: { content: "B" } } },
+        { name: "c", dependencies: ["a", "b"], agent: { executorRef: "planner", prompt: { content: "C" } } }
       ]
     } as Partial<WorkflowSpec>)
 
@@ -191,9 +190,9 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec({
       run: { entrypoint: "plan", timeout: "300s" },
       tasks: [
-        { name: "plan", agent: { ref: "agents.planner", prompt: { content: "Plan" } } },
-        { name: "implement", dependencies: ["plan"], agent: { ref: "agents.coder", prompt: { content: "Code" } } },
-        { name: "orphan", agent: { ref: "agents.coder", prompt: { content: "Orphan" } } }
+        { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
+        { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Code" } } },
+        { name: "orphan", agent: { executorRef: "coder", prompt: { content: "Orphan" } } }
       ]
     } as Partial<WorkflowSpec>)
 
@@ -250,10 +249,10 @@ describe("runWorkflow DAG-aware executor", () => {
 describe("topological sort + context integration", () => {
   it("topological sort produces valid execution order for DAG with multiple paths", () => {
     const tasks: WorkflowSpec["tasks"] = [
-      { name: "setup", agent: { ref: "agents.a", prompt: { content: "" } } },
-      { name: "plan", dependencies: ["setup"], agent: { ref: "agents.b", prompt: { content: "" } } },
-      { name: "test", dependencies: ["setup"], agent: { ref: "agents.c", prompt: { content: "" } } },
-      { name: "deploy", dependencies: ["plan", "test"], agent: { ref: "agents.d", prompt: { content: "" } } }
+      { name: "setup", agent: { executorRef: "a", prompt: { content: "" } } },
+      { name: "plan", dependencies: ["setup"], agent: { executorRef: "b", prompt: { content: "" } } },
+      { name: "test", dependencies: ["setup"], agent: { executorRef: "c", prompt: { content: "" } } },
+      { name: "deploy", dependencies: ["plan", "test"], agent: { executorRef: "d", prompt: { content: "" } } }
     ]
 
     const sorted = topologicalSort(tasks)
@@ -267,10 +266,10 @@ describe("topological sort + context integration", () => {
 
   it("collectReachableTasks excludes unreachable branches", () => {
     const tasks: WorkflowSpec["tasks"] = [
-      { name: "a", agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "c", agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "d", dependencies: ["c"], agent: { ref: "agents.x", prompt: { content: "" } } }
+      { name: "a", agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "c", agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "d", dependencies: ["c"], agent: { executorRef: "x", prompt: { content: "" } } }
     ]
 
     const reachable = collectReachableTasks(tasks, "a")
@@ -279,70 +278,12 @@ describe("topological sort + context integration", () => {
 
   it("collectReachableTasks includes both dependencies and dependents", () => {
     const tasks: WorkflowSpec["tasks"] = [
-      { name: "a", agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "b", dependencies: ["a"], agent: { ref: "agents.x", prompt: { content: "" } } },
-      { name: "c", dependencies: ["b"], agent: { ref: "agents.x", prompt: { content: "" } } }
+      { name: "a", agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "b", dependencies: ["a"], agent: { executorRef: "x", prompt: { content: "" } } },
+      { name: "c", dependencies: ["b"], agent: { executorRef: "x", prompt: { content: "" } } }
     ]
 
     const reachable = collectReachableTasks(tasks, "b")
     expect(reachable.map(t => t.name).sort()).toEqual(["a", "b", "c"])
-  })
-})
-
-describe("shared/agents symlink verification", () => {
-  let tmpHome: string
-  const origHome = process.env.HOME
-
-  beforeEach(() => {
-    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-symlink-runner-"))
-    process.env.HOME = tmpHome
-    const hh = Path.join(tmpHome, ".hamilton")
-    Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
-    Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
-    Fs.mkdirSync(Path.join(hh, "agents"), { recursive: true })
-    const piDir = Path.join(hh, "executors", "pi", "agent")
-    Fs.mkdirSync(piDir, { recursive: true })
-    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
-  })
-
-  afterEach(() => {
-    process.env.HOME = origHome
-    Fs.rmSync(tmpHome, { recursive: true, force: true })
-  })
-
-  it("creates shared/agents symlink when missing before execution", async () => {
-    const spec = makeSpec()
-    const wfDir = Path.join(tmpHome, ".hamilton", "workflows", spec.name)
-    Fs.mkdirSync(wfDir, { recursive: true })
-
-    await Effect.runPromise(
-      Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
-      ).pipe(Effect.provide(EventBusLive))
-    )
-
-    const linkPath = Path.join(wfDir, "shared", "agents")
-    expect(Fs.existsSync(linkPath)).toBe(true)
-    expect(Fs.lstatSync(linkPath).isSymbolicLink()).toBe(true)
-  })
-
-  it("fixes broken shared/agents symlink before execution", async () => {
-    const spec = makeSpec()
-    const wfDir = Path.join(tmpHome, ".hamilton", "workflows", spec.name)
-    Fs.mkdirSync(wfDir, { recursive: true })
-    const sharedDir = Path.join(wfDir, "shared")
-    Fs.mkdirSync(sharedDir, { recursive: true })
-    const wrongDir = Path.join(tmpHome, "wrong")
-    Fs.mkdirSync(wrongDir, { recursive: true })
-    Fs.symlinkSync(wrongDir, Path.join(sharedDir, "agents"), "dir")
-
-    await Effect.runPromise(
-      Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
-      ).pipe(Effect.provide(EventBusLive))
-    )
-
-    const linkPath = Path.join(wfDir, "shared", "agents")
-    expect(Fs.readlinkSync(linkPath)).not.toBe(wrongDir)
   })
 })

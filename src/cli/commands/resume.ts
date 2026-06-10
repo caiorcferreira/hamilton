@@ -6,6 +6,7 @@ import { openDb } from "../../workflow/state.js"
 import { getRunById, getWorkflowState } from "../../db/queries.js"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
+import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import type { WorkflowSpec } from "../../types.js"
 import { EventBusLive } from "../../events/bus.js"
@@ -59,7 +60,15 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     }
     db.close()
 
-    const spec = yield* _(loadWorkflowSpec(workflowsDir(), run.workflow_id).pipe(
+    const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
+    const wfBaseDir = workflowsDir()
+    const workflowEntries: WorkflowDescriptor[] = Fs.existsSync(wfBaseDir)
+      ? Fs.readdirSync(wfBaseDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => ({ name: e.name, dir: Path.join(wfBaseDir, e.name) }))
+      : []
+
+    const spec = yield* _(loadWorkflowSpec(wfBaseDir, run.workflow_id, sharedAgentsDir, workflowEntries).pipe(
       Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
     ))
 

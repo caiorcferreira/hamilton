@@ -219,7 +219,7 @@ function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agen
   function walk(tasks: WorkflowSpec["tasks"]): void {
     for (const t of tasks) {
       if (t.agent) {
-        result.push({ taskName: t.name, agentName: t.agent.ref })
+        result.push({ taskName: t.name, agentName: t.agent.executorRef })
       }
       if (t.tasks) {
         walk(t.tasks)

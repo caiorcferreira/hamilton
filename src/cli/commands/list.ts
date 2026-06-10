@@ -1,8 +1,10 @@
 import { Command } from "@effect/cli"
 import { Console, Effect } from "effect"
 import * as Fs from "node:fs"
+import * as Path from "node:path"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
+import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { renderTable, Column } from "../formatting/table.js"
 import { categoryColor, dim } from "../formatting/colors.js"
 
@@ -17,24 +19,27 @@ export interface WorkflowListItem {
 export const listWorkflows: Effect.Effect<WorkflowListItem[], never> = Effect.gen(function* () {
   if (!Fs.existsSync(hamiltonHome())) return [] as WorkflowListItem[]
 
-  const dir = workflowsDir()
-  if (!Fs.existsSync(dir)) return [] as WorkflowListItem[]
+  const wfDir = workflowsDir()
+  if (!Fs.existsSync(wfDir)) return [] as WorkflowListItem[]
 
-  const entries = Fs.readdirSync(dir, { withFileTypes: true })
+  const entries = Fs.readdirSync(wfDir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort()
 
+  const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
+  const workflowEntries: WorkflowDescriptor[] = entries.map((name) => ({ name, dir: Path.join(wfDir, name) }))
+
   const results: WorkflowListItem[] = []
   for (const slug of entries) {
-    const spec = yield* loadWorkflowSpec(dir, slug).pipe(Effect.option)
+    const spec = yield* loadWorkflowSpec(wfDir, slug, sharedAgentsDir, workflowEntries).pipe(Effect.option)
     if (spec._tag === "Some") {
       results.push({
         name: spec.value.name,
         description: spec.value.description,
         version: spec.value.version,
         taskCount: spec.value.tasks.length,
-        agentCount: spec.value.agents.length
+        agentCount: spec.value.agentRegistry.size
       })
     }
   }

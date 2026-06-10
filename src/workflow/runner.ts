@@ -18,7 +18,6 @@ import {
   ensureProgressFile
 } from "../observability/run-dir.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
-import { ensureSharedAgentsSymlink } from "../workflow/shared-agents.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
 import { loadInstructionFiles } from "../prompts/instructions.js"
@@ -45,9 +44,6 @@ export function runWorkflow(
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
-    const workflowDir = `${config.workflowsDir}/${spec.name}`
-
-    yield* _(ensureSharedAgentsSymlink(workflowDir))
 
     const staticTasks = collectReachableTasks(spec.tasks, spec.run.entrypoint)
     const sortedTasks = topologicalSort(staticTasks)
@@ -91,8 +87,7 @@ export function runWorkflow(
       Effect.gen(function* () {
         if (!task.agent) return
 
-        const agentName = task.agent.ref.replace("agents.", "")
-        const agent = spec.agents.find(a => a.name === agentName)
+        const agent = spec.agentRegistry.get(task.agent.executorRef)
         if (!agent) return
 
         const taskId = buildTaskId(runId, instanceName)
@@ -101,7 +96,7 @@ export function runWorkflow(
         yield* _(bus.publish({ _tag: "StepStarted", runId, stepId: taskId }))
 
         const persona = yield* _(
-          resolvePersona(agent.settings.systemPrompt, workflowDir).pipe(
+          resolvePersona(agent.systemPrompt, agent.dirPath).pipe(
             Effect.mapError((e) => new Error(e.agentPath))
           )
         )

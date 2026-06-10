@@ -1,4 +1,4 @@
-import type { Prompt, WorkflowAgent } from "../types.js"
+import type { Prompt, AgentManifest } from "../types.js"
 import type { Context } from "../workflow/context.js"
 import { resolveTemplate } from "./template.js"
 
@@ -8,7 +8,7 @@ export interface PromptParams {
   identityFile: string
   prompt: Prompt
   context: Context
-  agentConfig: Partial<WorkflowAgent>
+  agentConfig: Partial<AgentManifest>
 }
 
 export interface BuiltPrompt {

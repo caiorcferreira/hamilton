@@ -8,30 +8,11 @@ run:
   entrypoint: scaffold
   timeout: 300s
 
-agents:
-  - name: scaffolder
-    role: coding
-    settings:
-      model: default
-      systemPrompt:
-        agent: agents/scaffolder/AGENTS.md
-        soul: agents/scaffolder/SOUL.md
-        identity: agents/scaffolder/IDENTITY.md
-
-  - name: verifier
-    role: verification
-    settings:
-      model: default
-      systemPrompt:
-        agent: shared/agents/verifier/AGENTS.md
-        soul: shared/agents/verifier/SOUL.md
-        identity: shared/agents/verifier/IDENTITY.md
-
 tasks:
   - name: scaffold
     dependencies: []
     agent:
-      ref: agents.scaffolder
+      executorRef: scaffolder
       prompt:
         content: |
           Scaffold a new project based on the following requirements.
@@ -68,7 +49,7 @@ tasks:
   - name: verify
     dependencies: [scaffold]
     agent:
-      ref: agents.verifier
+      executorRef: verifier
       prompt:
         content: |
           Verify the scaffolded project is correct and buildable.

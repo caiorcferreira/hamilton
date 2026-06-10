@@ -35,21 +35,20 @@ run:
   timeout: 300s
 variants:
   supported: [branchout]
-agents:
-  - name: agent-1
-    role: coding
-    settings:
-      systemPrompt:
-        agent: agents/agent-1/AGENTS.md
-        soul: agents/agent-1/soul.md
-        identity: agents/agent-1/identity.md
 tasks:
   - name: step-1
     agent:
-      ref: agents.agent-1
+      executorRef: agent-1
       prompt:
         content: "Do the thing"
 `
+
+function makeAgentDir(agentsDir: string, name: string): void {
+  const dir = Path.join(agentsDir, name)
+  Fs.mkdirSync(dir, { recursive: true })
+  Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `name: ${name}\nsettings:\n  model: default\n`)
+}
 
 describe("executeRun", () => {
   let tmpHome: string
@@ -65,6 +64,9 @@ describe("executeRun", () => {
     const piDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
     Fs.mkdirSync(piDir, { recursive: true })
     Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }))
+
+    const agentsDir = Path.join(tmpHome, ".hamilton", "agents")
+    makeAgentDir(agentsDir, "agent-1")
   })
 
   afterEach(() => {

@@ -14,67 +14,11 @@ run:
 variants:
   supported: [branchout, merge, worktree, github_pr]
 
-agents:
-  - name: triager
-    role: analysis
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/triager/AGENTS.md
-        soul: agents/triager/SOUL.md
-        identity: agents/triager/IDENTITY.md
-
-  - name: investigator
-    role: analysis
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/investigator/AGENTS.md
-        soul: agents/investigator/SOUL.md
-        identity: agents/investigator/IDENTITY.md
-
-  - name: setup
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: shared/agents/setup/AGENTS.md
-        soul: shared/agents/setup/SOUL.md
-        identity: shared/agents/setup/IDENTITY.md
-
-  - name: fixer
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/fixer/AGENTS.md
-        soul: agents/fixer/SOUL.md
-        identity: agents/fixer/IDENTITY.md
-
-  - name: verifier
-    role: verification
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: shared/agents/verifier/AGENTS.md
-        soul: shared/agents/verifier/SOUL.md
-        identity: shared/agents/verifier/IDENTITY.md
-
 tasks:
   - name: triage
     dependencies: []
     agent:
-      ref: agents.triager
+      executorRef: triager
       prompt:
         content: |
           Triage the following bug report. Explore the codebase, reproduce the issue, and classify severity.
@@ -107,7 +51,7 @@ tasks:
   - name: investigate
     dependencies: [triage]
     agent:
-      ref: agents.investigator
+      executorRef: investigator
       prompt:
         content: |
           Investigate the root cause of this bug.
@@ -141,7 +85,7 @@ tasks:
   - name: setup
     dependencies: [investigate]
     agent:
-      ref: agents.setup
+      executorRef: setup
       prompt:
         content: |
           Prepare the environment for the bugfix.
@@ -171,7 +115,7 @@ tasks:
   - name: fix
     dependencies: [setup]
     agent:
-      ref: agents.fixer
+      executorRef: fixer
       prompt:
         content: |
           Implement the bug fix.
@@ -216,7 +160,7 @@ tasks:
   - name: verify
     dependencies: [fix]
     agent:
-      ref: agents.verifier
+      executorRef: verifier
       prompt:
         content: |
           Verify the bug fix is correct and complete.

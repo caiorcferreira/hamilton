@@ -1,6 +1,6 @@
 import { Data } from "effect"
 
-import type { WorkflowAgent, WorkflowSpec, WorkflowTask, VariantTask } from "../types.js"
+import type { AgentManifest, WorkflowSpec, WorkflowTask, VariantTask } from "../types.js"
 
 export class UnsupportedVariantError extends Data.TaggedError("UnsupportedVariantError")<{
   variant: string
@@ -8,13 +8,11 @@ export class UnsupportedVariantError extends Data.TaggedError("UnsupportedVarian
 }> {}
 
 interface VariantDefinition {
-  agents: WorkflowAgent[]
   tasks: VariantTask[]
 }
 
 export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
   branchout: {
-    agents: [],
     tasks: [
       {
         placement: "start",
@@ -22,7 +20,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-branch",
           agent: {
-            ref: "agents.setup",
+            executorRef: "setup",
             prompt: {
               content: "Run the following commands:\n1. cd {{tasks.plan.outputs.repo}}\n2. git checkout -b {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done"
             }
@@ -32,19 +30,6 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     ]
   },
   worktree: {
-    agents: [
-      {
-        name: "worktree-handler",
-        role: "coding",
-        settings: {
-          systemPrompt: {
-            agent: "shared/agents/setup/AGENTS.md",
-            soul: "shared/agents/setup/SOUL.md",
-            identity: "shared/agents/setup/IDENTITY.md"
-          }
-        }
-      }
-    ],
     tasks: [
       {
         placement: "start",
@@ -52,7 +37,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-worktree",
           agent: {
-            ref: "agents.worktree-handler",
+            executorRef: "setup",
             prompt: {
               content: "Create an isolated git worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nDeterministic activity: createGitWorktree\n\nReply with STATUS: done, WORKTREE_PATH: <path>, ORIGINAL_BRANCH: <branch>"
             }
@@ -65,7 +50,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "cleanup-worktree",
           agent: {
-            ref: "agents.worktree-handler",
+            executorRef: "setup",
             prompt: {
               content: "Clean up the worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\n\nDeterministic activity: cleanupGitWorktree\n\nReply with STATUS: done"
             }
@@ -75,19 +60,6 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     ]
   },
   merge: {
-    agents: [
-      {
-        name: "merger",
-        role: "pr",
-        settings: {
-          systemPrompt: {
-            agent: "agents/merger/AGENTS.md",
-            soul: "agents/merger/SOUL.md",
-            identity: "agents/merger/IDENTITY.md"
-          }
-        }
-      }
-    ],
     tasks: [
       {
         placement: "end",
@@ -95,7 +67,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "finalize-merge",
           agent: {
-            ref: "agents.merger",
+            executorRef: "merger",
             prompt: {
               content: "Finalize by squashing changes and merging.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done"
             }
@@ -105,19 +77,6 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     ]
   },
   github_pr: {
-    agents: [
-      {
-        name: "reviewer",
-        role: "analysis",
-        settings: {
-          systemPrompt: {
-            agent: "agents/reviewer/AGENTS.md",
-            soul: "agents/reviewer/SOUL.md",
-            identity: "agents/reviewer/IDENTITY.md"
-          }
-        }
-      }
-    ],
     tasks: [
       {
         placement: "end",
@@ -125,7 +84,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-pr",
           agent: {
-            ref: "agents.developer",
+            executorRef: "developer",
             prompt: {
               content: "Create a pull request.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done, PR: <url>"
             }
@@ -138,7 +97,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "review",
           agent: {
-            ref: "agents.reviewer",
+            executorRef: "reviewer",
             prompt: {
               content: "Review the PR.\n\nPR: {{pr}}\n\nReply with STATUS: done, DECISION: approved"
             }
@@ -151,6 +110,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
 
 export function composeVariants(
   spec: WorkflowSpec,
+  agentRegistry: Map<string, AgentManifest>,
   activeVariants: string[]
 ): WorkflowSpec {
   if (activeVariants.length === 0) return spec
@@ -237,18 +197,5 @@ export function composeVariants(
     }
   }
 
-  const agentNames = new Set(spec.agents.map(a => a.name))
-  const newAgents = [...spec.agents]
-  for (const v of orderedBySupported) {
-    const def = VARIANT_REGISTRY[v]
-    if (!def) continue
-    for (const agent of def.agents) {
-      if (!agentNames.has(agent.name)) {
-        newAgents.push(agent)
-        agentNames.add(agent.name)
-      }
-    }
-  }
-
-  return { ...spec, agents: newAgents, tasks: composedTasks }
+  return { ...spec, tasks: composedTasks }
 }

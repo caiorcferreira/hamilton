@@ -18,78 +18,11 @@ run:
 variants:
   supported: [branchout, merge, worktree, github_pr]
 
-agents:
-  - name: scanner
-    role: scanning
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/scanner/AGENTS.md
-        soul: agents/scanner/SOUL.md
-        identity: agents/scanner/IDENTITY.md
-
-  - name: prioritizer
-    role: analysis
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/prioritizer/AGENTS.md
-        soul: agents/prioritizer/SOUL.md
-        identity: agents/prioritizer/IDENTITY.md
-
-  - name: setup
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: shared/agents/setup/AGENTS.md
-        soul: shared/agents/setup/SOUL.md
-        identity: shared/agents/setup/IDENTITY.md
-
-  - name: fixer
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/fixer/AGENTS.md
-        soul: agents/fixer/SOUL.md
-        identity: agents/fixer/IDENTITY.md
-
-  - name: verifier
-    role: verification
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: shared/agents/verifier/AGENTS.md
-        soul: shared/agents/verifier/SOUL.md
-        identity: shared/agents/verifier/IDENTITY.md
-
-  - name: tester
-    role: testing
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/tester/AGENTS.md
-        soul: agents/tester/SOUL.md
-        identity: agents/tester/IDENTITY.md
-
 tasks:
   - name: scan
     dependencies: []
     agent:
-      ref: agents.scanner
+      executorRef: scanner
       prompt:
         content: |
           Perform a comprehensive security audit of the codebase.
@@ -133,7 +66,7 @@ tasks:
   - name: prioritize
     dependencies: [scan]
     agent:
-      ref: agents.prioritizer
+      executorRef: prioritizer
       prompt:
         content: |
           Prioritize and group the security findings into a fix plan.
@@ -177,7 +110,7 @@ tasks:
   - name: setup
     dependencies: [prioritize]
     agent:
-      ref: agents.setup
+      executorRef: setup
       prompt:
         content: |
           Prepare the environment for security fixes.
@@ -213,7 +146,7 @@ tasks:
 
   - name: fix-story
     agent:
-      ref: agents.fixer
+      executorRef: fixer
       prompt:
         content: |
           Implement a security fix. You are working on ONE fix in a fresh session.
@@ -277,7 +210,7 @@ tasks:
 
   - name: verify-story
     agent:
-      ref: agents.verifier
+      executorRef: verifier
       prompt:
         content: |
           Verify the security fix is correct and the vulnerability is patched.
@@ -327,7 +260,7 @@ tasks:
   - name: test
     dependencies: [verify-stories]
     agent:
-      ref: agents.tester
+      executorRef: tester
       prompt:
         content: |
           Final integration testing after all security fixes.

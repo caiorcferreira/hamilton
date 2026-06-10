@@ -8,21 +8,11 @@ run:
   entrypoint: execute
   timeout: 300s
 
-agents:
-  - name: doer
-    role: coding
-    settings:
-      model: default
-      systemPrompt:
-        agent: agents/doer/AGENTS.md
-        soul: agents/doer/SOUL.md
-        identity: agents/doer/IDENTITY.md
-
 tasks:
   - name: execute
     dependencies: []
     agent:
-      ref: agents.doer
+      executorRef: doer
       prompt:
         content: |
           Execute the following task end-to-end.

@@ -5,14 +5,23 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { pauseWorkflow } from "../../src/cli/commands/pause.js"
 import { createWorkflowRuntime } from "../../src/workflow/run-state-machine.js"
-import type { WorkflowSpec } from "../../src/types.js"
+import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
+
+const makeAgentManifest = (name: string): AgentManifest => ({
+  name,
+  dirPath: `/agents/${name}`,
+  settings: { model: "default" },
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+})
 
 const makeSpec = (): WorkflowSpec => ({
   name: "test-wf",
   version: 1,
   run: { entrypoint: "step1", timeout: "300s" },
-  agents: [{ name: "a", role: "coding", settings: { systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" } } }],
-  tasks: [{ name: "step1", agent: { ref: "agents.a", prompt: { content: "do it" } } }]
+  agentRegistry: new Map([
+    ["a", makeAgentManifest("a")]
+  ]),
+  tasks: [{ name: "step1", agent: { executorRef: "a", prompt: { content: "do it" } } }]
 })
 
 describe("pauseWorkflow", () => {

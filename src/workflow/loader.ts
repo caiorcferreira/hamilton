@@ -6,6 +6,8 @@ import * as Path from "node:path"
 import type { WorkflowSpec } from "../types.js"
 import { WorkflowSpecSchema } from "../schemas.js"
 import { composeVariants } from "./variants.js"
+import { loadAgentManifests } from "./agent-registry.js"
+import type { WorkflowDescriptor } from "./agent-registry.js"
 
 export class WorkflowNotFoundError extends Schema.TaggedError<WorkflowNotFoundError>("WorkflowNotFoundError")("WorkflowNotFoundError", {
   workflowName: Schema.String,
@@ -15,6 +17,11 @@ export class WorkflowNotFoundError extends Schema.TaggedError<WorkflowNotFoundEr
 export class WorkflowParseError extends Schema.TaggedError<WorkflowParseError>("WorkflowParseError")("WorkflowParseError", {
   workflowName: Schema.String,
   message: Schema.String
+}) {}
+
+export class AgentNotFoundError extends Schema.TaggedError<AgentNotFoundError>("AgentNotFoundError")("AgentNotFoundError", {
+  taskName: Schema.String,
+  executorRef: Schema.String
 }) {}
 
 function walkTasks(tasks: any[]): any[] {
@@ -52,12 +59,30 @@ export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
   return spec
 }
 
+function validateExecutorRefs(spec: any, agentRegistry: Map<string, unknown>): void {
+  const tasks = walkTasks(spec.tasks)
+  for (const task of tasks) {
+    if (!task.agent) continue
+    if (!agentRegistry.has(task.agent.executorRef)) {
+      throw new AgentNotFoundError({ taskName: task.name, executorRef: task.agent.executorRef })
+    }
+  }
+}
+
 export function loadWorkflowSpec(
   workflowsDir: string,
   workflowName: string,
+  sharedAgentsDir: string,
+  workflows: WorkflowDescriptor[],
   activeVariants: string[] = []
-): Effect.Effect<Schema.Schema.Type<typeof WorkflowSpecSchema>, WorkflowNotFoundError | WorkflowParseError> {
+): Effect.Effect<WorkflowSpec, WorkflowNotFoundError | WorkflowParseError | AgentNotFoundError> {
   return Effect.gen(function* (_) {
+    const agentRegistry = yield* _(
+      loadAgentManifests(sharedAgentsDir, workflows).pipe(
+        Effect.mapError((e) => new WorkflowParseError({ workflowName, message: String(e) }))
+      )
+    )
+
     const dir = Path.join(workflowsDir, workflowName)
     const filePath = Path.join(dir, "workflow.yml")
 
@@ -79,12 +104,13 @@ export function loadWorkflowSpec(
       Effect.try({
         try: () => {
           const decoded = resolveWorkflowSpec(dir, Schema.decodeUnknownSync(WorkflowSpecSchema)(raw))
-          return (composeVariants(decoded as WorkflowSpec, activeVariants) as unknown) as Schema.Schema.Type<typeof WorkflowSpecSchema>
+          validateExecutorRefs(decoded, agentRegistry)
+          return (composeVariants(decoded as WorkflowSpec, agentRegistry, activeVariants) as unknown) as Schema.Schema.Type<typeof WorkflowSpecSchema>
         },
         catch: (e) => new WorkflowParseError({ workflowName, message: String(e) })
       })
     )
 
-    return spec
+    return { ...spec, agentRegistry } as WorkflowSpec
   })
 }

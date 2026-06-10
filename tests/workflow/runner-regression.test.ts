@@ -6,7 +6,7 @@ import { Effect, Exit, Stream, Scope } from "effect"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
 import { FileLogger } from "../../src/observability/subscribers.js"
-import type { WorkflowSpec } from "../../src/types.js"
+import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 vi.mock("../../src/executors/pi/pi-executor.js", () => {
   const { Effect: E } = require("effect")
@@ -24,16 +24,23 @@ vi.mock("../../src/prompts/persona.js", () => {
   }
 })
 
+const makeAgentManifest = (name: string): AgentManifest => ({
+  name,
+  dirPath: `/agents/${name}`,
+  settings: { model: "default" },
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+})
+
 const testSpec: WorkflowSpec = {
   version: 1,
   name: "test-flow",
   run: { entrypoint: "step-1", timeout: "300s" },
-  agents: [
-    { name: "agent-a", role: "coding", settings: { systemPrompt: { agent: "a.md", soul: "soul.md", identity: "id.md" } } }
-  ],
+  agentRegistry: new Map([
+    ["agent-a", makeAgentManifest("agent-a")]
+  ]),
   tasks: [
-    { name: "step-1", agent: { ref: "agents.agent-a", prompt: { content: "Do something" } } },
-    { name: "step-2", dependencies: ["step-1"], agent: { ref: "agents.agent-a", prompt: { content: "Do another thing" } } }
+    { name: "step-1", agent: { executorRef: "agent-a", prompt: { content: "Do something" } } },
+    { name: "step-2", dependencies: ["step-1"], agent: { executorRef: "agent-a", prompt: { content: "Do another thing" } } }
   ]
 }
 

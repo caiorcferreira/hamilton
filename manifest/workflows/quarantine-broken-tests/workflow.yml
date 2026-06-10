@@ -23,45 +23,11 @@ run:
 variants:
   supported: [branchout, merge, worktree]
 
-agents:
-  - name: setup
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: shared/agents/setup/AGENTS.md
-        soul: shared/agents/setup/SOUL.md
-        identity: shared/agents/setup/IDENTITY.md
-
-  - name: quarantiner
-    role: coding
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/quarantiner/AGENTS.md
-        soul: agents/quarantiner/SOUL.md
-        identity: agents/quarantiner/IDENTITY.md
-
-  - name: verifier
-    role: verification
-    settings:
-      model: default
-      skills:
-        - hamilton-agents
-      systemPrompt:
-        agent: agents/verifier/AGENTS.md
-        soul: agents/verifier/SOUL.md
-        identity: agents/verifier/IDENTITY.md
-
 tasks:
   - name: setup
     dependencies: []
     agent:
-      ref: agents.setup
+      executorRef: setup
       prompt:
         content: |
           Prepare the environment for test quarantine.
@@ -99,7 +65,7 @@ tasks:
   - name: quarantine
     dependencies: [setup]
     agent:
-      ref: agents.quarantiner
+      executorRef: quarantiner
       prompt:
         content: |
           Find and disable failing tests until the test suite passes.
@@ -144,7 +110,7 @@ tasks:
   - name: verify
     dependencies: [quarantine]
     agent:
-      ref: agents.verifier
+      executorRef: verifier
       prompt:
         content: |
           Verify the quarantiner's work — confirm all tests pass and only test files were modified.

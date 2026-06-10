@@ -1,9 +1,11 @@
 import { Args, Command, Options } from "@effect/cli"
 import { Console, Effect, Exit, Scope } from "effect"
 import * as Fs from "node:fs"
+import * as Path from "node:path"
 import { workflowsDir, hamiltonHome, runDir } from "../../paths.js"
 import { resolveWorkflowSlug } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
+import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import { WorkflowSpec as WfSpec } from "../../types.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
@@ -20,6 +22,13 @@ export interface RunResult {
   runId: string
   status: "completed" | "failed" | "paused"
   taskResults: Record<string, string>
+}
+
+function discoverWorkflows(dir: string): WorkflowDescriptor[] {
+  if (!Fs.existsSync(dir)) return []
+  return Fs.readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => ({ name: e.name, dir: Path.join(dir, e.name) }))
 }
 
 export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, EventBus | Scope.Scope> {
@@ -44,8 +53,10 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       ? params.variants.split(",").map(v => v.trim()).filter(v => v.length > 0)
       : []
 
+    const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
+    const workflows = discoverWorkflows(wfDir)
     const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
-    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, activeVariants)
+    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
     const result = yield* _(
       runWorkflow(spec as unknown as WfSpec, { task: params.prompt }, {

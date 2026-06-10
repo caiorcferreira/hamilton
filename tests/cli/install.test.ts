@@ -45,30 +45,6 @@ describe("installWorkflow", () => {
     }
   })
 
-  it("creates shared/agents symlink on install", async () => {
-    const exit = await Effect.runPromiseExit(installWorkflow("bug-fix"))
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const linkPath = Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "shared", "agents")
-    expect(Fs.existsSync(linkPath)).toBe(true)
-    expect(Fs.lstatSync(linkPath).isSymbolicLink()).toBe(true)
-  })
-
-  it("replaces stale shared/agents symlink on re-install", async () => {
-    await Effect.runPromiseExit(installWorkflow("bug-fix"))
-
-    const linkPath = Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "shared", "agents")
-    const wrongDir = Path.join(tmpHome, "wrong-target")
-    Fs.mkdirSync(wrongDir, { recursive: true })
-    Fs.rmSync(linkPath, { recursive: true, force: true })
-    Fs.symlinkSync(wrongDir, linkPath, "dir")
-    expect(Fs.readlinkSync(linkPath)).toBe(wrongDir)
-
-    const exit = await Effect.runPromiseExit(installWorkflow("bug-fix", { force: true }))
-    expect(Exit.isSuccess(exit)).toBe(true)
-    expect(Fs.readlinkSync(linkPath)).not.toBe(wrongDir)
-  })
-
   it("installAllWorkflows installs all bundled workflows", async () => {
     const exit = await Effect.runPromiseExit(installAllWorkflows())
     if (Exit.isSuccess(exit)) {

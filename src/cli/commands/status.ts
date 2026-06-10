@@ -2,12 +2,14 @@ import { Args, Command } from "@effect/cli"
 import { Console, Effect, Exit } from "effect"
 import { Schema } from "@effect/schema"
 import * as Fs from "node:fs"
+import * as Path from "node:path"
 import { loadRunState, RunStateError } from "../../workflow/state.js"
 import { hamiltonHome, runDir, workflowsDir } from "../../paths.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import { collectReachableTasks, topologicalSort } from "../../workflow/engine.js"
 import type { WorkflowSpec } from "../../types.js"
 import { WorkflowSpecSchema } from "../../schemas.js"
+import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 
 export type RunStatus = import("../../workflow/state.js").RunStatus
 type DecodedSpec = Schema.Schema.Type<typeof WorkflowSpecSchema>
@@ -30,8 +32,15 @@ export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<{ status: Ru
 
     let spec: DecodedSpec | null = null
     if (opts.loadSpec) {
+      const wfDir = workflowsDir()
+      const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
+      const workflowEntries: WorkflowDescriptor[] = Fs.existsSync(wfDir)
+        ? Fs.readdirSync(wfDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => ({ name: e.name, dir: Path.join(wfDir, e.name) }))
+        : []
       spec = yield* _(
-        loadWorkflowSpec(workflowsDir(), status.workflow).pipe(
+        loadWorkflowSpec(wfDir, status.workflow, sharedAgentsDir, workflowEntries).pipe(
           Effect.catchAll(() => Effect.succeed(null))
         )
       )
