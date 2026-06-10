@@ -15,7 +15,8 @@ import {
   progressDir,
   progressFile,
   instructionDir,
-  settingsPath
+  settingsPath,
+  skillsDir
 } from "../src/paths.js"
 
 describe("paths", () => {
@@ -115,5 +116,10 @@ describe("paths", () => {
 
   it("settingsPath returns ~/.hamilton/settings.yaml", () => {
     expect(settingsPath()).toBe("/tmp/test-home/.hamilton/settings.yaml")
+  })
+
+  it("skillsDir returns path under hamilton home", () => {
+    const result = skillsDir()
+    expect(result).toBe(Path.join(hamiltonHome(), "skills"))
   })
 })
