@@ -93,6 +93,16 @@ export function loadSkillRegistry(skillsDir: string): Map<string, SkillEntry> {
     })
   }
 
+  for (const r of raw) {
+    if (r.frontmatterName && r.frontmatterName !== r.dirName) {
+      throw new SkillNameMismatchError({
+        dirName: r.dirName,
+        frontmatterName: r.frontmatterName,
+        path: r.filePath
+      })
+    }
+  }
+
   const seen = new Map<string, string[]>()
   for (const r of raw) {
     const existing = seen.get(r.name)
@@ -103,16 +113,6 @@ export function loadSkillRegistry(skillsDir: string): Map<string, SkillEntry> {
       })
     }
     seen.set(r.name, [r.baseDir])
-  }
-
-  for (const r of raw) {
-    if (r.frontmatterName && r.frontmatterName !== r.dirName) {
-      throw new SkillNameMismatchError({
-        dirName: r.dirName,
-        frontmatterName: r.frontmatterName,
-        path: r.filePath
-      })
-    }
   }
 
   const registry = new Map<string, SkillEntry>()

@@ -82,17 +82,21 @@ describe("skill-registry", () => {
       }
     })
 
-    it("throws DuplicateSkillError when two skills share a name", () => {
+    it("throws DuplicateSkillError when two dirs resolve to same name via mismatch-first validation", () => {
       const skillsRoot = Path.join(tmpDir, "skills")
-      writeSkill(Path.join(skillsRoot, "coding-a"), "coding", "Write code A")
-      writeSkill(Path.join(skillsRoot, "coding-b"), "coding", "Write code B")
+      writeSkill(Path.join(skillsRoot, "coding"), "coding", "Write code A")
+      const dupDir = Path.join(skillsRoot, "coding-copy")
+      Fs.mkdirSync(dupDir, { recursive: true })
+      Fs.writeFileSync(
+        Path.join(dupDir, "SKILL.md"),
+        "---\nname: coding\ndescription: Write code B\n---\n"
+      )
 
       expect(() => loadSkillRegistry(skillsRoot)).toThrow()
       try {
         loadSkillRegistry(skillsRoot)
       } catch (e) {
-        expect(e).toBeInstanceOf(DuplicateSkillError)
-        expect((e as DuplicateSkillError).name).toBe("coding")
+        expect(e).toBeInstanceOf(SkillNameMismatchError)
       }
     })
 
