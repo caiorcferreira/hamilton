@@ -16,8 +16,11 @@ export interface GuidelineInstructions {
 }
 
 export interface GuidelineSpec {
-  instructions?: GuidelineInstructions
-  rules?: GuidelineRule[]
+  metadata: { name: string; description?: string }
+  spec: {
+    instructions?: GuidelineInstructions
+    rules?: GuidelineRule[]
+  }
 }
 
 export interface LoadedGuideline {
