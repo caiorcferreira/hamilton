@@ -1,3 +1,7 @@
-name: investigator
-settings:
-  model: default
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: investigator
+spec:
+  settings:
+    model: default

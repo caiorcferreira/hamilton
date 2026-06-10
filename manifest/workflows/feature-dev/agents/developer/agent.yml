@@ -1,5 +1,9 @@
-name: developer
-settings:
-  model: default
-  skills:
-    - hamilton-agents
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: developer
+spec:
+  settings:
+    model: default
+    skills:
+      - hamilton-agents

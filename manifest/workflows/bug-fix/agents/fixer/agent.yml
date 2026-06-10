@@ -1,3 +1,7 @@
-name: fixer
-settings:
-  model: default
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: fixer
+spec:
+  settings:
+    model: default

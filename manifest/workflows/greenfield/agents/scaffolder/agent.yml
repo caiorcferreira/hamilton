@@ -1,3 +1,7 @@
-name: scaffolder
-settings:
-  model: default
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: scaffolder
+spec:
+  settings:
+    model: default

@@ -1,3 +1,7 @@
-name: scanner
-settings:
-  model: default
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: scanner
+spec:
+  settings:
+    model: default

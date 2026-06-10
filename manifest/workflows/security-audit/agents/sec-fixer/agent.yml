@@ -1,3 +1,7 @@
-name: sec-fixer
-settings:
-  model: default
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: sec-fixer
+spec:
+  settings:
+    model: default

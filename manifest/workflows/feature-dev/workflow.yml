@@ -1,5 +1,3 @@
-# Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
-# session with clean context. Memory persists via git history and progress files.
 apiVersion: dag.hamilton.io/v1alpha1
 kind: Workflow
 metadata:

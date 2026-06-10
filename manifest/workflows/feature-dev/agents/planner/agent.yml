@@ -1,5 +1,9 @@
-name: planner
-settings:
-  model: deepseek-v4-pro-official
-  skills:
-    - hamilton-agents
+apiVersion: dag.hamilton.io/v1alpha1
+kind: Agent
+metadata:
+  name: planner
+spec:
+  settings:
+    model: deepseek-v4-pro-official
+    skills:
+      - hamilton-agents

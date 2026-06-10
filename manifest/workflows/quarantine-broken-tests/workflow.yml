@@ -1,4 +1,3 @@
-# Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
 apiVersion: dag.hamilton.io/v1alpha1
 kind: Workflow
 metadata:
