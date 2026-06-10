@@ -1,4 +1,30 @@
 import { Schema } from "@effect/schema"
+import { Data } from "effect"
+
+export class InvalidManifestEnvelopeError extends Data.TaggedError("InvalidManifestEnvelopeError")<{
+  message: string
+}> {}
+
+const ApiVersionSchema = Schema.Literal("dag.hamilton.io/v1alpha1")
+
+const KindSchema = Schema.Literal("Agent", "Workflow")
+
+const AgentMetadataSchema = Schema.Struct({
+  name: Schema.String,
+  description: Schema.optional(Schema.String)
+})
+
+const WorkflowMetadataSchema = Schema.Struct({
+  name: Schema.String,
+  version: Schema.Number,
+  description: Schema.optional(Schema.String)
+})
+
+const ManifestEnvelopeSchema = Schema.Struct({
+  apiVersion: ApiVersionSchema,
+  kind: KindSchema,
+  metadata: Schema.Union(AgentMetadataSchema, WorkflowMetadataSchema)
+})
 
 const SystemPromptPathsSchema = Schema.Struct({
   agent: Schema.String,
@@ -127,3 +153,11 @@ export const WorkflowSpecSchema = Schema.Struct({
     { message: () => "every task must have agent, template, or nested tasks. template references must be valid task names." }
   )
 )
+
+export function parseManifest(raw: unknown): any {
+  const envelope = Schema.decodeUnknownSync(ManifestEnvelopeSchema)(raw)
+  if (envelope.kind === "Agent") {
+    return Schema.decodeUnknownSync(AgentManifestSchema)(raw)
+  }
+  return Schema.decodeUnknownSync(WorkflowSpecSchema)(raw)
+}
