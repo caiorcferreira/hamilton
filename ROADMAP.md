@@ -1,6 +1,16 @@
 # Hamilton Roadmap
 
 ## Next Up
+ 
+- [ ] Trigger workflows from other workflows
+- [ ] Refactor repo into multiple packages to expose pi extensions
+- [ ] Add support for skills
+- [ ] Refactor workflow tools (write step output) into extension
+- [ ] Extensions: Implement for of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
+- [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
+- [ ] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
+- [ ] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
+- [ ] Extend instructions to support similar feature as [coding-preferences](https://github.com/spences10/my-pi/blob/main/packages/pi-coding-preferences/README.md)
 
 ## Completed
 
