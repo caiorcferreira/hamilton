@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "findings": { "type": "array" },
+    "summary": { "type": "string" },
+    "repo": { "type": "string" },
+    "branch": { "type": "string" },
+    "vulnerability_count": { "type": "string" }
+  }
+}

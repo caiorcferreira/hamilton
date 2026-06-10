@@ -125,23 +125,7 @@ tasks:
           FINDINGS: <detailed list of each vulnerability>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            findings:
-              type: array
-            summary:
-              type: string
-            repo:
-              type: string
-            branch:
-              type: string
-            vulnerability_count:
-              type: string
+          file: schemas/scan.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -185,23 +169,7 @@ tasks:
           STORIES_JSON: [ ... array of story objects ... ]
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            prioritized_findings:
-              type: array
-            fix_plan:
-              type: string
-            critical_count:
-              type: string
-            high_count:
-              type: string
-            deferred:
-              type: string
+          file: schemas/prioritize.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -230,23 +198,7 @@ tasks:
           BASELINE: <baseline status>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            original_branch:
-              type: string
-            build_cmd:
-              type: string
-            test_cmd:
-              type: string
-            ci_notes:
-              type: string
-            baseline:
-              type: string
+          file: schemas/setup.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -310,17 +262,7 @@ tasks:
           REGRESSION_TEST: what test was added
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            changes:
-              type: string
-            tests:
-              type: string
+          file: schemas/fix-story.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -377,17 +319,7 @@ tasks:
           - What's wrong or incomplete
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, retry, failed]
-            verified:
-              type: string
-            issues:
-              type: array
+          file: schemas/verify-story.json
     on_failure:
       max_retries: 6
       escalate_to: human
@@ -432,17 +364,7 @@ tasks:
           - What's broken
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, retry, failed]
-            results:
-              type: string
-            failures:
-              type: array
+          file: schemas/test.json
     on_failure:
       max_retries: 4
       escalate_to: human

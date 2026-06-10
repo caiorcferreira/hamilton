@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "prioritized_findings": { "type": "array" },
+    "fix_plan": { "type": "string" },
+    "critical_count": { "type": "string" },
+    "high_count": { "type": "string" },
+    "deferred": { "type": "string" }
+  }
+}

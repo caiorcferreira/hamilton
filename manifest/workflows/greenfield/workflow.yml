@@ -60,23 +60,7 @@ tasks:
           TEST_CMD: <command to test>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            project_dir:
-              type: string
-            stack:
-              type: string
-            files_created:
-              type: array
-            build_cmd:
-              type: string
-            test_cmd:
-              type: string
+          file: schemas/scaffold.json
     on_failure:
       max_retries: 3
       escalate_to: human
@@ -111,17 +95,7 @@ tasks:
           - What's wrong
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, retry, failed]
-            verified:
-              type: string
-            issues:
-              type: array
+          file: schemas/verify.json
     on_failure:
       max_retries: 2
       escalate_to: human

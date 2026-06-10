@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "root_cause": { "type": "string" },
+    "affected_files": { "type": "array" },
+    "severity": { "type": "string" },
+    "fix_approach": { "type": "string" },
+    "problem_statement": { "type": "string" },
+    "regression_test": { "type": "string" }
+  }
+}

@@ -91,27 +91,7 @@ tasks:
           BASELINE: <baseline status including test results>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            repo:
-              type: string
-            branch:
-              type: string
-            original_branch:
-              type: string
-            build_cmd:
-              type: string
-            test_cmd:
-              type: string
-            ci_notes:
-              type: string
-            baseline:
-              type: string
+          file: schemas/setup.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -156,21 +136,7 @@ tasks:
           REASON: <why>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            quarantined_tests:
-              type: array
-            reason:
-              type: string
-            disabled:
-              type: string
-            summary:
-              type: string
+          file: schemas/quarantine.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -213,17 +179,7 @@ tasks:
           - Specific issues
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, retry, failed]
-            verified:
-              type: string
-            issues:
-              type: array
+          file: schemas/verify.json
     on_failure:
       max_retries: 4
       escalate_to: human

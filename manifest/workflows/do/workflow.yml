@@ -43,17 +43,7 @@ tasks:
           CHANGES: What files or changes were made
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            result:
-              type: string
-            changes:
-              type: string
+          file: schemas/execute.json
     on_failure:
       max_retries: 4
       escalate_to: human

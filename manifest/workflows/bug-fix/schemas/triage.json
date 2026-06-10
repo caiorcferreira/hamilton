@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "repo": { "type": "string" },
+    "branch": { "type": "string" },
+    "priority": { "type": "string" },
+    "assigned_to": { "type": "string" },
+    "severity": { "type": "string" },
+    "affected_area": { "type": "string" },
+    "reproduction": { "type": "string" },
+    "problem_statement": { "type": "string" }
+  }
+}

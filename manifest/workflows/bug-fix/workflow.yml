@@ -99,29 +99,7 @@ tasks:
           PROBLEM_STATEMENT: clear description of what's wrong
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            repo:
-              type: string
-            branch:
-              type: string
-            priority:
-              type: string
-            assigned_to:
-              type: string
-            severity:
-              type: string
-            affected_area:
-              type: string
-            reproduction:
-              type: string
-            problem_statement:
-              type: string
+          file: schemas/triage.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -155,25 +133,7 @@ tasks:
           FIX_APPROACH: what needs to change and where
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            root_cause:
-              type: string
-            affected_files:
-              type: array
-            severity:
-              type: string
-            fix_approach:
-              type: string
-            problem_statement:
-              type: string
-            regression_test:
-              type: string
+          file: schemas/investigate.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -203,23 +163,7 @@ tasks:
           BASELINE: <baseline status>
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            original_branch:
-              type: string
-            build_cmd:
-              type: string
-            test_cmd:
-              type: string
-            ci_notes:
-              type: string
-            baseline:
-              type: string
+          file: schemas/setup.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -264,17 +208,7 @@ tasks:
           REGRESSION_TEST: what test was added
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, failed]
-            changes:
-              type: string
-            tests:
-              type: string
+          file: schemas/fix.json
     on_failure:
       max_retries: 4
       escalate_to: human
@@ -327,17 +261,7 @@ tasks:
           - What's wrong or incomplete
       output:
         schema:
-          content:
-            type: object
-            required: [status]
-            properties:
-            status:
-              type: string
-              enum: [done, retry, failed]
-            verified:
-              type: string
-            issues:
-              type: array
+          file: schemas/verify.json
     on_failure:
       max_retries: 6
       escalate_to: human

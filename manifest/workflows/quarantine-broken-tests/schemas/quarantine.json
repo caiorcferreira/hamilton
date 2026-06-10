@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "quarantined_tests": { "type": "array" },
+    "reason": { "type": "string" },
+    "disabled": { "type": "string" },
+    "summary": { "type": "string" }
+  }
+}
