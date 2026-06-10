@@ -51,8 +51,8 @@ export function dbPath(): string {
   return Path.join(hamiltonHome(), "hamilton.db")
 }
 
-export function instructionDir(): string {
-  return Path.join(hamiltonHome(), "instruction")
+export function guidelinesDir(): string {
+  return Path.join(hamiltonHome(), "guidelines")
 }
 
 export function skillsDir(): string {
@@ -83,7 +83,7 @@ export function ensureHamiltonHome(): void {
     workflowsDir(),
     runsDir(),
     Path.join(hamiltonHome(), "executors", "pi", "agent"),
-    instructionDir(),
+    guidelinesDir(),
     skillsDir()
   ]
   for (const dir of dirs) {
