@@ -10,7 +10,6 @@ import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
 import { runDoctorChecks } from "./doctor.js"
 import { green, red } from "../formatting/colors.js"
-import { reconcileSettingsToPi } from "../../executors/pi/reconcile.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -205,7 +204,6 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
     }
     yield* createDefaultPiConfigs(options)
     yield* writeDefaultSettings(options?.modelAliases)
-    reconcileSettingsToPi()
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
       new InitError({ message: `Failed to install workflows: ${e.message}` })
