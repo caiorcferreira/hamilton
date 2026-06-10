@@ -100,11 +100,27 @@ export interface WorkflowTask {
   tasks?: WorkflowTask[]
 }
 
+export type VariantPlacement = "start" | "end"
+
+export interface VariantCapabilities {
+  provides: string[]
+  replaces: string[]
+}
+
+export interface VariantTask {
+  placement: VariantPlacement
+  capabilities: VariantCapabilities
+  task: WorkflowTask
+}
+
 export interface WorkflowSpec {
   version: number
   name: string
   description?: string
   run: RunConfig
+  variants?: {
+    supported: string[]
+  }
   agents: WorkflowAgent[]
   tasks: WorkflowTask[]
 }
