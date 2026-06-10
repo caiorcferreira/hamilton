@@ -123,10 +123,6 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
           command: ["biome", "lsp-proxy"],
           extensions: [".astro", ".css", ".ts", ".tsx", ".js", ".jsx", ".json", ".jsonc", ".html", ".vue", ".mjs", ".mts", ".cjs", ".cts"]
         },
-        ty: {
-          command: ["ty", "server"],
-          extensions: [".py", ".pyi"]
-        },
         ruff: {
           command: ["ruff", "server"],
           extensions: [".py", ".pyi"]
@@ -139,13 +135,13 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
           command: ["pylsp"],
           extensions: [".py", ".pyi"]
         },
+        yaml: {
+          command: ["yaml-language-server", "--stdio"],
+          extensions: [".yaml", ".yml"]
+        },
         go: {
           command: ["gopls", "serve"],
           extensions: [".go"]
-        },
-        rust: {
-          command: ["rust-analyzer"],
-          extensions: [".rs"]
         }
       }
     }
