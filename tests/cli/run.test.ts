@@ -33,6 +33,8 @@ version: 1
 run:
   entrypoint: step-1
   timeout: 300s
+variants:
+  supported: [branchout]
 agents:
   - name: agent-1
     role: coding
