@@ -15,6 +15,9 @@ run:
   entrypoint: scan
   timeout: 300s
 
+variants:
+  supported: [branchout, merge, worktree, github_pr]
+
 agents:
   - name: scanner
     role: scanning
@@ -216,10 +219,9 @@ tasks:
 
           Instructions:
           1. cd into the repo
-          2. Create the security branch (git checkout -b {{tasks.scan.outputs.branch}} from main)
-          3. Read package.json, CI config, test config to understand build/test setup
-          4. Run the build to establish a baseline
-          5. Run the tests to establish a baseline
+          2. Read package.json, CI config, test config to understand build/test setup
+          3. Run the build to establish a baseline
+          4. Run the tests to establish a baseline
 
           Reply with:
           STATUS: done
