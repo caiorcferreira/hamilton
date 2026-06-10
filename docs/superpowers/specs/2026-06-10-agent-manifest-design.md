@@ -32,7 +32,7 @@ settings:
 ```
 
 **Conventions:**
-- `systemPrompt` paths default to sibling `AGENTS.md`, `SOUL.md`, `IDENTITY.md` when those files exist. Only specify `systemPrompt` explicitly to override.
+- `systemPrompt` paths resolve relative to the agent's own directory (the `<name>/` folder containing `agent.yml`). By default, paths point to sibling `AGENTS.md`, `SOUL.md`, `IDENTITY.md` when those files exist. Only specify `systemPrompt` explicitly to override.
 - The `role` field is removed — agent manifests have no `role`.
 - `name` must be globally unique across all shared + workflow-local agents (load-time validation rejects duplicates).
 - `settings.model` and `settings.skills` come from the manifest; workflows cannot override them.
