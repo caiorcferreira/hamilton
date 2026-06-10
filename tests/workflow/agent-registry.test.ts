@@ -92,33 +92,32 @@ describe("agent-registry", () => {
       }
     })
 
-    it("workflow-local agent overrides shared agent with same name", async () => {
+    it("rejects shared agent and workflow-local agent with same name", async () => {
       const sharedDir = Path.join(tmpDir, "shared-agents")
-      makeAgentYaml(Path.join(sharedDir, "doer"), "doer")
-      makeSiblingFiles(Path.join(sharedDir, "doer"), {
-        agents: "Shared doer",
+      makeAgentYaml(Path.join(sharedDir, "dup"), "dup")
+      makeSiblingFiles(Path.join(sharedDir, "dup"), {
+        agents: "Shared",
         soul: "Shared soul",
         identity: "Shared identity"
       })
 
-      const wfDir = Path.join(tmpDir, "workflows", "my-wf")
-      makeAgentYaml(Path.join(wfDir, "agents", "doer"), "doer", { model: "custom" })
-      makeSiblingFiles(Path.join(wfDir, "agents", "doer"), {
-        agents: "Local doer",
+      const wf1Dir = Path.join(tmpDir, "workflows", "wf1")
+      makeAgentYaml(Path.join(wf1Dir, "agents", "dup"), "dup")
+      makeSiblingFiles(Path.join(wf1Dir, "agents", "dup"), {
+        agents: "Local",
         soul: "Local soul",
         identity: "Local identity"
       })
 
-      const workflows: WorkflowDescriptor[] = [{ name: "my-wf", dir: wfDir }]
+      const workflows: WorkflowDescriptor[] = [{ name: "wf1", dir: wf1Dir }]
 
       const result = await Effect.runPromiseExit(
         loadAgentManifests(sharedDir, workflows)
       )
-      expect(Exit.isSuccess(result)).toBe(true)
-      if (Exit.isSuccess(result)) {
-        const registry = result.value
-        expect(registry.get("doer")!.settings.model).toBe("custom")
-        expect(registry.get("doer")!.systemPrompt.agent).toBe("AGENTS.md")
+      expect(Exit.isFailure(result)).toBe(true)
+      if (Exit.isFailure(result)) {
+        const error = result.cause._tag === "Fail" ? result.cause.error : null
+        expect(error).toBeInstanceOf(DuplicateAgentError)
       }
     })
   })
@@ -159,7 +158,7 @@ describe("agent-registry", () => {
       }
     })
 
-    it("fails when shared agent and workflow-local agent have same name and both are present", async () => {
+    it("rejects when shared agent and workflow-local agent have same name", async () => {
       const sharedDir = Path.join(tmpDir, "shared-agents")
       makeAgentYaml(Path.join(sharedDir, "dup"), "dup")
       makeSiblingFiles(Path.join(sharedDir, "dup"), {
@@ -181,9 +180,10 @@ describe("agent-registry", () => {
       const result = await Effect.runPromiseExit(
         loadAgentManifests(sharedDir, workflows)
       )
-      expect(Exit.isSuccess(result)).toBe(true)
-      if (Exit.isSuccess(result)) {
-        expect(result.value.get("dup")!.dirPath).toContain("wf1")
+      expect(Exit.isFailure(result)).toBe(true)
+      if (Exit.isFailure(result)) {
+        const error = result.cause._tag === "Fail" ? result.cause.error : null
+        expect(error).toBeInstanceOf(DuplicateAgentError)
       }
     })
   })

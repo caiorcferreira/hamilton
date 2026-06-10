@@ -136,7 +136,7 @@ tasks:
     if (Exit.isFailure(exit)) {
       const cause = exit.cause
       const defect = cause._tag === "Fail" ? cause.error : undefined
-      expect(defect?._tag).toBe("WorkflowParseError")
+      expect(defect?._tag).toBe("AgentNotFoundError")
     }
   })
 })

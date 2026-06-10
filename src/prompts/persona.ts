@@ -23,20 +23,23 @@ function tryReadOptional(filePath: string): string {
 
 export function resolvePersona(
   paths: SystemPromptPaths,
-  workflowDir: string
+  agentDir: string
 ): Effect.Effect<Persona, PersonaNotFoundError> {
   return Effect.gen(function* (_) {
-    const resolvePath = (p: string) => Path.resolve(workflowDir, p)
+    const resolvePath = (p: string) => Path.resolve(agentDir, p)
 
     const agent = yield* _(
       Effect.try({
-        try: () => Fs.readFileSync(resolvePath(paths.agent), "utf-8"),
+        try: () => {
+          if (!paths.agent) return ""
+          return Fs.readFileSync(resolvePath(paths.agent), "utf-8")
+        },
         catch: () => new PersonaNotFoundError({ agentPath: paths.agent })
       })
     )
 
-    const soul = tryReadOptional(resolvePath(paths.soul))
-    const identity = tryReadOptional(resolvePath(paths.identity))
+    const soul = paths.soul ? tryReadOptional(resolvePath(paths.soul)) : ""
+    const identity = paths.identity ? tryReadOptional(resolvePath(paths.identity)) : ""
 
     return { agent, soul, identity }
   })

@@ -6,8 +6,8 @@ import type { AgentManifest, SystemPromptPaths } from "../types.js"
 
 export class DuplicateAgentError extends Data.TaggedError("DuplicateAgentError")<{
   name: string
-  sharedPath: string
-  localPath: string
+  existingPath: string
+  conflictPath: string
 }> {}
 
 export class AgentManifestParseError extends Data.TaggedError("AgentManifestParseError")<{
@@ -136,22 +136,16 @@ export function loadAgentManifests(
       for (const m of wfManifests) {
         if (registry.has(m.name)) {
           const existingSource = sourceMap.get(m.name)!
-          if (existingSource === sharedAgentsDir) {
-            registry.set(m.name, m)
-            sourceMap.set(m.name, wf.dir)
-          } else {
-            return yield* _(
-              Effect.fail(new DuplicateAgentError({
-                name: m.name,
-                sharedPath: existingSource,
-                localPath: wf.dir
-              }))
-            )
-          }
-        } else {
-          registry.set(m.name, m)
-          sourceMap.set(m.name, wf.dir)
+          return yield* _(
+            Effect.fail(new DuplicateAgentError({
+              name: m.name,
+              existingPath: existingSource,
+              conflictPath: wf.dir
+            }))
+          )
         }
+        registry.set(m.name, m)
+        sourceMap.set(m.name, wf.dir)
       }
     }
 
