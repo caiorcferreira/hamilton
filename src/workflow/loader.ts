@@ -3,7 +3,9 @@ import { Schema } from "@effect/schema"
 import * as Yaml from "yaml"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
+import type { WorkflowSpec } from "../types.js"
 import { WorkflowSpecSchema } from "../schemas.js"
+import { composeVariants } from "./variants.js"
 
 export class WorkflowNotFoundError extends Schema.TaggedError<WorkflowNotFoundError>("WorkflowNotFoundError")("WorkflowNotFoundError", {
   workflowName: Schema.String,
@@ -52,7 +54,8 @@ export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
 
 export function loadWorkflowSpec(
   workflowsDir: string,
-  workflowName: string
+  workflowName: string,
+  activeVariants: string[] = []
 ): Effect.Effect<Schema.Schema.Type<typeof WorkflowSpecSchema>, WorkflowNotFoundError | WorkflowParseError> {
   return Effect.gen(function* (_) {
     const dir = Path.join(workflowsDir, workflowName)
@@ -74,7 +77,10 @@ export function loadWorkflowSpec(
 
     const spec = yield* _(
       Effect.try({
-        try: () => resolveWorkflowSpec(dir, Schema.decodeUnknownSync(WorkflowSpecSchema)(raw)),
+        try: () => {
+          const decoded = resolveWorkflowSpec(dir, Schema.decodeUnknownSync(WorkflowSpecSchema)(raw))
+          return (composeVariants(decoded as WorkflowSpec, activeVariants) as unknown) as Schema.Schema.Type<typeof WorkflowSpecSchema>
+        },
         catch: (e) => new WorkflowParseError({ workflowName, message: String(e) })
       })
     )
