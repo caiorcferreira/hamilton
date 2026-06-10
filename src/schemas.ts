@@ -7,7 +7,7 @@ export class InvalidManifestEnvelopeError extends Data.TaggedError("InvalidManif
 
 const ApiVersionSchema = Schema.Literal("dag.hamilton.io/v1alpha1")
 
-const KindSchema = Schema.Literal("Agent", "Workflow")
+const KindSchema = Schema.Literal("Agent", "Workflow", "Guideline")
 
 const AgentMetadataSchema = Schema.Struct({
   name: Schema.String,
@@ -20,10 +20,15 @@ const WorkflowMetadataSchema = Schema.Struct({
   description: Schema.optional(Schema.String)
 })
 
+const GuidelineMetadataSchema = Schema.Struct({
+  name: Schema.String,
+  description: Schema.optional(Schema.String)
+})
+
 const ManifestEnvelopeSchema = Schema.Struct({
   apiVersion: ApiVersionSchema,
   kind: KindSchema,
-  metadata: Schema.Union(AgentMetadataSchema, WorkflowMetadataSchema)
+  metadata: Schema.Union(AgentMetadataSchema, WorkflowMetadataSchema, GuidelineMetadataSchema)
 })
 
 const SystemPromptPathsSchema = Schema.Struct({
@@ -160,10 +165,36 @@ export const WorkflowSpecSchema = Schema.Struct({
   )
 )
 
+const GuidelineRuleSchema = Schema.Struct({
+  name: Schema.String,
+  toolNames: Schema.Array(Schema.String),
+  target: Schema.Literal("command", "path", "input"),
+  pattern: Schema.String,
+  reason: Schema.String
+})
+
+const GuidelineInstructionsSchema = Schema.Struct({
+  extensions: Schema.Array(Schema.String),
+  files: Schema.Array(Schema.String)
+})
+
+export const GuidelineSpecSchema = Schema.Struct({
+  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  kind: Schema.Literal("Guideline"),
+  metadata: GuidelineMetadataSchema,
+  spec: Schema.Struct({
+    instructions: Schema.optional(GuidelineInstructionsSchema),
+    rules: Schema.optional(Schema.Array(GuidelineRuleSchema))
+  })
+})
+
 export function parseManifest(raw: unknown): any {
   const envelope = Schema.decodeUnknownSync(ManifestEnvelopeSchema)(raw)
   if (envelope.kind === "Agent") {
     return Schema.decodeUnknownSync(AgentManifestSchema)(raw)
+  }
+  if (envelope.kind === "Guideline") {
+    return Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
   }
   return Schema.decodeUnknownSync(WorkflowSpecSchema)(raw)
 }
