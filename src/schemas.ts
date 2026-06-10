@@ -1,35 +1,20 @@
 import { Schema } from "@effect/schema"
 
-const AgentRoleSchema = Schema.Literal(
-  "analysis",
-  "coding",
-  "verification",
-  "testing",
-  "pr",
-  "scanning"
-)
-
 const SystemPromptPathsSchema = Schema.Struct({
   agent: Schema.String,
   soul: Schema.String,
   identity: Schema.String
 })
 
-const AgentSettingsSchema = Schema.Struct({
+const AgentManifestSettingsSchema = Schema.Struct({
   model: Schema.optional(Schema.String),
-  systemPrompt: SystemPromptPathsSchema,
+  systemPrompt: Schema.optional(SystemPromptPathsSchema),
   skills: Schema.optional(Schema.Array(Schema.String))
 })
 
-const WorkflowAgentSchema = Schema.Struct({
+export const AgentManifestSchema = Schema.Struct({
   name: Schema.String,
-  role: AgentRoleSchema,
-  description: Schema.optional(Schema.String),
-  settings: AgentSettingsSchema
-})
-
-const RefPathSchema = Schema.Struct({
-  ref: Schema.String
+  settings: AgentManifestSettingsSchema
 })
 
 const TimeoutSchema = Schema.Struct({
@@ -75,7 +60,7 @@ const PromptSchema = Schema.Struct({
 )
 
 const TaskAgentSchema = Schema.Struct({
-  ref: Schema.String,
+  executorRef: Schema.String,
   timeout: Schema.optional(TimeoutSchema),
   on_failure: Schema.optional(OnFailureSchema),
   output: Schema.optional(OutputConfigSchema),
@@ -83,13 +68,13 @@ const TaskAgentSchema = Schema.Struct({
 })
 
 const ForEachSchema = Schema.Struct({
-  valueFrom: RefPathSchema,
+  valueFrom: Schema.Struct({ ref: Schema.String }),
   as: Schema.String
 })
 
 const ContextFieldSchema = Schema.Struct({
   name: Schema.String,
-  valueFrom: RefPathSchema
+  valueFrom: Schema.Struct({ ref: Schema.String })
 })
 
 const ContextFieldsSchema = Schema.Struct({
@@ -121,7 +106,6 @@ export const WorkflowSpecSchema = Schema.Struct({
   description: Schema.optional(Schema.String),
   run: RunConfigSchema,
   variants: Schema.optional(VariantsConfigSchema),
-  agents: Schema.NonEmptyArray(WorkflowAgentSchema),
   tasks: Schema.Array(WorkflowTaskSchema)
 }).pipe(
   Schema.filter(
