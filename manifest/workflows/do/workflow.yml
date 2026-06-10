@@ -1,5 +1,5 @@
 name: do
-version: 1
+version: 2
 description: |
   Single general-purpose agent that takes an arbitrary task description
   and executes it end-to-end — plans, executes, and reports results.

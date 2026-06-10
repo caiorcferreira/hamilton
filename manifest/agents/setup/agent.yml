@@ -1,0 +1,5 @@
+name: setup
+settings:
+  model: default
+  skills:
+    - hamilton-agents

@@ -1,0 +1,5 @@
+name: tester
+settings:
+  model: default
+  skills:
+    - hamilton-agents

@@ -1,6 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
 name: bug-fix
-version: 1
+version: 2
 description: |
   Triage, investigate, and fix bugs in a new branch with automated verification.
   Bug fix pipeline without merge — stops after verification. Triager analyzes

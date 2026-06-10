@@ -1,7 +1,7 @@
 # Ralph loop (https://github.com/snarktank/ralph) — each agent runs in a fresh
 # session with clean context. Memory persists via git history and progress files.
 name: feature-dev
-version: 5
+version: 6
 description: |
   Plan, implement, test, and verify features story-by-story in a local-only pipeline without merge or PR.
   Story-based execution pipeline for local-only repos. Planner decomposes tasks

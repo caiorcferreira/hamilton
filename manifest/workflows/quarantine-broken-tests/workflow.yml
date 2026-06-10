@@ -1,6 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
 name: quarantine-broken-tests
-version: 1
+version: 2
 description: |
   Detect failing tests, disable them minimally, and iterate until the full
   test suite passes. Useful for establishing a clean baseline on a branch
@@ -110,7 +110,7 @@ tasks:
   - name: verify
     dependencies: [quarantine]
     agent:
-      executorRef: verifier
+      executorRef: qa-verifier
       prompt:
         content: |
           Verify the quarantiner's work — confirm all tests pass and only test files were modified.

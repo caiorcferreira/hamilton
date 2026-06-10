@@ -1,6 +1,6 @@
 # Ralph loop (https://github.com/snarktank/ralph) — fresh context per agent session
 name: security-audit
-version: 1
+version: 2
 description: |
   Scan, prioritize, and fix security vulnerabilities with automated verification in a local-only pipeline.
   Local-only security vulnerability scanning and remediation pipeline.
@@ -146,7 +146,7 @@ tasks:
 
   - name: fix-story
     agent:
-      executorRef: fixer
+      executorRef: sec-fixer
       prompt:
         content: |
           Implement a security fix. You are working on ONE fix in a fresh session.
@@ -260,7 +260,7 @@ tasks:
   - name: test
     dependencies: [verify-stories]
     agent:
-      executorRef: tester
+      executorRef: sec-tester
       prompt:
         content: |
           Final integration testing after all security fixes.

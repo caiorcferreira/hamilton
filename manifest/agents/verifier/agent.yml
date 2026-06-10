@@ -1,0 +1,5 @@
+name: verifier
+settings:
+  model: default
+  skills:
+    - hamilton-agents

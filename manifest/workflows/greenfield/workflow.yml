@@ -1,5 +1,5 @@
 name: greenfield
-version: 1
+version: 2
 description: |
   Scaffolds a new project from scratch. Asks for project name, tech stack,
   and description, then creates directory structure, initializes git, and
