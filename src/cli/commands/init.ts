@@ -4,7 +4,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Readline from "node:readline"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, agentsDir, settingsPath } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
@@ -81,6 +81,21 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, In
           new InitError({ message: `Failed to copy shared agent "${entry.name}": ${String(e)}` })
       })
     }
+  })
+}
+
+function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+  return Effect.gen(function* () {
+    const manifestDir = Path.join(PROJECT_ROOT, "manifest", "skills")
+    if (!Fs.existsSync(manifestDir)) return
+
+    const destSkills = skillsDir()
+
+    yield* Effect.try({
+      try: () => Fs.cpSync(manifestDir, destSkills, { recursive: true, force: true }),
+      catch: (e) =>
+        new InitError({ message: `Failed to copy skill manifests: ${String(e)}` })
+    })
   })
 }
 
@@ -198,6 +213,7 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
     yield* Effect.sync(() => db.close())
 
     yield* copySharedAgents(options)
+    yield* copySkillManifests(options)
 
     if (options?.copyPiConfigs) {
       yield* copyPiConfigsFromHome()
