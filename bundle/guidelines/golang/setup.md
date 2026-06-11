@@ -20,9 +20,9 @@ project-name/
 │   ├── app/                Composition root
 │   ├── <domain-1>/         Example: cart, subscription, users, etc.
 │   ├── <domain-2>/           
-│   └── <infra-1>/           Concrete implementations (DB, S3, Kafka)
+│   └── <infra-1>/          Concrete implementations (DB, S3, Kafka)
 ├── pkg/                    Reusable by other applications (optional)
-├── e2e/
+├── e2e/                    End to end tests (optional)
 ├── docs/
 │   └── adr/                Architecture Decision Records
 ├── AGENTS.md
