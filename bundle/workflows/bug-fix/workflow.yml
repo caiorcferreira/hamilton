@@ -25,10 +25,7 @@ spec:
         prompt:
           content: |
             Triage the following bug report. Explore the codebase, reproduce the issue, and classify severity.
-  
-            BUG REPORT:
-            {{task}}
-  
+
             Instructions:
             1. Read the bug report carefully
             2. Explore the codebase to find the affected area
@@ -58,10 +55,7 @@ spec:
         prompt:
           content: |
             Investigate the root cause of this bug.
-  
-            BUG REPORT:
-            {{task}}
-  
+
             REPO: {{tasks.triage.outputs.repo}}
             SEVERITY: {{severity}}
             AFFECTED_AREA: {{affected_area}}
@@ -122,10 +116,7 @@ spec:
         prompt:
           content: |
             Implement the bug fix.
-  
-            BUG REPORT:
-            {{task}}
-  
+
             REPO: {{tasks.triage.outputs.repo}}
             BRANCH: {{tasks.triage.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
@@ -167,10 +158,7 @@ spec:
         prompt:
           content: |
             Verify the bug fix is correct and complete.
-  
-            BUG REPORT:
-            {{task}}
-  
+
             REPO: {{tasks.triage.outputs.repo}}
             BRANCH: {{tasks.triage.outputs.branch}}
             TEST_CMD: {{tasks.setup.outputs.test_cmd}}
