@@ -98,6 +98,7 @@ describe("runWorkflow regression tests", () => {
       expect(typeof promptBuilt.systemPrompt).toBe("string")
       expect(typeof promptBuilt.taskPrompt).toBe("string")
       expect(promptBuilt.systemPrompt.length).toBeGreaterThan(0)
+      expect(Array.isArray(promptBuilt.guidelineFiles)).toBe(true)
     }
   })
 
@@ -132,6 +133,8 @@ describe("runWorkflow regression tests", () => {
         if (parsed.event === "prompt_built") {
           expect(parsed).toHaveProperty("system_prompt")
           expect(parsed).toHaveProperty("task_prompt")
+          expect(parsed).toHaveProperty("guideline_files")
+          expect(Array.isArray(parsed.guideline_files)).toBe(true)
           return
         }
       }

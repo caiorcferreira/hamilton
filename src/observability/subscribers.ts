@@ -39,7 +39,7 @@ export function formatForFile(event: Event): Record<string, unknown> {
     case "TaskPaused":
       return { event: "task_paused", task_id: event.taskId }
     case "PromptBuilt":
-      return { event: "prompt_built", task_id: event.taskId, system_prompt: event.systemPrompt, task_prompt: event.taskPrompt }
+      return { event: "prompt_built", task_id: event.taskId, system_prompt: event.systemPrompt, task_prompt: event.taskPrompt, guideline_files: event.guidelineFiles }
     case "TurnStarted":
       return { event: "turn_started", task_id: event.taskId, turn_id: event.turnId, turn_index: event.turnIndex, timestamp: event.timestamp }
     case "ProviderRequestStarted":

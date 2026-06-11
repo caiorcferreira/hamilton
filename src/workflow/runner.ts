@@ -145,7 +145,8 @@ export function runWorkflow(
           runId,
           taskId,
           systemPrompt: prompt.systemPrompt,
-          taskPrompt: prompt.taskPrompt
+          taskPrompt: prompt.taskPrompt,
+          guidelineFiles: guidelineFiles.map(g => g.name)
         }))
 
         const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
