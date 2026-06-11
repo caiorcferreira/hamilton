@@ -12,13 +12,6 @@ export const DbWriter = (db: Database): Effect.Effect<void, never, Scope.Scope |
           insertTokenEvent(db, event.runId, event.stepId, "completion", event.tokensIn, event.tokensOut)
         )
       }
-      if (event._tag === "ModelSelected") {
-        return Effect.sync(() =>
-          db.prepare(
-            `UPDATE tasks SET model_provider = ?, model_id = ? WHERE id = ?`
-          ).run(event.provider, event.model, event.stepId)
-        )
-      }
       return Effect.void
     }
   )
