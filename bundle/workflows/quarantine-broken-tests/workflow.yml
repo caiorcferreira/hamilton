@@ -34,10 +34,7 @@ spec:
         prompt:
           content: |
             Prepare the environment for test quarantine.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.setup.outputs.repo}}
             BRANCH: {{tasks.setup.outputs.branch}}
   
@@ -72,10 +69,7 @@ spec:
         prompt:
           content: |
             Find and disable failing tests until the test suite passes.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.setup.outputs.repo}}
             BRANCH: {{tasks.setup.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
@@ -117,10 +111,7 @@ spec:
         prompt:
           content: |
             Verify the quarantiner's work — confirm all tests pass and only test files were modified.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.setup.outputs.repo}}
             BRANCH: {{tasks.setup.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
