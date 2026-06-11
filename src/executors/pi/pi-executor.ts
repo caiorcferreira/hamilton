@@ -17,8 +17,8 @@ import { subscribePiEvents } from "./streaming.js"
 
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { createWriteStepOutputTool } from "./write-step-output-tool.js"
-import { buildExtensions, readExtensionSettings, type ExtensionFactory } from "./extensions.js"
+import { buildExtensions, readExtensionSettings, type ExtensionFactory } from "./extensions/extensions.js"
+import { createWorkflowExtension } from "./extensions/workflow-extension.js"
 import { stepOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
 import { createGuidelineExtension } from "./extensions/guideline-extension.js"
@@ -114,10 +114,20 @@ export function executeWithPi(
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
 
-    // todo: this should happen inside buildExtensions
+    let sessionRef: typeof session | null = null
+
     if (config.rules && config.rules.length > 0) {
       extensionFactories.push(createGuidelineExtension(config.rules) as ExtensionFactory)
     }
+
+    extensionFactories.push(
+      createWorkflowExtension(
+        config.runId,
+        config.stepId,
+        config.outputSchema,
+        () => { sessionRef?.abort().catch(() => {}) }
+      )
+    )
 
     const resolvedSkills = config.settings?.skills ?? null
     const loaderOptions: any = {
@@ -159,20 +169,6 @@ export function executeWithPi(
 
     yield* _(Effect.promise(() => loader.reload()))
 
-    let sessionRef: typeof session | null = null
-    const writeStepOutputTool = createWriteStepOutputTool(
-      config.runId,
-      config.stepId,
-      config.outputSchema,
-      {
-        onStepComplete: () => {
-          if (sessionRef) {
-            sessionRef.abort().catch(() => { })
-          }
-        }
-      }
-    )
-
     const sessionManager = SessionManager.inMemory()
 
     const { session } = yield* _(
@@ -181,7 +177,6 @@ export function executeWithPi(
           model,
           thinkingLevel,
           tools: buildToolSet(config.settings?.tools),
-          customTools: [writeStepOutputTool],
           agentDir,
           authStorage,
           modelRegistry,
