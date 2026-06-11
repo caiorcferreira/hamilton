@@ -6,14 +6,15 @@
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-- [X] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
-- [ ] Review system prompt construction
-- [ ] Remove identity prompt from agents
-- [ ] Format agents.md with STAR (Situation, Task, Action, Result)
-- [ ] Rename agents.md file
+- [ ] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
 
 ## Completed
 
+- [x] Rename agents.md to INSTRUCTIONS.md
+- [x] Remove identity prompt from agents
+- [x] Fix bundle path references (manifest/ → bundle/) in init and install-logic
+- [x] Review system prompt construction — refactor buildAgentPrompt to use systemTemplate
+- [x] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
 - [x] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
 - [x] Refactor workflow tools (write step output) into extension
 - [x] Refactor instructions to guidelines with rule-based tool call interception
@@ -58,10 +59,10 @@
 - [x] Fix token_in/token_out always 0: use session.getSessionStats() delta on turn_end instead of dead tokenUsage field
 - [x] Make timeout configurable at the step level (step.timeoutSeconds → agent.timeoutSeconds → polling.timeoutSeconds → 300)
 - [x] Print run ID at workflow start (in workflow_started event formatter), not only at the end
-- [x] change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
-- [x] rename step id to step slug, for example `triage` is the step slug
-- [x] the workflow id must have the format `<workflow-slug>-<uuid>`
-- [x] step id must have format `<workflow-id>-<step-slug>-<uuid>`
+- [x] Change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
+- [x] Rename step id to step slug, for example `triage` is the step slug
+- [x] The workflow id must have the format `<workflow-slug>-<uuid>`
+- [x] Step id must have format `<workflow-id>-<step-slug>-<uuid>`
 - [x] Add greenfield workflow — scaffold new projects from scratch with a bootstrapper agent that sets up project structure, dependencies, and initial files before the planner/developer loop
 - [x] Create deterministic activities for workflows (e.g. activities to enter/exit worktree, setup/teardown steps)
 - [x] Enrich `inputs.json` with workflow execution context (e.g. working directory where workflow was started, time when workflow was requested)
