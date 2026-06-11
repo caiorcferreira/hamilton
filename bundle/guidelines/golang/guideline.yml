@@ -4,7 +4,7 @@ metadata:
   name: golang
 spec:
   instructions:
-    - matching: ["**/*.go"]
+    - matching: ["**/*.go", "go.mod"]
       files:
         - code_style.md
         - patterns.md

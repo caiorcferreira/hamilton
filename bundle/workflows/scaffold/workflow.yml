@@ -1,7 +1,7 @@
 apiVersion: dag.hamilton.io/v1alpha1
 kind: Workflow
 metadata:
-  name: greenfield
+  name: scaffold
   version: 2
   description: |
     Scaffolds a new project from scratch. Asks for project name, tech stack,
@@ -71,13 +71,12 @@ spec:
             5. Git is initialized with at least one commit
   
             Reply with:
-            STATUS: done
-            VERIFIED: What you confirmed
-  
+              - status: done
+              - verified: what you confirmed
+            
             Or if issues found:
-            STATUS: retry
-            ISSUES:
-            - What's wrong
+              - status: done
+              - issues: list of what's wrong
         output:
           schema:
             file: schemas/verify.json

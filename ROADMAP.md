@@ -7,6 +7,7 @@
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
 - [ ] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
+- [ ] Inject output schema in task context 
 
 ## Completed
 
