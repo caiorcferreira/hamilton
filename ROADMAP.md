@@ -6,17 +6,17 @@
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-- [ ] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
-- [ ] Inject output schema in task context 
+- [ ] Inject output schema in task context
 - [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
 - [ ] Add flag to run command to execute in background
-- [X] Command status is printing nothing, just fronzen then terminal
-- [ ] Add list of guideline files loaded for the task
-- [ ] Replace all references of `step` for `task`
-- [ ] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
 
 ## Completed
 
+- [x] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
+- [x] Replace all references of `step` for `task`
+- [x] Add list of guideline files loaded for the task
+- [x] Command status is printing nothing, just fronzen then terminal
+- [x] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
 - [x] Rename agents.md to INSTRUCTIONS.md
 - [x] Remove identity prompt from agents
 - [x] Fix bundle path references (manifest/ → bundle/) in init and install-logic
@@ -34,7 +34,7 @@
 - [x] Add LSP binary checks to doctor command — `checkLspBun`, `checkLspNode`, `checkLspPyright`
 - [x] Add extension registry with settings-driven loading — `readExtensionSettings()` from `~/.hamilton/settings.yaml`, `buildExtensions()` with RTK and LSP factories, `ExtensionRegistry` service
 - [x] Remove RTK_DISABLED env var — settings.yaml replaces env vars entirely
-- [x] Add LSP extension wrapper — `createLspExtension()` wrapping `@spences10/pi-lsp@0.0.34`
+- [x] Add LSP extension wrapper — `createLspExtension()` wrapping `@spences10/<EMAIL_REDACTED>
 - [x] Change progress file location — store in ./.hamilton/workflows/progress-<YYYY-MM-DD>.txt, active management with ensureProgressFile
 - [x] Create Pi configs on init — --copy-pi-configs flag copies from ~/.pi/agent, fallback to sensible defaults (settings.json, models.json, auth.json)
 - [x] Refactor `output.schema` to `output.schema.content` — nest schema under content, add SchemaConfig type
@@ -54,7 +54,7 @@
 - [x] Refactor event architecture to use Effect event bus — decouple onLog, onTokenEvent, onTokenUsage into single-responsibility subscribers (logger, DB writer, CLI renderer)
 - [x] Refactor workflow engine from linear step-based to DAG task-based model — topological sort, reachable task collection, template/forEach expansion, auto-context from upstream outputs
 - [x] Fix dynamic step generation: build a graph of tasks with DAG model, support forEach expansion for multi-instance tasks
-- [x] Agent Co-Authored-By footer — hamilton@hamiltonai.dev in all agent commit messages
+- [x] Agent Co-Authored-By footer — <EMAIL_REDACTED> in all agent commit messages
 - [x] Add task prompt to prompt_built event
 - [x] Implement retry feedback — on_failure.max_retries with event publishing on retry
 - [x] Make write_step_output accept a JSON object with ajv schema validation
