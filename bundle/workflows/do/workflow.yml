@@ -20,10 +20,7 @@ spec:
         prompt:
           content: |
             Execute the following task end-to-end.
-  
-            TASK:
-            {{task}}
-  
+
             Instructions:
             1. Understand the task completely
             2. Plan your approach before starting
