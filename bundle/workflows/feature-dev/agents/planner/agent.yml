@@ -5,5 +5,3 @@ metadata:
 spec:
   settings:
     model: deepseek-v4-pro-official
-    skills:
-      - hamilton-agents
