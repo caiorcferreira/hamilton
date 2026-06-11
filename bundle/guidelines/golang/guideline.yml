@@ -10,6 +10,8 @@ spec:
       # Compressed to reduce token, but it still needs work
       - code_style.md
       - patterns.md
-      ########    
+      ########
+      - setup.md 
+      - testing.md
       - e2e_testing.md
 

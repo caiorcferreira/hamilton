@@ -1,5 +1,4 @@
-
-# End-to-End Testing for Go Services
+# End-to-End Testing
 
 ## Problem
 
@@ -7,7 +6,6 @@ You need reliable end-to-end tests for a Go service (gRPC, REST, or event-driven
 
 ## Prerequisites
 
-- **Go 1.24+** with modules enabled
 - **Docker** running locally (for testcontainers)
 - **CI runner** with Docker-in-Docker support (for pipeline execution)
 - **Packages**: `testcontainers-go`, `testify` (assert + require), `gjson`, `golang-jwt`
