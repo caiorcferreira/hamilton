@@ -47,10 +47,10 @@ describe("loadRunState (SQLite-backed)", () => {
     const startedAt = "2026-01-01T00:00:00.000Z"
     insertRun(db, "run-1", "bug-fix", startedAt)
     insertTasks(db, "run-1", [
-      { taskSlug: "triage", agentName: "triager" },
-      { taskSlug: "fix", agentName: "fixer" }
+      { taskName: "triage", agentName: "triager", executionIndex: 0 },
+      { taskName: "fix", agentName: "fixer", executionIndex: 1 }
     ])
-    const tasks = db.prepare("SELECT * FROM tasks WHERE run_id = ? ORDER BY id").all("run-1") as any[]
+    const tasks = db.prepare("SELECT * FROM tasks WHERE run_id = ? ORDER BY execution_index").all("run-1") as any[]
     const triageTaskId = tasks.find((t: any) => t.id.includes("triage"))!.id
     const fixTaskId = tasks.find((t: any) => t.id.includes("fix"))!.id
 
@@ -74,8 +74,8 @@ describe("loadRunState (SQLite-backed)", () => {
     const tasksData = db.prepare("SELECT * FROM tasks").all() as any[]
     for (const row of tasksData) {
       targetDb.prepare(
-        `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, status, started_at, completed_at, tokens_in, tokens_out, retry_count, error_message, output_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(row.id, row.run_id, row.agent_id, row.status, row.started_at, row.completed_at, row.tokens_in, row.tokens_out, row.retry_count, row.error_message, row.output_json)
+        `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status, started_at, completed_at, tokens_in, tokens_out, retry_count, error_message, output_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(row.id, row.run_id, row.agent_id, row.task_name, row.execution_index, row.status, row.started_at, row.completed_at, row.tokens_in, row.tokens_out, row.retry_count, row.error_message, row.output_json)
     }
     const tokenData = db.prepare("SELECT * FROM token_events").all() as any[]
     for (const row of tokenData) {
@@ -92,10 +92,10 @@ describe("loadRunState (SQLite-backed)", () => {
       expect(exit.value.workflow).toBe("bug-fix")
       expect(exit.value.status).toBe("running")
       expect(exit.value.tasks).toHaveLength(2)
-      expect(exit.value.tasks[0].taskId).toContain("fix")
-      expect(exit.value.tasks[0].status).toBe("running")
-      expect(exit.value.tasks[1].taskId).toContain("triage")
-      expect(exit.value.tasks[1].status).toBe("completed")
+      expect(exit.value.tasks[0].taskId).toContain("triage")
+      expect(exit.value.tasks[0].status).toBe("completed")
+      expect(exit.value.tasks[1].taskId).toContain("fix")
+      expect(exit.value.tasks[1].status).toBe("running")
       expect(exit.value.totalTokensIn).toBe(500)
       expect(exit.value.totalTokensOut).toBe(200)
     }
@@ -121,13 +121,13 @@ describe("formatStatus", () => {
       status: "running",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: null,
-      currentTask: "fix",
+      currentTask: `${runId}-fix-x4y5z`,
       tasks: [
-        { taskId: `${runId}-triage-x1y2z`, taskSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: `${runId}-investigate-x2y3z`, taskSlug: "investigator", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: `${runId}-setup-x3y4z`, taskSlug: "setter", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: `${runId}-fix-x4y5z`, taskSlug: "fixer", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: `${runId}-verify-x5y6z`, taskSlug: "verifier", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
+        { taskId: `${runId}-triage-x1y2z`, taskName: "triage", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-investigate-x2y3z`, taskName: "investigate", status: "completed", startedAt: "2026-01-01T00:00:30.000Z", completedAt: "2026-01-01T00:01:00.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-setup-x3y4z`, taskName: "setup", status: "completed", startedAt: "2026-01-01T00:01:00.000Z", completedAt: "2026-01-01T00:01:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-fix-x4y5z`, taskName: "fix", status: "running", startedAt: "2026-01-01T00:01:30.000Z", completedAt: null, tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-verify-x5y6z`, taskName: "verify", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
       ],
       totalTokensIn: 25000,
       totalTokensOut: 8000,
@@ -151,8 +151,7 @@ describe("formatStatus", () => {
     expect(tasksLineIdx).toBe(lines.length - 6)
 
     for (const t of status.tasks) {
-      const slug = t.taskId.slice(runId.length + 1, t.taskId.lastIndexOf("-"))
-      const found = lines.some((l) => l.includes(slug))
+      const found = lines.some((l) => l.includes(t.taskName))
       expect(found).toBe(true)
     }
   })
@@ -167,7 +166,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:05:00.000Z",
       currentTask: null,
       tasks: [
-        { taskId: `${runId}-task-1-abc`, taskSlug: "a1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
+        { taskId: `${runId}-task-1-abc`, taskName: "task", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
       ],
       totalTokensIn: 100,
       totalTokensOut: 50,
@@ -188,7 +187,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:00:10.000Z",
       currentTask: null,
       tasks: [
-        { taskId: `${runId}-task-1-abc`, taskSlug: "a1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
+        { taskId: `${runId}-task-1-abc`, taskName: "task", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
       ],
       totalTokensIn: 0,
       totalTokensOut: 0,
@@ -207,11 +206,11 @@ describe("formatStatus", () => {
       status: "running",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: null,
-      currentTask: `${runId}-implement-stories-0-x1y2z`,
+      currentTask: `${runId}-implement-stories-0-x2y3z`,
       tasks: [
-        { taskId: `${runId}-triage-x1y2z`, taskSlug: "triager", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
-        { taskId: `${runId}-implement-stories-0-x2y3z`, taskSlug: "implementer", status: "running", startedAt: "2026-01-01T00:00:30.000Z", completedAt: null, tokensIn: 1000, tokensOut: 500, errorMessage: null },
-        { taskId: `${runId}-implement-stories-1-x3y4z`, taskSlug: "implementer", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
+        { taskId: `${runId}-triage-x1y2z`, taskName: "triage", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
+        { taskId: `${runId}-implement-stories-0-x2y3z`, taskName: "implement-stories/0", status: "running", startedAt: "2026-01-01T00:00:30.000Z", completedAt: null, tokensIn: 1000, tokensOut: 500, errorMessage: null },
+        { taskId: `${runId}-implement-stories-1-x3y4z`, taskName: "implement-stories/1", status: "pending", startedAt: null, completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: null }
       ],
       totalTokensIn: 1500,
       totalTokensOut: 700,
@@ -232,7 +231,7 @@ describe("formatStatus", () => {
     expect(subtask1).toBeDefined()
     expect(subtask1!.startsWith("   ")).toBe(true)
 
-    expect(triageLine).toContain("(triager)")
-    expect(subtask0).not.toContain("(implementer)")
+    expect(triageLine).toContain("(triage)")
+    expect(subtask0).not.toContain("(implement-stories/0)")
   })
 })
