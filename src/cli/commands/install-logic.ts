@@ -11,7 +11,7 @@ export class InstallError extends Data.TaggedError("InstallError")<{
 }> {}
 
 function bundledWorkflowsDir(): string {
-  return Path.join(PROJECT_ROOT, "manifest", "workflows")
+  return Path.join(PROJECT_ROOT, "bundle", "workflows")
 }
 
 function listBundledWorkflowSlugs(): string[] {

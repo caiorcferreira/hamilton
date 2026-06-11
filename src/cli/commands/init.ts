@@ -62,7 +62,7 @@ export function askModelAliases(): Effect.Effect<Record<string, string>, InitErr
 
 function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
-    const sharedDir = Path.join(PROJECT_ROOT, "manifest", "agents")
+    const sharedDir = Path.join(PROJECT_ROOT, "bundle", "agents")
     if (!Fs.existsSync(sharedDir)) return
 
     const destAgents = agentsDir()
@@ -86,7 +86,7 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, In
 
 function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
-    const manifestDir = Path.join(PROJECT_ROOT, "manifest", "skills")
+    const manifestDir = Path.join(PROJECT_ROOT, "bundle", "skills")
     if (!Fs.existsSync(manifestDir)) return
 
     const destSkills = skillsDir()
@@ -101,7 +101,7 @@ function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, 
 
 function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<void, InitError> {
   return Effect.gen(function* () {
-    const manifestDir = Path.join(PROJECT_ROOT, "manifest", "guidelines")
+    const manifestDir = Path.join(PROJECT_ROOT, "bundle", "guidelines")
     if (!Fs.existsSync(manifestDir)) return
 
     const destGuidelines = guidelinesDir()
