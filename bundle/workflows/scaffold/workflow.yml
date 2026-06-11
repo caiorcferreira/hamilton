@@ -24,10 +24,6 @@ spec:
             TASK:
             {{task}}
   
-            PROJECT NAME: {{project_name}}
-            TECH STACK: {{tech_stack}}
-            DESCRIPTION: {{description}}
-  
             Instructions:
             1. Create the project directory with the given name
             2. Initialize git in the project directory
@@ -39,10 +35,11 @@ spec:
             8. Commit the initial project structure
   
             Reply with:
-            STATUS: done
-            PROJECT_DIR: /path/to/project
-            BUILD_CMD: <command to build>
-            TEST_CMD: <command to test>
+            - status: done
+            - project_dir: /path/to/project
+            - build_cmd: <command to build>
+            - test_cmd: <command to test>
+            - tech_stack: <technologies used in the project>
         output:
           schema:
             file: schemas/scaffold.json
@@ -58,10 +55,10 @@ spec:
           content: |
             Verify the scaffolded project is correct and buildable.
   
-            PROJECT_DIR: {{project_dir}}
+            PROJECT_DIR: {{tasks.scaffold.outputs.project_dir}}
             BUILD_CMD: {{tasks.scaffold.outputs.build_cmd}}
             TEST_CMD: {{tasks.scaffold.outputs.test_cmd}}
-            TECH_STACK: {{tech_stack}}
+            TECH_STACK: {{tasks.scaffold.outputs.tech_stack}}
   
             Check:
             1. Project directory exists

@@ -8,6 +8,11 @@
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
 - [ ] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
 - [ ] Inject output schema in task context 
+- [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
+- [ ] Add flag to run command to execute in background
+- [ ] Command status is printing nothing, just fronzen then terminal
+- [ ] Add list of guideline files loaded for the task
+- [ ] Replace all references of `step` for `task`
 
 ## Completed
 
