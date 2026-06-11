@@ -63,7 +63,7 @@ describe("createRedactExtension", () => {
         {
           message: "GitHub Token found",
           messageId: "GitHubToken",
-          range: [11, 51] as [number, number],
+          range: [9, 49] as [number, number],
           severity: "error"
         }
       ],
