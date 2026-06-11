@@ -4,14 +4,11 @@ metadata:
   name: golang
 spec:
   instructions:
-    extensions: ["go"]
-    files:
-      # The files below are based on https://github.com/uber-go/guide/blob/master/style.md
-      # Compressed to reduce token, but it still needs work
-      - code_style.md
-      - patterns.md
-      ########
-      - setup.md 
-      - testing.md
-      - e2e_testing.md
+    - matching: ["**/*.go"]
+      files:
+        - code_style.md
+        - patterns.md
+        - setup.md
+        - testing.md
+        - e2e_testing.md
 
