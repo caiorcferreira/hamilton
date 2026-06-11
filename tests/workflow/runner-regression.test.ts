@@ -102,6 +102,37 @@ describe("runWorkflow regression tests", () => {
     }
   })
 
+  it("wraps entrypoint task prompt with user input section", async () => {
+    const events: Event[] = []
+
+    const result = await Effect.runPromiseExit(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          return yield* _(runWorkflow(testSpec, { user_input: "build a login page" }, {
+            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
+          }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    expect(Exit.isSuccess(result)).toBe(true)
+
+    const promptBuilt = events.find((e) => e._tag === "PromptBuilt")
+    expect(promptBuilt).toBeDefined()
+    if (promptBuilt && promptBuilt._tag === "PromptBuilt") {
+      expect(promptBuilt.taskPrompt).toContain("# User input")
+      expect(promptBuilt.taskPrompt).toContain("build a login page")
+    }
+  })
+
   it("writes PromptBuilt event to task logs via FileLogger", async () => {
     const result = await Effect.runPromiseExit(
       Effect.scoped(
