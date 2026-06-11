@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import * as Yaml from "yaml"
-import { readExtensionSettings, buildExtensions } from "../../../src/executors/pi/extensions.js"
+import { readExtensionSettings, buildExtensions } from "../../../src/executors/pi/extensions/extensions.js"
 import { settingsPath } from "../../../src/paths.js"
 
 let tmpHome: string
