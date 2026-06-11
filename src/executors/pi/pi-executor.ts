@@ -21,7 +21,7 @@ import { createWriteStepOutputTool } from "./write-step-output-tool.js"
 import { buildExtensions, readExtensionSettings, type ExtensionFactory } from "./extensions.js"
 import { stepOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
-import { createGuidelineExtension } from "./guideline-extension.js"
+import { createGuidelineExtension } from "./extensions/guideline-extension.js"
 import type { CompiledRule } from "../../guidelines/types.js"
 
 export interface PiExecutorConfig {
