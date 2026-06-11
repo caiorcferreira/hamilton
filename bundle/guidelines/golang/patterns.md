@@ -2,12 +2,10 @@
 
 ### Test Tables
 
-Table-driven tests with subtests can be a helpful pattern for writing tests
-to avoid duplicating code when the core test logic is repetitive.
+Use table-driven tests with subtests to avoid duplicating repetitive test logic. Test tables reduce duplicate logic, add context to error messages, and make it easy to add new test cases.
 
-If a system under test needs to be tested against *multiple conditions* where
-certain parts of the inputs and outputs change, a table-driven test should
-be used to reduce redundancy and improve readability.
+Use a table-driven test when a system needs testing against *multiple conditions*
+with varying inputs and outputs.
 
 **Bad**
 ```go
@@ -75,12 +73,8 @@ for _, tt := range tests {
 }
 ```
 
-Test tables make it easier to add context to error messages, reduce duplicate
-logic, and add new test cases.
-
-We follow the convention that the slice of structs is referred to as `tests`
-and each test case `tt`. Further, we encourage explicating the input and output
-values for each test case with `give` and `want` prefixes.
+Name the slice of structs `tests` and each case `tt`. Prefix input and output
+fields with `give` and `want`.
 
 ```go
 tests := []struct{
@@ -98,44 +92,34 @@ for _, tt := range tests {
 
 #### Avoid Unnecessary Complexity in Table Tests
 
-Table tests can be difficult to read and maintain if the subtests contain conditional
-assertions or other branching logic. Table tests should **NOT** be used whenever
-there needs to be complex or conditional logic inside subtests (i.e. complex logic inside the `for` loop).
+Do **NOT** use table tests when subtests need conditional assertions or branching
+logic inside the `for` loop. Complex tables harm readability and make test
+failures harder to debug.
 
-Large, complex table tests harm readability and maintainability because test readers may
-have difficulty debugging test failures that occur.
+Split complex table tests into multiple test tables or individual `Test...`
+functions.
 
-Table tests like this should be split into either multiple test tables or multiple
-individual `Test...` functions.
+Aim for:
 
-Some ideals to aim for are:
+* The narrowest unit of behavior
+* Minimal "test depth" — avoid conditional assertions
+* All table fields used in all test cases
+* All test logic runs for all table cases
 
-* Focus on the narrowest unit of behavior
-* Minimize "test depth", and avoid conditional assertions (see below)
-* Ensure that all table fields are used in all tests
-* Ensure that all test logic runs for all table cases
+"Test depth" means successive assertions that depend on previous assertions
+holding (similar to cyclomatic complexity). Shallower tests have fewer
+interdependent assertions and are less likely to be conditional.
 
-In this context, "test depth" means "within a given test, the number of
-successive assertions that require previous assertions to hold" (similar
-to cyclomatic complexity).
-Having "shallower" tests means that there are fewer relationships between
-assertions and, more importantly, that those assertions are less likely
-to be conditional by default.
+Table tests become confusing when they use multiple branching pathways
+(`shouldError`, `expectCall`), `if` statements for mock expectations
+(`shouldCallFoo`), or functions inside the table (`setupMocks func(*FooMock)`).
 
-Concretely, table tests can become confusing and difficult to read if they use multiple branching
-pathways (e.g. `shouldError`, `expectCall`, etc.), use many `if` statements for
-specific mock expectations (e.g. `shouldCallFoo`), or place functions inside the
-table (e.g. `setupMocks func(*FooMock)`).
+When behavior only changes based on input, group similar cases in a table test
+to show how behavior varies across inputs — splitting them into separate
+tests makes comparison harder.
 
-However, when testing behavior that only
-changes based on changed input, it may be preferable to group similar cases
-together in a table test to better illustrate how behavior changes across all inputs,
-rather than splitting otherwise comparable units into separate tests
-and making them harder to compare and contrast.
-
-If the test body is short and straightforward,
-it's acceptable to have a single branching pathway for success versus failure cases
-with a table field like `shouldErr` to specify error expectations.
+A single branching pathway for success vs. failure (e.g. a `shouldErr` field)
+is acceptable if the test body is short and straightforward.
 
 **Bad**
 ```go
@@ -214,19 +198,16 @@ func TestShouldCallYAndFail(t *testing.T) {
 }
 ```
 
-This complexity makes it more difficult to change, understand, and prove the
-correctness of the test.
+This complexity makes tests harder to change, understand, and verify.
 
-While there are no strict guidelines, readability and maintainability should
-always be top-of-mind when deciding between Table Tests versus separate tests
-for multiple inputs/outputs to a system.
+Prioritize readability and maintainability when choosing between table tests
+and separate test functions.
 
 #### Parallel Tests
 
-Parallel tests, like some specialized loops (for example, those that spawn
-goroutines or capture references as part of the loop body),
-must take care to explicitly assign loop variables within the loop's scope to
-ensure that they hold the expected values.
+In parallel tests and loops that spawn goroutines or capture references,
+explicitly assign loop variables inside the loop body to ensure they hold the
+expected values.
 
 ```go
 tests := []struct{
@@ -244,23 +225,20 @@ for _, tt := range tests {
 }
 ```
 
-In the example above, we must declare a `tt` variable scoped to the loop
-iteration because of the use of `t.Parallel()` below.
-If we do not do that, most or all tests will receive an unexpected value for
-`tt`, or a value that changes as they're running.
+The `tt` variable must be scoped to the loop iteration because of
+`t.Parallel()`. Without it, most tests will receive an unexpected or changing
+value for `tt`.
 
 <!-- TODO: Explain how to use _test packages. -->
 
 ### Functional Options
 
-Functional options is a pattern in which you declare an opaque `Option` type
-that records information in some internal struct. You accept a variadic number
-of these options and act upon the full information recorded by the options on
-the internal struct.
+Functional options is a pattern where an opaque `Option` type records
+information in an internal struct. A variadic number of options is accepted and
+applied to configure the struct.
 
-Use this pattern for optional arguments in constructors and other public APIs
-that you foresee needing to expand, especially if you already have three or
-more arguments on those functions.
+Use this pattern for optional constructor and public API arguments you expect
+to expand, especially with three or more arguments.
 
 **Bad**
 ```go
@@ -325,9 +303,8 @@ db.Open(
 )
 ```
 
-Our suggested way of implementing this pattern is with an `Option` interface
-that holds an unexported method, recording options on an unexported `options`
-struct.
+Our preferred implementation uses an `Option` interface with an unexported
+method that records options on an unexported `options` struct.
 
 ```go
 type options struct {
@@ -379,13 +356,10 @@ func Open(
 }
 ```
 
-Note that there's a method of implementing this pattern with closures but we
-believe that the pattern above provides more flexibility for authors and is
-easier to debug and test for users. In particular, it allows options to be
-compared against each other in tests and mocks, versus closures where this is
-impossible. Further, it lets options implement other interfaces, including
-`fmt.Stringer` which allows for user-readable string representations of the
-options.
+This pattern is preferred over closures because it gives authors more
+flexibility and is easier to debug and test. Options can be compared in tests
+and mocks (impossible with closures) and can implement interfaces like
+`fmt.Stringer` for readable string representations.
 
 See also,
 
