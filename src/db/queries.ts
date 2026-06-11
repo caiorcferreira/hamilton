@@ -16,6 +16,8 @@ export interface TaskRow {
   id: string
   run_id: string
   agent_id: string
+  task_name: string
+  execution_index: number
   status: string
   started_at: string | null
   completed_at: string | null
@@ -35,7 +37,7 @@ export interface RunStatusRow {
   currentTask: string | null
   tasks: Array<{
     taskId: string
-    taskSlug: string
+    taskName: string
     status: string
     startedAt: string | null
     completedAt: string | null
