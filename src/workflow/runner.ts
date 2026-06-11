@@ -140,12 +140,16 @@ export function runWorkflow(
           agentConfig: agent
         }, guidelineFiles)
 
+        const finalPrompt = task.name === spec.spec.run.entrypoint
+          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${runningContext.user_input}` }
+          : prompt
+
         yield* _(bus.publish({
           _tag: "PromptBuilt",
           runId,
           taskId,
-          systemPrompt: prompt.systemPrompt,
-          taskPrompt: prompt.taskPrompt,
+          systemPrompt: finalPrompt.systemPrompt,
+          taskPrompt: finalPrompt.taskPrompt,
           guidelineFiles: guidelineFiles.map(g => g.name)
         }))
 
@@ -157,7 +161,7 @@ export function runWorkflow(
 
         const output = yield* _(
           executeWithPi({
-            prompt,
+            prompt: finalPrompt,
             taskId,
             agentId: agent.metadata.name,
             runId,
