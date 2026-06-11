@@ -29,12 +29,13 @@ export function rewriteCommand(
     if ((result.status === 0 || result.status === 3) && result.stdout !== command) {
       toolInput.command = result.stdout
     }
-  } catch {}
+  } catch { }
 }
 
+// todo: refactor to use same extesion structure as https://github.com/spences10/my-pi/blob/main/packages/pi-redact/src/index.ts#L226C49-L226C61
 export function createRtkExtension(options: RtkExtensionOptions): (pi: unknown) => void {
   if (options.disabled) {
-    return () => {}
+    return () => { }
   }
 
   return (pi: unknown) => {
