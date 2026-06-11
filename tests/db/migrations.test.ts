@@ -88,7 +88,7 @@ describe("migrations", () => {
     expect(v2).toBe(3)
   })
 
-  it("migrate error rolls back without changing version", () => {
+  it("v2 recovers from partial migration (crash between ALTER TABLE and PRAGMA)", () => {
     db = tempDb()
     db.prepare("PRAGMA user_version = 1").run()
     db.exec("CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, workflow_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'running', started_at TEXT NOT NULL, completed_at TEXT, current_task TEXT, error_message TEXT, context_json TEXT DEFAULT '{}')")
@@ -99,13 +99,14 @@ describe("migrations", () => {
 
     db.exec("ALTER TABLE tasks ADD COLUMN model_provider TEXT")
 
-    try {
-      migrate(db)
-    } catch {
-      // expected
-    }
+    migrate(db)
 
     const v = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v).toBe(1)
+    expect(v).toBe(3)
+
+    const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
+    const colNames = info.map(c => c.name)
+    expect(colNames).toContain("model_provider")
+    expect(colNames).toContain("model_id")
   })
 })

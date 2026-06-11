@@ -10,8 +10,10 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
 const MIGRATIONS: Record<number, (db: Database) => void> = {
   1: (db) => createSchema(db),
   2: (db) => {
-    db.exec("ALTER TABLE tasks ADD COLUMN model_provider TEXT")
-    db.exec("ALTER TABLE tasks ADD COLUMN model_id TEXT")
+    for (const col of ["model_provider", "model_id"]) {
+      try { db.exec("ALTER TABLE tasks ADD COLUMN " + col + " TEXT") }
+      catch (e: any) { if (!String(e).includes("duplicate column name")) throw e }
+    }
   },
   3: (db) => {
     db.exec("CREATE TABLE IF NOT EXISTS turns (id TEXT PRIMARY KEY, run_id TEXT NOT NULL, task_id TEXT NOT NULL, turn_index INTEGER NOT NULL, started_at TEXT NOT NULL, completed_at TEXT, stop_reason TEXT, tool_result_count INTEGER DEFAULT 0, FOREIGN KEY (run_id) REFERENCES runs(id), FOREIGN KEY (task_id) REFERENCES tasks(id))")
@@ -35,7 +37,7 @@ export function migrate(db: Database): void {
         db.prepare("PRAGMA user_version = " + version).run()
       })()
     } catch (e) {
-      if (e instanceof MigrationError) throw e
+      if (e && typeof e === "object" && "_tag" in e && (e as any)._tag === "MigrationError") throw e
       throw new MigrationError({ version, message: String(e) })
     }
   }
