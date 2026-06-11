@@ -9,10 +9,10 @@
 - [ ] Inject output schema in task context
 - [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
 - [ ] Add flag to run command to execute in background
-- [ ] Replace `-` with `/` as separator in runId, taskId
 
 ## Completed
 
+- [x] Use custom nanoid alphabet without `-` to make ID separator unambiguous
 - [x] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
 - [x] Replace all references of `step` for `task`
 - [x] Add list of guideline files loaded for the task

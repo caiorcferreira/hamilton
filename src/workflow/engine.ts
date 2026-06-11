@@ -1,4 +1,6 @@
-import { nanoid } from "nanoid"
+import { customAlphabet } from "nanoid"
+
+const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 import { parseDurationString } from "go-duration-js"
 import type { WorkflowTask } from "../types.js"
 

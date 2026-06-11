@@ -80,19 +80,19 @@ describe("collectReachableTasks", () => {
 describe("buildRunId", () => {
   it("generates a run ID with workflow name prefix", () => {
     const runId = buildRunId("feature-dev")
-    expect(runId).toMatch(/^feature-dev-[A-Za-z0-9_-]{5}$/)
+    expect(runId).toMatch(/^feature-dev-[A-Za-z0-9]{5}$/)
   })
 })
 
 describe("buildTaskId", () => {
   it("generates a compound task ID", () => {
     const taskId = buildTaskId("feature-dev-abcde", "plan")
-    expect(taskId).toMatch(/^feature-dev-abcde-plan-[A-Za-z0-9_-]{5}$/)
+    expect(taskId).toMatch(/^feature-dev-abcde-plan-[A-Za-z0-9]{5}$/)
   })
 
   it("sanitizes forward slashes in task names", () => {
     const taskId = buildTaskId("test-run", "codify/0")
-    expect(taskId).toMatch(/^test-run-codify-0-[A-Za-z0-9_-]{5}$/)
+    expect(taskId).toMatch(/^test-run-codify-0-[A-Za-z0-9]{5}$/)
     expect(taskId).not.toContain("/")
   })
 })
