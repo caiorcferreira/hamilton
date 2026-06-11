@@ -2,17 +2,21 @@
 
 ## Problem
 
-You need reliable end-to-end tests for a Go service (gRPC, REST, or event-driven) that verify real behavior against real dependencies — databases, caches, mock external APIs — without mocking at the code level. Unit tests alone can't catch integration bugs, configuration mismatches, or container networking issues. You want tests that are protocol-agnostic so swapping gRPC for HTTP doesn't force a rewrite of all test scenarios.
+You need reliable e2e tests for a Go service (gRPC, REST, or event-driven) that
+verify real behavior against real dependencies — databases, caches, mock
+external APIs — without code-level mocking. Unit tests miss integration bugs,
+config mismatches, and container networking issues. Tests should be
+protocol-agnostic so swapping gRPC for HTTP doesn't require rewriting scenarios.
 
 ## Prerequisites
 
 - **Docker** running locally (for testcontainers)
-- **CI runner** with Docker-in-Docker support (for pipeline execution)
+- **CI runner** with Docker-in-Docker support
 - **Packages**: `testcontainers-go`, `testify` (assert + require), `gjson`, `golang-jwt`
 
 ## Architecture: Four Layers
 
-The e2e test suite separates concerns into four layers, each with a single responsibility ^[extracted]:
+Four layers, each with a single responsibility:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -26,7 +30,7 @@ The e2e test suite separates concerns into four layers, each with a single respo
 └─────────────────────────────────────────────┘
 ```
 
-This separation means swapping protocols only requires writing a new driver — specifications never change. This architecture is a concrete implementation of the specification-pattern.
+Swapping protocols only requires a new driver — specifications never change.
 
 ## Procedure
 
@@ -53,7 +57,7 @@ e2e/
 
 ### Step 2: Create the Docker Network
 
-All containers share a single Docker network for internal DNS resolution. Create it once per test function ^[extracted]:
+All containers share one Docker network for internal DNS. Create once per test:
 
 ```go
 func SetupNetwork(t testing.TB) NetworkResource {
@@ -69,30 +73,32 @@ func SetupNetwork(t testing.TB) NetworkResource {
 }
 ```
 
-Key: `t.Cleanup` ensures the network is removed after the test, even on failure.
+`t.Cleanup` removes the network after the test, even on failure.
 
 ### Step 3: Start Dependencies (Before the App)
 
-Each dependency follows the same pattern: `Options` struct → `Resource` struct → `Start<Name>(t, opts) Resource` ^[extracted].
+Each dependency follows the pattern: `Options` struct → `Resource` struct →
+`Start<Name>(t, opts) Resource`.
 
-Every `Start*` function registers `t.Cleanup` to terminate the container. Examples:
+Every `Start*` function registers `t.Cleanup` to terminate the container:
 
-- **Postgres**: Use `testcontainers-go/modules/postgres`, pass init scripts for schema + seed data
-- **Redis**: Use `testcontainers-go/modules/redis`, specify image tag
-- **WireMock**: Mount a mappings directory, expose port, capture requests for audit assertions
+- **Postgres**: `testcontainers-go/modules/postgres`, init scripts for schema + seed
+- **Redis**: `testcontainers-go/modules/redis`, specify image tag
+- **WireMock**: Mount mappings directory, expose port, capture requests for audit assertions
 
-**Critical: Dual-address pattern** — every dependency returns two addresses ^[extracted]:
+**Dual-address pattern** — every dependency returns two addresses:
 
 | Address | Used by | Example |
 |---------|---------|---------|
-| **Internal** (`container-name:port`) | Application container → dependency | `http://wiremock:9001` |
+| **Internal** (`container-name:port`) | App → dependency | `http://wiremock:9001` |
 | **Host-mapped** (`localhost:<random-port>`) | Test code → container | `http://localhost:54321` |
 
-Always pass internal addresses as env vars to the application. Use host-mapped ports in the driver.
+Pass internal addresses as env vars to the app. Use host-mapped ports in the driver.
 
 ### Step 4: Build and Start the Application Container
 
-Build from a `Dockerfile.e2e` (multi-stage: Go build → minimal Debian image). Wait for readiness with a protocol-appropriate strategy ^[extracted]:
+Build from `Dockerfile.e2e` (multi-stage: Go build → minimal Debian image).
+Pick a protocol-appropriate wait strategy:
 
 ```go
 func StartApplication(t testing.TB, opts AppResourceOptions) AppResource {
@@ -113,16 +119,17 @@ func StartApplication(t testing.TB, opts AppResourceOptions) AppResource {
 }
 ```
 
-Wait strategy by protocol:
+Wait strategies by protocol:
 - **gRPC**: `wait.ForLog("starting grpc server")` + `wait.ForListeningPort(port)`
 - **REST**: `wait.ForHTTP("/healthz").WithPort(port)`
 - **Worker/Consumer**: `wait.ForLog("consumer started")`
 
-Attach a log consumer to any container for debugging: `LogConsumerCfg: LogConsumerConfig()`.
+Attach a log consumer for debugging: `LogConsumerCfg: LogConsumerConfig()`.
 
 ### Step 5: Define the Connector Interface
 
-In `e2e/specifications/connector.go`, define protocol-agnostic interfaces that serve as the contract between specs and drivers ^[extracted]:
+In `e2e/specifications/connector.go`, define protocol-agnostic interfaces as
+the contract between specs and drivers:
 
 ```go
 type APIClient interface {
@@ -137,15 +144,16 @@ type Response struct {
 ```
 
 Rules:
-- Use `string` for request/response bodies (JSON). Keeps the interface serialization-agnostic.
-- Use `map[string][]string` for headers/metadata. Compatible with both HTTP and gRPC.
-- Define one interface per logical concern.
+- Use `string` for request/response bodies (JSON) — serialization-agnostic.
+- Use `map[string][]string` for headers/metadata — compatible with HTTP and gRPC.
+- One interface per logical concern.
 
 ### Step 6: Write the Driver
 
-Implement the connector interface for your protocol. The driver translates interface calls into protocol-specific I/O ^[extracted].
+Implement the connector interface for your protocol. The driver translates
+interface calls into protocol-specific I/O.
 
-HTTP driver pattern:
+HTTP driver:
 ```go
 type HTTPDriver struct {
     baseURL string
@@ -157,7 +165,7 @@ func (d *HTTPDriver) CreateOrder(ctx context.Context, jsonBody string, headers m
 }
 ```
 
-gRPC driver pattern:
+gRPC driver:
 ```go
 type GRPCDriver struct {
     client protov1.YourServiceClient
@@ -170,7 +178,8 @@ func (d *GRPCDriver) YourMethod(ctx context.Context, jsonRequest string, metadat
 
 ### Step 7: Write Specifications
 
-Specifications are pure test logic using the specification-pattern. Each is a function that accepts an interface and returns `func(t *testing.T)` ^[extracted]:
+Specifications are pure test logic. Each accepts an interface and returns
+`func(t *testing.T)`:
 
 ```go
 func CreateOrderReturnsCreatedResource(api APIClient) func(t *testing.T) {
@@ -188,7 +197,8 @@ func CreateOrderReturnsCreatedResource(api APIClient) func(t *testing.T) {
 }
 ```
 
-For side-effect assertions (audit logs, messages, DB rows), inject assertion functions as parameters:
+For side-effect assertions (audit logs, messages, DB rows), inject assertion
+functions:
 
 ```go
 func CreateOrderSendsAuditEvent(api APIClient, assertAudit func(t testing.TB, expected string)) func(t *testing.T) {
@@ -198,7 +208,7 @@ func CreateOrderSendsAuditEvent(api APIClient, assertAudit func(t testing.TB, ex
 
 ### Step 8: Manage Fixtures
 
-Static fixtures go under `e2e/fixtures/` organized by category ^[extracted]:
+Static fixtures under `e2e/fixtures/`, organized by category:
 
 ```
 fixtures/
@@ -209,11 +219,13 @@ fixtures/
 └── redis.conf           # Service configs
 ```
 
-Provide a `fixtures.Read(t, filename)` helper and a `fixtures.Path(t, filename)` helper. For dynamic data (JWTs, signed payloads), create generator functions like `fixtures.CreateJWTToken(t, keyID, keyFile, claims)`.
+Provide `fixtures.Read(t, filename)` and `fixtures.Path(t, filename)` helpers.
+For dynamic data (JWTs, signed payloads), create generators like
+`fixtures.CreateJWTToken(t, keyID, keyFile, claims)`.
 
 ### Step 9: Wire the Test Entry Point
 
-The test file orchestrates everything ^[extracted]:
+The test file orchestrates everything:
 
 ```go
 func TestServiceName(t *testing.T) {
@@ -237,11 +249,13 @@ func TestServiceName(t *testing.T) {
 }
 ```
 
-For different configurations (e.g., Redis vs in-memory cache), use separate `Test*` functions with different env setups.
+For different configurations (e.g., Redis vs in-memory cache), use separate
+`Test*` functions with different env setups.
 
 ### Step 10: Configure CI
 
-Use `testing.Short()` to skip e2e in unit test runs. Separate targets in Taskfile/Makefile ^[extracted]:
+Skip e2e in unit runs with `testing.Short()`. Separate targets in
+Taskfile/Makefile:
 
 ```yaml
 test:e2e:
@@ -253,6 +267,7 @@ test:unit:
 ```
 
 CI needs Docker-in-Docker:
+
 ```yaml
 e2e_test:
   image: golang:1.24
@@ -264,7 +279,8 @@ e2e_test:
     - go test -race -count=1 ./e2e/...
 ```
 
-Key flags: `-race` (detect races), `-count=1` (disable caching — containers are ephemeral), `-cover` (coverage).
+Key flags: `-race` (race detection), `-count=1` (disable caching — containers
+are ephemeral), `-cover` (coverage).
 
 ## Assertion Patterns
 
@@ -279,15 +295,14 @@ Key flags: `-race` (detect races), `-count=1` (disable caching — containers ar
 
 ## Verification
 
-1. **Local**: `go test -race -count=1 ./e2e/...` — all specs pass against real containers
+1. **Local**: `go test -race -count=1 ./e2e/...` — all specs pass
 2. **CI**: Pipeline passes with Docker-in-Docker, artifacts include `coverage.out`
-3. **Protocol swap**: Change only the driver in the test entry point — all specs should pass unmodified
+3. **Protocol swap**: Change only the driver — all specs pass unmodified
 
 ## Pitfalls
 
-- **Test caching**: Always use `-count=1` — Go's test cache doesn't know containers are ephemeral.
-- **Container naming**: Use fixed names (`"test-postgres"`, etc.) for internal DNS. Random names break the dual-address pattern.
-- **Cleanup ordering**: `t.Cleanup` runs LIFO. Dependencies started first will be cleaned up last — this is correct (app stops before DB).
-- **Port conflicts**: Let Docker assign random host ports via `MappedPort()`. Never hardcode ports.
-- **Dockerfile.e2e**: Must be separate from production Dockerfile. The e2e build context is `../` from `e2e/`.
-
+- **Test caching**: Always use `-count=1`. Go's cache doesn't know containers are ephemeral.
+- **Container naming**: Use fixed names (`"test-postgres"`) for internal DNS. Random names break the dual-address pattern.
+- **Cleanup ordering**: `t.Cleanup` runs LIFO — dependencies started first are cleaned up last (app stops before DB).
+- **Port conflicts**: Let Docker assign random host ports via `MappedPort()`. Never hardcode.
+- **Dockerfile.e2e**: Separate from the production Dockerfile. The e2e build context is `../` from `e2e/`.
