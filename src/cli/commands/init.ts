@@ -175,6 +175,7 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
       }
     }
   } as any
+  ;(doc.contents as any).telemetry = { disableStores: [] }
   if (modelAliases && Object.keys(modelAliases).length > 0) {
     ;(doc.contents as any).models = { aliases: modelAliases }
   }

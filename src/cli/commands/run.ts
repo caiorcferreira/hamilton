@@ -10,6 +10,13 @@ import { runWorkflow } from "../../workflow/runner.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
+import { Database } from "bun:sqlite"
+import { TelemetrySubscriber } from "../../telemetry/subscriber.js"
+import { makeTurnRepository } from "../../telemetry/repositories/turn-repository.js"
+import { makeToolCallRepository } from "../../telemetry/repositories/tool-call-repository.js"
+import { makeProviderRequestRepository } from "../../telemetry/repositories/provider-request-repository.js"
+import { loadTelemetryConfig } from "../../telemetry/config.js"
+import { dbPath } from "../../paths.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -85,6 +92,16 @@ export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slu
         Effect.gen(function* () {
           yield* FileLogger
           yield* CliRenderer
+          const telemetryCfg = yield* loadTelemetryConfig
+          const db = new Database(dbPath())
+          const dbEnabled = !telemetryCfg.disableStores.has("db")
+          yield* Effect.addFinalizer(() => Effect.sync(() => db.close()))
+          yield* TelemetrySubscriber({
+            turn: makeTurnRepository(db),
+            toolCall: makeToolCallRepository(db),
+            providerRequest: makeProviderRequestRepository(db),
+            shouldWrite: () => dbEnabled
+          })
           return yield* executeRun({ workflowSlug: slug, prompt: promptText, variants: variants._tag === "Some" ? variants.value : undefined })
         })
       ).pipe(Effect.provide(EventBusLive))

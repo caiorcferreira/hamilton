@@ -23,6 +23,7 @@ import * as Fs from "node:fs"
 import { loadGuidelines } from "../guidelines/loader.js"
 import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
 import { skillsDir, guidelinesDir } from "../paths.js"
+import { loadTelemetryConfig } from "../telemetry/config.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
@@ -59,14 +60,24 @@ export function runWorkflow(
     const runId = ctx.runId
 
     yield* _(DbWriter(ctx.db))
-    yield* _(createRunDir(runId))
-    yield* _(writeInput(runId, {
-      spec,
-      initialContext,
-      executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
-    }))
+
+    const telemetryConfig = yield* _(loadTelemetryConfig)
+    const fileEnabled = !telemetryConfig.disableStores.has("file")
+
+    if (fileEnabled) {
+      yield* _(createRunDir(runId))
+      yield* _(writeInput(runId, {
+        spec,
+        initialContext,
+        executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
+      }))
+    }
+
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
-    yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
+
+    if (fileEnabled) {
+      yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
+    }
 
     const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
 
@@ -187,7 +198,9 @@ export function runWorkflow(
         ;(runningContext.tasks as Record<string, unknown>)[instanceName] = { outputs: output }
 
         yield* _(ctx.transitionTask(instanceName, "complete"))
-        yield* _(writeStepOutput(runId, taskId, output))
+        if (fileEnabled) {
+          yield* _(writeStepOutput(runId, taskId, output))
+        }
         yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId: taskId }))
       })
 
@@ -263,9 +276,13 @@ export function runWorkflow(
 
       const elapsedSeconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
       const summary = { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
-      yield* _(writeSummary(runId, summary))
+      if (fileEnabled) {
+        yield* _(writeSummary(runId, summary))
+      }
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
-      yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
+      if (fileEnabled) {
+        yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
+      }
 
       return { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt } as WorkflowResult
     })
@@ -276,9 +293,13 @@ export function runWorkflow(
       Effect.catchAll((error) =>
         Effect.gen(function* () {
           yield* _(bus.publish({ _tag: "WorkflowCompleted", runId, message: String(error) }))
-          yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
+          if (fileEnabled) {
+            yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
+          }
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
-          yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds: Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) }))
+          if (fileEnabled) {
+            yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds: Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) }))
+          }
           return { runId, status: "failed" as const, taskResults, context: runningContext, startedAt, completedAt }
         })
       ),
