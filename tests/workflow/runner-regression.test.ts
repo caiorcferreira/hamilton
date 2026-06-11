@@ -83,7 +83,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
             workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
           }))
         })
@@ -138,7 +138,7 @@ describe("runWorkflow regression tests", () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* FileLogger
-          return yield* runWorkflow(testSpec, { task: "test" }, {
+          return yield* runWorkflow(testSpec, { user_input: "test" }, {
             workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
           })
         })
@@ -186,7 +186,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
             workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
           }))
         })
@@ -210,7 +210,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { task: "test" }, {
+          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
             workflowsDir: Path.join(tmpHome, ".hamilton", "workflows")
           }))
         })
