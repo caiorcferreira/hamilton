@@ -1,7 +1,7 @@
 import * as Fs from "node:fs"
 import * as Yaml from "yaml"
 import { settingsPath } from "../../../paths.js"
-import { createRtkExtension } from "../rtk-extension.js"
+import { createRtkExtension } from "./rtk-extension.js"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import lsp from "@narumitw/pi-lsp"
 
