@@ -66,6 +66,9 @@ describe("WorkflowRuntime state machine", () => {
     expect(tasks).toHaveLength(2)
     expect(tasks[0].status).toBe("pending")
     expect(tasks[1].status).toBe("pending")
+    expect(tasks[0].execution_index).toBeGreaterThanOrEqual(0)
+    expect(tasks[1].execution_index).toBeGreaterThanOrEqual(0)
+    expect(tasks[0].execution_index).not.toBe(tasks[1].execution_index)
 
     await Effect.runPromise(rt.close())
   })
@@ -119,6 +122,12 @@ describe("WorkflowRuntime state machine", () => {
 
     const resumed = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }, runId))
     expect(resumed.state).toBe("running")
+
+    const resumedTasks = getTasksByRunId(resumed.db, runId)
+    expect(resumedTasks).toHaveLength(2)
+    for (const t of resumedTasks) {
+      expect(t.task_name).not.toBe("")
+    }
 
     const should1 = await Effect.runPromise(resumed.shouldExecuteTask("task-1"))
     expect(should1).toBe(false)
@@ -196,6 +205,8 @@ describe("WorkflowRuntime state machine", () => {
 
     const tasks = getTasksByRunId(rt.db, rt.runId)
     expect(tasks).toHaveLength(3)
+    expect(tasks[2].task_name).toBe("dynamic-task")
+    expect(tasks[2].execution_index).toBeGreaterThanOrEqual(0)
 
     await Effect.runPromise(rt.close())
   })
