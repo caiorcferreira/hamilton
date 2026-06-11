@@ -129,9 +129,9 @@ describe("runWorkflow regression tests", () => {
       for (const line of content.trim().split("\n")) {
         if (!line.trim()) continue
         const parsed = JSON.parse(line)
-        if (parsed._tag === "PromptBuilt" || parsed.event === "prompt_built") {
-          expect(parsed).toHaveProperty("systemPrompt")
-          expect(parsed).toHaveProperty("taskPrompt")
+        if (parsed.event === "prompt_built") {
+          expect(parsed).toHaveProperty("system_prompt")
+          expect(parsed).toHaveProperty("task_prompt")
           return
         }
       }
