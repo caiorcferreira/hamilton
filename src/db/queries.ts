@@ -64,13 +64,13 @@ export function insertRun(
 export function insertTasks(
   db: Database,
   runId: string,
-  tasks: Array<{ taskSlug: string; agentName: string }>
+  tasks: Array<{ taskName: string; agentName: string; executionIndex: number }>
 ): void {
   const stmt = db.prepare(
-    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status) VALUES (?, ?, ?, ?, ?, 'pending')`
   )
   for (const task of tasks) {
-    stmt.run(buildTaskId(runId, task.taskSlug), runId, task.agentName)
+    stmt.run(buildTaskId(runId, task.taskName), runId, task.agentName, task.taskName, task.executionIndex)
   }
 }
 
@@ -78,11 +78,13 @@ export function insertTask(
   db: Database,
   runId: string,
   taskId: string,
-  agentName: string
+  agentName: string,
+  taskName: string,
+  executionIndex: number
 ): void {
   db.prepare(
-    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, status) VALUES (?, ?, ?, 'pending')`
-  ).run(taskId, runId, agentName)
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status) VALUES (?, ?, ?, ?, ?, 'pending')`
+  ).run(taskId, runId, agentName, taskName, executionIndex)
 }
 
 export function updateTaskStarted(
