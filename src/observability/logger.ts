@@ -13,9 +13,9 @@ export function createHamiltonLogger(runId: string) {
       service: "hamilton",
       run_id: runId
     }
-    const stepId = Option.getOrUndefined(HashMap.get(annotations, "step_id"))
-    if (stepId) {
-      record.step_id = stepId
+    const taskId = Option.getOrUndefined(HashMap.get(annotations, "task_id"))
+    if (taskId) {
+      record.task_id = taskId
     }
     try {
       Fs.appendFileSync(filePath, JSON.stringify(record) + "\n", "utf-8")

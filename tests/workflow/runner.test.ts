@@ -96,11 +96,11 @@ describe("runWorkflow DAG-aware executor", () => {
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
     )
 
-    const started = events.filter(e => e._tag === "StepStarted")
+    const started = events.filter(e => e._tag === "TaskStarted")
     expect(started.length).toBe(2)
 
-    const planIdx = started.findIndex(e => e._tag === "StepStarted" && e.stepId.includes("plan"))
-    const implIdx = started.findIndex(e => e._tag === "StepStarted" && e.stepId.includes("implement"))
+    const planIdx = started.findIndex(e => e._tag === "TaskStarted" && e.taskId.includes("plan"))
+    const implIdx = started.findIndex(e => e._tag === "TaskStarted" && e.taskId.includes("implement"))
     expect(planIdx).toBeLessThan(implIdx)
   })
 
@@ -123,7 +123,7 @@ describe("runWorkflow DAG-aware executor", () => {
       runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
     )
 
-    const completed = events.filter(e => e._tag === "StepCompleted")
+    const completed = events.filter(e => e._tag === "TaskCompleted")
     expect(completed.length).toBe(2)
   })
 
@@ -153,10 +153,10 @@ describe("runWorkflow DAG-aware executor", () => {
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
     )
 
-    const started = events.filter(e => e._tag === "StepStarted")
+    const started = events.filter(e => e._tag === "TaskStarted")
     expect(started.length).toBe(3)
     const names = started.map(e => {
-      const id = (e as any).stepId as string
+      const id = (e as any).taskId as string
       if (id.includes("plan")) return "plan"
       if (id.includes("code")) return "code"
       if (id.includes("verify")) return "verify"
@@ -186,12 +186,12 @@ describe("runWorkflow DAG-aware executor", () => {
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
     )
 
-    const started = events.filter(e => e._tag === "StepStarted")
+    const started = events.filter(e => e._tag === "TaskStarted")
     expect(started.length).toBe(3)
 
-    const cStarted = started.find(e => (e as any).stepId.includes("-c-"))
-    const aCompleted = events.find(e => e._tag === "StepCompleted" && (e as any).stepId.includes("-a-"))
-    const bCompleted = events.find(e => e._tag === "StepCompleted" && (e as any).stepId.includes("-b-"))
+    const cStarted = started.find(e => (e as any).taskId.includes("-c-"))
+    const aCompleted = events.find(e => e._tag === "TaskCompleted" && (e as any).taskId.includes("-a-"))
+    const bCompleted = events.find(e => e._tag === "TaskCompleted" && (e as any).taskId.includes("-b-"))
     expect(cStarted).toBeDefined()
     expect(aCompleted).toBeDefined()
     expect(bCompleted).toBeDefined()
@@ -214,9 +214,9 @@ describe("runWorkflow DAG-aware executor", () => {
       runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
     )
 
-    const started = events.filter(e => e._tag === "StepStarted")
+    const started = events.filter(e => e._tag === "TaskStarted")
     expect(started.length).toBe(2)
-    expect(started.some(e => (e as any).stepId.includes("orphan"))).toBe(false)
+    expect(started.some(e => (e as any).taskId.includes("orphan"))).toBe(false)
   })
 
   it("stores taskResults for each executed task", async () => {

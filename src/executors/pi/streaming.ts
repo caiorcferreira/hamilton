@@ -15,7 +15,7 @@ export interface PiEvent {
 
 export function subscribePiEvents(
   runId: string,
-  stepId: string,
+  taskId: string,
   getSessionStats: () => { inputTokens: number; outputTokens: number }
 ): (event: PiEvent) => Effect.Effect<void, never, EventBus> {
   let buffer = ""
@@ -35,7 +35,7 @@ export function subscribePiEvents(
           if (buffer) {
             const text = buffer
             buffer = ""
-            yield* _(bus.publish({ _tag: "LlmMessage", runId, stepId, text }))
+            yield* _(bus.publish({ _tag: "LlmMessage", runId, taskId, text }))
           }
           break
         case "tool_execution_start":
@@ -44,7 +44,7 @@ export function subscribePiEvents(
             bus.publish({
               _tag: "ToolCall",
               runId,
-              stepId,
+              taskId,
               tool: event.toolName ?? "unknown",
               input: event.args ?? {}
             })
@@ -55,7 +55,7 @@ export function subscribePiEvents(
             bus.publish({
               _tag: "ToolResult",
               runId,
-              stepId,
+              taskId,
               tool: event.toolName ?? "unknown",
               isError: event.isError ?? false
             })
@@ -67,8 +67,8 @@ export function subscribePiEvents(
           const tokensOut = current.outputTokens - lastStats.outputTokens
           lastStats = current
 
-          yield* _(bus.publish({ _tag: "TurnEnd", runId, stepId, tokensIn, tokensOut }))
-          yield* _(bus.publish({ _tag: "TokenUsage", runId, stepId, tokensIn, tokensOut }))
+          yield* _(bus.publish({ _tag: "TurnEnd", runId, taskId, tokensIn, tokensOut }))
+          yield* _(bus.publish({ _tag: "TokenUsage", runId, taskId, tokensIn, tokensOut }))
           break
       }
     })

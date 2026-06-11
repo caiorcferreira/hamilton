@@ -19,16 +19,16 @@ describe("createWorkflowExtension", () => {
     Fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
-  it("registers the write_step_output tool on pi", () => {
+  it("registers the write_task_output tool on pi", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     expect(registerTool).toHaveBeenCalledWith(expect.objectContaining({
-      name: "write_step_output",
-      label: "Write Step Output"
+      name: "write_task_output",
+      label: "Write Task Output"
     }))
   })
 
@@ -36,21 +36,21 @@ describe("createWorkflowExtension", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
     const result = await toolDef.execute("call-1", { input: { status: "done", repo: "hamilton" } as any }, undefined, undefined, {} as any)
 
     expect(result.details).toEqual({})
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Task output written successfully")
   })
 
   it("tool execute returns error when status is missing", async () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -63,7 +63,7 @@ describe("createWorkflowExtension", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -76,7 +76,7 @@ describe("createWorkflowExtension", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -89,13 +89,13 @@ describe("createWorkflowExtension", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
     await toolDef.execute("call-1", { input: { status: "done", key: "val" } as any }, undefined, undefined, {} as any)
 
-    const outputPath = Path.join(tmpDir, ".hamilton", "runs", "run-1", "step-outputs", "step-1.json")
+    const outputPath = Path.join(tmpDir, ".hamilton", "runs", "run-1", "task-outputs", "task-1.json")
     const raw = Fs.readFileSync(outputPath, "utf-8")
     const parsed = JSON.parse(raw)
     expect(parsed).toEqual({ status: "done", key: "val" })
@@ -105,7 +105,7 @@ describe("createWorkflowExtension", () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1")
+    const ext = createWorkflowExtension("run-1", "task-1")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -124,7 +124,7 @@ describe("createWorkflowExtension", () => {
       properties: { status: { type: "string" }, count: { type: "number" } },
       required: ["status", "count"]
     }
-    const ext = createWorkflowExtension("run-schema", "step-schema", schema)
+    const ext = createWorkflowExtension("run-schema", "task-schema", schema)
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -142,26 +142,26 @@ describe("createWorkflowExtension", () => {
       properties: { status: { type: "string" }, count: { type: "number" } },
       required: ["status", "count"]
     }
-    const ext = createWorkflowExtension("run-valid", "step-valid", schema)
+    const ext = createWorkflowExtension("run-valid", "task-valid", schema)
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
     const result = await toolDef.execute("call-1", { input: { status: "done", count: 42 } as any }, undefined, undefined, {} as any)
 
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Task output written successfully")
   })
 
   it("tool execute skips schema validation when schema is undefined", async () => {
     const registerTool = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-noschema", "step-noschema")
+    const ext = createWorkflowExtension("run-noschema", "task-noschema")
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
     const result = await toolDef.execute("call-1", { input: { status: "done", anyField: "anyValue" } as any }, undefined, undefined, {} as any)
 
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Step output written successfully")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Task output written successfully")
   })
 
   it("calls onComplete callback on successful write", async () => {
@@ -169,7 +169,7 @@ describe("createWorkflowExtension", () => {
     const onComplete = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1", undefined, onComplete)
+    const ext = createWorkflowExtension("run-1", "task-1", undefined, onComplete)
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]
@@ -183,7 +183,7 @@ describe("createWorkflowExtension", () => {
     const onComplete = vi.fn()
     const mockPi = { registerTool }
 
-    const ext = createWorkflowExtension("run-1", "step-1", undefined, onComplete)
+    const ext = createWorkflowExtension("run-1", "task-1", undefined, onComplete)
     ext(mockPi as any)
 
     const toolDef = registerTool.mock.calls[0][0]

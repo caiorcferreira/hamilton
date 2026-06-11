@@ -23,20 +23,20 @@ export function runDir(runId: string): string {
   return Path.join(runsDir(), runId)
 }
 
-export function stepOutputsDir(runId: string): string {
-  return Path.join(runDir(runId), "step-outputs")
+export function taskOutputsDir(runId: string): string {
+  return Path.join(runDir(runId), "task-outputs")
 }
 
-export function stepLogsDir(runId: string): string {
+export function taskLogsDir(runId: string): string {
   return Path.join(runDir(runId), "logs")
 }
 
-export function stepLogFile(runId: string, stepId: string): string {
-  return Path.join(stepLogsDir(runId), `${stepId}.jsonl`)
+export function taskLogFile(runId: string, taskId: string): string {
+  return Path.join(taskLogsDir(runId), `${taskId}.jsonl`)
 }
 
-export function stepOutputFile(runId: string, stepId: string): string {
-  return Path.join(stepOutputsDir(runId), `${stepId}.json`)
+export function taskOutputFile(runId: string, taskId: string): string {
+  return Path.join(taskOutputsDir(runId), `${taskId}.json`)
 }
 
 export function inputFile(runId: string): string {

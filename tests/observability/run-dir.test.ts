@@ -6,8 +6,8 @@ import { Effect, Exit } from "effect"
 import {
   createRunDir,
   writeInput,
-  writeStepOutput,
-  appendStepLog,
+  writeTaskOutput,
+  appendTaskLog,
   writeSummary,
   ensureProgressFile
 } from "../../src/observability/run-dir.js"
@@ -34,7 +34,7 @@ describe("run directory management", () => {
 
     const base = Path.join(tmpHome, ".hamilton", "runs", testRunId)
     expect(Fs.existsSync(base)).toBe(true)
-    expect(Fs.existsSync(Path.join(base, "step-outputs"))).toBe(true)
+    expect(Fs.existsSync(Path.join(base, "task-outputs"))).toBe(true)
     expect(Fs.existsSync(Path.join(base, "logs"))).toBe(true)
   })
 
@@ -49,23 +49,23 @@ describe("run directory management", () => {
     expect(content).toEqual({ task: "fix bug" })
   })
 
-  it("writeStepOutput writes step-outputs/<step>.json", async () => {
+  it("writeTaskOutput writes task-outputs/<taskId>.json", async () => {
     const base = Path.join(tmpHome, ".hamilton", "runs", testRunId)
-    Fs.mkdirSync(Path.join(base, "step-outputs"), { recursive: true })
+    Fs.mkdirSync(Path.join(base, "task-outputs"), { recursive: true })
 
-    const exit = await Effect.runPromiseExit(writeStepOutput(testRunId, "triage", { status: "done" }))
+    const exit = await Effect.runPromiseExit(writeTaskOutput(testRunId, "triage", { status: "done" }))
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    const content = JSON.parse(Fs.readFileSync(Path.join(base, "step-outputs", "triage.json"), "utf-8"))
+    const content = JSON.parse(Fs.readFileSync(Path.join(base, "task-outputs", "triage.json"), "utf-8"))
     expect(content).toEqual({ status: "done" })
   })
 
-  it("appendStepLog appends JSONL lines", async () => {
+  it("appendTaskLog appends JSONL lines", async () => {
     const base = Path.join(tmpHome, ".hamilton", "runs", testRunId)
     Fs.mkdirSync(Path.join(base, "logs"), { recursive: true })
 
-    await Effect.runPromiseExit(appendStepLog(testRunId, "triage", { event: "start" }))
-    await Effect.runPromiseExit(appendStepLog(testRunId, "triage", { event: "end" }))
+    await Effect.runPromiseExit(appendTaskLog(testRunId, "triage", { event: "start" }))
+    await Effect.runPromiseExit(appendTaskLog(testRunId, "triage", { event: "end" }))
 
     const logPath = Path.join(base, "logs", "triage.jsonl")
     const lines = Fs.readFileSync(logPath, "utf-8").trim().split("\n")

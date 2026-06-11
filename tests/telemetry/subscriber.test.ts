@@ -57,7 +57,7 @@ describe("TelemetrySubscriber", () => {
           yield* _(bus.publish({
             _tag: "TurnStarted",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             turnId: "turn-1",
             turnIndex: 0,
             timestamp: "2026-01-01T00:00:00Z"
@@ -65,7 +65,7 @@ describe("TelemetrySubscriber", () => {
           yield* _(bus.publish({
             _tag: "TurnEnd",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             tokensIn: 100,
             tokensOut: 200
           }))
@@ -102,7 +102,7 @@ describe("TelemetrySubscriber", () => {
           yield* _(bus.publish({
             _tag: "TurnStarted",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             turnId: "turn-1",
             turnIndex: 0,
             timestamp: "2026-01-01T00:00:00Z"
@@ -110,14 +110,14 @@ describe("TelemetrySubscriber", () => {
           yield* _(bus.publish({
             _tag: "ToolCall",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             tool: "bash",
             input: { command: "ls" }
           }))
           yield* _(bus.publish({
             _tag: "ToolResult",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             tool: "bash",
             isError: false
           }))
@@ -153,7 +153,7 @@ describe("TelemetrySubscriber", () => {
           yield* _(bus.publish({
             _tag: "TurnStarted",
             runId: "run-1",
-            stepId: "task-1",
+            taskId: "task-1",
             turnId: "turn-1",
             turnIndex: 0,
             timestamp: "now"

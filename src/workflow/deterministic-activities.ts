@@ -5,7 +5,7 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 
 export class WorktreeError extends Data.TaggedError("WorktreeError")<{
-  stepId: string
+  taskId: string
   message: string
 }> {}
 
@@ -29,7 +29,7 @@ function execSync(cmd: string, cwd?: string): string {
 
 export function createGitWorktree(
   params: CreateGitWorktreeParams,
-  stepId: string
+  taskId: string
 ): Effect.Effect<{ worktreePath: string; branch: string }, WorktreeError> {
   return Effect.gen(function* () {
     const repo = params.repo
@@ -37,7 +37,7 @@ export function createGitWorktree(
 
     if (!Fs.existsSync(repo)) {
       return yield* Effect.fail(
-        new WorktreeError({ stepId, message: `Repository path does not exist: ${repo}` })
+        new WorktreeError({ taskId, message: `Repository path does not exist: ${repo}` })
       )
     }
 
@@ -60,7 +60,7 @@ export function createGitWorktree(
       }
     } catch (e) {
       return yield* Effect.fail(
-        new WorktreeError({ stepId, message: `Failed to create worktree: ${e instanceof Error ? e.message : String(e)}` })
+        new WorktreeError({ taskId, message: `Failed to create worktree: ${e instanceof Error ? e.message : String(e)}` })
       )
     }
 
@@ -70,7 +70,7 @@ export function createGitWorktree(
 
 export function cleanupGitWorktree(
   params: CleanupGitWorktreeParams,
-  stepId: string
+  taskId: string
 ): Effect.Effect<{ cleaned: boolean }, WorktreeError> {
   return Effect.gen(function* () {
     const worktreePath = params.worktreePath
@@ -95,7 +95,7 @@ export function cleanupGitWorktree(
       }
     } catch (e) {
       return yield* Effect.fail(
-        new WorktreeError({ stepId, message: `Failed to cleanup worktree: ${e instanceof Error ? e.message : String(e)}` })
+        new WorktreeError({ taskId, message: `Failed to cleanup worktree: ${e instanceof Error ? e.message : String(e)}` })
       )
     }
 

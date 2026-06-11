@@ -23,12 +23,12 @@ describe("getRunLogs", () => {
   it("reads all log events from a run", async () => {
     const logsDir = Path.join(tmpHome, ".hamilton", "runs", "run-1", "logs")
     Fs.mkdirSync(logsDir, { recursive: true })
-    Fs.writeFileSync(Path.join(logsDir, "step-a.jsonl"), [
-      JSON.stringify({ event: "started", step_id: "step-a", timestamp: "2026-01-01T00:00:00Z" }),
-      JSON.stringify({ event: "completed", step_id: "step-a", timestamp: "2026-01-01T00:01:00Z" })
+    Fs.writeFileSync(Path.join(logsDir, "task-a.jsonl"), [
+      JSON.stringify({ event: "started", task_id: "task-a", timestamp: "2026-01-01T00:00:00Z" }),
+      JSON.stringify({ event: "completed", task_id: "task-a", timestamp: "2026-01-01T00:01:00Z" })
     ].join("\n") + "\n")
-    Fs.writeFileSync(Path.join(logsDir, "step-b.jsonl"), [
-      JSON.stringify({ event: "started", step_id: "step-b", timestamp: "2026-01-01T00:02:00Z" })
+    Fs.writeFileSync(Path.join(logsDir, "task-b.jsonl"), [
+      JSON.stringify({ event: "started", task_id: "task-b", timestamp: "2026-01-01T00:02:00Z" })
     ].join("\n") + "\n")
 
     const exit = await Effect.runPromiseExit(getRunLogs({ runId: "run-1" }))
@@ -36,25 +36,25 @@ describe("getRunLogs", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(3)
       expect(exit.value[0].event).toBe("started")
-      expect(exit.value[2].step_id).toBe("step-b")
+      expect(exit.value[2].task_id).toBe("task-b")
     }
   })
 
-  it("filters events by stepId", async () => {
+  it("filters events by taskId", async () => {
     const logsDir = Path.join(tmpHome, ".hamilton", "runs", "run-2", "logs")
     Fs.mkdirSync(logsDir, { recursive: true })
-    Fs.writeFileSync(Path.join(logsDir, "step-a.jsonl"), [
-      JSON.stringify({ event: "started", step_id: "step-a", timestamp: "2026-01-01T00:00:00Z" })
+    Fs.writeFileSync(Path.join(logsDir, "task-a.jsonl"), [
+      JSON.stringify({ event: "started", task_id: "task-a", timestamp: "2026-01-01T00:00:00Z" })
     ].join("\n") + "\n")
-    Fs.writeFileSync(Path.join(logsDir, "step-b.jsonl"), [
-      JSON.stringify({ event: "started", step_id: "step-b", timestamp: "2026-01-01T00:01:00Z" })
+    Fs.writeFileSync(Path.join(logsDir, "task-b.jsonl"), [
+      JSON.stringify({ event: "started", task_id: "task-b", timestamp: "2026-01-01T00:01:00Z" })
     ].join("\n") + "\n")
 
-    const exit = await Effect.runPromiseExit(getRunLogs({ runId: "run-2", stepId: "step-a" }))
+    const exit = await Effect.runPromiseExit(getRunLogs({ runId: "run-2", taskId: "task-a" }))
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(1)
-      expect(exit.value[0].step_id).toBe("step-a")
+      expect(exit.value[0].task_id).toBe("task-a")
     }
   })
 

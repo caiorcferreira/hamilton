@@ -12,7 +12,7 @@ import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
   createRunDir,
   writeInput,
-  writeStepOutput,
+  writeTaskOutput,
   writeSummary,
   appendEngineLog,
   ensureProgressFile
@@ -124,7 +124,7 @@ export function runWorkflow(
         const taskId = ctx.compoundTaskIds.get(instanceName) ?? buildTaskId(runId, instanceName)
 
         yield* _(ctx.transitionTask(instanceName, "start"))
-        yield* _(bus.publish({ _tag: "StepStarted", runId, stepId: taskId }))
+        yield* _(bus.publish({ _tag: "TaskStarted", runId, taskId }))
 
         const persona = yield* _(
           resolvePersona(agent.systemPrompt, agent.dirPath).pipe(
@@ -143,7 +143,7 @@ export function runWorkflow(
         yield* _(bus.publish({
           _tag: "PromptBuilt",
           runId,
-          stepId: taskId,
+          taskId,
           systemPrompt: prompt.systemPrompt,
           taskPrompt: prompt.taskPrompt
         }))
@@ -157,7 +157,7 @@ export function runWorkflow(
         const output = yield* _(
           executeWithPi({
             prompt,
-            stepId: taskId,
+            taskId,
             agentId: agent.metadata.name,
             runId,
             timeoutSeconds,
@@ -177,7 +177,7 @@ export function runWorkflow(
               Schedule.recurs((task.agent!.on_failure?.max_retries ?? 1) - 1).pipe(
                 Schedule.tapInput(() =>
                   Effect.gen(function* () {
-                    yield* _(bus.publish({ _tag: "StepRetrying", runId, stepId: taskId }))
+                    yield* _(bus.publish({ _tag: "TaskRetrying", runId, taskId }))
                   }).pipe(Effect.catchAll(() => Effect.void))
                 )
               )
@@ -186,7 +186,7 @@ export function runWorkflow(
         )
 
         if (output === undefined || output === null) {
-          yield* _(bus.publish({ _tag: "StepTimedOut", runId, stepId: taskId }))
+          yield* _(bus.publish({ _tag: "TaskTimedOut", runId, taskId }))
           yield* _(ctx.transitionTask(instanceName, "fail"))
           workflowStatus = "failed"
           return
@@ -198,9 +198,9 @@ export function runWorkflow(
 
         yield* _(ctx.transitionTask(instanceName, "complete"))
         if (fileEnabled) {
-          yield* _(writeStepOutput(runId, taskId, output))
+          yield* _(writeTaskOutput(runId, taskId, output))
         }
-        yield* _(bus.publish({ _tag: "StepCompleted", runId, stepId: taskId }))
+        yield* _(bus.publish({ _tag: "TaskCompleted", runId, taskId }))
       })
 
     const body = Effect.gen(function* () {
@@ -258,7 +258,7 @@ export function runWorkflow(
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(bus.publish({ _tag: "StepPaused", runId, stepId: task.name }))
+          yield* _(bus.publish({ _tag: "TaskPaused", runId, taskId: task.name }))
           workflowStatus = "paused"
           break
         }

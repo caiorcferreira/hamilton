@@ -9,7 +9,7 @@ describe("subscribePiEvents", () => {
 
   beforeEach(() => {
     sessionStats = { inputTokens: 0, outputTokens: 0 }
-    handler = subscribePiEvents("run-1", "step-1", () => sessionStats)
+    handler = subscribePiEvents("run-1", "task-1", () => sessionStats)
   })
 
   it("publishes ToolCall event on tool_execution_start", async () => {

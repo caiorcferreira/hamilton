@@ -8,7 +8,7 @@ import { EventBusLive } from "../../src/events/bus.js"
 import { workflowsDir, runDir } from "../../src/paths.js"
 import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
-const stepResponses: Record<string, Record<string, unknown>> = {
+const taskResponses: Record<string, Record<string, unknown>> = {
   triage: { status: "done", repo: "/tmp/test-repo", branch: "bugfix-login", severity: "high", affected_area: "src/auth.ts", reproduction: "open /login", problem_statement: "race condition in session" },
   investigate: { status: "done", root_cause: "session expiry race condition", fix_approach: "add mutex around session update" },
   setup: { status: "done", build_cmd: "npm run build", test_cmd: "npm test", baseline: "all pass" },
@@ -17,9 +17,9 @@ const stepResponses: Record<string, Record<string, unknown>> = {
 }
 
 vi.mock("../../src/executors/pi/pi-executor.js", () => ({
-  executeWithPi: vi.fn((config: { stepId: string }) => {
-    const slug = Object.keys(stepResponses).find((k) => config.stepId.includes(k)) ?? config.stepId
-    return Effect.succeed(stepResponses[slug] ?? { status: "done" })
+  executeWithPi: vi.fn((config: { taskId: string }) => {
+    const slug = Object.keys(taskResponses).find((k) => config.taskId.includes(k)) ?? config.taskId
+    return Effect.succeed(taskResponses[slug] ?? { status: "done" })
   }),
   PiExecutionError: class PiExecutionError extends Error {}
 }))

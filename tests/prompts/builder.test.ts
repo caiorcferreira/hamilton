@@ -81,7 +81,7 @@ describe("buildAgentPrompt", () => {
   it("includes Hamilton platform section", () => {
     const result = buildAgentPrompt(baseParams)
     expect(result.systemPrompt).toContain("Hamilton Agentic Orchestration")
-    expect(result.systemPrompt).toContain("write_step_output")
+    expect(result.systemPrompt).toContain("write_task_output")
   })
 
   it("passes guidelineFiles through to BuiltPrompt", () => {

@@ -13,10 +13,10 @@ metadata:
   ${desc ? `description: "${desc}"` : ""}
 spec:
   run:
-    entrypoint: step-1
+    entrypoint: task-1
     timeout: 300s
   tasks:
-    - name: step-1
+    - name: task-1
       agent:
         executorRef: agent-1
         prompt:

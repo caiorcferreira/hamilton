@@ -37,10 +37,10 @@ const makeAgentManifest = (name: string): AgentManifest => ({
 const testSpec: WorkflowSpec = {
   metadata: { version: 1, name: "test-flow" },
   spec: {
-    run: { entrypoint: "step-1", timeout: "300s" },
+    run: { entrypoint: "task-1", timeout: "300s" },
     tasks: [
-      { name: "step-1", agent: { executorRef: "agent-a", prompt: { content: "Do something" } } },
-      { name: "step-2", dependencies: ["step-1"], agent: { executorRef: "agent-a", prompt: { content: "Do another thing" } } }
+      { name: "task-1", agent: { executorRef: "agent-a", prompt: { content: "Do something" } } },
+      { name: "task-2", dependencies: ["task-1"], agent: { executorRef: "agent-a", prompt: { content: "Do another thing" } } }
     ]
   },
   agentRegistry: new Map([
@@ -101,7 +101,7 @@ describe("runWorkflow regression tests", () => {
     }
   })
 
-  it("writes PromptBuilt event to step logs via FileLogger", async () => {
+  it("writes PromptBuilt event to task logs via FileLogger", async () => {
     const result = await Effect.runPromiseExit(
       Effect.scoped(
         Effect.gen(function* () {

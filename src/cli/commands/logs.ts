@@ -2,7 +2,7 @@ import { Args, Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { stepLogsDir, stepLogFile, eventsFilePath, hamiltonHome } from "../../paths.js"
+import { taskLogsDir, taskLogFile, eventsFilePath, hamiltonHome } from "../../paths.js"
 
 export class LogsError extends Data.TaggedError("LogsError")<{
   runId: string
@@ -11,14 +11,14 @@ export class LogsError extends Data.TaggedError("LogsError")<{
 
 export interface LogEvent {
   event: string
-  step_id?: string
+  task_id?: string
   timestamp?: string
   [key: string]: unknown
 }
 
 export interface LogsParams {
   runId: string
-  stepId?: string
+  taskId?: string
 }
 
 export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], LogsError> {
@@ -30,14 +30,14 @@ export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], LogsEr
       })))
     }
 
-    const logsDir = stepLogsDir(params.runId)
+    const logsDir = taskLogsDir(params.runId)
 
     const files = yield* _(
       Effect.try({
         try: () => {
           if (!Fs.existsSync(logsDir)) return [] as string[]
-          if (params.stepId) {
-            const f = stepLogFile(params.runId, params.stepId)
+          if (params.taskId) {
+            const f = taskLogFile(params.runId, params.taskId)
             return Fs.existsSync(f) ? [Path.basename(f)] : []
           }
           return Fs.readdirSync(logsDir).filter((f) => f.endsWith(".jsonl")).sort()
@@ -80,7 +80,7 @@ export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], LogsEr
 }
 
 export function followLogs(params: { runId: string }): { stop: () => void } {
-  const logsDir = stepLogsDir(params.runId)
+  const logsDir = taskLogsDir(params.runId)
   const eventsPath = eventsFilePath(params.runId)
   let stopped = false
 
@@ -146,10 +146,10 @@ export function followLogs(params: { runId: string }): { stop: () => void } {
 }
 
 const runIdArg = Args.text({ name: "id" })
-const stepOpt = Options.text("step").pipe(Options.optional)
+const taskOpt = Options.text("task").pipe(Options.optional)
 const followOpt = Options.boolean("follow", { aliases: ["f"] })
 
-export const logsCommand = Command.make("logs", { id: runIdArg, step: stepOpt, follow: followOpt }, ({ id, step, follow }) =>
+export const logsCommand = Command.make("logs", { id: runIdArg, task: taskOpt, follow: followOpt }, ({ id, task, follow }) =>
   Effect.gen(function* () {
     if (follow) {
       const controller = followLogs({ runId: id })
@@ -157,7 +157,7 @@ export const logsCommand = Command.make("logs", { id: runIdArg, step: stepOpt, f
       yield* Effect.never
     }
     const result = yield* Effect.exit(
-      getRunLogs({ runId: id, stepId: step._tag === "Some" ? step.value : undefined })
+      getRunLogs({ runId: id, taskId: task._tag === "Some" ? task.value : undefined })
     )
     if (Exit.isFailure(result)) {
       yield* Console.error(`Logs not found: ${id}`)

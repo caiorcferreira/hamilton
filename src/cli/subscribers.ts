@@ -28,8 +28,8 @@ function formatDuration(ms: number): string {
   return `${min}m ${rem}s`
 }
 
-const stepStartedAt = new Map<string, number>()
-const stepTokens = new Map<string, { tokensIn: number; tokensOut: number }>()
+const taskStartedAt = new Map<string, number>()
+const taskTokens = new Map<string, { tokensIn: number; tokensOut: number }>()
 let workflowStartedAt = 0
 let totalTokensIn = 0
 let totalTokensOut = 0
@@ -42,57 +42,57 @@ export const CliRenderer = createSubscriber(
         workflowStartedAt = Date.now()
         return Console.log(`Workflow ${event.runId} started`)
 
-      case "StepStarted": {
-        stepStartedAt.set(event.stepId, Date.now())
-        stepTokens.set(event.stepId, { tokensIn: 0, tokensOut: 0 })
-        const slug = extractSlug(event.stepId, event.runId)
-        return Console.log(`  Step ${slug} (${shortId(event.stepId)}) started`)
+      case "TaskStarted": {
+        taskStartedAt.set(event.taskId, Date.now())
+        taskTokens.set(event.taskId, { tokensIn: 0, tokensOut: 0 })
+        const slug = extractSlug(event.taskId, event.runId)
+        return Console.log(`  Task ${slug} (${shortId(event.taskId)}) started`)
       }
 
       case "TokenUsage": {
-        const current = stepTokens.get(event.stepId) ?? { tokensIn: 0, tokensOut: 0 }
+        const current = taskTokens.get(event.taskId) ?? { tokensIn: 0, tokensOut: 0 }
         current.tokensIn += event.tokensIn
         current.tokensOut += event.tokensOut
-        stepTokens.set(event.stepId, current)
+        taskTokens.set(event.taskId, current)
         totalTokensIn += event.tokensIn
         totalTokensOut += event.tokensOut
         return Effect.void
       }
 
-      case "StepCompleted": {
-        const startAt = stepStartedAt.get(event.stepId)
+      case "TaskCompleted": {
+        const startAt = taskStartedAt.get(event.taskId)
         const elapsed = startAt ? Date.now() - startAt : 0
-        const tokens = stepTokens.get(event.stepId) ?? { tokensIn: 0, tokensOut: 0 }
-        const slug = extractSlug(event.stepId, event.runId)
-        const id = shortId(event.stepId)
+        const tokens = taskTokens.get(event.taskId) ?? { tokensIn: 0, tokensOut: 0 }
+        const slug = extractSlug(event.taskId, event.runId)
+        const id = shortId(event.taskId)
         const parts = [`  \u2713 ${slug} (${id}) completed (${formatDuration(elapsed)}`]
         if (tokens.tokensIn > 0 || tokens.tokensOut > 0) {
           parts.push(`, ${formatTokens(tokens.tokensIn)} in / ${formatTokens(tokens.tokensOut)} out`)
         }
         parts.push(")")
-        stepStartedAt.delete(event.stepId)
-        stepTokens.delete(event.stepId)
+        taskStartedAt.delete(event.taskId)
+        taskTokens.delete(event.taskId)
         return Console.log(parts.join(""))
       }
 
-      case "StepFailed": {
-        const slug = extractSlug(event.stepId, event.runId)
-        return Console.log(`  \u2717 ${slug} (${shortId(event.stepId)}) failed: ${event.message}`)
+      case "TaskFailed": {
+        const slug = extractSlug(event.taskId, event.runId)
+        return Console.log(`  \u2717 ${slug} (${shortId(event.taskId)}) failed: ${event.message}`)
       }
 
-      case "StepTimedOut": {
-        const slug = extractSlug(event.stepId, event.runId)
-        return Console.log(`  \u23F1 ${slug} (${shortId(event.stepId)}) timed out`)
+      case "TaskTimedOut": {
+        const slug = extractSlug(event.taskId, event.runId)
+        return Console.log(`  \u23F1 ${slug} (${shortId(event.taskId)}) timed out`)
       }
 
-      case "StepRetrying": {
-        const slug = extractSlug(event.stepId, event.runId)
-        return Console.log(`  \u21BB ${slug} (${shortId(event.stepId)}) retrying`)
+      case "TaskRetrying": {
+        const slug = extractSlug(event.taskId, event.runId)
+        return Console.log(`  \u21BB ${slug} (${shortId(event.taskId)}) retrying`)
       }
 
-      case "StepPaused": {
-        const slug = extractSlug(event.stepId, event.runId)
-        return Console.log(`  \u23F8 ${slug} (${shortId(event.stepId)}) paused`)
+      case "TaskPaused": {
+        const slug = extractSlug(event.taskId, event.runId)
+        return Console.log(`  \u23F8 ${slug} (${shortId(event.taskId)}) paused`)
       }
 
       case "WorkflowCompleted": {

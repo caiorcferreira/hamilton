@@ -10,22 +10,22 @@ type EventBusService = {
 
 export type Event =
   | { readonly _tag: "WorkflowStarted"; readonly runId: string }
-  | { readonly _tag: "StepStarted"; readonly runId: string; readonly stepId: string }
-  | { readonly _tag: "StepCompleted"; readonly runId: string; readonly stepId: string }
-  | { readonly _tag: "StepFailed"; readonly runId: string; readonly stepId: string; readonly message: string }
-  | { readonly _tag: "StepTimedOut"; readonly runId: string; readonly stepId: string }
-  | { readonly _tag: "StepRetrying"; readonly runId: string; readonly stepId: string }
-  | { readonly _tag: "StepPaused"; readonly runId: string; readonly stepId: string }
+  | { readonly _tag: "TaskStarted"; readonly runId: string; readonly taskId: string }
+  | { readonly _tag: "TaskCompleted"; readonly runId: string; readonly taskId: string }
+  | { readonly _tag: "TaskFailed"; readonly runId: string; readonly taskId: string; readonly message: string }
+  | { readonly _tag: "TaskTimedOut"; readonly runId: string; readonly taskId: string }
+  | { readonly _tag: "TaskRetrying"; readonly runId: string; readonly taskId: string }
+  | { readonly _tag: "TaskPaused"; readonly runId: string; readonly taskId: string }
   | { readonly _tag: "WorkflowCompleted"; readonly runId: string; readonly message?: string }
-  | { readonly _tag: "LlmMessage"; readonly runId: string; readonly stepId: string; readonly text: string }
-  | { readonly _tag: "ToolCall"; readonly runId: string; readonly stepId: string; readonly tool: string; readonly input: unknown; readonly isPartialUpdate?: boolean }
-  | { readonly _tag: "ToolResult"; readonly runId: string; readonly stepId: string; readonly tool: string; readonly isError: boolean }
-  | { readonly _tag: "TurnEnd"; readonly runId: string; readonly stepId: string; readonly tokensIn: number; readonly tokensOut: number }
-  | { readonly _tag: "TokenUsage"; readonly runId: string; readonly stepId: string; readonly tokensIn: number; readonly tokensOut: number }
-  | { readonly _tag: "PromptBuilt"; readonly runId: string; readonly stepId: string; readonly systemPrompt: string; readonly taskPrompt: string }
-  | { readonly _tag: "TurnStarted"; readonly runId: string; readonly stepId: string; readonly turnId: string; readonly turnIndex: number; readonly timestamp: string }
-  | { readonly _tag: "ProviderRequestStarted"; readonly runId: string; readonly stepId: string; readonly turnId: string; readonly requestId: string; readonly provider: string; readonly model: string; readonly payloadSummary: string; readonly timestamp: string }
-  | { readonly _tag: "ModelSelected"; readonly runId: string; readonly stepId: string; readonly provider: string; readonly model: string; readonly timestamp: string }
+  | { readonly _tag: "LlmMessage"; readonly runId: string; readonly taskId: string; readonly text: string }
+  | { readonly _tag: "ToolCall"; readonly runId: string; readonly taskId: string; readonly tool: string; readonly input: unknown; readonly isPartialUpdate?: boolean }
+  | { readonly _tag: "ToolResult"; readonly runId: string; readonly taskId: string; readonly tool: string; readonly isError: boolean }
+  | { readonly _tag: "TurnEnd"; readonly runId: string; readonly taskId: string; readonly tokensIn: number; readonly tokensOut: number }
+  | { readonly _tag: "TokenUsage"; readonly runId: string; readonly taskId: string; readonly tokensIn: number; readonly tokensOut: number }
+  | { readonly _tag: "PromptBuilt"; readonly runId: string; readonly taskId: string; readonly systemPrompt: string; readonly taskPrompt: string }
+  | { readonly _tag: "TurnStarted"; readonly runId: string; readonly taskId: string; readonly turnId: string; readonly turnIndex: number; readonly timestamp: string }
+  | { readonly _tag: "ProviderRequestStarted"; readonly runId: string; readonly taskId: string; readonly turnId: string; readonly requestId: string; readonly provider: string; readonly model: string; readonly payloadSummary: string; readonly timestamp: string }
+  | { readonly _tag: "ModelSelected"; readonly runId: string; readonly taskId: string; readonly provider: string; readonly model: string; readonly timestamp: string }
 
 export type EventBusSubscriptionOperations = {
   readonly subscribeAll: Stream.Stream<Event>

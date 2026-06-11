@@ -3,10 +3,10 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import {
   runDir,
-  stepOutputsDir,
-  stepLogsDir,
-  stepOutputFile,
-  stepLogFile,
+  taskOutputsDir,
+  taskLogsDir,
+  taskOutputFile,
+  taskLogFile,
   inputFile,
   summaryFile,
   eventsFilePath,
@@ -22,8 +22,8 @@ export class RunDirError extends Data.TaggedError("RunDirError")<{
 export function createRunDir(runId: string): Effect.Effect<void, RunDirError> {
   return Effect.try({
     try: () => {
-      Fs.mkdirSync(stepOutputsDir(runId), { recursive: true })
-      Fs.mkdirSync(stepLogsDir(runId), { recursive: true })
+      Fs.mkdirSync(taskOutputsDir(runId), { recursive: true })
+      Fs.mkdirSync(taskLogsDir(runId), { recursive: true })
     },
     catch: () => new RunDirError({ runId, message: `Failed to create run directory for ${runId}` })
   })
@@ -38,22 +38,22 @@ export function writeInput(runId: string, input: Record<string, unknown>): Effec
   })
 }
 
-export function writeStepOutput(runId: string, stepId: string, output: Record<string, unknown>): Effect.Effect<void, RunDirError> {
+export function writeTaskOutput(runId: string, taskId: string, output: Record<string, unknown>): Effect.Effect<void, RunDirError> {
   return Effect.try({
     try: () => {
-      Fs.writeFileSync(stepOutputFile(runId, stepId), JSON.stringify(output, null, 2))
+      Fs.writeFileSync(taskOutputFile(runId, taskId), JSON.stringify(output, null, 2))
     },
-    catch: () => new RunDirError({ runId, message: `Failed to write step output for ${stepId}` })
+    catch: () => new RunDirError({ runId, message: `Failed to write task output for ${taskId}` })
   })
 }
 
-export function appendStepLog(runId: string, stepId: string, event: Record<string, unknown>): Effect.Effect<void, RunDirError> {
+export function appendTaskLog(runId: string, taskId: string, event: Record<string, unknown>): Effect.Effect<void, RunDirError> {
   return Effect.try({
     try: () => {
       const line = JSON.stringify({ ...event, timestamp: new Date().toISOString() }) + "\n"
-      Fs.appendFileSync(stepLogFile(runId, stepId), line)
+      Fs.appendFileSync(taskLogFile(runId, taskId), line)
     },
-    catch: () => new RunDirError({ runId, message: `Failed to append step log for ${stepId}` })
+    catch: () => new RunDirError({ runId, message: `Failed to append task log for ${taskId}` })
   })
 }
 

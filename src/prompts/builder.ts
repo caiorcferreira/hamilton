@@ -26,13 +26,13 @@ Your goal is to fullfil the task provided as input by Hamilton user.
 
 ## How to finish your task
 
-When you finish your work, call the write_step_output tool with a JSON object
+When you finish your work, call the write_task_output tool with a JSON object
 containing your results. The object MUST include a "status" field (string) indicating
 your completion state. Other fields are freeform and will be passed as context to
 subsequent tasks.
 
 IMPORTANT:
-- You MUST call write_step_output exactly once — it will reject duplicate calls
+- You MUST call write_task_output exactly once — it will reject duplicate calls
 - The tool validates that your output is valid JSON with a "status" field
 </platform>
 

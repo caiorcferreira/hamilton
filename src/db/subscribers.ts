@@ -9,14 +9,14 @@ export const DbWriter = (db: Database): Effect.Effect<void, never, Scope.Scope |
     (event: Event) => {
       if (event._tag === "TokenUsage") {
         return Effect.sync(() =>
-          insertTokenEvent(db, event.runId, event.stepId, "completion", event.tokensIn, event.tokensOut)
+          insertTokenEvent(db, event.runId, event.taskId, "completion", event.tokensIn, event.tokensOut)
         )
       }
       if (event._tag === "ModelSelected") {
         return Effect.sync(() =>
           db.prepare(
             `UPDATE tasks SET model_provider = ?, model_id = ? WHERE id = ?`
-          ).run(event.provider, event.model, event.stepId)
+          ).run(event.provider, event.model, event.taskId)
         )
       }
       return Effect.void

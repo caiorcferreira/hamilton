@@ -12,7 +12,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
   return {
     executeWithPi: vi.fn(() => E.succeed({ status: "done" })),
     PiExecutionError: class PiExecutionError extends Error {
-      constructor(props: { stepId: string; message: string }) {
+      constructor(props: { taskId: string; message: string }) {
         super(props.message)
         this.name = "PiExecutionError"
       }
@@ -35,12 +35,12 @@ metadata:
   version: 1
 spec:
   run:
-    entrypoint: step-1
+    entrypoint: task-1
     timeout: 300s
   variants:
     supported: [branchout]
   tasks:
-    - name: step-1
+    - name: task-1
       agent:
         executorRef: agent-1
         prompt:
@@ -92,7 +92,7 @@ describe("executeRun", () => {
     if (Exit.isSuccess(result)) {
       const r = result.value
       expect(r.status).toBe("completed")
-      expect(r.taskResults["step-1"]).toBe("done")
+      expect(r.taskResults["task-1"]).toBe("done")
       expect(typeof r.runId).toBe("string")
       expect(r.runId).toContain("test-wf")
     }
@@ -101,7 +101,7 @@ describe("executeRun", () => {
   it("returns failed status when executeWithPi fails", async () => {
     const { executeWithPi } = await import("../../src/executors/pi/pi-executor.js")
     vi.mocked(executeWithPi).mockImplementationOnce(
-      () => Effect.fail(new PiExecutionError({ stepId: "step-1", message: "agent error" }))
+      () => Effect.fail(new PiExecutionError({ taskId: "task-1", message: "agent error" }))
     )
 
     const result = await Effect.runPromiseExit(

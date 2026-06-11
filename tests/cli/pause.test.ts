@@ -20,8 +20,8 @@ const makeAgentManifest = (name: string): AgentManifest => ({
 const makeSpec = (): WorkflowSpec => ({
   metadata: { name: "test-wf", version: 1 },
   spec: {
-    run: { entrypoint: "step1", timeout: "300s" },
-    tasks: [{ name: "step1", agent: { executorRef: "a", prompt: { content: "do it" } } }]
+    run: { entrypoint: "task1", timeout: "300s" },
+    tasks: [{ name: "task1", agent: { executorRef: "a", prompt: { content: "do it" } } }]
   },
   agentRegistry: new Map([
     ["a", makeAgentManifest("a")]

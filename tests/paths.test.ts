@@ -6,10 +6,10 @@ import {
   agentsDir,
   runsDir,
   runDir,
-  stepOutputsDir,
-  stepLogsDir,
-  stepLogFile,
-  stepOutputFile,
+  taskOutputsDir,
+  taskLogsDir,
+  taskLogFile,
+  taskOutputFile,
   inputFile,
   summaryFile,
   progressDir,
@@ -54,23 +54,23 @@ describe("paths", () => {
     expect(runDir("abc-123")).toBe("/tmp/test-home/.hamilton/runs/abc-123")
   })
 
-  it("stepOutputsDir returns ~/.hamilton/runs/<runId>/step-outputs", () => {
-    expect(stepOutputsDir("abc-123")).toBe("/tmp/test-home/.hamilton/runs/abc-123/step-outputs")
+  it("taskOutputsDir returns ~/.hamilton/runs/<runId>/task-outputs", () => {
+    expect(taskOutputsDir("abc-123")).toBe("/tmp/test-home/.hamilton/runs/abc-123/task-outputs")
   })
 
-  it("stepLogsDir returns ~/.hamilton/runs/<runId>/logs", () => {
-    expect(stepLogsDir("abc-123")).toBe("/tmp/test-home/.hamilton/runs/abc-123/logs")
+  it("taskLogsDir returns ~/.hamilton/runs/<runId>/logs", () => {
+    expect(taskLogsDir("abc-123")).toBe("/tmp/test-home/.hamilton/runs/abc-123/logs")
   })
 
-  it("stepLogFile returns ~/.hamilton/runs/<runId>/logs/<stepId>.jsonl", () => {
-    expect(stepLogFile("abc-123", "triage")).toBe(
+  it("taskLogFile returns ~/.hamilton/runs/<runId>/logs/<taskId>.jsonl", () => {
+    expect(taskLogFile("abc-123", "triage")).toBe(
       "/tmp/test-home/.hamilton/runs/abc-123/logs/triage.jsonl"
     )
   })
 
-  it("stepOutputFile returns ~/.hamilton/runs/<runId>/step-outputs/<stepId>.json", () => {
-    expect(stepOutputFile("abc-123", "triage")).toBe(
-      "/tmp/test-home/.hamilton/runs/abc-123/step-outputs/triage.json"
+  it("taskOutputFile returns ~/.hamilton/runs/<runId>/task-outputs/<taskId>.json", () => {
+    expect(taskOutputFile("abc-123", "triage")).toBe(
+      "/tmp/test-home/.hamilton/runs/abc-123/task-outputs/triage.json"
     )
   })
 

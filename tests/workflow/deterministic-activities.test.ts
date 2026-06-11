@@ -44,7 +44,7 @@ describe("deterministic activities", () => {
   it("createGitWorktree fails for nonexistent repo", async () => {
     const { createGitWorktree } = await import("../../src/workflow/deterministic-activities.js")
     const result = await Effect.runPromiseExit(
-      createGitWorktree({ repo: "/nonexistent/path", branch: "test" }, "step-1")
+      createGitWorktree({ repo: "/nonexistent/path", branch: "test" }, "task-1")
     )
     expect(Exit.isFailure(result)).toBe(true)
   })
@@ -52,7 +52,7 @@ describe("deterministic activities", () => {
   it("cleanupGitWorktree succeeds for nonexistent path", async () => {
     const { cleanupGitWorktree } = await import("../../src/workflow/deterministic-activities.js")
     const result = await Effect.runPromiseExit(
-      cleanupGitWorktree({ worktreePath: "/nonexistent/path" }, "step-1")
+      cleanupGitWorktree({ worktreePath: "/nonexistent/path" }, "task-1")
     )
     expect(Exit.isSuccess(result)).toBe(true)
     if (Exit.isSuccess(result)) {

@@ -7,7 +7,7 @@ import { EventBus, EventBusLive } from "../../src/events/bus.js"
 import { FileLogger } from "../../src/observability/subscribers.js"
 
 describe("FileLogger", () => {
-  it("writes step-scoped events to appendStepLog via JSONL", async () => {
+  it("writes task-scoped events to appendTaskLog via JSONL", async () => {
     const tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-filelogger-"))
     const origHome = process.env.HOME
     process.env.HOME = tmpHome
@@ -20,8 +20,8 @@ describe("FileLogger", () => {
           yield* FileLogger
           yield* _(Effect.sleep("10 millis"))
           const bus = yield* _(EventBus)
-          yield* _(bus.publish({ _tag: "LlmMessage", runId: "r1", stepId: "s1", text: "hello" }))
-          yield* _(bus.publish({ _tag: "ToolCall", runId: "r1", stepId: "s1", tool: "bash", input: { cmd: "ls" } }))
+          yield* _(bus.publish({ _tag: "LlmMessage", runId: "r1", taskId: "s1", text: "hello" }))
+          yield* _(bus.publish({ _tag: "ToolCall", runId: "r1", taskId: "s1", tool: "bash", input: { cmd: "ls" } }))
           yield* _(Effect.sleep("50 millis"))
         })
       )

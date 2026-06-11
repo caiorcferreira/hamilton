@@ -19,7 +19,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { buildExtensions, readExtensionSettings, type ExtensionFactory } from "./extensions/extensions.js"
 import { createWorkflowExtension } from "./extensions/workflow-extension.js"
-import { stepOutputFile } from "../../paths.js"
+import { taskOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
 import { createGuidelineExtension } from "./extensions/guideline-extension.js"
 import { createRedactExtension } from "./extensions/redact-extension.js"
@@ -27,7 +27,7 @@ import type { CompiledRule } from "../../guidelines/types.js"
 
 export interface PiExecutorConfig {
   prompt: ResolvablePrompt
-  stepId: string
+  taskId: string
   agentId: string
   runId: string
   timeoutSeconds: number
@@ -46,7 +46,7 @@ export interface PiExecutorConfig {
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
-  stepId: string
+  taskId: string
   message: string
 }> { }
 
@@ -88,8 +88,8 @@ function mapThinkingLevel(level?: string): ThinkingLevel {
 
 function buildToolSet(explicitTools?: string[]): string[] {
   const base = explicitTools ?? ["read", "bash", "edit", "write", "grep", "find", "ls"]
-  if (!base.includes("write_step_output")) {
-    return [...base, "write_step_output"]
+  if (!base.includes("write_task_output")) {
+    return [...base, "write_task_output"]
   }
   return base
 }
@@ -124,7 +124,7 @@ export function executeWithPi(
     extensionFactories.push(
       createWorkflowExtension(
         config.runId,
-        config.stepId,
+        config.taskId,
         config.outputSchema,
         () => { sessionRef?.abort().catch(() => {}) }
       )
@@ -198,7 +198,7 @@ export function executeWithPi(
 
     const handlePiEvent = subscribePiEvents(
       config.runId,
-      config.stepId,
+      config.taskId,
       () => {
         const stats = session.getSessionStats?.()
         return {
@@ -219,14 +219,14 @@ export function executeWithPi(
     try {
       yield* _(Effect.promise(() => session.prompt(taskPrompt)))
 
-      const outputPath = stepOutputFile(config.runId, config.stepId)
+      const outputPath = taskOutputFile(config.runId, config.taskId)
       const MAX_REMINDERS = 2
       let reminders = 0
       while (!Fs.existsSync(outputPath) && reminders < MAX_REMINDERS) {
         reminders++
         yield* _(
           Effect.promise(() =>
-            session.prompt("REMINDER: You must call write_step_output to save your work. Call write_step_output now with your findings.")
+            session.prompt("REMINDER: You must call write_task_output to save your work. Call write_task_output now with your findings.")
           )
         )
       }
@@ -234,8 +234,8 @@ export function executeWithPi(
         return yield* _(
           Effect.fail(
             new PiExecutionError({
-              stepId: config.stepId,
-              message: `Step did not call write_step_output after ${reminders} reminders`
+              taskId: config.taskId,
+              message: `Task did not call write_task_output after ${reminders} reminders`
             })
           )
         )
@@ -245,7 +245,7 @@ export function executeWithPi(
       const parsed = JSON.parse(raw) as Record<string, unknown>
       return parsed
     } catch (e) {
-      const outputPath = stepOutputFile(config.runId, config.stepId)
+      const outputPath = taskOutputFile(config.runId, config.taskId)
       if (Fs.existsSync(outputPath)) {
         const raw = Fs.readFileSync(outputPath, "utf-8")
         const parsed = JSON.parse(raw) as Record<string, unknown>
@@ -255,7 +255,7 @@ export function executeWithPi(
       return yield* _(
         Effect.fail(
           new PiExecutionError({
-            stepId: config.stepId,
+            taskId: config.taskId,
             message: e instanceof Error ? e.message : String(e)
           })
         )

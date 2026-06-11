@@ -10,9 +10,10 @@
 - [ ] Inject output schema in task context 
 - [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
 - [ ] Add flag to run command to execute in background
-- [ ] Command status is printing nothing, just fronzen then terminal
+- [X] Command status is printing nothing, just fronzen then terminal
 - [ ] Add list of guideline files loaded for the task
 - [ ] Replace all references of `step` for `task`
+- [ ] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
 
 ## Completed
 

@@ -1,18 +1,18 @@
 import * as Fs from "node:fs"
-import { stepOutputsDir, stepOutputFile } from "../paths.js"
+import { taskOutputsDir, taskOutputFile } from "../paths.js"
 import { Ajv } from "ajv"
 
 export function validateAndWrite(
   runId: string,
-  stepId: string,
+  taskId: string,
   outputSchema: Record<string, unknown> | undefined,
   input: unknown
 ): { success: true } | { success: false; error: string } {
-  const outputPath = stepOutputFile(runId, stepId)
-  const outputsDir = stepOutputsDir(runId)
+  const outputPath = taskOutputFile(runId, taskId)
+  const outputsDir = taskOutputsDir(runId)
 
   if (Fs.existsSync(outputPath)) {
-    return { success: false, error: "Output already written for this step. write_step_output can only be called once." }
+    return { success: false, error: "Output already written for this task. write_task_output can only be called once." }
   }
 
   if (typeof input !== "object" || input === null || Array.isArray(input)) {

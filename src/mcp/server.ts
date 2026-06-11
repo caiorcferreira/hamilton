@@ -139,10 +139,10 @@ export function createMcpServer(): McpServer {
 
   server.tool("get_logs", "Get logs for a workflow run", {
     run_id: z.string().describe("Run ID"),
-    step_id: z.string().optional().describe("Optional step ID to filter")
-  }, async ({ run_id, step_id }) => {
+    task_id: z.string().optional().describe("Optional task ID to filter")
+  }, async ({ run_id, task_id }) => {
     try {
-      const result = await effectToPromise(getRunLogs({ runId: run_id, stepId: step_id }))
+      const result = await effectToPromise(getRunLogs({ runId: run_id, taskId: task_id }))
       return textResult(JSON.stringify(result, null, 2))
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e))

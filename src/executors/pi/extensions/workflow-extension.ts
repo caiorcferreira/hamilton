@@ -1,7 +1,7 @@
 import { defineTool } from "@earendil-works/pi-coding-agent"
 import { Type } from "typebox"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
-import { validateAndWrite } from "../../../agent/write-step-output.js"
+import { validateAndWrite } from "../../../agent/write-task-output.js"
 
 const paramsSchema = Type.Object({
   input: Type.Object({
@@ -11,19 +11,19 @@ const paramsSchema = Type.Object({
 
 export function createWorkflowExtension(
   runId: string,
-  stepId: string,
+  taskId: string,
   outputSchema?: Record<string, unknown>,
   onComplete?: () => void
 ): (pi: ExtensionAPI) => void {
   return (pi: ExtensionAPI) => {
     pi.registerTool(defineTool({
-      name: "write_step_output",
-      label: "Write Step Output",
-      description: "Save your step results. The input must be a JSON object with a 'status' field (string). Call this exactly once when your step is complete. The file is written to the Hamilton run outputs directory.",
+      name: "write_task_output",
+      label: "Write Task Output",
+      description: "Save your task results. The input must be a JSON object with a 'status' field (string). Call this exactly once when your task is complete. The file is written to the Hamilton run outputs directory.",
       parameters: paramsSchema,
-      promptSnippet: "- write_step_output: saves your step results (call once when done, input must be a JSON object with 'status' field)",
+      promptSnippet: "- write_task_output: saves your task results (call once when done, input must be a JSON object with 'status' field)",
       execute: async (_toolCallId, { input }, _signal, _onUpdate, _ctx) => {
-        const result = validateAndWrite(runId, stepId, outputSchema, input)
+        const result = validateAndWrite(runId, taskId, outputSchema, input)
 
         if (!result.success) {
           return {
@@ -35,7 +35,7 @@ export function createWorkflowExtension(
         onComplete?.()
 
         return {
-          content: [{ type: "text" as const, text: "Step output written successfully." }],
+          content: [{ type: "text" as const, text: "Task output written successfully." }],
           details: {}
         }
       }

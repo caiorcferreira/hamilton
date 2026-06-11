@@ -112,8 +112,8 @@ export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slu
     }
     yield* Console.log(`Run ID: ${result.value.runId}`)
     yield* Console.log(`Status: ${result.value.status}`)
-    for (const [step, status] of Object.entries(result.value.taskResults)) {
-      yield* Console.log(`  ${step}: ${status}`)
+    for (const [task, status] of Object.entries(result.value.taskResults)) {
+      yield* Console.log(`  ${task}: ${status}`)
     }
   })
 ).pipe(Command.withDescription("Run a workflow"))
