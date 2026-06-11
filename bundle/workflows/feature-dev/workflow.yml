@@ -30,10 +30,7 @@ spec:
         prompt:
           content: |
             Decompose the following task into ordered user stories for autonomous execution.
-  
-            TASK:
-            {{task}}
-  
+
             RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
             {{retry_feedback}}
   
@@ -70,10 +67,7 @@ spec:
         prompt:
           content: |
             Prepare the development environment for this feature.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.plan.outputs.repo}}
             BRANCH: {{tasks.plan.outputs.branch}}
   
@@ -115,10 +109,7 @@ spec:
         prompt:
           content: |
             Implement the following user story. You are working on ONE story in a fresh session.
-  
-            TASK (overall):
-            {{task}}
-  
+
             REPO: {{tasks.plan.outputs.repo}}
             BRANCH: {{tasks.plan.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
@@ -177,10 +168,7 @@ spec:
         prompt:
           content: |
             Verify the developer's work on this story.
-  
-            TASK (overall):
-            {{task}}
-  
+
             REPO: {{tasks.plan.outputs.repo}}
             BRANCH: {{tasks.plan.outputs.branch}}
             CHANGES: {{changes}}
@@ -241,10 +229,7 @@ spec:
         prompt:
           content: |
             Integration and E2E testing of the implementation.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.plan.outputs.repo}}
             BRANCH: {{tasks.plan.outputs.branch}}
             CHANGES: {{changes}}
