@@ -114,6 +114,7 @@ export function executeWithPi(
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
 
+    // todo: this should happen inside buildExtensions
     if (config.rules && config.rules.length > 0) {
       extensionFactories.push(createGuidelineExtension(config.rules) as ExtensionFactory)
     }
@@ -126,7 +127,7 @@ export function executeWithPi(
       agentsFilesOverride: (current: any) => ({
         agentsFiles: [
           ...(current?.agentsFiles ?? []),
-          ...guidelineFiles.map((f: {name: string; content: string}) => ({ path: f.name, content: f.content }))
+          ...guidelineFiles.map((f: { name: string; content: string }) => ({ path: f.name, content: f.content }))
         ]
       }),
       extensionFactories,
@@ -166,7 +167,7 @@ export function executeWithPi(
       {
         onStepComplete: () => {
           if (sessionRef) {
-            sessionRef.abort().catch(() => {})
+            sessionRef.abort().catch(() => { })
           }
         }
       }

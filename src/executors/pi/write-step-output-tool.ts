@@ -38,6 +38,7 @@ export function createWriteStepOutputTool(
         }
       }
 
+      // todo: emit event
       cb?.onStepComplete()
 
       return {
