@@ -20,10 +20,7 @@ spec:
         prompt:
           content: |
             Scaffold a new project based on the following requirements.
-  
-            TASK:
-            {{task}}
-  
+
             Instructions:
             1. Create the project directory with the given name
             2. Initialize git in the project directory
