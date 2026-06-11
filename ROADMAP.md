@@ -9,6 +9,7 @@
 - [ ] Inject output schema in task context
 - [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
 - [ ] Add flag to run command to execute in background
+- [ ] Replace `-` with `/` as separator in runId, taskId
 
 ## Completed
 
