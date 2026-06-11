@@ -29,10 +29,7 @@ spec:
         prompt:
           content: |
             Perform a comprehensive security audit of the codebase.
-  
-            TASK:
-            {{task}}
-  
+
             Instructions:
             1. Explore the codebase — understand the stack, framework, dependencies
             2. Run `npm audit` (or equivalent) if a package manager is present
@@ -73,10 +70,7 @@ spec:
         prompt:
           content: |
             Prioritize and group the security findings into a fix plan.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.scan.outputs.repo}}
             VULNERABILITY_COUNT: {{vulnerability_count}}
             FINDINGS: {{findings}}
@@ -153,10 +147,7 @@ spec:
         prompt:
           content: |
             Implement a security fix. You are working on ONE fix in a fresh session.
-  
-            TASK (overall):
-            {{task}}
-  
+
             REPO: {{tasks.scan.outputs.repo}}
             BRANCH: {{tasks.scan.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
@@ -267,10 +258,7 @@ spec:
         prompt:
           content: |
             Final integration testing after all security fixes.
-  
-            TASK:
-            {{task}}
-  
+
             REPO: {{tasks.scan.outputs.repo}}
             BRANCH: {{tasks.scan.outputs.branch}}
             BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
