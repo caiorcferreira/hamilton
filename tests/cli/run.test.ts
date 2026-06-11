@@ -24,11 +24,11 @@ vi.mock("../../src/prompts/persona.js", () => {
   const { Effect: E } = require("effect")
   return {
     resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul" })),
-    PersonaNotFoundError: class PersonaNotFoundError extends Error {}
+    PersonaNotFoundError: class PersonaNotFoundError extends Error { }
   }
 })
 
-const validYaml = `apiVersion: dag.hamilton.io/v1alpha1
+const validYaml = `apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
   name: test-wf
@@ -51,7 +51,7 @@ function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
   Fs.writeFileSync(Path.join(dir, "INSTRUCTIONS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamiltonai.dev/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 
 describe("executeRun", () => {

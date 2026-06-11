@@ -16,7 +16,7 @@ export interface GuidelineInstructionEntry {
 }
 
 export interface GuidelineSpec {
-  apiVersion: "dag.hamilton.io/v1alpha1"
+  apiVersion: "dag.hamiltonai.dev/v1alpha1"
   kind: "Guideline"
   metadata: { name: string; description?: string }
   spec: {

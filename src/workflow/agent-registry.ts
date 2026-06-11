@@ -9,12 +9,12 @@ export class DuplicateAgentError extends Data.TaggedError("DuplicateAgentError")
   name: string
   existingPath: string
   conflictPath: string
-}> {}
+}> { }
 
 export class AgentManifestParseError extends Data.TaggedError("AgentManifestParseError")<{
   filePath: string
   message: string
-}> {}
+}> { }
 
 export interface WorkflowDescriptor {
   name: string
@@ -66,10 +66,10 @@ function loadAgentDir(
       })
     )
 
-    if (raw.apiVersion !== "dag.hamilton.io/v1alpha1" || raw.kind !== "Agent") {
+    if (raw.apiVersion !== "dag.hamiltonai.dev/v1alpha1" || raw.kind !== "Agent") {
       return yield* _(
         Effect.fail(new InvalidManifestEnvelopeError({
-          message: `agent.yml must have apiVersion "dag.hamilton.io/v1alpha1" and kind "Agent"`
+          message: `agent.yml must have apiVersion "dag.hamiltonai.dev/v1alpha1" and kind "Agent"`
         }))
       )
     }

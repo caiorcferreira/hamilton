@@ -26,7 +26,7 @@ describe("agent-registry", () => {
     const settingsYaml = settings
       ? Object.entries(settings).map(([k, v]) => `    ${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`).join("\n")
       : "    model: default"
-    const yaml = `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n${settingsYaml}\n`
+    const yaml = `apiVersion: dag.hamiltonai.dev/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n${settingsYaml}\n`
     Fs.writeFileSync(Path.join(dir, "agent.yml"), yaml)
   }
 
@@ -237,7 +237,7 @@ describe("agent-registry", () => {
     it("uses explicit systemPrompt for specified keys and defaults others from sibling files", async () => {
       const sharedDir = Path.join(tmpDir, "shared-agents")
       Fs.mkdirSync(Path.join(sharedDir, "custom"), { recursive: true })
-      const yaml = `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: custom\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: custom/INSTRUCTIONS.md\n    soul: custom/SOUL.md\n`
+      const yaml = `apiVersion: dag.hamiltonai.dev/v1alpha1\nkind: Agent\nmetadata:\n  name: custom\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: custom/INSTRUCTIONS.md\n    soul: custom/SOUL.md\n`
       Fs.writeFileSync(Path.join(sharedDir, "custom", "agent.yml"), yaml)
       makeSiblingFiles(Path.join(sharedDir, "custom"), {
         instructions: "Should be ignored",
@@ -258,7 +258,7 @@ describe("agent-registry", () => {
     it("uses explicit systemPrompt for some keys, defaults rest from sibling files", async () => {
       const sharedDir = Path.join(tmpDir, "shared-agents")
       Fs.mkdirSync(Path.join(sharedDir, "partial"), { recursive: true })
-      const yaml = `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: partial\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: partial/custom-agent.md\n`
+      const yaml = `apiVersion: dag.hamiltonai.dev/v1alpha1\nkind: Agent\nmetadata:\n  name: partial\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: partial/custom-agent.md\n`
       Fs.writeFileSync(Path.join(sharedDir, "partial", "agent.yml"), yaml)
       makeSiblingFiles(Path.join(sharedDir, "partial"), {
         instructions: "Ignored - explicitly set",

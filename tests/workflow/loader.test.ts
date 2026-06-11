@@ -5,7 +5,7 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadWorkflowSpec, resolveWorkflowSpec, WorkflowNotFoundError, WorkflowParseError, AgentNotFoundError } from "../../src/workflow/loader.js"
 
-const validYaml = `apiVersion: dag.hamilton.io/v1alpha1
+const validYaml = `apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
   name: test-wf
@@ -22,7 +22,7 @@ spec:
           content: do it
 `
 
-const invalidYaml = `apiVersion: dag.hamilton.io/v1alpha1
+const invalidYaml = `apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
   name: bad
@@ -43,7 +43,7 @@ function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
   Fs.writeFileSync(Path.join(dir, "INSTRUCTIONS.md"), `Agent ${name}`)
-  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
+  Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamiltonai.dev/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 
 describe("loadWorkflowSpec", () => {
@@ -125,7 +125,7 @@ describe("loadWorkflowSpec", () => {
     const agentsDir = Path.join(tmpDir, "agents")
     const workflows = [{ name: "test-wf", dir: Path.join(wfDir, "test-wf") }]
 
-    const missingRefYaml = `apiVersion: dag.hamilton.io/v1alpha1
+    const missingRefYaml = `apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
   name: test-wf
@@ -162,7 +162,7 @@ describe("resolveWorkflowSpec", () => {
       Fs.mkdirSync(promptsDir, { recursive: true })
       Fs.writeFileSync(Path.join(promptsDir, "my-prompt.md"), "prompt from file")
       const spec = {
-        apiVersion: "dag.hamilton.io/v1alpha1",
+        apiVersion: "dag.hamiltonai.dev/v1alpha1",
         kind: "Workflow",
         metadata: { name: "prompt-file-wf", version: 1 },
         spec: {
@@ -185,7 +185,7 @@ describe("resolveWorkflowSpec", () => {
       Fs.mkdirSync(schemasDir, { recursive: true })
       Fs.writeFileSync(Path.join(schemasDir, "out.json"), JSON.stringify({ type: "object", required: ["status"], properties: { status: { type: "string" } } }))
       const spec = {
-        apiVersion: "dag.hamilton.io/v1alpha1",
+        apiVersion: "dag.hamiltonai.dev/v1alpha1",
         kind: "Workflow",
         metadata: { name: "schema-file-wf", version: 1 },
         spec: {
@@ -204,7 +204,7 @@ describe("resolveWorkflowSpec", () => {
     const tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-resolve-"))
     try {
       const spec = {
-        apiVersion: "dag.hamilton.io/v1alpha1",
+        apiVersion: "dag.hamiltonai.dev/v1alpha1",
         kind: "Workflow",
         metadata: { name: "bad", version: 1 },
         spec: {
@@ -222,7 +222,7 @@ describe("resolveWorkflowSpec", () => {
     const tmpDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-resolve-"))
     try {
       const spec = {
-        apiVersion: "dag.hamilton.io/v1alpha1",
+        apiVersion: "dag.hamiltonai.dev/v1alpha1",
         kind: "Workflow",
         metadata: { name: "bad", version: 1 },
         spec: {

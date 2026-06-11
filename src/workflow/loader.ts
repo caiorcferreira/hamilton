@@ -12,17 +12,17 @@ import type { WorkflowDescriptor } from "./agent-registry.js"
 export class WorkflowNotFoundError extends Schema.TaggedError<WorkflowNotFoundError>("WorkflowNotFoundError")("WorkflowNotFoundError", {
   workflowName: Schema.String,
   dir: Schema.String
-}) {}
+}) { }
 
 export class WorkflowParseError extends Schema.TaggedError<WorkflowParseError>("WorkflowParseError")("WorkflowParseError", {
   workflowName: Schema.String,
   message: Schema.String
-}) {}
+}) { }
 
 export class AgentNotFoundError extends Data.TaggedError("AgentNotFoundError")<{
   taskName: string
   executorRef: string
-}> {}
+}> { }
 
 function walkTasks(tasks: any[]): any[] {
   for (const task of tasks) {
@@ -89,7 +89,7 @@ export function loadWorkflowSpec(
     yield* _(
       Effect.try({
         try: () => {
-          if ((raw as any).apiVersion !== "dag.hamilton.io/v1alpha1") {
+          if ((raw as any).apiVersion !== "dag.hamiltonai.dev/v1alpha1") {
             throw new Error(`Invalid apiVersion: ${(raw as any).apiVersion}`)
           }
           if ((raw as any).kind !== "Workflow") {

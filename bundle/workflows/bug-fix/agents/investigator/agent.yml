@@ -1,4 +1,4 @@
-apiVersion: dag.hamilton.io/v1alpha1
+apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Agent
 metadata:
   name: investigator

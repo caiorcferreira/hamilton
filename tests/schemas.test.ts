@@ -25,7 +25,7 @@ describe("WorkflowSpecSchema", () => {
 
   it("rejects a workflow with missing run.entrypoint", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Workflow",
       metadata: { version: 1, name: "bad" },
       spec: {
@@ -38,7 +38,7 @@ describe("WorkflowSpecSchema", () => {
 
   it("allows a task with only name when it has nested tasks", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Workflow",
       metadata: { version: 1, name: "ok" },
       spec: {
@@ -55,7 +55,7 @@ describe("WorkflowSpecSchema", () => {
 
   it("allows a task with template reference", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Workflow",
       metadata: { version: 1, name: "ok" },
       spec: {
@@ -72,7 +72,7 @@ describe("WorkflowSpecSchema", () => {
 
   it("rejects a template reference to nonexistent task", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Workflow",
       metadata: { version: 1, name: "bad" },
       spec: {
@@ -90,7 +90,7 @@ describe("WorkflowSpecSchema", () => {
 describe("AgentManifestSchema (k8s envelope)", () => {
   it("parses a valid agent manifest with envelope", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Agent",
       metadata: { name: "planner" },
       spec: {
@@ -114,7 +114,7 @@ describe("AgentManifestSchema (k8s envelope)", () => {
 
   it("rejects wrong kind", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Pod",
       metadata: { name: "planner" },
       spec: { settings: {} }
@@ -126,7 +126,7 @@ describe("AgentManifestSchema (k8s envelope)", () => {
 describe("GuidelineSpecSchema", () => {
   it("parses a valid guideline with instructions and rules", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Guideline",
       metadata: { name: "js-standards" },
       spec: {
@@ -155,7 +155,7 @@ describe("GuidelineSpecSchema", () => {
 
   it("parses a rules-only guideline", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Guideline",
       metadata: { name: "no-npm-only" },
       spec: {
@@ -178,7 +178,7 @@ describe("GuidelineSpecSchema", () => {
 
   it("parses an instructions-only guideline", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Guideline",
       metadata: { name: "code-style" },
       spec: {
@@ -195,7 +195,7 @@ describe("GuidelineSpecSchema", () => {
 
   it("parses a guideline with multiple rules", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Guideline",
       metadata: { name: "multi-rule" },
       spec: {
@@ -212,7 +212,7 @@ describe("GuidelineSpecSchema", () => {
 
   it("parses a minimal empty guideline", () => {
     const raw = {
-      apiVersion: "dag.hamilton.io/v1alpha1",
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
       kind: "Guideline",
       metadata: { name: "minimal" },
       spec: {}

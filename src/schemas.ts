@@ -3,9 +3,9 @@ import { Data } from "effect"
 
 export class InvalidManifestEnvelopeError extends Data.TaggedError("InvalidManifestEnvelopeError")<{
   message: string
-}> {}
+}> { }
 
-const ApiVersionSchema = Schema.Literal("dag.hamilton.io/v1alpha1")
+const ApiVersionSchema = Schema.Literal("dag.hamiltonai.dev/v1alpha1")
 
 const KindSchema = Schema.Literal("Agent", "Workflow", "Guideline")
 
@@ -42,7 +42,7 @@ const AgentManifestSettingsSchema = Schema.Struct({
 })
 
 export const AgentManifestSchema = Schema.Struct({
-  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  apiVersion: Schema.Literal("dag.hamiltonai.dev/v1alpha1"),
   kind: Schema.Literal("Agent"),
   metadata: AgentMetadataSchema,
   spec: Schema.Struct({
@@ -135,7 +135,7 @@ const VariantsConfigSchema = Schema.Struct({
 })
 
 export const WorkflowSpecSchema = Schema.Struct({
-  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  apiVersion: Schema.Literal("dag.hamiltonai.dev/v1alpha1"),
   kind: Schema.Literal("Workflow"),
   metadata: WorkflowMetadataSchema,
   spec: Schema.Struct({
@@ -178,7 +178,7 @@ const GuidelineInstructionEntrySchema = Schema.Struct({
 })
 
 export const GuidelineSpecSchema = Schema.Struct({
-  apiVersion: Schema.Literal("dag.hamilton.io/v1alpha1"),
+  apiVersion: Schema.Literal("dag.hamiltonai.dev/v1alpha1"),
   kind: Schema.Literal("Guideline"),
   metadata: GuidelineMetadataSchema,
   spec: Schema.Struct({

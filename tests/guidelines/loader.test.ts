@@ -48,7 +48,7 @@ describe("loadGuidelines", () => {
 
   it("loads a guideline with rules only", async () => {
     writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -75,7 +75,7 @@ describe("loadGuidelines", () => {
 
   it("loads instructions when a matching pattern hits a project file", async () => {
     const dir = writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -103,7 +103,7 @@ describe("loadGuidelines", () => {
 
   it("skips instructions when no pattern matches any project file", async () => {
     const dir = writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -129,7 +129,7 @@ describe("loadGuidelines", () => {
 
   it("always loads rules regardless of matching patterns", async () => {
     writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -160,7 +160,7 @@ describe("loadGuidelines", () => {
 
   it("skips directory without guideline.yml silently", async () => {
     writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -196,7 +196,7 @@ describe("loadGuidelines", () => {
 
   it("skips rule with invalid regex", async () => {
     writeGuideline("bad-regex", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: bad-regex",
@@ -219,7 +219,7 @@ describe("loadGuidelines", () => {
 
   it("loads multiple guidelines", async () => {
     writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -233,7 +233,7 @@ describe("loadGuidelines", () => {
     ].join("\n"))
 
     writeGuideline("py-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: py-standards",
@@ -255,7 +255,7 @@ describe("loadGuidelines", () => {
 
   it("skips node_modules, .git, dist, build, .hamilton when scanning files", async () => {
     const dir = writeGuideline("js-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: js-standards",
@@ -282,7 +282,7 @@ describe("loadGuidelines", () => {
 
   it("matches files in nested subdirectories with globstar patterns", async () => {
     const dir = writeGuideline("go-standards", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: go-standards",
@@ -310,7 +310,7 @@ describe("loadGuidelines", () => {
 
   it("loads instructions from multiple matching entries additively", async () => {
     const dir = writeGuideline("polyglot", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: polyglot",
@@ -343,7 +343,7 @@ describe("loadGuidelines", () => {
 
   it("only loads files from matching entries, skipping non-matching ones", async () => {
     const dir = writeGuideline("selective", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: selective",
@@ -374,7 +374,7 @@ describe("loadGuidelines", () => {
 
   it("matches single-star wildcard against top-level files", async () => {
     const dir = writeGuideline("makefile", [
-      "apiVersion: dag.hamilton.io/v1alpha1",
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
       "kind: Guideline",
       "metadata:",
       "  name: makefile",
