@@ -6,14 +6,14 @@ import * as Os from "node:os"
 import { Effect, Exit } from "effect"
 import { loadRunState } from "../../src/workflow/state.js"
 import { createSchema } from "../../src/db/schema.js"
-import { insertRun, insertTasks, updateTaskStarted, updateTaskCompleted, updateRunCompleted, insertTokenEvent, getRunStatus } from "../../src/db/queries.js"
+import { insertRun, insertTasks, updateTaskStarted, updateTaskCompleted, updateRunCompleted, insertTokenEvent } from "../../src/db/queries.js"
 import { formatStatus } from "../../src/cli/commands/status.js"
 
 function tempDb(): Database {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-status-"))
   const dp = Path.join(dir, "hamilton.db")
   const db = new Database(dp)
-    ;(db as any)._tempDir = dir
+  ;(db as any)._tempDir = dir
   createSchema(db)
   return db
 }
@@ -51,8 +51,8 @@ describe("loadRunState (SQLite-backed)", () => {
       { taskName: "fix", agentName: "fixer", executionIndex: 1 }
     ])
     const tasks = db.prepare("SELECT * FROM tasks WHERE run_id = ? ORDER BY execution_index").all("run-1") as any[]
-    const triageTaskId = tasks.find((t: any) => t.id.includes("triage"))!.id
-    const fixTaskId = tasks.find((t: any) => t.id.includes("fix"))!.id
+    const triageTaskId = tasks[0].id
+    const fixTaskId = tasks[1].id
 
     updateTaskStarted(db, "run-1", triageTaskId, "2026-01-01T00:00:01.000Z")
     updateTaskCompleted(db, "run-1", triageTaskId, "2026-01-01T00:00:30.000Z", {
@@ -92,9 +92,9 @@ describe("loadRunState (SQLite-backed)", () => {
       expect(exit.value.workflow).toBe("bug-fix")
       expect(exit.value.status).toBe("running")
       expect(exit.value.tasks).toHaveLength(2)
-      expect(exit.value.tasks[0].taskId).toContain("triage")
+      expect(exit.value.tasks[0].taskName).toBe("triage")
       expect(exit.value.tasks[0].status).toBe("completed")
-      expect(exit.value.tasks[1].taskId).toContain("fix")
+      expect(exit.value.tasks[1].taskName).toBe("fix")
       expect(exit.value.tasks[1].status).toBe("running")
       expect(exit.value.totalTokensIn).toBe(500)
       expect(exit.value.totalTokensOut).toBe(200)
@@ -166,7 +166,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:05:00.000Z",
       currentTask: null,
       tasks: [
-        { taskId: `${runId}-task-1-abc`, taskName: "task", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
+        { taskId: `${runId}-task-1-abc`, taskName: "task-1", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:02:00.000Z", tokensIn: 100, tokensOut: 50, errorMessage: null }
       ],
       totalTokensIn: 100,
       totalTokensOut: 50,
@@ -187,7 +187,7 @@ describe("formatStatus", () => {
       completedAt: "2026-01-01T00:00:10.000Z",
       currentTask: null,
       tasks: [
-        { taskId: `${runId}-task-1-abc`, taskName: "task", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
+        { taskId: `${runId}-task-1-abc`, taskName: "task-1", status: "failed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: null, tokensIn: 0, tokensOut: 0, errorMessage: "API error" }
       ],
       totalTokensIn: 0,
       totalTokensOut: 0,
@@ -206,7 +206,7 @@ describe("formatStatus", () => {
       status: "running",
       startedAt: "2026-01-01T00:00:00.000Z",
       completedAt: null,
-      currentTask: `${runId}-implement-stories-0-x2y3z`,
+      currentTask: `${runId}-implement-stories-0-x1y2z`,
       tasks: [
         { taskId: `${runId}-triage-x1y2z`, taskName: "triage", status: "completed", startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:30.000Z", tokensIn: 500, tokensOut: 200, errorMessage: null },
         { taskId: `${runId}-implement-stories-0-x2y3z`, taskName: "implement-stories/0", status: "running", startedAt: "2026-01-01T00:00:30.000Z", completedAt: null, tokensIn: 1000, tokensOut: 500, errorMessage: null },
