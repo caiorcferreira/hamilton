@@ -1,3 +1,15 @@
 apiVersion: dag.hamilton.io/v1alpha1
-kind: Workflow
+kind: Guideline
 metadata:
+  name: golang
+spec:
+  instructions:
+    extensions: ["go"]
+    files:
+      # The files below are based on https://github.com/uber-go/guide/blob/master/style.md
+      # Compressed to reduce token, but it still needs work
+      - code_style.md
+      - patterns.md
+      ########    
+      - e2e_testing.md
+
