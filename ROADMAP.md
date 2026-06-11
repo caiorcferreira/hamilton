@@ -1,21 +1,21 @@
 # Hamilton Roadmap
 
 ## Next Up
- 
+
 - [ ] Trigger workflows from other workflows
 - [ ] Refactor repo into multiple packages to expose pi extensions
-- [ ] Add support for skills
 - [ ] Refactor workflow tools (write step output) into extension
-- [ ] Extensions: Implement for of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
+- [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
 - [ ] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
 - [ ] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
+
 ## Completed
 
 - [x] Refactor instructions to guidelines with rule-based tool call interception
+- [x] Add support for skills
 - [x] Implement YAML Agent manifest
 - [x] Update workflow files to use external schema files and prompt files
-
 - [x] Add settings, workflow-yaml, and agent-instructions documentation
 - [x] Extract prompts package — `src/prompts/` (template, types, persona, instructions, builder), unify executor on `ResolvablePrompt`, delete old `src/agent/activity.ts`, `persona.ts`, `instructions.ts`
 - [x] Create default settings.yaml on init — extensions: rtk + lsp enabled by default
