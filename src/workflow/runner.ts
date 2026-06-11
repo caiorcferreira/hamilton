@@ -121,7 +121,7 @@ export function runWorkflow(
         const agent = spec.agentRegistry.get(task.agent.executorRef)
         if (!agent) return
 
-        const taskId = buildTaskId(runId, instanceName)
+        const taskId = ctx.compoundTaskIds.get(instanceName) ?? buildTaskId(runId, instanceName)
 
         yield* _(ctx.transitionTask(instanceName, "start"))
         yield* _(bus.publish({ _tag: "StepStarted", runId, stepId: taskId }))
@@ -240,9 +240,11 @@ export function runWorkflow(
               for (const subTask of sub) {
                 if (workflowStatus === "failed") break
                 const subInstanceName = `${instanceName}-${subTask.name}`
+                yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef))
                 yield* _(executeSingleTask(subTask, subContext, subInstanceName))
               }
             } else if (templateTask.agent) {
+              yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef))
               yield* _(executeSingleTask(templateTask, subContext, instanceName))
             }
           }
