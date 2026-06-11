@@ -135,7 +135,6 @@ export function runWorkflow(
         const prompt = buildAgentPrompt({
           agentFile: persona.agent,
           soulFile: persona.soul,
-          identityFile: persona.identity,
           prompt: task.agent!.prompt,
           context: taskContext,
           agentConfig: agent

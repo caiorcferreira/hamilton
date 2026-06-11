@@ -8,7 +8,6 @@ describe("buildAgentPrompt", () => {
   const baseParams: PromptParams = {
     agentFile: "You are a coder.",
     soulFile: "",
-    identityFile: "",
     prompt: { content: "Fix the bug" },
     context: {},
     agentConfig: {}
@@ -17,18 +16,18 @@ describe("buildAgentPrompt", () => {
   it("returns systemPrompt and taskPrompt", () => {
     const params: PromptParams = {
       agentFile: "You are a coder.",
-      identityFile: "Senior Developer",
       soulFile: "Concise and direct",
       prompt: { content: "Fix the bug" },
       context: {},
-      agentConfig: { name: "coder", role: "coding" }
+      agentConfig: { metadata: { name: "coder" }, dirPath: "", spec: { settings: {} } }
     }
     const result = buildAgentPrompt(params)
     expect(result).toHaveProperty("systemPrompt")
     expect(result).toHaveProperty("taskPrompt")
-    expect(result.systemPrompt).toContain("<identity>\nSenior Developer\n</identity>")
-    expect(result.systemPrompt).toContain("<style>\nConcise and direct\n</style>")
-    expect(result.systemPrompt).toContain("<agent>You are a coder.</agent>")
+    expect(result.systemPrompt).toContain("<platform>")
+    expect(result.systemPrompt).toContain("<persona>")
+    expect(result.systemPrompt).toContain("Concise and direct")
+    expect(result.systemPrompt).toContain("You are a coder.")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
@@ -73,17 +72,16 @@ describe("buildAgentPrompt", () => {
     expect(result.systemPrompt).toContain('"Story"')
   })
 
-  it("omits identity and style sections when empty", () => {
+  it("omits persona section when soulFile is empty", () => {
     const result = buildAgentPrompt(baseParams)
-    expect(result.systemPrompt).not.toContain("<identity>")
-    expect(result.systemPrompt).not.toContain("<style>")
+    expect(result.systemPrompt).not.toContain("<persona>")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
-  it("uses task terminology in harness", () => {
+  it("includes Hamilton platform section", () => {
     const result = buildAgentPrompt(baseParams)
-    expect(result.systemPrompt).toContain("task within a Hamilton workflow")
-    expect(result.systemPrompt).toContain("finish your task")
+    expect(result.systemPrompt).toContain("Hamilton Agentic Orchestration")
+    expect(result.systemPrompt).toContain("write_step_output")
   })
 
   it("passes guidelineFiles through to BuiltPrompt", () => {
