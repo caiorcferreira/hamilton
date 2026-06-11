@@ -12,9 +12,9 @@ const makeAgentManifest = (name: string): AgentManifest => ({
   dirPath: `/agents/${name}`,
   spec: {
     settings: { model: "default" },
-    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md` }
   },
-  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md` }
 })
 
 const makeSpec = (): WorkflowSpec => ({

@@ -8,6 +8,9 @@
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
 - [X] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
 - [ ] Review system prompt construction
+- [ ] Remove identity prompt from agents
+- [ ] Format agents.md with STAR (Situation, Task, Action, Result)
+- [ ] Rename agents.md file
 
 ## Completed
 

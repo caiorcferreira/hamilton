@@ -6,7 +6,7 @@ import { resolveAgentDefaults, loadModelAliases, resolveModelAlias, CircularMode
 import type { AgentSettings } from "../../src/types.js"
 
 const baseSettings: AgentSettings = {
-  systemPrompt: { agent: "a.md", soul: "s.md", identity: "i.md" }
+  systemPrompt: { agent: "a.md", soul: "s.md" }
 }
 
 describe("resolveAgentDefaults", () => {

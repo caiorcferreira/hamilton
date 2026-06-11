@@ -11,7 +11,6 @@ export interface RunConfig {
 export interface SystemPromptPaths {
   agent: string
   soul: string
-  identity: string
 }
 
 export interface AgentManifestSettings {

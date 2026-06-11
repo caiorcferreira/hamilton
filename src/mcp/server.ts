@@ -123,12 +123,12 @@ export function createMcpServer(): McpServer {
         if (!Fs.existsSync(agentsPath)) continue
         const persona = await Effect.runPromise(Effect.option(
           resolvePersona(
-            { agent: agentsPath, identity: Path.join(dir, slug, "IDENTITY.md"), soul: Path.join(dir, slug, "SOUL.md") },
+            { agent: agentsPath, soul: Path.join(dir, slug, "SOUL.md") },
             dir
           )
         ))
         if (persona._tag === "Some") {
-          results.push({ slug, identity: persona.value.identity, soul: persona.value.soul })
+          results.push({ slug, soul: persona.value.soul })
         }
       }
       return textResult(JSON.stringify(results, null, 2))

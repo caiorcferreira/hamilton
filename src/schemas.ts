@@ -33,8 +33,7 @@ const ManifestEnvelopeSchema = Schema.Struct({
 
 const SystemPromptPathsSchema = Schema.Struct({
   agent: Schema.String,
-  soul: Schema.String,
-  identity: Schema.String
+  soul: Schema.String
 })
 
 const AgentManifestSettingsSchema = Schema.Struct({

@@ -27,7 +27,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => ({
 vi.mock("../../src/prompts/persona.js", () => {
   const { Effect: E } = require("effect")
   return {
-    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul", identity: "test-identity" })),
+    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul" })),
     PersonaNotFoundError: class PersonaNotFoundError extends Error {}
   }
 })
@@ -37,9 +37,9 @@ const makeAgentManifest = (name: string): AgentManifest => ({
   dirPath: `/agents/${name}`,
   spec: {
     settings: { model: "default" },
-    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+    systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md` }
   },
-  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md`, identity: `${name}/IDENTITY.md` }
+  systemPrompt: { agent: `${name}/AGENTS.md`, soul: `${name}/SOUL.md` }
 })
 
 describe("end-to-end workflow execution", () => {

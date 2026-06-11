@@ -28,14 +28,12 @@ describe("types", () => {
         },
         systemPrompt: {
           agent: "agents/planner/AGENTS.md",
-          soul: "agents/planner/SOUL.md",
-          identity: "agents/planner/IDENTITY.md"
+          soul: "agents/planner/SOUL.md"
         }
       },
       systemPrompt: {
         agent: "agents/planner/AGENTS.md",
-        soul: "agents/planner/SOUL.md",
-        identity: "agents/planner/IDENTITY.md"
+        soul: "agents/planner/SOUL.md"
       }
     }
     expect(agent.metadata.name).toBe("planner")

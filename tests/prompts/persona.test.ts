@@ -19,12 +19,10 @@ describe("resolvePersona", () => {
   it("resolves persona from paths", async () => {
     Fs.writeFileSync(Path.join(tmpDir, "agent.md"), "agent instructions")
     Fs.writeFileSync(Path.join(tmpDir, "soul.md"), "soul content")
-    Fs.writeFileSync(Path.join(tmpDir, "identity.md"), "identity content")
 
     const paths = {
       agent: "agent.md",
-      soul: "soul.md",
-      identity: "identity.md"
+      soul: "soul.md"
     }
 
     const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
@@ -32,17 +30,15 @@ describe("resolvePersona", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value.agent).toBe("agent instructions")
       expect(exit.value.soul).toBe("soul content")
-      expect(exit.value.identity).toBe("identity content")
     }
   })
 
-  it("returns empty string for missing soul and identity files", async () => {
+  it("returns empty string for missing soul file", async () => {
     Fs.writeFileSync(Path.join(tmpDir, "agent.md"), "agent instructions")
 
     const paths = {
       agent: "agent.md",
-      soul: "no-soul.md",
-      identity: "no-identity.md"
+      soul: "no-soul.md"
     }
 
     const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
@@ -50,15 +46,13 @@ describe("resolvePersona", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value.agent).toBe("agent instructions")
       expect(exit.value.soul).toBe("")
-      expect(exit.value.identity).toBe("")
     }
   })
 
   it("fails with PersonaNotFoundError for missing agent file", async () => {
     const paths = {
       agent: "nonexistent.md",
-      soul: "soul.md",
-      identity: "identity.md"
+      soul: "soul.md"
     }
 
     const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
@@ -70,7 +64,6 @@ describe("resolvePersona", () => {
     Fs.mkdirSync(Path.join(sharedAgentsDir, "setup"), { recursive: true })
     Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "AGENTS.md"), "shared setup agent")
     Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "SOUL.md"), "shared setup soul")
-    Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "IDENTITY.md"), "shared setup identity")
 
     const workflowDir = Path.join(tmpDir, "workflows", "test-wf")
     Fs.mkdirSync(workflowDir, { recursive: true })
@@ -80,8 +73,7 @@ describe("resolvePersona", () => {
 
     const paths = {
       agent: "shared/agents/setup/AGENTS.md",
-      soul: "shared/agents/setup/SOUL.md",
-      identity: "shared/agents/setup/IDENTITY.md"
+      soul: "shared/agents/setup/SOUL.md"
     }
 
     const exit = await Effect.runPromiseExit(resolvePersona(paths, workflowDir))
@@ -89,7 +81,6 @@ describe("resolvePersona", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value.agent).toBe("shared setup agent")
       expect(exit.value.soul).toBe("shared setup soul")
-      expect(exit.value.identity).toBe("shared setup identity")
     }
   })
 })

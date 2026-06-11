@@ -30,11 +30,10 @@ describe("agent-registry", () => {
     Fs.writeFileSync(Path.join(dir, "agent.yml"), yaml)
   }
 
-  function makeSiblingFiles(dir: string, files: { agents?: string; soul?: string; identity?: string }) {
+  function makeSiblingFiles(dir: string, files: { agents?: string; soul?: string }) {
     Fs.mkdirSync(dir, { recursive: true })
     if (files.agents !== undefined) Fs.writeFileSync(Path.join(dir, "AGENTS.md"), files.agents)
     if (files.soul !== undefined) Fs.writeFileSync(Path.join(dir, "SOUL.md"), files.soul)
-    if (files.identity !== undefined) Fs.writeFileSync(Path.join(dir, "IDENTITY.md"), files.identity)
   }
 
   describe("loading shared agent manifests", () => {
@@ -43,8 +42,7 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "doer"), "doer")
       makeSiblingFiles(Path.join(sharedDir, "doer"), {
         agents: "You are doer",
-        soul: "Doer soul",
-        identity: "Doer identity"
+        soul: "Doer soul"
       })
 
       const result = await Effect.runPromiseExit(
@@ -57,7 +55,6 @@ describe("agent-registry", () => {
         expect(registry.get("doer")!.metadata.name).toBe("doer")
         expect(registry.get("doer")!.systemPrompt.agent).toBe("AGENTS.md")
         expect(registry.get("doer")!.systemPrompt.soul).toBe("SOUL.md")
-        expect(registry.get("doer")!.systemPrompt.identity).toBe("IDENTITY.md")
       }
     })
   })
@@ -68,16 +65,14 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "doer"), "doer")
       makeSiblingFiles(Path.join(sharedDir, "doer"), {
         agents: "Shared doer",
-        soul: "Shared soul",
-        identity: "Shared identity"
+        soul: "Shared soul"
       })
 
       const wfDir = Path.join(tmpDir, "workflows", "my-wf")
       makeAgentYaml(Path.join(wfDir, "agents", "reviewer"), "reviewer")
       makeSiblingFiles(Path.join(wfDir, "agents", "reviewer"), {
         agents: "Reviewer agent",
-        soul: "Reviewer soul",
-        identity: "Reviewer identity"
+        soul: "Reviewer soul"
       })
 
       const workflows: WorkflowDescriptor[] = [{ name: "my-wf", dir: wfDir }]
@@ -98,16 +93,14 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "dup"), "dup")
       makeSiblingFiles(Path.join(sharedDir, "dup"), {
         agents: "Shared",
-        soul: "Shared soul",
-        identity: "Shared identity"
+        soul: "Shared soul"
       })
 
       const wf1Dir = Path.join(tmpDir, "workflows", "wf1")
       makeAgentYaml(Path.join(wf1Dir, "agents", "dup"), "dup")
       makeSiblingFiles(Path.join(wf1Dir, "agents", "dup"), {
         agents: "Local",
-        soul: "Local soul",
-        identity: "Local identity"
+        soul: "Local soul"
       })
 
       const workflows: WorkflowDescriptor[] = [{ name: "wf1", dir: wf1Dir }]
@@ -132,16 +125,14 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(wf1Dir, "agents", "shared-name"), "shared-name")
       makeSiblingFiles(Path.join(wf1Dir, "agents", "shared-name"), {
         agents: "WF1 agent",
-        soul: "WF1 soul",
-        identity: "WF1 identity"
+        soul: "WF1 soul"
       })
 
       const wf2Dir = Path.join(tmpDir, "workflows", "wf2")
       makeAgentYaml(Path.join(wf2Dir, "agents", "shared-name"), "shared-name")
       makeSiblingFiles(Path.join(wf2Dir, "agents", "shared-name"), {
         agents: "WF2 agent",
-        soul: "WF2 soul",
-        identity: "WF2 identity"
+        soul: "WF2 soul"
       })
 
       const workflows: WorkflowDescriptor[] = [
@@ -164,16 +155,14 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "dup"), "dup")
       makeSiblingFiles(Path.join(sharedDir, "dup"), {
         agents: "Shared",
-        soul: "Shared soul",
-        identity: "Shared identity"
+        soul: "Shared soul"
       })
 
       const wf1Dir = Path.join(tmpDir, "workflows", "wf1")
       makeAgentYaml(Path.join(wf1Dir, "agents", "dup"), "dup")
       makeSiblingFiles(Path.join(wf1Dir, "agents", "dup"), {
         agents: "Local",
-        soul: "Local soul",
-        identity: "Local identity"
+        soul: "Local soul"
       })
 
       const workflows: WorkflowDescriptor[] = [{ name: "wf1", dir: wf1Dir }]
@@ -195,8 +184,7 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "doer"), "wrong-name")
       makeSiblingFiles(Path.join(sharedDir, "doer"), {
         agents: "Agent",
-        soul: "Soul",
-        identity: "Identity"
+        soul: "Soul"
       })
 
       const result = await Effect.runPromiseExit(
@@ -216,8 +204,7 @@ describe("agent-registry", () => {
       makeAgentYaml(Path.join(sharedDir, "doer"), "doer")
       makeSiblingFiles(Path.join(sharedDir, "doer"), {
         agents: "You are doer",
-        soul: "Doer soul",
-        identity: "Doer identity"
+        soul: "Doer soul"
       })
 
       const result = await Effect.runPromiseExit(
@@ -228,7 +215,6 @@ describe("agent-registry", () => {
         const manifest = result.value.get("doer")!
         expect(manifest.systemPrompt.agent).toBe("AGENTS.md")
         expect(manifest.systemPrompt.soul).toBe("SOUL.md")
-        expect(manifest.systemPrompt.identity).toBe("IDENTITY.md")
       }
     })
 
@@ -245,19 +231,17 @@ describe("agent-registry", () => {
         const manifest = result.value.get("doer")!
         expect(manifest.systemPrompt.agent).toBe("")
         expect(manifest.systemPrompt.soul).toBe("")
-        expect(manifest.systemPrompt.identity).toBe("")
       }
     })
 
     it("uses explicit systemPrompt for specified keys and defaults others from sibling files", async () => {
       const sharedDir = Path.join(tmpDir, "shared-agents")
       Fs.mkdirSync(Path.join(sharedDir, "custom"), { recursive: true })
-      const yaml = `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: custom\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: custom/AGENTS.md\n    soul: custom/SOUL.md\n    identity: custom/IDENTITY.md\n`
+      const yaml = `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: custom\nspec:\n  settings:\n    model: default\n  systemPrompt:\n    agent: custom/AGENTS.md\n    soul: custom/SOUL.md\n`
       Fs.writeFileSync(Path.join(sharedDir, "custom", "agent.yml"), yaml)
       makeSiblingFiles(Path.join(sharedDir, "custom"), {
         agents: "Should be ignored",
-        soul: "Should be ignored",
-        identity: "Should be ignored"
+        soul: "Should be ignored"
       })
 
       const result = await Effect.runPromiseExit(
@@ -268,7 +252,6 @@ describe("agent-registry", () => {
         const manifest = result.value.get("custom")!
         expect(manifest.systemPrompt.agent).toBe("custom/AGENTS.md")
         expect(manifest.systemPrompt.soul).toBe("custom/SOUL.md")
-        expect(manifest.systemPrompt.identity).toBe("custom/IDENTITY.md")
       }
     })
 
@@ -279,8 +262,7 @@ describe("agent-registry", () => {
       Fs.writeFileSync(Path.join(sharedDir, "partial", "agent.yml"), yaml)
       makeSiblingFiles(Path.join(sharedDir, "partial"), {
         agents: "Ignored - explicitly set",
-        soul: "Found from file",
-        identity: "Found from file"
+        soul: "Found from file"
       })
 
       const result = await Effect.runPromiseExit(
@@ -291,7 +273,6 @@ describe("agent-registry", () => {
         const manifest = result.value.get("partial")!
         expect(manifest.systemPrompt.agent).toBe("partial/custom-agent.md")
         expect(manifest.systemPrompt.soul).toBe("SOUL.md")
-        expect(manifest.systemPrompt.identity).toBe("IDENTITY.md")
       }
     })
   })

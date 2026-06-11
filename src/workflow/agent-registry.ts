@@ -24,8 +24,7 @@ export interface WorkflowDescriptor {
 function readSystemPromptDefaults(dirPath: string): SystemPromptPaths {
   return {
     agent: Fs.existsSync(Path.join(dirPath, "AGENTS.md")) ? "AGENTS.md" : "",
-    soul: Fs.existsSync(Path.join(dirPath, "SOUL.md")) ? "SOUL.md" : "",
-    identity: Fs.existsSync(Path.join(dirPath, "IDENTITY.md")) ? "IDENTITY.md" : ""
+    soul: Fs.existsSync(Path.join(dirPath, "SOUL.md")) ? "SOUL.md" : ""
   }
 }
 
@@ -35,8 +34,7 @@ function mergeSystemPrompt(
 ): SystemPromptPaths {
   return {
     agent: explicit?.agent || defaults.agent,
-    soul: explicit?.soul || defaults.soul,
-    identity: explicit?.identity || defaults.identity
+    soul: explicit?.soul || defaults.soul
   }
 }
 
