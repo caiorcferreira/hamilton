@@ -22,6 +22,7 @@ import { createWorkflowExtension } from "./extensions/workflow-extension.js"
 import { stepOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
 import { createGuidelineExtension } from "./extensions/guideline-extension.js"
+import { createRedactExtension } from "./extensions/redact-extension.js"
 import type { CompiledRule } from "../../guidelines/types.js"
 
 export interface PiExecutorConfig {
@@ -128,6 +129,8 @@ export function executeWithPi(
         () => { sessionRef?.abort().catch(() => {}) }
       )
     )
+
+    extensionFactories.push(createRedactExtension())
 
     const resolvedSkills = config.settings?.skills ?? null
     const loaderOptions: any = {
