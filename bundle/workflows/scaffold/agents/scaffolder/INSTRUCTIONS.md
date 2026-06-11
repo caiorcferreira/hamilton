@@ -24,11 +24,7 @@ Follow these steps in order:
 
 1. **Create the project directory** — `mkdir -p {{project_name}}`
 2. **Initialize git** — `cd {{project_name}} && git init`
-3. **Create the directory structure** — Lay out the correct skeleton for the tech stack:
-   - **Node.js/TypeScript**: `src/`, `tests/`, `dist/`
-   - **Python**: `src/{{package_name}}/`, `tests/`, `docs/`
-   - **Rust**: `src/`, `tests/`, `benches/`
-   - **Go**: `cmd/`, `internal/`, `pkg/`
+3. **Create the directory structure** — Lay out the correct skeleton for the tech stack. Follow the language idioms.
 4. **Write all configuration files**:
    - Language-specific manifest: `package.json` / `Cargo.toml` / `pyproject.toml` / `go.mod`
    - `.gitignore` — must include at minimum: `.env`, `node_modules/`, `dist/`, `*.key`, `*.pem`, `__pycache__/`, `.DS_Store`
