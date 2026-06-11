@@ -10,8 +10,8 @@ export interface CompiledRule extends GuidelineRule {
   compiledPattern: RegExp
 }
 
-export interface GuidelineInstructions {
-  extensions: string[]
+export interface GuidelineInstructionEntry {
+  matching: string[]
   files: string[]
 }
 
@@ -20,7 +20,7 @@ export interface GuidelineSpec {
   kind: "Guideline"
   metadata: { name: string; description?: string }
   spec: {
-    instructions?: GuidelineInstructions
+    instructions?: GuidelineInstructionEntry[]
     rules?: GuidelineRule[]
   }
 }

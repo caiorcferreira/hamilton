@@ -73,7 +73,7 @@ describe("loadGuidelines", () => {
     }
   })
 
-  it("loads a guideline with instructions matching project extensions", async () => {
+  it("loads instructions when a matching pattern hits a project file", async () => {
     const dir = writeGuideline("js-standards", [
       "apiVersion: dag.hamilton.io/v1alpha1",
       "kind: Guideline",
@@ -81,7 +81,9 @@ describe("loadGuidelines", () => {
       "  name: js-standards",
       "spec:",
       "  instructions:",
-      '    extensions: [".ts", ".js"]',
+      "  - matching:",
+      '      - "**/*.ts"',
+      '      - "**/*.js"',
       "    files:",
       "    - code-style.md"
     ].join("\n"))
@@ -99,7 +101,7 @@ describe("loadGuidelines", () => {
     }
   })
 
-  it("skips instructions when no project extensions overlap", async () => {
+  it("skips instructions when no pattern matches any project file", async () => {
     const dir = writeGuideline("js-standards", [
       "apiVersion: dag.hamilton.io/v1alpha1",
       "kind: Guideline",
@@ -107,7 +109,9 @@ describe("loadGuidelines", () => {
       "  name: js-standards",
       "spec:",
       "  instructions:",
-      '    extensions: [".ts", ".js"]',
+      "  - matching:",
+      '      - "**/*.ts"',
+      '      - "**/*.js"',
       "    files:",
       "    - code-style.md"
     ].join("\n"))
@@ -123,7 +127,7 @@ describe("loadGuidelines", () => {
     }
   })
 
-  it("always loads rules regardless of project extensions", async () => {
+  it("always loads rules regardless of matching patterns", async () => {
     writeGuideline("js-standards", [
       "apiVersion: dag.hamilton.io/v1alpha1",
       "kind: Guideline",
@@ -131,7 +135,8 @@ describe("loadGuidelines", () => {
       "  name: js-standards",
       "spec:",
       "  instructions:",
-      '    extensions: [".ts", ".js"]',
+      "  - matching:",
+      '      - "**/*.ts"',
       "    files:",
       "    - code-style.md",
       "  rules:",
@@ -248,7 +253,7 @@ describe("loadGuidelines", () => {
     }
   })
 
-  it("skips node_modules, .git, dist, build, .hamilton when scanning extensions", async () => {
+  it("skips node_modules, .git, dist, build, .hamilton when scanning files", async () => {
     const dir = writeGuideline("js-standards", [
       "apiVersion: dag.hamilton.io/v1alpha1",
       "kind: Guideline",
@@ -256,7 +261,8 @@ describe("loadGuidelines", () => {
       "  name: js-standards",
       "spec:",
       "  instructions:",
-      '    extensions: [".ts"]',
+      "  - matching:",
+      '      - "**/*.ts"',
       "    files:",
       "    - code-style.md"
     ].join("\n"))
@@ -271,6 +277,124 @@ describe("loadGuidelines", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(1)
       expect(exit.value[0].instructions).toBeNull()
+    }
+  })
+
+  it("matches files in nested subdirectories with globstar patterns", async () => {
+    const dir = writeGuideline("go-standards", [
+      "apiVersion: dag.hamilton.io/v1alpha1",
+      "kind: Guideline",
+      "metadata:",
+      "  name: go-standards",
+      "spec:",
+      "  instructions:",
+      "  - matching:",
+      '      - "**/*.go"',
+      "    files:",
+      "    - go-style.md"
+    ].join("\n"))
+    Fs.writeFileSync(Path.join(dir, "go-style.md"), "Use golint.")
+
+    const subDir = Path.join(tmpProject, "cmd", "server")
+    Fs.mkdirSync(subDir, { recursive: true })
+    Fs.writeFileSync(Path.join(subDir, "main.go"), "package main")
+
+    const exit = await Effect.runPromiseExit(loadGuidelines(Path.join(tmpHome, ".hamilton", "guidelines"), tmpProject))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toHaveLength(1)
+      expect(exit.value[0].instructions).toHaveLength(1)
+      expect(exit.value[0].instructions![0].content).toBe("Use golint.")
+    }
+  })
+
+  it("loads instructions from multiple matching entries additively", async () => {
+    const dir = writeGuideline("polyglot", [
+      "apiVersion: dag.hamilton.io/v1alpha1",
+      "kind: Guideline",
+      "metadata:",
+      "  name: polyglot",
+      "spec:",
+      "  instructions:",
+      "  - matching:",
+      '      - "**/*.go"',
+      "    files:",
+      "    - go-style.md",
+      "  - matching:",
+      '      - "**/*_test.go"',
+      "    files:",
+      "    - test-conventions.md"
+    ].join("\n"))
+    Fs.writeFileSync(Path.join(dir, "go-style.md"), "Use golint.")
+    Fs.writeFileSync(Path.join(dir, "test-conventions.md"), "Table-driven tests.")
+
+    Fs.writeFileSync(Path.join(tmpProject, "main.go"), "package main")
+    Fs.writeFileSync(Path.join(tmpProject, "main_test.go"), "package main_test")
+
+    const exit = await Effect.runPromiseExit(loadGuidelines(Path.join(tmpHome, ".hamilton", "guidelines"), tmpProject))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toHaveLength(1)
+      expect(exit.value[0].instructions).toHaveLength(2)
+      expect(exit.value[0].instructions![0].content).toBe("Use golint.")
+      expect(exit.value[0].instructions![1].content).toBe("Table-driven tests.")
+    }
+  })
+
+  it("only loads files from matching entries, skipping non-matching ones", async () => {
+    const dir = writeGuideline("selective", [
+      "apiVersion: dag.hamilton.io/v1alpha1",
+      "kind: Guideline",
+      "metadata:",
+      "  name: selective",
+      "spec:",
+      "  instructions:",
+      "  - matching:",
+      '      - "**/*.py"',
+      "    files:",
+      "    - py-style.md",
+      "  - matching:",
+      '      - "**/*.rs"',
+      "    files:",
+      "    - rust-style.md"
+    ].join("\n"))
+    Fs.writeFileSync(Path.join(dir, "py-style.md"), "Use black.")
+    Fs.writeFileSync(Path.join(dir, "rust-style.md"), "Use clippy.")
+
+    Fs.writeFileSync(Path.join(tmpProject, "app.py"), "print('hello')")
+
+    const exit = await Effect.runPromiseExit(loadGuidelines(Path.join(tmpHome, ".hamilton", "guidelines"), tmpProject))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toHaveLength(1)
+      expect(exit.value[0].instructions).toHaveLength(1)
+      expect(exit.value[0].instructions![0].content).toBe("Use black.")
+    }
+  })
+
+  it("matches single-star wildcard against top-level files", async () => {
+    const dir = writeGuideline("makefile", [
+      "apiVersion: dag.hamilton.io/v1alpha1",
+      "kind: Guideline",
+      "metadata:",
+      "  name: makefile",
+      "spec:",
+      "  instructions:",
+      "  - matching:",
+      '      - "Makefile"',
+      "    files:",
+      "    - make-guide.md"
+    ].join("\n"))
+    Fs.writeFileSync(Path.join(dir, "make-guide.md"), "Use bun.")
+
+    Fs.writeFileSync(Path.join(tmpProject, "Makefile"), "all: build")
+
+    const exit = await Effect.runPromiseExit(loadGuidelines(Path.join(tmpHome, ".hamilton", "guidelines"), tmpProject))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toHaveLength(1)
+      expect(exit.value[0].instructions).toHaveLength(1)
+      expect(exit.value[0].instructions![0].content).toBe("Use bun.")
     }
   })
 })

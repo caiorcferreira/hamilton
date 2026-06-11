@@ -130,10 +130,9 @@ describe("GuidelineSpecSchema", () => {
       kind: "Guideline",
       metadata: { name: "js-standards" },
       spec: {
-        instructions: {
-          extensions: [".js", ".ts"],
-          files: ["code-style.md"]
-        },
+        instructions: [
+          { matching: ["**/*.js", "**/*.ts"], files: ["code-style.md"] }
+        ],
         rules: [
           {
             name: "no-npm",
@@ -147,8 +146,8 @@ describe("GuidelineSpecSchema", () => {
     }
     const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
     expect(spec.metadata.name).toBe("js-standards")
-    expect(spec.spec.instructions?.extensions).toEqual([".js", ".ts"])
-    expect(spec.spec.instructions?.files).toEqual(["code-style.md"])
+    expect(spec.spec.instructions?.[0].matching).toEqual(["**/*.js", "**/*.ts"])
+    expect(spec.spec.instructions?.[0].files).toEqual(["code-style.md"])
     expect(spec.spec.rules).toHaveLength(1)
     expect(spec.spec.rules![0].name).toBe("no-npm")
     expect(spec.spec.rules![0].pattern).toBe("^npm")
@@ -183,15 +182,14 @@ describe("GuidelineSpecSchema", () => {
       kind: "Guideline",
       metadata: { name: "code-style" },
       spec: {
-        instructions: {
-          extensions: [".ts"],
-          files: ["style.md"]
-        }
+        instructions: [
+          { matching: ["**/*.ts"], files: ["style.md"] }
+        ]
       }
     }
     const spec = Schema.decodeUnknownSync(GuidelineSpecSchema)(raw)
     expect(spec.metadata.name).toBe("code-style")
-    expect(spec.spec.instructions?.extensions).toEqual([".ts"])
+    expect(spec.spec.instructions?.[0].matching).toEqual(["**/*.ts"])
     expect(spec.spec.rules).toBeUndefined()
   })
 

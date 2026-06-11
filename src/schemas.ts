@@ -173,8 +173,8 @@ const GuidelineRuleSchema = Schema.Struct({
   reason: Schema.String
 })
 
-const GuidelineInstructionsSchema = Schema.Struct({
-  extensions: Schema.Array(Schema.String),
+const GuidelineInstructionEntrySchema = Schema.Struct({
+  matching: Schema.Array(Schema.String),
   files: Schema.Array(Schema.String)
 })
 
@@ -183,7 +183,7 @@ export const GuidelineSpecSchema = Schema.Struct({
   kind: Schema.Literal("Guideline"),
   metadata: GuidelineMetadataSchema,
   spec: Schema.Struct({
-    instructions: Schema.optional(GuidelineInstructionsSchema),
+    instructions: Schema.optional(Schema.Array(GuidelineInstructionEntrySchema)),
     rules: Schema.optional(Schema.Array(GuidelineRuleSchema))
   })
 })

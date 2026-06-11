@@ -3,7 +3,7 @@ import * as Yaml from "yaml"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { parseManifest } from "../schemas.js"
-import type { GuidelineSpec, LoadedGuideline, CompiledRule, GuidelineRule } from "./types.js"
+import type { GuidelineSpec, LoadedGuideline, CompiledRule, GuidelineRule, GuidelineInstructionEntry } from "./types.js"
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", ".hamilton"])
 
@@ -23,23 +23,32 @@ export class GuidelineInvalidRegexError extends Data.TaggedError("GuidelineInval
   pattern: string
 }> {}
 
-function scanExtensions(cwd: string): string[] {
-  const extensions = new Set<string>()
+function scanFiles(cwd: string, base: string = cwd): string[] {
+  const files: string[] = []
   try {
     const entries = Fs.readdirSync(cwd, { withFileTypes: true })
     for (const entry of entries) {
       if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue
       if (entry.isDirectory()) {
-        for (const ext of scanExtensions(Path.join(cwd, entry.name))) {
-          extensions.add(ext)
+        for (const f of scanFiles(Path.join(cwd, entry.name), base)) {
+          files.push(f)
         }
       } else if (entry.isFile()) {
-        const ext = Path.extname(entry.name)
-        if (ext) extensions.add(ext)
+        files.push(Path.relative(base, Path.join(cwd, entry.name)))
       }
     }
   } catch {}
-  return Array.from(extensions)
+  return files
+}
+
+function entryMatches(entry: GuidelineInstructionEntry, projectFiles: string[]): boolean {
+  for (const pattern of entry.matching) {
+    const glob = new Bun.Glob(pattern)
+    for (const file of projectFiles) {
+      if (glob.match(file)) return true
+    }
+  }
+  return false
 }
 
 function compileRules(rules: GuidelineRule[] | undefined, guidelineName: string): Effect.Effect<CompiledRule[] | null, GuidelineInvalidRegexError> {
@@ -62,7 +71,7 @@ function compileRules(rules: GuidelineRule[] | undefined, guidelineName: string)
 function loadSingleGuideline(
   baseDir: string,
   guidelineName: string,
-  projectExtensions: Set<string>
+  projectFiles: string[]
 ): Effect.Effect<LoadedGuideline | null, GuidelineParseError | GuidelineMissingFileError | GuidelineInvalidRegexError> {
   return Effect.gen(function* (_) {
     const dirPath = Path.join(baseDir, guidelineName)
@@ -89,12 +98,10 @@ function loadSingleGuideline(
     let instructions: Array<{ name: string; content: string }> | null = null
 
     if (manifest.spec.instructions) {
-      const guidelineExts = manifest.spec.instructions.extensions
-      const matches = guidelineExts.some((ext: string) => projectExtensions.has(ext))
-
-      if (matches) {
-        const files: Array<{ name: string; content: string }> = []
-        for (const file of manifest.spec.instructions.files) {
+      const files: Array<{ name: string; content: string }> = []
+      for (const entry of manifest.spec.instructions) {
+        if (!entryMatches(entry, projectFiles)) continue
+        for (const file of entry.files) {
           const filePath = Path.join(dirPath, file)
           try {
             const content = Fs.readFileSync(filePath, "utf-8")
@@ -103,8 +110,8 @@ function loadSingleGuideline(
             yield* _(Effect.logWarning(`Missing instruction file "${file}" in guideline "${guidelineName}"`))
           }
         }
-        if (files.length > 0) instructions = files
       }
+      if (files.length > 0) instructions = files
     }
 
     const rules = yield* _(compileRules(manifest.spec.rules, guidelineName))
@@ -127,7 +134,7 @@ export function loadGuidelines(
       return []
     }
 
-    const projectExtensions = new Set(scanExtensions(projectDir))
+    const projectFiles = scanFiles(projectDir)
 
     const results: LoadedGuideline[] = []
 
@@ -135,7 +142,7 @@ export function loadGuidelines(
       if (!entry.isDirectory()) continue
 
       const loaded = yield* _(
-        loadSingleGuideline(baseDir, entry.name, projectExtensions).pipe(
+        loadSingleGuideline(baseDir, entry.name, projectFiles).pipe(
           Effect.catchAll((e) => {
             return Effect.gen(function* (_) {
               yield* _(Effect.logWarning(`Skipping guideline "${entry.name}": ${e.message ?? String(e)}`))
