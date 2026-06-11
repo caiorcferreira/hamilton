@@ -1,7 +1,7 @@
 import { Effect, Data } from "effect"
 import { Database } from "bun:sqlite"
 import { dbPath } from "../paths.js"
-import { createSchema } from "../db/schema.js"
+import { migrate } from "../db/migrations.js"
 import { getRunStatus } from "../db/queries.js"
 
 export class RunStateError extends Data.TaggedError("RunStateError")<{
@@ -37,7 +37,7 @@ export function openDb(): Effect.Effect<Database, RunStateError> {
       const dp = dbPath()
       const db = new Database(dp)
       db.run("PRAGMA journal_mode = WAL")
-      createSchema(db)
+      migrate(db)
       return db
     },
     catch: (e) =>
