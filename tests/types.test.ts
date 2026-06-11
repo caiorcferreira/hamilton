@@ -27,12 +27,12 @@ describe("types", () => {
           skills: ["hamilton-agents"]
         },
         systemPrompt: {
-          agent: "agents/planner/AGENTS.md",
+          agent: "agents/planner/INSTRUCTIONS.md",
           soul: "agents/planner/SOUL.md"
         }
       },
       systemPrompt: {
-        agent: "agents/planner/AGENTS.md",
+        agent: "agents/planner/INSTRUCTIONS.md",
         soul: "agents/planner/SOUL.md"
       }
     }

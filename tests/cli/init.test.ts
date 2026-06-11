@@ -43,9 +43,9 @@ describe("initHamilton", () => {
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
-    expect(Fs.existsSync(Path.join(agentsBase, "pr", "AGENTS.md"))).toBe(true)
-    expect(Fs.existsSync(Path.join(agentsBase, "setup", "AGENTS.md"))).toBe(true)
-    expect(Fs.existsSync(Path.join(agentsBase, "verifier", "AGENTS.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(agentsBase, "pr", "INSTRUCTIONS.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(agentsBase, "setup", "INSTRUCTIONS.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(agentsBase, "verifier", "INSTRUCTIONS.md"))).toBe(true)
   })
 
   it("installs bundled workflows", async () => {
@@ -60,9 +60,9 @@ describe("initHamilton", () => {
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
-    expect(Fs.existsSync(Path.join(agentsBase, "triager", "AGENTS.md"))).toBe(false)
-    expect(Fs.existsSync(Path.join(agentsBase, "investigator", "AGENTS.md"))).toBe(false)
-    expect(Fs.existsSync(Path.join(agentsBase, "fixer", "AGENTS.md"))).toBe(false)
+    expect(Fs.existsSync(Path.join(agentsBase, "triager", "INSTRUCTIONS.md"))).toBe(false)
+    expect(Fs.existsSync(Path.join(agentsBase, "investigator", "INSTRUCTIONS.md"))).toBe(false)
+    expect(Fs.existsSync(Path.join(agentsBase, "fixer", "INSTRUCTIONS.md"))).toBe(false)
   })
 
   it("is idempotent", async () => {
@@ -73,14 +73,14 @@ describe("initHamilton", () => {
     expect(Exit.isSuccess(exit2)).toBe(true)
 
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "hamilton.db"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "agents", "pr", "AGENTS.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md"))).toBe(true)
   })
 
   it("skips agent copy when already exists without --force", async () => {
     const exit1 = await Effect.runPromiseExit(initHamilton())
     expect(Exit.isSuccess(exit1)).toBe(true)
 
-    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "AGENTS.md")
+    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
     const originalContent = Fs.readFileSync(agentPath, "utf-8")
 
     Fs.writeFileSync(agentPath, "modified")
@@ -97,7 +97,7 @@ describe("initHamilton", () => {
     const exit1 = await Effect.runPromiseExit(initHamilton())
     expect(Exit.isSuccess(exit1)).toBe(true)
 
-    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "AGENTS.md")
+    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
     Fs.writeFileSync(agentPath, "modified")
 
     const exit2 = await Effect.runPromiseExit(initHamilton({ force: true }))

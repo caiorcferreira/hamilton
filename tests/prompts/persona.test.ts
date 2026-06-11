@@ -62,7 +62,7 @@ describe("resolvePersona", () => {
   it("resolves shared agent through symlink", async () => {
     const sharedAgentsDir = Path.join(tmpDir, "agents")
     Fs.mkdirSync(Path.join(sharedAgentsDir, "setup"), { recursive: true })
-    Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "AGENTS.md"), "shared setup agent")
+    Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "INSTRUCTIONS.md"), "shared setup agent")
     Fs.writeFileSync(Path.join(sharedAgentsDir, "setup", "SOUL.md"), "shared setup soul")
 
     const workflowDir = Path.join(tmpDir, "workflows", "test-wf")
@@ -72,7 +72,7 @@ describe("resolvePersona", () => {
     Fs.symlinkSync(sharedAgentsDir, Path.join(sharedDir, "agents"), "dir")
 
     const paths = {
-      agent: "shared/agents/setup/AGENTS.md",
+      agent: "shared/agents/setup/INSTRUCTIONS.md",
       soul: "shared/agents/setup/SOUL.md"
     }
 

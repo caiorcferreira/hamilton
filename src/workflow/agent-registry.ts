@@ -23,7 +23,7 @@ export interface WorkflowDescriptor {
 
 function readSystemPromptDefaults(dirPath: string): SystemPromptPaths {
   return {
-    agent: Fs.existsSync(Path.join(dirPath, "AGENTS.md")) ? "AGENTS.md" : "",
+    agent: Fs.existsSync(Path.join(dirPath, "INSTRUCTIONS.md")) ? "INSTRUCTIONS.md" : "",
     soul: Fs.existsSync(Path.join(dirPath, "SOUL.md")) ? "SOUL.md" : ""
   }
 }

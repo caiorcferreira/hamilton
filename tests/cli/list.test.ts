@@ -26,7 +26,7 @@ spec:
 function makeAgentDir(agentsDir: string, name: string): void {
   const dir = Path.join(agentsDir, name)
   Fs.mkdirSync(dir, { recursive: true })
-  Fs.writeFileSync(Path.join(dir, "AGENTS.md"), `Agent ${name}`)
+  Fs.writeFileSync(Path.join(dir, "INSTRUCTIONS.md"), `Agent ${name}`)
   Fs.writeFileSync(Path.join(dir, "agent.yml"), `apiVersion: dag.hamilton.io/v1alpha1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  settings:\n    model: default\n`)
 }
 

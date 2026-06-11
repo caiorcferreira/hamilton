@@ -6,8 +6,8 @@ function baseSpec(tasks: WorkflowTask[]): WorkflowSpec {
   const agent: AgentManifest = {
     metadata: { name: "setup" },
     dirPath: "/agents/setup",
-    spec: { settings: { model: "default" }, systemPrompt: { agent: "AGENTS.md", soul: "SOUL.md" } },
-    systemPrompt: { agent: "AGENTS.md", soul: "SOUL.md" }
+    spec: { settings: { model: "default" }, systemPrompt: { agent: "INSTRUCTIONS.md", soul: "SOUL.md" } },
+    systemPrompt: { agent: "INSTRUCTIONS.md", soul: "SOUL.md" }
   }
   const agentRegistry = new Map<string, AgentManifest>([["setup", agent]])
   return {

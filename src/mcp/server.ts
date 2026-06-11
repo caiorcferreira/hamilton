@@ -119,7 +119,7 @@ export function createMcpServer(): McpServer {
         .map((e) => e.name)
       const results = []
       for (const slug of entries) {
-        const agentsPath = Path.join(dir, slug, "AGENTS.md")
+        const agentsPath = Path.join(dir, slug, "INSTRUCTIONS.md")
         if (!Fs.existsSync(agentsPath)) continue
         const persona = await Effect.runPromise(Effect.option(
           resolvePersona(
@@ -183,7 +183,7 @@ export function createMcpServer(): McpServer {
         .map((e) => e.name)
       const contents = []
       for (const slug of entries) {
-        const agentsPath = Path.join(dir, slug, "AGENTS.md")
+        const agentsPath = Path.join(dir, slug, "INSTRUCTIONS.md")
         if (Fs.existsSync(agentsPath)) {
           const content = Fs.readFileSync(agentsPath, "utf-8")
           contents.push({
