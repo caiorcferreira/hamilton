@@ -18,7 +18,7 @@ export interface RunStatus {
   currentTask: string | null
   tasks: Array<{
     taskId: string
-    taskSlug: string
+    taskName: string
     status: string
     startedAt: string | null
     completedAt: string | null

@@ -20,15 +20,6 @@ import { buildRunId, buildTaskId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
 import type { Context } from "../workflow/context.js"
 
-function parseTaskSlug(taskId: string, runId: string): string {
-  const prefix = runId + "-"
-  if (!taskId.startsWith(prefix)) return taskId
-  const afterRun = taskId.slice(prefix.length)
-  const lastDash = afterRun.lastIndexOf("-")
-  if (lastDash === -1) return afterRun
-  return afterRun.slice(0, lastDash)
-}
-
 export class EngineError extends Data.TaggedError("EngineError")<{
   runId: string
   message: string
@@ -80,6 +71,7 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   private _state: RunState
   private _taskStates: Map<string, TaskState> = new Map()
   private _compoundTaskIds: Map<string, string> = new Map()
+  private _nextExecutionIndex: number = 0
 
   constructor(
     private readonly _db: Database,
@@ -87,11 +79,13 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     private readonly _spec: WorkflowSpec,
     initialState: RunState,
     taskStates: Map<string, TaskState>,
-    compoundTaskIds: Map<string, string>
+    compoundTaskIds: Map<string, string>,
+    nextExecutionIndex: number = 0
   ) {
     this._state = initialState
     this._taskStates = taskStates
     this._compoundTaskIds = compoundTaskIds
+    this._nextExecutionIndex = nextExecutionIndex
   }
 
   get db(): Database { return this._db }
@@ -146,7 +140,8 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   insertDynamicTask(taskName: string, agentName: string): Effect.Effect<void, EngineError> {
     return Effect.sync(() => {
       const taskId = buildTaskId(this._runId, taskName)
-      insertTask(this._db, this._runId, taskId, agentName)
+      const idx = this._nextExecutionIndex++
+      insertTask(this._db, this._runId, taskId, agentName, taskName, idx)
       this._taskStates.set(taskName, "pending")
       this._compoundTaskIds.set(taskName, taskId)
     })
@@ -259,11 +254,12 @@ export function createWorkflowRuntime(
       const taskRows = getTasksByRunId(db, existingRunId)
       const taskStates = new Map<string, TaskState>()
       const compoundTaskIds = new Map<string, string>()
+      let maxExecutionIndex = 0
       for (const task of taskRows) {
         const state = task.status as TaskState
-        const slug = parseTaskSlug(task.id, existingRunId)
-        taskStates.set(slug, state)
-        compoundTaskIds.set(slug, task.id)
+        compoundTaskIds.set(task.task_name, task.id)
+        taskStates.set(task.task_name, state)
+        if (task.execution_index > maxExecutionIndex) maxExecutionIndex = task.execution_index
       }
 
       const deferredTasks = taskRows.filter((t) => t.status === "deferred")
@@ -271,8 +267,7 @@ export function createWorkflowRuntime(
         db.prepare(
           `UPDATE tasks SET status = 'pending' WHERE id = ?`
         ).run(t.id)
-        const slug = parseTaskSlug(t.id, existingRunId)
-        taskStates.set(slug, "pending")
+        taskStates.set(t.task_name, "pending")
       }
 
       updateRunContext(db, existingRunId, JSON.stringify(context))
@@ -281,25 +276,26 @@ export function createWorkflowRuntime(
         `UPDATE runs SET status = 'running' WHERE id = ?`
       ).run(existingRunId)
 
-      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", taskStates, compoundTaskIds)
+      return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", taskStates, compoundTaskIds, maxExecutionIndex + 1)
     }
 
 const runId = buildRunId(spec.metadata.name)
 
 insertRun(db, runId, spec.metadata.name, new Date().toISOString())
     const taskEntries = collectAllTaskNames(spec)
-    insertTasks(db, runId, taskEntries.map((t) => ({ taskSlug: t.taskName, agentName: t.agentName })))
+    insertTasks(db, runId, taskEntries.map((t, i) => ({ taskName: t.taskName, agentName: t.agentName, executionIndex: i })))
     updateRunContext(db, runId, JSON.stringify(context))
 
     const taskRows = getTasksByRunId(db, runId)
     const taskStates = new Map<string, TaskState>()
     const compoundTaskIds = new Map<string, string>()
+    let maxExecutionIndex = 0
     for (const task of taskRows) {
-      const slug = parseTaskSlug(task.id, runId)
-      taskStates.set(slug, "pending")
-      compoundTaskIds.set(slug, task.id)
+      compoundTaskIds.set(task.task_name, task.id)
+      taskStates.set(task.task_name, "pending")
+      if (task.execution_index > maxExecutionIndex) maxExecutionIndex = task.execution_index
     }
 
-    return new WorkflowRuntimeImpl(db, runId, spec, "running", taskStates, compoundTaskIds)
+    return new WorkflowRuntimeImpl(db, runId, spec, "running", taskStates, compoundTaskIds, maxExecutionIndex + 1)
   })
 }

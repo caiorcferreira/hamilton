@@ -17,6 +17,8 @@ export function createSchema(db: Database): void {
       id TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,
       agent_id TEXT NOT NULL,
+      task_name TEXT NOT NULL DEFAULT '',
+      execution_index INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'pending',
       started_at TEXT,
       completed_at TEXT,
