@@ -163,7 +163,7 @@ export function getRunById(db: Database, runId: string): RunRow | null {
 }
 
 export function getTasksByRunId(db: Database, runId: string): TaskRow[] {
-  return db.prepare(`SELECT * FROM tasks WHERE run_id = ? ORDER BY id`).all(runId) as TaskRow[]
+  return db.prepare(`SELECT * FROM tasks WHERE run_id = ? ORDER BY execution_index`).all(runId) as TaskRow[]
 }
 
 export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
@@ -184,7 +184,7 @@ export function getRunStatus(db: Database, runId: string): RunStatusRow | null {
     currentTask: run.current_task,
     tasks: tasks.map((t) => ({
       taskId: t.id,
-      taskSlug: t.agent_id,
+      taskName: t.task_name,
       status: t.status,
       startedAt: t.started_at,
       completedAt: t.completed_at,
