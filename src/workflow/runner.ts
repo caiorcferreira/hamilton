@@ -141,7 +141,7 @@ export function runWorkflow(
         }, guidelineFiles)
 
         const finalPrompt = task.name === spec.spec.run.entrypoint
-          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${runningContext.user_input}` }
+          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${runningContext.user_input ?? ""}` }
           : prompt
 
         yield* _(bus.publish({
