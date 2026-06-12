@@ -53,7 +53,22 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
           agent: {
             executorRef: "setup",
             prompt: {
-              content: "Create an isolated git worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nDeterministic activity: createGitWorktree\n\nReply with STATUS: done, WORKTREE_PATH: <path>, ORIGINAL_BRANCH: <branch>"
+              content: `## Steps
+              1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
+              2. Run the command: cd {{cwd}}
+              3. Run the command to learn the original branch: git branch --show-current
+              4. Run the command: git worktree add -b <branch-name> ./.worktree/<branch-name> <original-branch>
+              6. Run the command: cd <worktree-path>
+              
+              ## Output
+              Set your output with a JSON like:
+              \`\`\`json
+              {"status": "done", "branch": "<branch-name>", "original_branch": "<original-branch>", "worktree_path": "<absolute-path>"}
+              \`\`\`
+
+              ## User Input
+              {{user_input}}
+              `
             }
           }
         }
@@ -70,24 +85,25 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
           agent: {
             executorRef: "merger",
             prompt: {
-              content: "Finalize by squashing changes and merging.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done"
+              content: `## Steps
+              1. Run the command: cd {{cwd}}
+              2. Run the command to get the current branch: git branch --show-current
+              3. Squash all commits into a clean history
+              4. Merge the branch into the main branch
+              
+              ## Output
+              Set your output with a JSON like:
+              \`\`\`json
+              {"status": "done", "branch": "<branch-name>", "merged_into": "<target-branch>"}
+              \`\`\`
+
+              ## User Input
+              {{user_input}}
+              `
             }
           }
         }
       }
-      // {
-      //   placement: "end",
-      //   capabilities: { provides: [], replaces: [] },
-      //   task: {
-      //     name: "cleanup-worktree",
-      //     agent: {
-      //       executorRef: "setup",
-      //       prompt: {
-      //         content: "Clean up the worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\n\nDeterministic activity: cleanupGitWorktree\n\nReply with STATUS: done"
-      //       }
-      //     }
-      //   }
-      // }
     ]
   },
   github_pr: {
@@ -100,7 +116,21 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
           agent: {
             executorRef: "developer",
             prompt: {
-              content: "Create a pull request.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done, PR: <url>"
+              content: `## Steps
+              1. Run the command: cd {{cwd}}
+              2. Run the command to get the current branch: git branch --show-current
+              3. Create a pull request using gh CLI
+              4. Use the user input to craft a descriptive PR title and body
+              
+              ## Output
+              Set your output with a JSON like:
+              \`\`\`json
+              {"status": "done", "branch": "<branch-name>", "pr_url": "<pr-url>"}
+              \`\`\`
+
+              ## User Input
+              {{user_input}}
+              `
             }
           }
         }
