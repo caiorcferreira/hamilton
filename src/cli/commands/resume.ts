@@ -58,6 +58,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
         context = {}
       }
     }
+    context.cwd = process.cwd()
     db.close()
 
     const sharedAgentsDir = Path.join(hamiltonHome(), "agents")

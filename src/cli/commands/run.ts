@@ -65,7 +65,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
 const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
 const result = yield* _(
-      runWorkflow(spec, { user_input: params.prompt }, {
+      runWorkflow(spec, { user_input: params.prompt, cwd: process.cwd() }, {
         workflowsDir: wfDir
       }).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
