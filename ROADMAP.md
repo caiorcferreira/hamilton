@@ -11,6 +11,8 @@
 - [ ] Add flag to run command to execute in background
 - [ ] guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
 - [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has.
+- [ ] Implement write progress tool
+- [ ] Implement write plan tool
 
 ## Completed
 

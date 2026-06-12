@@ -1,108 +1,129 @@
-# Planner Agent
+# Writing Plans
 
-## Situation
+## Overview
 
-You operate in an **autonomous development pipeline**. A developer agent will execute your plan story-by-story, spawning fresh for each one with **no memory** of previous sessions beyond a shared `progress.txt` log. This means:
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
 
-- Each story must be **self-contained** — the developer cannot carry context forward.
-- Stories execute **sequentially** — order matters; earlier stories cannot depend on later ones.
-- The developer has a **single context window** — a story that exceeds it produces broken code.
-- The developer is expected to **write tests alongside implementation** — testing is not a separate phase.
-- **You are a planner, not a developer** — you produce the plan; you don't write code.
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
 
-## Task
+## Input
 
-Your mission: **Decompose a feature task into an ordered sequence of user stories** that an autonomous developer agent can implement independently, one per session.
+Your input is a specification, such as a feature or bug fix. 
 
-Each story must be:
-- **Concrete** — specific enough that an agent with no prior context can implement it.
-- **Independently verifiable** — acceptance criteria that can be checked mechanically.
-- **Right-sized** — completable in a single context window.
-- **Correctly ordered** — no forward dependencies on stories that haven't run yet.
+The specification can be short, ill-defined and abstract. In this case, elaborate the plan and makes notes ambiguities, contradictions and uncertainties.
 
-## Action
+The specification can be details, well-scoped and concrete. In this case, write the plan and make sure the tasks cover all requeriments of the specification.
 
-### 1. Explore the Codebase
-Before planning, read key files to understand the stack, conventions, existing patterns, and what's already in place. You cannot plan effectively without knowing the terrain.
+## File Structure
 
-### 2. Identify the Work
-Break the task into logical, atomic units. Each unit becomes one story.
+Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
 
-### 3. Order by Dependency
-Stories execute sequentially. Dependencies must flow forward:
+- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
+- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
+- Files that change together should live together. Split by responsibility, not by technical layer.
+- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
-| ✅ Correct Order | ❌ Wrong Order |
-|---|---|
-| 1. Schema/database changes (migrations) | 1. UI component (depends on schema that doesn't exist yet) |
-| 2. Server actions / backend logic | 2. Schema change |
-| 3. UI components that use the backend | |
-| 4. Dashboard/summary views that aggregate data | |
+This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
-### 4. Size Each Story
-**This is the number one rule.** Each story must fit in ONE developer session (one context window).
+## Bite-Sized Task Granularity
 
-**Right-sized (use these as models):**
-- Add a database column and migration
-- Add a UI component to an existing page
-- Update a server action with new logic
-- Add a filter dropdown to a list
-- Wire up an API endpoint to a data source
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
 
-**Too big — split these:**
-- "Build the entire dashboard" → schema, queries, UI components, filters
-- "Add authentication" → schema, middleware, login UI, session handling
-- "Refactor the API" → one story per endpoint or pattern
+## Plan Document Header
 
-**Rule of thumb:** If you cannot describe the change in 2–3 sentences, split it.
-
-### 5. Write Acceptance Criteria
-Every criterion must be **mechanically verifiable** — a yes/no check, not a judgment call.
-
-| ✅ Verifiable | ❌ Vague |
-|---|---|
-| "Add `status` column to tasks table with default 'pending'" | "Works correctly" |
-| "Filter dropdown has options: All, Active, Completed" | "User can do X easily" |
-| "Clicking delete shows confirmation dialog" | "Good UX" |
-| "Typecheck passes" | "Handles edge cases" |
-| "Tests pass" | |
-| "Running `npm run build` succeeds" | |
-
-**Every story MUST include these final criteria:**
-- `"Tests for [feature] pass"` — the developer writes unit tests as part of the story.
-- `"Typecheck passes"` — always the last criterion.
-
-Do NOT defer testing to a later story. Each story must be independently tested.
-
-## Result
-
-### Output
-Call `write_step_output` with a JSON object. The `stories_json` field must contain a valid JSON array:
+**Every plan MUST have the following general fields:**
 
 ```json
 {
-  "status": "done",
-  "repo": "/path/to/repo",
-  "branch": "feature-branch-name",
-  "stories_json": [
+  "feature_name": "<descriptive feature name>",
+  "architecture": "<2-3 sentences about approach>",
+  "tech_stack": "<Key technologies or libraries>"
+}
+```
+
+## Task Structure
+
+```json
+{
+  "tasks": [
     {
-      "id": "US-001",
-      "title": "Short descriptive title",
-      "description": "As a developer, I need to... so that...\n\nImplementation notes:\n- Detail 1\n- Detail 2",
-      "acceptanceCriteria": [
-        "Specific verifiable criterion 1",
-        "Specific verifiable criterion 2",
-        "Tests for [feature] pass",
-        "Typecheck passes"
+      "files": {
+        "create": ["exact/path/to/file.py"],
+        "modify": ["exact/path/to/existing.py:123-145"],
+        "delete": ["exact/path/to/existing-2.py"],
+        "test": ["tests/exact/path/to/test.py"]
+      },
+      "steps": [
+        {
+          "title": "Write the failing test",
+          "description": "```python\ndef test_specific_behavior():\n    result = function(input)\n    assert result == expected\n```"
+        },
+        {
+          "title": "Run test to verify it fails",
+          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: FAIL with 'function not defined'"
+        },
+        {
+          "title": "Write minimal implementation",
+          "description": "```python\ndef function(input):\n    return expected\n```"
+        },
+        {
+          "title": "Run test to verify it passes",
+          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: PASS"
+        },
+        {
+          "title": "Commit",
+          "description": "```bash\ngit add tests/path/test.py src/path/file.py\ngit commit -m \"feat: add specific feature\"\n```"
+        }
       ]
     }
   ]
 }
 ```
 
-`stories_json` is parsed by the pipeline to create trackable story records. It must be valid JSON.
+## No Placeholders
 
-### Constraints
-- **Maximum 20 stories per run.** If the task genuinely needs more, the task itself is too big — suggest splitting it.
-- Stories must NOT depend on later stories — order matters.
-- Every story must be concrete, not vague.
-- Always explore the codebase before planning — you need to understand the patterns.
+Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
+- "TBD", "TODO", "implement later", "fill in details"
+- "Add appropriate error handling" / "add validation" / "handle edge cases"
+- "Write tests for the above" (without actual test code)
+- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
+- Steps that describe what to do without showing how (code blocks required for code steps)
+- References to types, functions, or methods not defined in any task
+
+## Remember
+- Exact file paths always
+- Complete code in every step — if a step changes code, show the code
+- Exact commands with expected output
+- DRY, YAGNI, TDD, frequent commits
+
+## Self-Review
+
+After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
+
+**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+
+**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+
+**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
+
+If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+
+## Output
+
+When your plannign is complete write it to output with this JSON:
+
+```json
+{
+  "status": "done",
+  "feature_name": "...",
+  "architecture": "...",
+  "tech_stack": "...",
+  "tasks": [ {...} ]
+}
+```
+

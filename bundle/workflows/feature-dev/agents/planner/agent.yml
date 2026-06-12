@@ -4,4 +4,4 @@ metadata:
   name: planner
 spec:
   settings:
-    model: deepseek-v4-pro-official
+    model: thinking

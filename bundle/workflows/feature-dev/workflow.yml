@@ -45,14 +45,15 @@ spec:
             8. The developer is expected to write tests as part of each story
   
             Reply with:
-            STATUS: done
-            REPO: /path/to/repo
-            BRANCH: <new-feature-branch-name to create for this run, e.g. feature/short-description — MUST be a fresh, descriptive name; MUST NOT be a default/integration branch like main, master, trunk, develop, dev, or release; the create-branch step will `git checkout -b` this name>
-            STORIES_JSON: [ ... array of story objects ... ]
+            - status: done
+            - repository: /path/to/repo
+            - stories: [ ... array of story objects ... ]
   
-            The STORIES_JSON line is REQUIRED and MUST be a literal JSON array. Example (illustrative — produce real stories for the actual TASK, not these):
-            STORIES_JSON: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
-            Without STORIES_JSON the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
+            The stories field is REQUIRED and MUST be a literal JSON array. 
+            
+            Example (illustrative — produce real stories for the actual TASK, not these):
+            stories: [{"id":"US-001","title":"Add foo column","description":"...","acceptanceCriteria":["foo exists","tests pass","Typecheck passes"]}]
+            Without stories the run cannot proceed; do not summarize stories in prose under CHANGES — only the literal STORIES_JSON line is parsed.
         output:
           schema:
             file: schemas/plan.json
