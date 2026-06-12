@@ -62,14 +62,15 @@ spec:
 
             Instructions:
             1. Run the command: cd {{cwd}}
-            2. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
-            3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-            4. Run the build to establish a baseline
-            5. Run the tests to establish a baseline
-            6. Compile a baseline report
+            2. Run the command to learn the current branch: git branch --show-current
+            3. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
+            4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
+            5. Run the build to establish a baseline
+            6. Run the tests to establish a baseline
+            7. Compile a baseline report
   
             Set your output with:
-            `{"status": "done", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
+            `{"status": "done", "current_branch": "<current-branch>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
         output:
           schema:
             file: schemas/setup.json
@@ -90,20 +91,15 @@ spec:
         executorRef: developer
         prompt:
           content: |
-            Implement the following user story. You are working on ONE story in a fresh session.
+            Implement the code for following task. You are working on ONE task in a fresh session.
 
-            REPO: {{tasks.plan.outputs.repo}}
-            BRANCH: {{tasks.plan.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            Repository: {{cwd}}
+            Branch: {{tasks.setup.outputs.current_branch}}
+            Build command: {{tasks.setup.outputs.build_cmd}}
+            Test command: {{tasks.setup.outputs.test_cmd}}
   
-            CURRENT STORY:
+            Current task:
             {{vars.current_task}}
-  
-            COMPLETED STORIES:
-            {{completed_stories}}
-  
-            STORIES REMAINING: {{stories_remaining}}
   
             VERIFY FEEDBACK (if retrying):
             {{verify_feedback}}
@@ -117,11 +113,11 @@ spec:
             Instructions:
             1. Read {{progress_file}} — especially the Codebase Patterns section
             2. Pull latest on the branch
-            3. Implement this story only
-            4. Write tests for this story's functionality
+            3. Implement this task only
+            4. Write tests for this task's functionality
             5. Run typecheck / build
             6. Run tests to confirm they pass
-            7. Commit: feat: {{vars.current_task.id}} - {{vars.current_task.title}}
+            7. Commit: "feat: {{vars.current_task.title}}"
             8. Rewrite {{progress_file}} with updated story results and patterns
             9. Update Codebase Patterns if you found reusable patterns
   

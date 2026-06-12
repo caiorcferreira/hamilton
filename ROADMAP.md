@@ -13,6 +13,7 @@
 - [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has.
 - [ ] Implement write progress tool
 - [ ] Implement write plan tool
+- [ ] Ensure retry_step and `status: retry` work
 
 ## Completed
 
