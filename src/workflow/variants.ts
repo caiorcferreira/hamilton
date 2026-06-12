@@ -5,7 +5,7 @@ import type { AgentManifest, WorkflowSpec, WorkflowTask, VariantTask } from "../
 export class UnsupportedVariantError extends Data.TaggedError("UnsupportedVariantError")<{
   variant: string
   supported: string[]
-}> {}
+}> { }
 
 interface VariantDefinition {
   tasks: VariantTask[]
@@ -16,13 +16,27 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     tasks: [
       {
         placement: "start",
-        capabilities: { provides: ["workspace-created"], replaces: [] },
+        capabilities: { provides: ["branch-created"], replaces: [] },
         task: {
           name: "create-branch",
           agent: {
             executorRef: "setup",
             prompt: {
-              content: "Run the following commands:\n1. cd {{tasks.plan.outputs.repo}}\n2. git checkout -b {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done"
+              content: `## Steps
+              1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
+              2. Run the command to learn the original branch: git branch --show-current
+              2. Run the command: cd {{cwd}}
+              3. Run the command: git checkout -b <branch-name>
+              
+              ## Output
+              Set your output with a JSON like:
+              \`\`\`json
+              {"status": "done", "branch": "<branch-name>", "original_branch": "<original-branch>"}
+              \`\`\`
+
+              ## User Input
+              {{user_input}}
+              `
             }
           }
         }
@@ -33,26 +47,13 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     tasks: [
       {
         placement: "start",
-        capabilities: { provides: ["workspace-created"], replaces: ["workspace-created"] },
+        capabilities: { provides: ["workspace-created"], replaces: ["branch-created"] },
         task: {
           name: "create-worktree",
           agent: {
             executorRef: "setup",
             prompt: {
               content: "Create an isolated git worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nDeterministic activity: createGitWorktree\n\nReply with STATUS: done, WORKTREE_PATH: <path>, ORIGINAL_BRANCH: <branch>"
-            }
-          }
-        }
-      },
-      {
-        placement: "end",
-        capabilities: { provides: [], replaces: [] },
-        task: {
-          name: "cleanup-worktree",
-          agent: {
-            executorRef: "setup",
-            prompt: {
-              content: "Clean up the worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\n\nDeterministic activity: cleanupGitWorktree\n\nReply with STATUS: done"
             }
           }
         }
@@ -63,7 +64,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     tasks: [
       {
         placement: "end",
-        capabilities: { provides: [], replaces: [] },
+        capabilities: { provides: ["branch-merged"], replaces: [] },
         task: {
           name: "finalize-merge",
           agent: {
@@ -74,32 +75,32 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
           }
         }
       }
+      // {
+      //   placement: "end",
+      //   capabilities: { provides: [], replaces: [] },
+      //   task: {
+      //     name: "cleanup-worktree",
+      //     agent: {
+      //       executorRef: "setup",
+      //       prompt: {
+      //         content: "Clean up the worktree.\n\nREPO: {{tasks.plan.outputs.repo}}\n\nDeterministic activity: cleanupGitWorktree\n\nReply with STATUS: done"
+      //       }
+      //     }
+      //   }
+      // }
     ]
   },
   github_pr: {
     tasks: [
       {
         placement: "end",
-        capabilities: { provides: [], replaces: [] },
+        capabilities: { provides: ["pr-created"], replaces: [] },
         task: {
           name: "create-pr",
           agent: {
             executorRef: "developer",
             prompt: {
               content: "Create a pull request.\n\nREPO: {{tasks.plan.outputs.repo}}\nBRANCH: {{tasks.plan.outputs.branch}}\n\nReply with STATUS: done, PR: <url>"
-            }
-          }
-        }
-      },
-      {
-        placement: "end",
-        capabilities: { provides: [], replaces: [] },
-        task: {
-          name: "review",
-          agent: {
-            executorRef: "reviewer",
-            prompt: {
-              content: "Review the PR.\n\nPR: {{pr}}\n\nReply with STATUS: done, DECISION: approved"
             }
           }
         }

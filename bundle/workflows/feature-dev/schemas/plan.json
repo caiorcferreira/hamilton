@@ -3,8 +3,37 @@
   "required": ["status"],
   "properties": {
     "status": { "type": "string", "enum": ["done", "failed"] },
+    "feature_name": { "type": "string" },
+    "architecture": { "type": "string" },
+    "tech_stack": { "type": "string" },
     "repo": { "type": "string" },
-    "branch": { "type": "string" },
-    "stories_json": { "type": "array" }
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "object",
+            "properties": {
+              "create": { "type": "array", "items": { "type": "string" } },
+              "modify": { "type": "array", "items": { "type": "string" } },
+              "delete": { "type": "array", "items": { "type": "string" } },
+              "test": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["title", "description"],
+              "properties": {
+                "title": { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
