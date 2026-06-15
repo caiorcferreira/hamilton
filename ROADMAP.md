@@ -13,7 +13,11 @@
 - [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has.
 - [ ] Implement write progress tool
 - [ ] Implement write plan tool
-- [ ] Ensure retry_step and `status: retry` work
+- [ ] Ensure retry_step and `status: retry` work -> implement recursion support to solve this, use the Argo Workflows example
+- [ ] Add a todo/task tracking tool for the agent
+- [ ] Add full fledge templating
+- [ ] Create a spec authoring skill
+  - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
 
 ## Completed
 
@@ -83,3 +87,4 @@
 - [x] Improve visualization of `hamilton workflow list` — tabular output with columns, color, grouping by category
 - [x] Add commands to list workflow runs
 - [x] Use proper cli framework; we don't have support for help flag currently
+- [x] Refactor context/passing layer from forEach/context/vars/Context to arguments/inputs.*/WorkflowEnv with agent-level CONTEXT.md templates
