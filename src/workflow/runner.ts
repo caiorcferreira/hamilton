@@ -2,6 +2,8 @@ import { Effect, Schedule, Duration, Scope } from "effect"
 import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentPrompt } from "../prompts/builder.js"
 import { buildAutoContext, type Context } from "../workflow/context.js"
+import { resolveArguments } from "../workflow/arguments.js"
+import { type WorkflowEnv } from "../workflow/env.js"
 import { resolveDottedPath } from "../prompts/template.js"
 import { resolvePersona } from "../prompts/persona.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
@@ -34,6 +36,7 @@ export interface WorkflowResult {
   status: "completed" | "failed" | "paused"
   taskResults: Record<string, string>
   context: Context
+  env: WorkflowEnv
   startedAt: string
   completedAt: string
 }
@@ -105,6 +108,13 @@ export function runWorkflow(
       : ""
 
     const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId, progress_file: progressFilePath, progress: progressContent }
+    const workflowEnv: WorkflowEnv = {
+      ...(initialContext as WorkflowEnv),
+      tasks: {},
+      run_id: runId,
+      progress_file: progressFilePath,
+      progress: progressContent
+    }
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0
     let totalTokensOut = 0
@@ -112,8 +122,9 @@ export function runWorkflow(
 
     const executeSingleTask = (
       task: WorkflowTask,
-      taskContext: Context,
-      instanceName: string
+      taskData: Context | WorkflowEnv,
+      instanceName: string,
+      useNewPath: boolean
     ): Effect.Effect<void, unknown, EventBus | Scope.Scope> =>
       Effect.gen(function* () {
         if (!task.agent) return
@@ -135,13 +146,15 @@ export function runWorkflow(
         const prompt = buildAgentPrompt({
           agentFile: persona.agent,
           soulFile: persona.soul,
+          contextTemplate: useNewPath ? persona.context : undefined,
           prompt: task.agent!.prompt,
-          context: taskContext,
+          context: useNewPath ? undefined : (taskData as Context),
+          env: useNewPath ? (taskData as WorkflowEnv) : undefined,
           agentConfig: agent
         }, guidelineFiles)
 
         const finalPrompt = task.name === spec.spec.run.entrypoint
-          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${runningContext.user_input ?? ""}` }
+          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${useNewPath ? (taskData as WorkflowEnv).user_input ?? "" : (taskData as Context).user_input ?? ""}` }
           : prompt
 
         yield* _(bus.publish({
@@ -200,6 +213,7 @@ export function runWorkflow(
         taskResults[instanceName] = String(output.status ?? "done")
         if (!runningContext.tasks) (runningContext as Record<string, unknown>).tasks = {}
         ;(runningContext.tasks as Record<string, unknown>)[instanceName] = { outputs: output }
+        workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
 
         yield* _(ctx.transitionTask(instanceName, "complete"))
         if (fileEnabled) {
@@ -220,37 +234,64 @@ export function runWorkflow(
       for (const task of sortedTasks) {
         if (workflowStatus === "failed") break
 
+        const useArguments = !!task.arguments
+
         if (task.template) {
           const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
           if (!templateTask) continue
 
-          const arrValue = task.forEach
-            ? resolveDottedPath(runningContext, task.forEach.valueFrom.ref)
-            : undefined
-          const items = Array.isArray(arrValue) ? arrValue : [undefined]
+          if (useArguments) {
+            const resolvedArgs = resolveArguments(task, workflowEnv)
+            const itemsCount = resolvedArgs.itemsCount
 
-          for (let i = 0; i < items.length; i++) {
-            if (workflowStatus === "failed") break
+            for (let i = 0; i < itemsCount; i++) {
+              if (workflowStatus === "failed") break
 
-            const instanceName = `${task.name}/${i}`
-            const vars: Context = {}
-            if (task.forEach && items[i] !== undefined) {
-              vars[task.forEach.as] = items[i]
-            }
+              const instanceName = `${task.name}/${i}`
+              const taskEnv: WorkflowEnv = { ...workflowEnv, parameters: resolvedArgs.parameters }
 
-            const subContext = buildAutoContext(task, runningContext, vars)
-
-            if (templateTask.tasks && templateTask.tasks.length > 0) {
-              const sub = topologicalSort(templateTask.tasks)
-              for (const subTask of sub) {
-                if (workflowStatus === "failed") break
-                const subInstanceName = `${instanceName}-${subTask.name}`
-                yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef))
-                yield* _(executeSingleTask(subTask, subContext, subInstanceName))
+              if (templateTask.tasks && templateTask.tasks.length > 0) {
+                const sub = topologicalSort(templateTask.tasks)
+                for (const subTask of sub) {
+                  if (workflowStatus === "failed") break
+                  const subInstanceName = `${instanceName}-${subTask.name}`
+                  yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef))
+                  yield* _(executeSingleTask(subTask, taskEnv, subInstanceName, true))
+                }
+              } else if (templateTask.agent) {
+                yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef))
+                yield* _(executeSingleTask(templateTask, taskEnv, instanceName, true))
               }
-            } else if (templateTask.agent) {
-              yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef))
-              yield* _(executeSingleTask(templateTask, subContext, instanceName))
+            }
+          } else {
+            const arrValue = task.forEach
+              ? resolveDottedPath(runningContext, task.forEach.valueFrom.ref)
+              : undefined
+            const items = Array.isArray(arrValue) ? arrValue : [undefined]
+
+            for (let i = 0; i < items.length; i++) {
+              if (workflowStatus === "failed") break
+
+              const instanceName = `${task.name}/${i}`
+              const vars: Context = {}
+              if (task.forEach && items[i] !== undefined) {
+                vars[task.forEach.as] = items[i]
+              }
+
+              const subContext = buildAutoContext(task, runningContext, vars)
+
+              if (templateTask.tasks && templateTask.tasks.length > 0) {
+                const sub = topologicalSort(templateTask.tasks)
+                for (const subTask of sub) {
+                  if (workflowStatus === "failed") break
+                  const subInstanceName = `${instanceName}-${subTask.name}`
+                  yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef))
+                  yield* _(executeSingleTask(subTask, subContext, subInstanceName, false))
+                }
+              } else if (templateTask.agent) {
+                yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef))
+                yield* _(executeSingleTask(templateTask, subContext, instanceName, false))
+              }
             }
           }
           continue
@@ -268,8 +309,14 @@ export function runWorkflow(
           break
         }
 
-        const taskContext = buildAutoContext(task, runningContext, {})
-        yield* _(executeSingleTask(task, taskContext, task.name))
+        if (useArguments) {
+          const resolvedArgs = resolveArguments(task, workflowEnv)
+          const taskEnv: WorkflowEnv = { ...workflowEnv, parameters: resolvedArgs.parameters }
+          yield* _(executeSingleTask(task, taskEnv, task.name, true))
+        } else {
+          const taskContext = buildAutoContext(task, runningContext, {})
+          yield* _(executeSingleTask(task, taskContext, task.name, false))
+        }
       }
 
       const completedAt = new Date().toISOString()
@@ -290,7 +337,7 @@ export function runWorkflow(
         yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
       }
 
-      return { runId, status: workflowStatus, taskResults, context: runningContext, startedAt, completedAt } as WorkflowResult
+      return { runId, status: workflowStatus, taskResults, context: runningContext, env: workflowEnv, startedAt, completedAt } as WorkflowResult
     })
 
     const completedAt = new Date().toISOString()
@@ -306,7 +353,7 @@ export function runWorkflow(
           if (fileEnabled) {
             yield* _(writeSummary(runId, { runId, status: "failed", taskResults, context: runningContext, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds: Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) }))
           }
-          return { runId, status: "failed" as const, taskResults, context: runningContext, startedAt, completedAt }
+          return { runId, status: "failed" as const, taskResults, context: runningContext, env: workflowEnv, startedAt, completedAt }
         })
       ),
       Effect.ensuring(ctx.close())
