@@ -1,13 +1,16 @@
 import type { Prompt, AgentManifest } from "../types.js"
 import type { Context } from "../workflow/context.js"
+import type { WorkflowEnv } from "../workflow/env.js"
 import { resolveTemplate } from "./template.js"
 
 export interface PromptParams {
   agentFile: string
   soulFile: string
   prompt: Prompt
-  context: Context
+  context?: Context
   agentConfig: Partial<AgentManifest>
+  env?: WorkflowEnv
+  contextTemplate?: string
 }
 
 export interface BuiltPrompt {
@@ -42,10 +45,14 @@ IMPORTANT:
 
 {{persona}}
 
+<context>
 {{context}}
+</context>
 `
 
-// todo: rename BuiltPrompt to AgentPromptSet
+const defaultContextTemplate = `## Inputs
+{{inputs}}`
+
 export function buildAgentPrompt(
   params: PromptParams,
   guidelineFiles: Array<{ name: string; content: string }> = []
@@ -53,18 +60,30 @@ export function buildAgentPrompt(
   const persona = params.soulFile
     ? `<persona>\n${params.soulFile}\n</persona>`
     : ""
-  const context = Object.keys(params.context).length > 0
-    ? `<context>\n${JSON.stringify(params.context, null, 2)}\n</context>`
-    : ""
+
+  let renderedContext: string
+
+  if (params.env) {
+    const template = params.contextTemplate || defaultContextTemplate
+    renderedContext = resolveTemplate(template, { inputs: params.env })
+  } else {
+    renderedContext = Object.keys(params.context ?? {}).length > 0
+      ? `<context>\n${JSON.stringify(params.context, null, 2)}\n</context>`
+      : ""
+  }
 
   const resolvedSystem = resolveTemplate(systemTemplate, {
-    ...params.context,
+    ...(params.context ?? {}),
     instructions: params.agentFile,
     persona,
-    context,
+    context: renderedContext,
   })
 
-  const resolvedInput = resolveTemplate(params.prompt.content ?? "", params.context)
+  const resolveData: Record<string, unknown> = params.env
+    ? { inputs: params.env }
+    : (params.context ?? {})
+
+  const resolvedInput = resolveTemplate(params.prompt.content ?? "", resolveData)
 
   return {
     systemPrompt: resolvedSystem.trim(),

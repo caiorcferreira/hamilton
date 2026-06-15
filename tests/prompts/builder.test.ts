@@ -3,6 +3,7 @@ import {
   buildAgentPrompt,
   PromptParams
 } from "../../src/prompts/builder.js"
+import type { WorkflowEnv } from "../../src/workflow/env.js"
 
 describe("buildAgentPrompt", () => {
   const baseParams: PromptParams = {
@@ -93,5 +94,64 @@ describe("buildAgentPrompt", () => {
   it("defaults guidelineFiles to empty array", () => {
     const result = buildAgentPrompt(baseParams)
     expect(result.guidelineFiles).toEqual([])
+  })
+})
+
+describe("buildAgentPrompt with env", () => {
+  const makeEnv = (overrides?: Partial<WorkflowEnv>): WorkflowEnv => ({
+    tasks: {},
+    ...overrides
+  })
+
+  it("resolves task prompt from env inputs.*", () => {
+    const params: PromptParams = {
+      agentFile: "You are a coder.",
+      soulFile: "",
+      prompt: { content: "Fix bug in {{inputs.tasks.setup.outputs.repo}}" },
+      env: makeEnv({ tasks: { setup: { outputs: { repo: "hamilton" } } } }),
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.taskPrompt).toContain("Fix bug in hamilton")
+  })
+
+  it("uses default context template when env is provided without contextTemplate", () => {
+    const params: PromptParams = {
+      agentFile: "agent",
+      soulFile: "",
+      prompt: { content: "do" },
+      env: makeEnv({ cwd: "/tmp/repo" }),
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.systemPrompt).toContain("/tmp/repo")
+    expect(result.systemPrompt).toContain("## Inputs")
+  })
+
+  it("uses custom context template when provided", () => {
+    const params: PromptParams = {
+      agentFile: "agent",
+      soulFile: "",
+      prompt: { content: "do" },
+      env: makeEnv({ cwd: "/tmp/repo" }),
+      contextTemplate: "Working in {{inputs.cwd}}",
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.systemPrompt).toContain("Working in /tmp/repo")
+    expect(result.systemPrompt).not.toContain("## Inputs")
+  })
+
+  it("falls back to old context path when env is not provided", () => {
+    const params: PromptParams = {
+      agentFile: "agent",
+      soulFile: "",
+      prompt: { content: "Fix {{repo}}" },
+      context: { repo: "hamilton" },
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.taskPrompt).toContain("Fix hamilton")
+    expect(result.systemPrompt).toContain('"repo": "hamilton"')
   })
 })
