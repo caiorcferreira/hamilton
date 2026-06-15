@@ -242,16 +242,6 @@ export function getDurableDeferred(
   return row ?? null
 }
 
-export function updateRunContext(
-  db: Database,
-  runId: string,
-  contextJson: string
-): void {
-  db.prepare(
-    `UPDATE runs SET context_json = ? WHERE id = ?`
-  ).run(contextJson, runId)
-}
-
 export function updateRunEnv(
   db: Database,
   runId: string,

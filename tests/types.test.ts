@@ -12,7 +12,6 @@ import type {
   Prompt,
   OutputConfig,
   ForEach,
-  ContextFields,
   RunConfig
 } from "../src/types.js"
 
@@ -74,23 +73,23 @@ describe("types", () => {
     expect(spec.metadata.version).toBe(1)
   })
 
-  it("WorkflowTask with template and forEach", () => {
+  it("WorkflowTask with template and arguments", () => {
     const task: WorkflowTask = {
       name: "codify",
       dependencies: ["setup"],
       template: "develop",
-      forEach: {
-        valueFrom: { ref: "tasks.plan.outputs.user_stories" },
-        as: "user_story"
-      },
-      context: {
-        fields: [
+      arguments: {
+        forEach: {
+          valueFrom: { ref: "tasks.plan.outputs.user_stories" },
+          as: "user_story"
+        },
+        parameters: [
           { name: "setup", valueFrom: { ref: "tasks.setup.outputs" } }
         ]
       }
     }
     expect(task.template).toBe("develop")
-    expect(task.forEach?.as).toBe("user_story")
+    expect(task.arguments?.forEach?.as).toBe("user_story")
   })
 
   it("WorkflowTask with nested sub-tasks (template)", () => {

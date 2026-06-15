@@ -104,7 +104,7 @@ describe("runWorkflow DAG-aware executor", () => {
     expect(planIdx).toBeLessThan(implIdx)
   })
 
-  it("accumulates task outputs in context under tasks.<name>.outputs", async () => {
+  it("accumulates task outputs in env under tasks.<name>.outputs", async () => {
     const spec = makeSpec()
     const result = await Effect.runPromise(
       Effect.scoped(
@@ -113,9 +113,9 @@ describe("runWorkflow DAG-aware executor", () => {
     )
 
     expect(result.status).toBe("completed")
-    expect(result.context.tasks).toBeDefined()
-    expect((result.context.tasks as Record<string, unknown>)["plan"]).toEqual({ outputs: { status: "done", result: "ok" } })
-    expect((result.context.tasks as Record<string, unknown>)["implement"]).toEqual({ outputs: { status: "done", result: "ok" } })
+    expect(result.env.tasks).toBeDefined()
+    expect((result.env.tasks as Record<string, unknown>)["plan"]).toEqual({ outputs: { status: "done", result: "ok" } })
+    expect((result.env.tasks as Record<string, unknown>)["implement"]).toEqual({ outputs: { status: "done", result: "ok" } })
   })
 
   it("resolves agent refs correctly", async () => {
@@ -260,7 +260,7 @@ describe("runWorkflow DAG-aware executor", () => {
   })
 })
 
-describe("topological sort + context integration", () => {
+describe("topological sort + env integration", () => {
   it("topological sort produces valid execution order for DAG with multiple paths", () => {
     const tasks: WorkflowSpec["spec"]["tasks"] = [
       { name: "setup", agent: { executorRef: "a", prompt: { content: "" } } },

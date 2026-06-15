@@ -1,6 +1,4 @@
-import type { Context } from "../workflow/context.js"
-
-export function resolveDottedPath(context: Context, path: string): unknown {
+export function resolveDottedPath(context: Record<string, unknown>, path: string): unknown {
   const parts = path.split(".")
   let current: unknown = context
   for (const part of parts) {
@@ -12,7 +10,7 @@ export function resolveDottedPath(context: Context, path: string): unknown {
   return current
 }
 
-export function resolveTemplate(template: string, context: Context): string {
+export function resolveTemplate(template: string, context: Record<string, unknown>): string {
   return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
     const value = resolveDottedPath(context, key)
     if (value === undefined) return match

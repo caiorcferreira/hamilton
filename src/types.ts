@@ -73,15 +73,6 @@ export interface ForEach {
   as: string
 }
 
-export interface ContextField {
-  name: string
-  valueFrom: { ref: string }
-}
-
-export interface ContextFields {
-  fields: ContextField[]
-}
-
 export interface ArgumentParameter {
   name: string
   valueFrom: { ref: string }
@@ -97,8 +88,6 @@ export interface WorkflowTask {
   dependencies?: string[]
   agent?: TaskAgent
   template?: string
-  forEach?: ForEach
-  context?: ContextFields
   arguments?: Arguments
   tasks?: WorkflowTask[]
 }

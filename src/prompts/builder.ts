@@ -1,5 +1,4 @@
 import type { Prompt, AgentManifest } from "../types.js"
-import type { Context } from "../workflow/context.js"
 import type { WorkflowEnv } from "../workflow/env.js"
 import { resolveTemplate } from "./template.js"
 
@@ -7,10 +6,9 @@ export interface PromptParams {
   agentFile: string
   soulFile: string
   prompt: Prompt
-  context?: Context
-  agentConfig: Partial<AgentManifest>
-  env?: WorkflowEnv
+  env: WorkflowEnv
   contextTemplate?: string
+  agentConfig: Partial<AgentManifest>
 }
 
 export interface BuiltPrompt {
@@ -61,29 +59,16 @@ export function buildAgentPrompt(
     ? `<persona>\n${params.soulFile}\n</persona>`
     : ""
 
-  let renderedContext: string
-
-  if (params.env) {
-    const template = params.contextTemplate || defaultContextTemplate
-    renderedContext = resolveTemplate(template, { inputs: params.env })
-  } else {
-    renderedContext = Object.keys(params.context ?? {}).length > 0
-      ? `<context>\n${JSON.stringify(params.context, null, 2)}\n</context>`
-      : ""
-  }
+  const template = params.contextTemplate || defaultContextTemplate
+  const renderedContext = resolveTemplate(template, { inputs: params.env })
 
   const resolvedSystem = resolveTemplate(systemTemplate, {
-    ...(params.context ?? {}),
     instructions: params.agentFile,
     persona,
     context: renderedContext,
   })
 
-  const resolveData: Record<string, unknown> = params.env
-    ? { inputs: params.env }
-    : (params.context ?? {})
-
-  const resolvedInput = resolveTemplate(params.prompt.content ?? "", resolveData)
+  const resolvedInput = resolveTemplate(params.prompt.content ?? "", { inputs: params.env })
 
   return {
     systemPrompt: resolvedSystem.trim(),
