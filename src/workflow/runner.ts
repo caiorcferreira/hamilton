@@ -43,7 +43,7 @@ export interface WorkflowResult {
 
 export function runWorkflow(
   spec: WorkflowSpec,
-  initialContext: Context,
+  initialParameters: WorkflowEnv,
   config: WorkflowRunnerConfig,
   existingRunId?: string
 ): Effect.Effect<WorkflowResult, Error, EventBus | Scope.Scope> {
@@ -55,7 +55,7 @@ export function runWorkflow(
     const sortedTasks = topologicalSort(staticTasks)
 
     const ctx: WorkflowRuntime = yield* _(
-      createWorkflowRuntime(spec, initialContext, existingRunId).pipe(
+      createWorkflowRuntime(spec, initialParameters, existingRunId).pipe(
         Effect.mapError((e) => new Error(e.message))
       )
     )
@@ -71,7 +71,7 @@ export function runWorkflow(
       yield* _(createRunDir(runId))
       yield* _(writeInput(runId, {
         spec,
-        initialContext,
+        initialParameters,
         executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
       }))
     }
@@ -107,9 +107,9 @@ export function runWorkflow(
       ? Fs.readFileSync(progressFilePath, "utf-8")
       : ""
 
-    const runningContext: Context = { ...initialContext, tasks: {}, run_id: runId, progress_file: progressFilePath, progress: progressContent }
+    const runningContext: Context = { ...initialParameters, tasks: {}, run_id: runId, progress_file: progressFilePath, progress: progressContent }
     const workflowEnv: WorkflowEnv = {
-      ...(initialContext as WorkflowEnv),
+      ...initialParameters,
       tasks: {},
       run_id: runId,
       progress_file: progressFilePath,
@@ -213,6 +213,7 @@ export function runWorkflow(
         taskResults[instanceName] = String(output.status ?? "done")
         if (!runningContext.tasks) (runningContext as Record<string, unknown>).tasks = {}
         ;(runningContext.tasks as Record<string, unknown>)[instanceName] = { outputs: output }
+        if (!workflowEnv.tasks) workflowEnv.tasks = {}
         workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
 
         yield* _(ctx.transitionTask(instanceName, "complete"))

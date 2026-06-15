@@ -14,11 +14,11 @@ import {
   updateRunFailed,
   setDurableDeferred,
   getDurableDeferred,
-  updateRunContext
+  updateRunEnv
 } from "../db/queries.js"
 import { buildRunId, buildTaskId } from "../workflow/engine.js"
 import type { WorkflowSpec } from "../types.js"
-import type { Context } from "../workflow/context.js"
+import type { WorkflowEnv } from "../workflow/env.js"
 
 export class EngineError extends Data.TaggedError("EngineError")<{
   runId: string
@@ -228,7 +228,7 @@ function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agen
 
 export function createWorkflowRuntime(
   spec: WorkflowSpec,
-  context: Context,
+  params: WorkflowEnv,
   existingRunId?: string
 ): Effect.Effect<WorkflowRuntime, EngineError> {
   return Effect.gen(function* () {
@@ -270,7 +270,7 @@ export function createWorkflowRuntime(
         taskStates.set(t.task_name, "pending")
       }
 
-      updateRunContext(db, existingRunId, JSON.stringify(context))
+      updateRunEnv(db, existingRunId, JSON.stringify(params))
 
       db.prepare(
         `UPDATE runs SET status = 'running' WHERE id = ?`
@@ -284,7 +284,7 @@ const runId = buildRunId(spec.metadata.name)
 insertRun(db, runId, spec.metadata.name, new Date().toISOString())
     const taskEntries = collectAllTaskNames(spec)
     insertTasks(db, runId, taskEntries.map((t, i) => ({ taskName: t.taskName, agentName: t.agentName, executionIndex: i })))
-    updateRunContext(db, runId, JSON.stringify(context))
+    updateRunEnv(db, runId, JSON.stringify(params))
 
     const taskRows = getTasksByRunId(db, runId)
     const taskStates = new Map<string, TaskState>()

@@ -53,7 +53,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("starts a new run in running state", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     expect(rt.state).toBe("running")
     expect(rt.runId).toContain("test-wf-")
@@ -75,7 +75,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("shouldExecuteTask returns true for pending tasks", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     const should = await Effect.runPromise(rt.shouldExecuteTask("task-1"))
     expect(should).toBe(true)
@@ -85,7 +85,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("shouldExecuteTask returns false for completed tasks", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.transitionTask("task-1", "start"))
     await Effect.runPromise(rt.transitionTask("task-1", "complete"))
@@ -98,7 +98,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("pause transitions run to paused", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.pause())
     expect(rt.state).toBe("paused")
@@ -111,7 +111,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("resume from existing paused run skips completed tasks", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.transitionTask("task-1", "start"))
     await Effect.runPromise(rt.transitionTask("task-1", "complete"))
@@ -120,7 +120,7 @@ describe("WorkflowRuntime state machine", () => {
     const runId = rt.runId
     await Effect.runPromise(rt.close())
 
-    const resumed = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }, runId))
+    const resumed = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }, runId))
     expect(resumed.state).toBe("running")
 
     const resumedTasks = getTasksByRunId(resumed.db, runId)
@@ -140,7 +140,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("complete transitions run to completed", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.transitionTask("task-1", "start"))
     await Effect.runPromise(rt.transitionTask("task-1", "complete"))
@@ -158,7 +158,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("fail transitions run to failed", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.transitionTask("task-1", "start"))
     await Effect.runPromise(rt.transitionTask("task-1", "fail"))
@@ -174,7 +174,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("rejects invalid task transitions", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     const result = await Effect.runPromiseExit(rt.transitionTask("task-1", "complete"))
     expect(result._tag).toBe("Failure")
@@ -184,7 +184,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("rejects invalid run transitions", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.complete())
 
@@ -196,7 +196,7 @@ describe("WorkflowRuntime state machine", () => {
 
   it("insertDynamicTask adds a new task at runtime", async () => {
     const spec = makeSpec()
-    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { env: "test" }))
+    const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
     await Effect.runPromise(rt.insertDynamicTask("dynamic-task", "agent-a"))
 

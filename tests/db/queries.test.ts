@@ -21,7 +21,7 @@ import {
   getWorkflowState,
   setDurableDeferred,
   getDurableDeferred,
-  updateRunContext,
+  updateRunEnv,
   listRuns
 } from "../../src/db/queries.js"
 
