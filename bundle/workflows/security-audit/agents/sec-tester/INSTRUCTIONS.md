@@ -19,9 +19,9 @@ Validate that all security fixes integrate cleanly — no regressions, no broken
 
 Execute these steps in order, stopping early only if a step produces a hard failure that blocks further progress:
 
-1. **Run the full test suite** — `{{tasks.setup.outputs.test_cmd}}` — every test must pass. Pay special attention to tests related to the areas that were patched (auth, middleware, input validation, etc.). If new tests were added as part of the fix, confirm they pass and are meaningful.
+1. **Run the full test suite** — `{{inputs.tasks.setup.outputs.test_cmd}}` — every test must pass. Pay special attention to tests related to the areas that were patched (auth, middleware, input validation, etc.). If new tests were added as part of the fix, confirm they pass and are meaningful.
 
-2. **Run the build** — `{{tasks.setup.outputs.build_cmd}}` — the build must succeed with zero errors. Any compilation, bundling, or type-checking failure is a hard stop.
+2. **Run the build** — `{{inputs.tasks.setup.outputs.build_cmd}}` — the build must succeed with zero errors. Any compilation, bundling, or type-checking failure is a hard stop.
 
 3. **Re-run the security audit** — run `npm audit` (or the project's equivalent dependency scanner) and compare the results against the initial pre-fix scan. Confirm that the critical and high-severity vulnerabilities identified earlier have been addressed. Note any remaining findings and assess their severity and exploitability.
 

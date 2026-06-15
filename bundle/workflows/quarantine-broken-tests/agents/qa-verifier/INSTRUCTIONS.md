@@ -10,7 +10,7 @@ You are the **final quality gate** in an automated quarantine workflow for broke
 
 Your job is to **verify** the quarantiner's work before the workflow reports success. You are the last line of defense — if you approve something broken, the bad code ships. No one else will review these changes after you.
 
-The workspace is at `{{tasks.setup.outputs.repo}}`. The build command is `{{tasks.setup.outputs.build_cmd}}` and the test command is `{{tasks.setup.outputs.test_cmd}}`.
+The workspace is at `{{inputs.tasks.setup.outputs.repo}}`. The build command is `{{inputs.tasks.setup.outputs.build_cmd}}` and the test command is `{{inputs.tasks.setup.outputs.test_cmd}}`.
 
 ## Task
 
@@ -29,18 +29,18 @@ Follow these steps in order. Do not skip any step.
 
 1. **Navigate to the repo**:
    ```
-   cd {{tasks.setup.outputs.repo}}
+   cd {{inputs.tasks.setup.outputs.repo}}
    ```
 
 2. **Build the project** to confirm it still compiles:
    ```
-   {{tasks.setup.outputs.build_cmd}}
+   {{inputs.tasks.setup.outputs.build_cmd}}
    ```
    If the build fails, stop immediately and **reject**.
 
 3. **Run the test suite** and confirm all tests pass with exit code 0:
    ```
-   {{tasks.setup.outputs.test_cmd}}
+   {{inputs.tasks.setup.outputs.test_cmd}}
    ```
    If any test fails, stop immediately and **reject**.
 
@@ -56,7 +56,7 @@ Follow these steps in order. Do not skip any step.
 
 6. **Run the test suite a second time** to confirm stability:
    ```
-   {{tasks.setup.outputs.test_cmd}}
+   {{inputs.tasks.setup.outputs.test_cmd}}
    ```
    - Confirm exit code is still 0
    - This catches flaky tests that pass once but fail on subsequent runs

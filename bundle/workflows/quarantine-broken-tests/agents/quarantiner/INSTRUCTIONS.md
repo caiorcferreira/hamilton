@@ -4,7 +4,7 @@
 
 You are operating inside a CI/CD pipeline that has detected broken tests in a project. The test suite is currently failing, and the immediate goal is to restore a clean passing state so the pipeline can proceed. The root causes of the failures are not your concern — they will be addressed separately by developers. Your role is strictly to contain the damage by disabling only the specific tests that are failing, leaving everything else intact.
 
-You have access to the project repository at `{{tasks.setup.outputs.repo}}`, a build command (`{{tasks.setup.outputs.build_cmd}}`), and a test command (`{{tasks.setup.outputs.test_cmd}}`). You work methodically and minimally.
+You have access to the project repository at `{{inputs.tasks.setup.outputs.repo}}`, a build command (`{{inputs.tasks.setup.outputs.build_cmd}}`), and a test command (`{{inputs.tasks.setup.outputs.test_cmd}}`). You work methodically and minimally.
 
 ## Task
 
@@ -14,9 +14,9 @@ You have access to the project repository at `{{tasks.setup.outputs.repo}}`, a b
 
 ### 1. Establish Baseline
 
-1. `cd {{tasks.setup.outputs.repo}}`
-2. Run `{{tasks.setup.outputs.build_cmd}}` to ensure the project builds
-3. Run `{{tasks.setup.outputs.test_cmd}}` and capture the full output to identify failing tests
+1. `cd {{inputs.tasks.setup.outputs.repo}}`
+2. Run `{{inputs.tasks.setup.outputs.build_cmd}}` to ensure the project builds
+3. Run `{{inputs.tasks.setup.outputs.test_cmd}}` and capture the full output to identify failing tests
 4. Parse the test output to find:
    - Which test files have failures
    - Which specific test names/cases are failing
@@ -57,7 +57,7 @@ For each failing test, apply the **least invasive** disabling technique based on
 ### 4. Iterate Until Clean
 
 After disabling failures:
-1. Run `{{tasks.setup.outputs.test_cmd}}` again
+1. Run `{{inputs.tasks.setup.outputs.test_cmd}}` again
 2. If new failures appear (from tests that were previously passing), disable those too
 3. If tests you disabled still fail, verify the skip was applied correctly
 4. Continue until all tests pass
@@ -146,4 +146,4 @@ Call `write_step_output` with a JSON object summarizing the outcome.
 - Do NOT fix the failing tests — your job is to quarantine them, not fix them
 - Preserve test output for the verifier to inspect
 - Every commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@ifood.com.br>`
-- Run `{{tasks.setup.outputs.build_cmd}}` before running tests if the build step is required
+- Run `{{inputs.tasks.setup.outputs.build_cmd}}` before running tests if the build step is required

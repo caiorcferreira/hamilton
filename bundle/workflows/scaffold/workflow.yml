@@ -52,10 +52,10 @@ spec:
           content: |
             Verify the scaffolded project is correct and buildable.
   
-            PROJECT_DIR: {{tasks.scaffold.outputs.project_dir}}
-            BUILD_CMD: {{tasks.scaffold.outputs.build_cmd}}
-            TEST_CMD: {{tasks.scaffold.outputs.test_cmd}}
-            TECH_STACK: {{tasks.scaffold.outputs.tech_stack}}
+            PROJECT_DIR: {{inputs.tasks.scaffold.outputs.project_dir}}
+            BUILD_CMD: {{inputs.tasks.scaffold.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.scaffold.outputs.test_cmd}}
+            TECH_STACK: {{inputs.tasks.scaffold.outputs.tech_stack}}
   
             Check:
             1. Project directory exists

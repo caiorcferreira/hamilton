@@ -61,7 +61,7 @@ spec:
             Prepare the development environment for this feature.
 
             Instructions:
-            1. Run the command: cd {{cwd}}
+            1. Run the command: cd {{inputs.cwd}}
             2. Run the command to learn the current branch: git branch --show-current
             3. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
             4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
@@ -81,9 +81,10 @@ spec:
     - name: implement-stories
       dependencies: [setup]
       template: implement-story
-      forEach:
-        valueFrom:
-          ref: tasks.plan.outputs.tasks
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.plan.outputs.tasks
           as: current_task
     
     - name: implement-story
@@ -93,13 +94,13 @@ spec:
           content: |
             Implement the code for following task. You are working on ONE task in a fresh session.
 
-            Repository: {{cwd}}
-            Branch: {{tasks.setup.outputs.current_branch}}
-            Build command: {{tasks.setup.outputs.build_cmd}}
-            Test command: {{tasks.setup.outputs.test_cmd}}
+            Repository: {{inputs.cwd}}
+            Branch: {{inputs.tasks.setup.outputs.current_branch}}
+            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
   
             Current task:
-            {{vars.current_task}}
+            {{inputs.parameters.current_task}}
   
             VERIFY FEEDBACK (if retrying):
             {{verify_feedback}}
@@ -108,17 +109,17 @@ spec:
             {{timeout_retry}}
   
             PROGRESS LOG:
-            {{progress}}
-  
+            {{inputs.progress}}
+   
             Instructions:
-            1. Read {{progress_file}} — especially the Codebase Patterns section
+            1. Read {{inputs.progress_file}} — especially the Codebase Patterns section
             2. Pull latest on the branch
             3. Implement this task only
             4. Write tests for this task's functionality
             5. Run typecheck / build
             6. Run tests to confirm they pass
-            7. Commit: "feat: {{vars.current_task.title}}"
-            8. Rewrite {{progress_file}} with updated story results and patterns
+            7. Commit: "feat: {{inputs.parameters.current_task.title}}"
+            8. Rewrite {{inputs.progress_file}} with updated story results and patterns
             9. Update Codebase Patterns if you found reusable patterns
   
             Reply with:
@@ -135,10 +136,11 @@ spec:
     - name: verify-stories
       dependencies: [implement-stories]
       template: verify-story
-      forEach:
-        valueFrom:
-          ref: tasks.plan.outputs.tasks
-        as: current_task
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.plan.outputs.tasks
+          as: current_task
   
     - name: verify-story
       agent:
@@ -147,22 +149,22 @@ spec:
           content: |
             Verify the developer's work on this story.
 
-            REPO: {{tasks.plan.outputs.repo}}
-            BRANCH: {{tasks.plan.outputs.branch}}
+            REPO: {{inputs.tasks.plan.outputs.repo}}
+            BRANCH: {{inputs.tasks.plan.outputs.branch}}
             CHANGES: {{changes}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
   
             CURRENT STORY:
-            {{vars.current_task}}
+            {{inputs.parameters.current_task}}
   
             PROGRESS LOG:
-            {{progress}}
-  
+            {{inputs.progress}}
+   
             Check:
             1. Code exists (not just TODOs or placeholders)
             2. Each acceptance criterion for the story is met
             3. Tests were written for this story's functionality
-            4. Tests pass (run {{tasks.setup.outputs.test_cmd}})
+            4. Tests pass (run {{inputs.tasks.setup.outputs.test_cmd}})
             5. No obvious incomplete work
             6. Typecheck passes
   
@@ -208,17 +210,17 @@ spec:
           content: |
             Integration and E2E testing of the implementation.
 
-            REPO: {{tasks.plan.outputs.repo}}
-            BRANCH: {{tasks.plan.outputs.branch}}
+            REPO: {{inputs.tasks.plan.outputs.repo}}
+            BRANCH: {{inputs.tasks.plan.outputs.branch}}
             CHANGES: {{changes}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
-  
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
+   
             PROGRESS LOG:
-            {{progress}}
-  
+            {{inputs.progress}}
+   
             Your job (integration/E2E testing — unit tests were already written per-story):
-            1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) to confirm everything passes together
+            1. Run the full test suite ({{inputs.tasks.setup.outputs.test_cmd}}) to confirm everything passes together
             2. Look for integration issues between stories
             3. If this is a UI feature, use agent-browser to test it end-to-end
             4. Check cross-cutting concerns: error handling, edge cases across features

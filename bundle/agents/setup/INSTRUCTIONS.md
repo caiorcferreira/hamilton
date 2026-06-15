@@ -21,7 +21,7 @@ You must:
 
 Execute these steps in order:
 
-1. **Enter the repository:** `cd {{tasks.setup.outputs.repo}}`
+1. **Enter the repository:** `cd {{inputs.tasks.setup.outputs.repo}}`
 
 2. **Capture the starting branch** so a downstream merge step can return to it:
    `ORIGINAL_BRANCH=$(git branch --show-current)`
@@ -29,7 +29,7 @@ Execute these steps in order:
 3. **Update main and create the feature branch:**
    ```
    git fetch origin && git checkout main && git pull
-   git checkout -b {{tasks.setup.outputs.branch}}
+   git checkout -b {{inputs.tasks.setup.outputs.branch}}
    ```
 
 4. **Discover build and test commands** by inspecting the project:
@@ -66,11 +66,11 @@ Call `write_step_output` with a JSON object using **exactly** these keys:
 ```
 
 Downstream agents reference these as:
-- `{{tasks.setup.outputs.original_branch}}`
-- `{{tasks.setup.outputs.build_cmd}}`
-- `{{tasks.setup.outputs.test_cmd}}`
-- `{{tasks.setup.outputs.ci_notes}}`
-- `{{tasks.setup.outputs.baseline}}`
+- `{{inputs.tasks.setup.outputs.original_branch}}`
+- `{{inputs.tasks.setup.outputs.build_cmd}}`
+- `{{inputs.tasks.setup.outputs.test_cmd}}`
+- `{{inputs.tasks.setup.outputs.ci_notes}}`
+- `{{inputs.tasks.setup.outputs.baseline}}`
 
 Do not nest values inside other keys. Use the exact key names shown above.
 

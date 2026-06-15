@@ -71,7 +71,7 @@ spec:
           content: |
             Prioritize and group the security findings into a fix plan.
 
-            REPO: {{tasks.scan.outputs.repo}}
+            REPO: {{inputs.tasks.scan.outputs.repo}}
             VULNERABILITY_COUNT: {{vulnerability_count}}
             FINDINGS: {{findings}}
   
@@ -112,8 +112,8 @@ spec:
           content: |
             Prepare the environment for security fixes.
   
-            REPO: {{tasks.scan.outputs.repo}}
-            BRANCH: {{tasks.scan.outputs.branch}}
+            REPO: {{inputs.tasks.scan.outputs.repo}}
+            BRANCH: {{inputs.tasks.scan.outputs.branch}}
   
             Instructions:
             1. cd into the repo
@@ -136,10 +136,11 @@ spec:
     - name: fix-stories
       dependencies: [setup]
       template: fix-story
-      forEach:
-        valueFrom:
-          ref: tasks.prioritize.outputs.stories_json
-        as: current_story
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.prioritize.outputs.stories_json
+          as: current_story
   
     - name: fix-story
       agent:
@@ -148,13 +149,13 @@ spec:
           content: |
             Implement a security fix. You are working on ONE fix in a fresh session.
 
-            REPO: {{tasks.scan.outputs.repo}}
-            BRANCH: {{tasks.scan.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.scan.outputs.repo}}
+            BRANCH: {{inputs.tasks.scan.outputs.branch}}
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
   
             CURRENT STORY:
-            {{vars.current_story}}
+            {{inputs.parameters.current_story}}
   
             COMPLETED STORIES:
             {{completed_stories}}
@@ -168,7 +169,7 @@ spec:
             {{timeout_retry}}
   
             PROGRESS LOG:
-            {{progress}}
+            {{inputs.progress}}
   
             Instructions:
             1. cd into the repo, pull latest on the branch
@@ -178,10 +179,10 @@ spec:
                Exception: if the fix is a dependency version bump (go.mod, package.json, pyproject.toml, etc.),
                skip the regression test — the lock file (go.sum, package-lock.json, etc.) is the regression guard.
                Output: REGRESSION_TEST: none (dependency lock enforces version)
-            5. Run {{tasks.setup.outputs.build_cmd}} to verify the build passes
-            6. Run {{tasks.setup.outputs.test_cmd}} to verify all tests pass
+            5. Run {{inputs.tasks.setup.outputs.build_cmd}} to verify the build passes
+            6. Run {{inputs.tasks.setup.outputs.test_cmd}} to verify all tests pass
             7. Commit: fix(security): brief description
-            8. Rewrite {{progress_file}} with updated story results and patterns
+            8. Rewrite {{inputs.progress_file}} with updated story results and patterns
   
             Reply with:
             STATUS: done
@@ -197,10 +198,11 @@ spec:
     - name: verify-stories
       dependencies: [fix-stories]
       template: verify-story
-      forEach:
-        valueFrom:
-          ref: tasks.prioritize.outputs.stories_json
-        as: current_story
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.prioritize.outputs.stories_json
+          as: current_story
   
     - name: verify-story
       agent:
@@ -209,20 +211,20 @@ spec:
           content: |
             Verify the security fix is correct and the vulnerability is patched.
   
-            REPO: {{tasks.scan.outputs.repo}}
-            BRANCH: {{tasks.scan.outputs.branch}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.scan.outputs.repo}}
+            BRANCH: {{inputs.tasks.scan.outputs.branch}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
             CHANGES: {{changes}}
             REGRESSION_TEST: {{regression_test}}
   
             CURRENT STORY:
-            {{vars.current_story}}
+            {{inputs.parameters.current_story}}
   
             PROGRESS LOG:
-            {{progress}}
+            {{inputs.progress}}
   
             Instructions:
-            1. Run the full test suite with {{tasks.setup.outputs.test_cmd}}
+            1. Run the full test suite with {{inputs.tasks.setup.outputs.test_cmd}}
             2. Confirm the regression test exists and tests the right thing
             3. Review the fix — does it actually address the vulnerability?
             4. Check for unintended side effects
@@ -259,19 +261,19 @@ spec:
           content: |
             Final integration testing after all security fixes.
 
-            REPO: {{tasks.scan.outputs.repo}}
-            BRANCH: {{tasks.scan.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.scan.outputs.repo}}
+            BRANCH: {{inputs.tasks.scan.outputs.branch}}
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
             CHANGES: {{changes}}
             VULNERABILITY_COUNT: {{vulnerability_count}}
   
             PROGRESS LOG:
-            {{progress}}
+            {{inputs.progress}}
   
             Instructions:
-            1. Run the full test suite ({{tasks.setup.outputs.test_cmd}}) — all tests must pass
-            2. Run the build ({{tasks.setup.outputs.build_cmd}}) — must succeed
+            1. Run the full test suite ({{inputs.tasks.setup.outputs.test_cmd}}) — all tests must pass
+            2. Run the build ({{inputs.tasks.setup.outputs.build_cmd}}) — must succeed
             3. Run `npm audit` (or equivalent) again — compare before/after
             4. Quick smoke test: does the app still start and work?
             5. Verify no regressions from the security fixes

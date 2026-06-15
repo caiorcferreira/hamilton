@@ -56,7 +56,7 @@ spec:
           content: |
             Investigate the root cause of this bug.
 
-            REPO: {{tasks.triage.outputs.repo}}
+            REPO: {{inputs.tasks.triage.outputs.repo}}
             SEVERITY: {{severity}}
             AFFECTED_AREA: {{affected_area}}
             REPRODUCTION: {{reproduction}}
@@ -87,9 +87,9 @@ spec:
           content: |
             Prepare the environment for the bugfix.
   
-            REPO: {{tasks.triage.outputs.repo}}
-            BRANCH: {{tasks.triage.outputs.branch}}
-  
+            REPO: {{inputs.tasks.triage.outputs.repo}}
+            BRANCH: {{inputs.tasks.triage.outputs.branch}}
+   
             Instructions:
             1. cd into the repo
             2. Read package.json, CI config, test config to understand build/test setup
@@ -117,10 +117,10 @@ spec:
           content: |
             Implement the bug fix.
 
-            REPO: {{tasks.triage.outputs.repo}}
-            BRANCH: {{tasks.triage.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.triage.outputs.repo}}
+            BRANCH: {{inputs.tasks.triage.outputs.branch}}
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
             AFFECTED_AREA: {{affected_area}}
             ROOT_CAUSE: {{root_cause}}
             FIX_APPROACH: {{fix_approach}}
@@ -136,8 +136,8 @@ spec:
             1. cd into the repo, checkout the branch
             2. Implement the fix based on the root cause and fix approach
             3. Write a regression test that would have caught this bug
-            4. Run {{tasks.setup.outputs.build_cmd}} to verify the build passes
-            5. Run {{tasks.setup.outputs.test_cmd}} to verify all tests pass
+            4. Run {{inputs.tasks.setup.outputs.build_cmd}} to verify the build passes
+            5. Run {{inputs.tasks.setup.outputs.test_cmd}} to verify all tests pass
             6. Commit: fix: brief description of the fix
   
             Reply with:
@@ -159,23 +159,23 @@ spec:
           content: |
             Verify the bug fix is correct and complete.
 
-            REPO: {{tasks.triage.outputs.repo}}
-            BRANCH: {{tasks.triage.outputs.branch}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.triage.outputs.repo}}
+            BRANCH: {{inputs.tasks.triage.outputs.branch}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
             CHANGES: {{changes}}
             REGRESSION_TEST: {{regression_test}}
             ROOT_CAUSE: {{root_cause}}
             PROBLEM_STATEMENT: {{problem_statement}}
   
             Instructions:
-            1. Run the full test suite with {{tasks.setup.outputs.test_cmd}}
+            1. Run the full test suite with {{inputs.tasks.setup.outputs.test_cmd}}
             2. Confirm the regression test exists and tests the right thing
             3. Review the fix to confirm it addresses the root cause
             4. Check for unintended side effects
             5. Verify the regression test would fail without the fix (review the diff logic)
   
             MANDATORY first step:
-            - Run `git diff main..{{tasks.triage.outputs.branch}} --stat` and `git diff main..{{tasks.triage.outputs.branch}}`
+            - Run `git diff main..{{inputs.tasks.triage.outputs.branch}} --stat` and `git diff main..{{inputs.tasks.triage.outputs.branch}}`
             - If the diff is empty or only contains trivial changes (version bumps, lockfiles), REJECT immediately
             - Compare the diff against CHANGES claimed above — if they don't match, REJECT
   

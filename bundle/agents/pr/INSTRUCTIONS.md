@@ -27,13 +27,13 @@ Execute these steps in order:
 
 ```bash
 cd <repo-path>
-git checkout {{tasks.setup.outputs.branch}}
+git checkout {{inputs.tasks.setup.outputs.branch}}
 ```
 
 ### 2. Push the Branch
 
 ```bash
-git push -u origin {{tasks.setup.outputs.branch}}
+git push -u origin {{inputs.tasks.setup.outputs.branch}}
 ```
 
 ### 3. Create the Pull Request

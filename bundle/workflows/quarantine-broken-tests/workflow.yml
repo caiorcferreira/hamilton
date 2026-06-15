@@ -35,8 +35,8 @@ spec:
           content: |
             Prepare the environment for test quarantine.
 
-            REPO: {{tasks.setup.outputs.repo}}
-            BRANCH: {{tasks.setup.outputs.branch}}
+            REPO: {{inputs.tasks.setup.outputs.repo}}
+            BRANCH: {{inputs.tasks.setup.outputs.branch}}
   
             RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
             {{retry_feedback}}
@@ -70,21 +70,21 @@ spec:
           content: |
             Find and disable failing tests until the test suite passes.
 
-            REPO: {{tasks.setup.outputs.repo}}
-            BRANCH: {{tasks.setup.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.setup.outputs.repo}}
+            BRANCH: {{inputs.tasks.setup.outputs.branch}}
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
   
             RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
             {{retry_feedback}}
   
             Instructions:
-            1. cd into the repo and ensure you're on {{tasks.setup.outputs.branch}}
-            2. Run {{tasks.setup.outputs.build_cmd}} to confirm the project builds
-            3. Run {{tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
+            1. cd into the repo and ensure you're on {{inputs.tasks.setup.outputs.branch}}
+            2. Run {{inputs.tasks.setup.outputs.build_cmd}} to confirm the project builds
+            3. Run {{inputs.tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
             4. If zero failures on first run, run one more time to catch flaky tests
             5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-            6. Run {{tasks.setup.outputs.test_cmd}} after each batch of changes
+            6. Run {{inputs.tasks.setup.outputs.test_cmd}} after each batch of changes
             7. Iterate until all tests pass — then run one final time to confirm stability
             8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
   
@@ -112,10 +112,10 @@ spec:
           content: |
             Verify the quarantiner's work — confirm all tests pass and only test files were modified.
 
-            REPO: {{tasks.setup.outputs.repo}}
-            BRANCH: {{tasks.setup.outputs.branch}}
-            BUILD_CMD: {{tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{tasks.setup.outputs.test_cmd}}
+            REPO: {{inputs.tasks.setup.outputs.repo}}
+            BRANCH: {{inputs.tasks.setup.outputs.branch}}
+            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
+            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
             DISABLED: {{disabled}}
             SUMMARY: {{summary}}
   
@@ -123,9 +123,9 @@ spec:
             {{retry_feedback}}
   
             Check:
-            1. Run {{tasks.setup.outputs.build_cmd}} — build must pass
-            2. Run {{tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
-            3. Run {{tasks.setup.outputs.test_cmd}} a second time — confirm stability
+            1. Run {{inputs.tasks.setup.outputs.build_cmd}} — build must pass
+            2. Run {{inputs.tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
+            3. Run {{inputs.tasks.setup.outputs.test_cmd}} a second time — confirm stability
             4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
             5. Verify each disabled test has an explanatory comment
   

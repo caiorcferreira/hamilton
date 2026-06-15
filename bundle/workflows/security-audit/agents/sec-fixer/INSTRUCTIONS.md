@@ -57,8 +57,8 @@ The test must:
 
 Run both commands — they **must** pass before you commit:
 
-- `{{tasks.setup.outputs.build_cmd}}`
-- `{{tasks.setup.outputs.test_cmd}}`
+- `{{inputs.tasks.setup.outputs.build_cmd}}`
+- `{{inputs.tasks.setup.outputs.test_cmd}}`
 
 If either fails, fix your changes. Do not commit with failing tests.
 

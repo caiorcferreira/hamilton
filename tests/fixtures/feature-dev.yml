@@ -40,20 +40,20 @@ spec:
         prompt:
           content: |
             Setup environment.
-            REPO: {{tasks.setup.outputs.repo}}
+            REPO: {{inputs.tasks.setup.outputs.repo}}
     - name: codify
       dependencies:
         - setup
       template: develop
-      forEach:
-        valueFrom:
-          ref: tasks.plan.outputs.user_stories
-        as: user_story
-      context:
-        fields:
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.plan.outputs.user_stories
+          as: user_story
+        parameters:
           - name: repository
             valueFrom:
-              ref: tasks.setup.outputs.repo
+              ref: inputs.tasks.setup.outputs.repo
     - name: develop
       tasks:
         - name: implement
