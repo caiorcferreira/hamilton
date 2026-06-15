@@ -115,6 +115,11 @@ const ContextFieldsSchema = Schema.Struct({
   fields: Schema.Array(ContextFieldSchema)
 })
 
+const ArgumentsSchema = Schema.Struct({
+  forEach: Schema.optional(ForEachSchema),
+  parameters: Schema.optional(Schema.Array(ContextFieldSchema))
+})
+
 const WorkflowTaskSchema: Schema.Schema<any> = Schema.Struct({
   name: Schema.String,
   dependencies: Schema.optional(Schema.Array(Schema.String)),
@@ -122,6 +127,7 @@ const WorkflowTaskSchema: Schema.Schema<any> = Schema.Struct({
   template: Schema.optional(Schema.String),
   forEach: Schema.optional(ForEachSchema),
   context: Schema.optional(ContextFieldsSchema),
+  arguments: Schema.optional(ArgumentsSchema),
   tasks: Schema.optional(Schema.suspend(() => Schema.Array(WorkflowTaskSchema)))
 })
 

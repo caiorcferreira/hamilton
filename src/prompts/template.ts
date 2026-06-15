@@ -19,3 +19,7 @@ export function resolveTemplate(template: string, context: Context): string {
     return typeof value === "string" ? value : JSON.stringify(value)
   })
 }
+
+export function resolveInputsTemplate(template: string, env: Record<string, unknown>): string {
+  return resolveTemplate(template, { inputs: env })
+}

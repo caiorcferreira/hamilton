@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { resolveDottedPath, resolveTemplate } from "../../src/prompts/template.js"
+import { resolveDottedPath, resolveTemplate, resolveInputsTemplate } from "../../src/prompts/template.js"
+import type { WorkflowEnv } from "../../src/workflow/env.js"
 
 describe("resolveDottedPath", () => {
   it("resolves a simple path", () => {
@@ -84,5 +85,34 @@ describe("resolveTemplate", () => {
 
   it("keeps unreplaced template with dotted path intact", () => {
     expect(resolveTemplate("MISSING: {{tasks.nonexistent.field}}", {})).toBe("MISSING: {{tasks.nonexistent.field}}")
+  })
+})
+
+describe("resolveInputsTemplate", () => {
+  const env: WorkflowEnv = {
+    cwd: "/tmp/repo",
+    tasks: {
+      setup: { outputs: { repo: "/tmp/repo", branch: "feat/x" } }
+    },
+    parameters: { current_task: { title: "Task A" } }
+  }
+
+  it("resolves inputs.tasks.setup.outputs", () => {
+    expect(resolveInputsTemplate("REPO: {{inputs.tasks.setup.outputs.repo}}", env))
+      .toBe("REPO: /tmp/repo")
+  })
+
+  it("resolves inputs.cwd", () => {
+    expect(resolveInputsTemplate("DIR: {{inputs.cwd}}", env)).toBe("DIR: /tmp/repo")
+  })
+
+  it("resolves inputs.parameters for forEach items", () => {
+    expect(resolveInputsTemplate("TASK: {{inputs.parameters.current_task}}", env))
+      .toBe('TASK: {"title":"Task A"}')
+  })
+
+  it("keeps unreplaced inputs.* templates", () => {
+    expect(resolveInputsTemplate("MISSING: {{inputs.nonexistent.field}}", {}))
+      .toBe("MISSING: {{inputs.nonexistent.field}}")
   })
 })

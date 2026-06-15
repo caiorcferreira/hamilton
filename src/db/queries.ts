@@ -252,6 +252,16 @@ export function updateRunContext(
   ).run(contextJson, runId)
 }
 
+export function updateRunEnv(
+  db: Database,
+  runId: string,
+  envJson: string
+): void {
+  db.prepare(
+    `UPDATE runs SET context_json = ? WHERE id = ?`
+  ).run(envJson, runId)
+}
+
 export interface RunSummary {
   id: string
   workflow_id: string

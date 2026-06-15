@@ -6,6 +6,7 @@ import type { SystemPromptPaths } from "../types.js"
 export interface Persona {
   agent: string
   soul: string
+  context: string
 }
 
 export class PersonaNotFoundError extends Data.TaggedError("PersonaNotFoundError")<{
@@ -39,6 +40,8 @@ export function resolvePersona(
 
     const soul = paths.soul ? tryReadOptional(resolvePath(paths.soul)) : ""
 
-    return { agent, soul }
+    const context = tryReadOptional(resolvePath("CONTEXT.md"))
+
+    return { agent, soul, context }
   })
 }
