@@ -4,6 +4,7 @@ import { buildAgentPrompt } from "../prompts/builder.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
+import type { TemplateOptions } from "../prompts/template.js"
 
 import { resolvePersona } from "../prompts/persona.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
@@ -44,6 +45,7 @@ export function runWorkflow(
   spec: WorkflowSpec,
   initialParameters: WorkflowEnv,
   config: WorkflowRunnerConfig,
+  templateOptions: TemplateOptions,
   existingRunId?: string
 ): Effect.Effect<WorkflowResult, Error, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
@@ -147,7 +149,7 @@ export function runWorkflow(
           prompt: task.agent!.prompt,
           env: taskEnv,
           agentConfig: agent
-        }, guidelineFiles)
+        }, guidelineFiles, templateOptions)
 
         const finalPrompt = task.name === spec.spec.run.entrypoint
           ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${taskEnv.user_input ?? ""}` }
