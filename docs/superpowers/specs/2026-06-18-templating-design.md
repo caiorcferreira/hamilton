@@ -41,7 +41,7 @@ templating:
                   # true  = throw MissingVariableError, task fails before agent invocation
 ```
 
-When `strict: false`, Handlebars is configured with a custom `missingVariable` handler that returns the original placeholder text (e.g. `{{unknown}}`). This preserves the current regex resolver's behavior where unresolved placeholders pass through as literal text.
+When `strict: false`, Handlebars renders missing variables as empty strings — its default behavior. This is a minor change from the old regex resolver which left the literal `{{placeholder}}` text intact. The stricter behavior is cleaner for agent prompts (no confusing leftover `{{tags}}`).
 
 When `strict: true`, a `MissingVariableError` is thrown at render time. The task fails immediately — the agent is never called.
 
