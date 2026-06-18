@@ -63,11 +63,11 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const sharedAgentsDir = Path.join(hamiltonHome(), "agents")
     const workflows = discoverWorkflows(wfDir)
     const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
-const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
+    const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
-const templateOptions = yield* _(loadTemplateConfig())
+    const templateOptions = yield* _(loadTemplateConfig())
 
-const result = yield* _(
+    const result = yield* _(
       runWorkflow(spec, { user_input: params.prompt, cwd: process.cwd() }, {
         workflowsDir: wfDir
       }, templateOptions).pipe(

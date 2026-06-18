@@ -1,10 +1,14 @@
-import { Effect } from "effect"
+import { Data, Effect } from "effect"
 import * as Fs from "node:fs"
 import * as Yaml from "yaml"
 import { settingsPath } from "../paths.js"
 import type { TemplateOptions } from "./template.js"
 
-export function loadTemplateConfig(): Effect.Effect<TemplateOptions, Error> {
+export class TemplateConfigError extends Data.TaggedError("TemplateConfigError")<{
+  message: string
+}> { }
+
+export function loadTemplateConfig(): Effect.Effect<TemplateOptions, TemplateConfigError> {
   return Effect.try({
     try: () => {
       const path = settingsPath()
@@ -20,6 +24,6 @@ export function loadTemplateConfig(): Effect.Effect<TemplateOptions, Error> {
       const strict = (templating as Record<string, unknown>)["strict"]
       return { strict: strict === true }
     },
-    catch: () => new Error("Failed to load template config")
+    catch: (e) => new TemplateConfigError({ message: String(e) })
   })
 }

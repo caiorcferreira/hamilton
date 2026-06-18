@@ -29,6 +29,7 @@ export function resolveDottedPath(context: Record<string, unknown>, path: string
     if (current === null || current === undefined || typeof current !== "object") {
       return undefined
     }
+    if (!Object.hasOwn(current as Record<string, unknown>, part)) return undefined
     current = (current as Record<string, unknown>)[part]
   }
   return current
@@ -79,7 +80,7 @@ function scanTemplatePaths(template: string): string[] {
   for (const m of template.matchAll(/\{\{(?!\#|\/)([\w.]+)\}\}/g)) {
     paths.add(m[1])
   }
-  for (const m of template.matchAll(/\{\{#(?:if|unless)\s+([\w.]+)\}\}/g)) {
+  for (const m of template.matchAll(/\{\{#(?:if|unless|each)\s+([\w.]+)\}\}/g)) {
     paths.add(m[1])
   }
   return [...paths]
