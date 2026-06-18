@@ -146,4 +146,14 @@ describe("buildAgentPrompt", () => {
     const result = buildAgentPrompt(params)
     expect(result.taskPrompt).toBe("Hello")
   })
+
+  it("skips template resolution when prompt has skipTemplate flag", () => {
+    const params: PromptParams = {
+      ...baseParams,
+      prompt: { content: "Keep {{this}} as-is", skipTemplate: true },
+      env: { tasks: {} }
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.taskPrompt).toBe("Keep {{this}} as-is")
+  })
 })

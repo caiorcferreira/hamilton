@@ -160,7 +160,17 @@ describe("resolveTemplate", () => {
 
   describe("strict mode", () => {
     it("throws MissingVariableError when variable is missing", () => {
-      expect(() => resolveTemplate("Hello {{name}}!", {}, strict)).toThrow()
+      try {
+        resolveTemplate("Hello {{name}}!", {}, strict)
+        expect.unreachable("Should have thrown")
+      } catch (e: any) {
+        expect(e._tag).toBe("MissingVariableError")
+        expect(e.variable).toBe("name")
+      }
+    })
+
+    it("throws MissingVariableError for missing variable in {{#if}} condition", () => {
+      expect(() => resolveTemplate("{{#if inputs.ready}}OK{{/if}}", {}, strict)).toThrow()
     })
 
     it("renders missing variables as empty string in lenient mode (dotted path)", () => {

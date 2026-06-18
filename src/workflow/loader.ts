@@ -44,6 +44,10 @@ export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
         throw new Error(`Prompt file not found: ${task.agent.prompt.file}`)
       }
       task.agent.prompt.content = content
+      const ext = Path.extname(task.agent.prompt.file).toLowerCase()
+      if (ext !== ".hbs" && ext !== ".md") {
+        task.agent.prompt.skipTemplate = true
+      }
     }
     if (task.agent.output?.schema?.file) {
       const schemaPath = Path.resolve(workflowDir, task.agent.output.schema.file)

@@ -72,7 +72,9 @@ export function buildAgentPrompt(
     context: renderedContext,
   }, options)
 
-  const resolvedInput = resolveTemplate(params.prompt.content ?? "", { inputs: params.env }, options)
+  const resolvedInput = params.prompt.skipTemplate
+    ? (params.prompt.content ?? "")
+    : resolveTemplate(params.prompt.content ?? "", { inputs: params.env }, options)
 
   return {
     systemPrompt: resolvedSystem.trim(),

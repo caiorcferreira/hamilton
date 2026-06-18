@@ -58,6 +58,7 @@ export interface OutputConfig {
 export interface Prompt {
   content?: string
   file?: string
+  skipTemplate?: boolean
 }
 
 export interface TaskAgent {

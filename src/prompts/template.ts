@@ -79,6 +79,9 @@ function scanTemplatePaths(template: string): string[] {
   for (const m of template.matchAll(/\{\{(?!\#|\/)([\w.]+)\}\}/g)) {
     paths.add(m[1])
   }
+  for (const m of template.matchAll(/\{\{#(?:if|unless)\s+([\w.]+)\}\}/g)) {
+    paths.add(m[1])
+  }
   return [...paths]
 }
 

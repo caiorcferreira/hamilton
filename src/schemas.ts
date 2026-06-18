@@ -85,7 +85,8 @@ const OutputConfigSchema = Schema.Struct({
 
 const PromptSchema = Schema.Struct({
   content: Schema.optional(Schema.String),
-  file: Schema.optional(Schema.String)
+  file: Schema.optional(Schema.String),
+  skipTemplate: Schema.optional(Schema.Boolean)
 }).pipe(
   Schema.filter(
     (p: any) => (p.content ? !p.file : !!p.file),
