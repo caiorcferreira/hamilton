@@ -6,12 +6,14 @@ import * as Path from "node:path"
 import type { WorkflowSpec } from "../types.js"
 import { WorkflowSpecSchema, InvalidManifestEnvelopeError } from "../schemas.js"
 import { composeVariants } from "./variants.js"
+import { findNearestSlugs } from "./resolver.js"
 import { loadAgentManifests, DuplicateAgentError, AgentManifestParseError } from "./agent-registry.js"
 import type { WorkflowDescriptor } from "./agent-registry.js"
 
 export class WorkflowNotFoundError extends Schema.TaggedError<WorkflowNotFoundError>("WorkflowNotFoundError")("WorkflowNotFoundError", {
   workflowName: Schema.String,
-  dir: Schema.String
+  dir: Schema.String,
+  nearestMatches: Schema.Array(Schema.String)
 }) { }
 
 export class WorkflowParseError extends Schema.TaggedError<WorkflowParseError>("WorkflowParseError")("WorkflowParseError", {
@@ -79,7 +81,11 @@ export function loadWorkflowSpec(
     const content = yield* _(
       Effect.try({
         try: () => Fs.readFileSync(filePath, "utf-8"),
-        catch: () => new WorkflowNotFoundError({ workflowName, dir })
+        catch: () => {
+          const availableNames = new Set(workflows.map((w) => w.name))
+          const nearestMatches = findNearestSlugs(workflowName, availableNames)
+          return new WorkflowNotFoundError({ workflowName, dir, nearestMatches })
+        }
       })
     )
 

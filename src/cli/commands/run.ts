@@ -110,7 +110,18 @@ export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slu
       ).pipe(Effect.provide(EventBusLive))
     )
     if (Exit.isFailure(result)) {
-      yield* Console.error(`Workflow failed: ${String(result.cause)}`)
+      const cause = result.cause
+      yield* Console.error(`Workflow failed: ${String(cause)}`)
+      if (typeof cause === "object" && cause !== null && "_tag" in cause && (cause as any)._tag === "WorkflowNotFoundError") {
+        const err = cause as unknown as { workflowName: string; nearestMatches: string[] }
+        if (err.nearestMatches && err.nearestMatches.length > 0) {
+          yield* Console.log("")
+          yield* Console.log("Did you mean:")
+          for (const match of err.nearestMatches) {
+            yield* Console.log(`  - ${match}`)
+          }
+        }
+      }
       return
     }
     yield* Console.log(`Run ID: ${result.value.runId}`)
