@@ -12,6 +12,7 @@ import type { WorkflowSpec } from "../../types.js"
 import { EventBusLive } from "../../events/bus.js"
 import { FileLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
+import { loadTemplateConfig } from "../../prompts/config.js"
 
 export class ResumeError extends Data.TaggedError("ResumeError")<{
   runId: string
@@ -73,6 +74,10 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
       Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
     ))
 
+    const templateOptions = yield* _(loadTemplateConfig().pipe(
+      Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
+    ))
+
     const result = yield* _(
       Effect.scoped(
         Effect.gen(function* () {
@@ -80,7 +85,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
           yield* CliRenderer
           return yield* runWorkflow(spec as unknown as WorkflowSpec, context, {
             workflowsDir: wfDir
-          }, runId).pipe(
+          }, templateOptions, runId).pipe(
             Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
           )
         })
