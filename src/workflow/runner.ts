@@ -151,9 +151,15 @@ export function runWorkflow(
           agentConfig: agent
         }, guidelineFiles, templateOptions)
 
-        const finalPrompt = task.name === spec.spec.run.entrypoint
-          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${taskEnv.user_input ?? ""}` }
-          : prompt
+        let taskPromptContent = prompt.taskPrompt
+        if (task.agent?.output?.schema?.content) {
+          const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
+          taskPromptContent = `<expected_output_schema>\n${schemaJson}\n</expected_output_schema>\n\n<task>\n${taskPromptContent}\n</task>`
+        }
+        if (task.name === spec.spec.run.entrypoint) {
+          taskPromptContent = `${taskPromptContent}\n\n# User input\n\n${taskEnv.user_input ?? ""}`
+        }
+        const finalPrompt = { ...prompt, taskPrompt: taskPromptContent }
 
         yield* _(bus.publish({
           _tag: "PromptBuilt",

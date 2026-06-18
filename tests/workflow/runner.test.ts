@@ -258,6 +258,38 @@ describe("runWorkflow DAG-aware executor", () => {
     const promptBuilt = events.filter(e => e._tag === "PromptBuilt")
     expect(promptBuilt.length).toBe(2)
   })
+
+  it("injects output schema into task prompt when schema is present", async () => {
+    const schemaContent = { type: "object", properties: { status: { type: "string" }, repo: { type: "string" } }, required: ["status"] }
+    const spec = makeSpec({
+      spec: {
+        ...makeSpec().spec,
+        tasks: [
+          { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan the feature" }, output: { schema: { content: schemaContent } } } },
+          { name: "implement", dependencies: ["plan"], agent: { executorRef: "coder", prompt: { content: "Implement it" } } }
+        ]
+      }
+    })
+
+    const events = await collectEvents(
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+    )
+
+    const planPromptBuilt = events.find(e => e._tag === "PromptBuilt" && e.taskId.includes("plan"))
+    expect(planPromptBuilt).toBeDefined()
+    const ppb = planPromptBuilt as Extract<Event, { _tag: "PromptBuilt" }>
+    expect(ppb.taskPrompt).toContain("<expected_output_schema>")
+    expect(ppb.taskPrompt).toContain("</expected_output_schema>")
+    expect(ppb.taskPrompt).toContain('"type": "object"')
+    expect(ppb.taskPrompt).toContain("<task>")
+    expect(ppb.taskPrompt).toContain("</task>")
+    expect(ppb.taskPrompt).toContain("Plan the feature")
+
+    const implPromptBuilt = events.find(e => e._tag === "PromptBuilt" && e.taskId.includes("implement"))
+    expect(implPromptBuilt).toBeDefined()
+    const ipb = implPromptBuilt as Extract<Event, { _tag: "PromptBuilt" }>
+    expect(ipb.taskPrompt).not.toContain("<expected_output_schema>")
+  })
 })
 
 describe("topological sort + env integration", () => {
