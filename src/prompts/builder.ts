@@ -1,6 +1,6 @@
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
-import { resolveTemplate } from "./template.js"
+import { resolveTemplate, type TemplateOptions } from "./template.js"
 
 export interface PromptParams {
   agentFile: string
@@ -53,22 +53,26 @@ const defaultContextTemplate = `## Inputs
 
 export function buildAgentPrompt(
   params: PromptParams,
-  guidelineFiles: Array<{ name: string; content: string }> = []
+  guidelineFiles: Array<{ name: string; content: string }> = [],
+  options: TemplateOptions = { strict: false }
 ): BuiltPrompt {
   const persona = params.soulFile
     ? `<persona>\n${params.soulFile}\n</persona>`
     : ""
 
   const template = params.contextTemplate || defaultContextTemplate
-  const renderedContext = resolveTemplate(template, { inputs: params.env })
+  const contextForTemplate = params.contextTemplate
+    ? { inputs: params.env }
+    : { inputs: JSON.stringify(params.env) }
+  const renderedContext = resolveTemplate(template, contextForTemplate, options)
 
   const resolvedSystem = resolveTemplate(systemTemplate, {
     instructions: params.agentFile,
     persona,
     context: renderedContext,
-  })
+  }, options)
 
-  const resolvedInput = resolveTemplate(params.prompt.content ?? "", { inputs: params.env })
+  const resolvedInput = resolveTemplate(params.prompt.content ?? "", { inputs: params.env }, options)
 
   return {
     systemPrompt: resolvedSystem.trim(),
