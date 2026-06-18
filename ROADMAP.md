@@ -15,12 +15,12 @@
 - [ ] Implement write plan tool
 - [ ] Ensure retry_step and `status: retry` work -> implement recursion support to solve this, use the Argo Workflows example
 - [ ] Add a todo/task tracking tool for the agent
-- [ ] Add full fledge templating
 - [ ] Create a spec authoring skill
   - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
 
 ## Completed
 
+- [x] Add full fledge templating
 - [x] Use custom nanoid alphabet without `-` to make ID separator unambiguous
 - [x] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
 - [x] Replace all references of `step` for `task`
