@@ -126,4 +126,24 @@ describe("buildAgentPrompt", () => {
     expect(result.systemPrompt).toContain("Working in /tmp/repo")
     expect(result.systemPrompt).not.toContain("## Inputs")
   })
+
+  it("passes TemplateOptions through to resolution", () => {
+    const params: PromptParams = {
+      ...baseParams,
+      prompt: { content: "Hello {{inputs.name}}" },
+      env: { tasks: {}, name: "world" }
+    }
+    const result = buildAgentPrompt(params, [], { strict: false })
+    expect(result.taskPrompt).toBe("Hello world")
+  })
+
+  it("defaults TemplateOptions to lenient when not provided", () => {
+    const params: PromptParams = {
+      ...baseParams,
+      prompt: { content: "Hello {{inputs.missing}}" },
+      env: { tasks: {} }
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.taskPrompt).toBe("Hello")
+  })
 })
