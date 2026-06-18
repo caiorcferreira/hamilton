@@ -17,6 +17,7 @@ import { makeToolCallRepository } from "../../telemetry/repositories/tool-call-r
 import { makeProviderRequestRepository } from "../../telemetry/repositories/provider-request-repository.js"
 import { loadTelemetryConfig } from "../../telemetry/config.js"
 import { dbPath } from "../../paths.js"
+import { loadTemplateConfig } from "../../prompts/config.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -64,10 +65,12 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const resolvedSlug = resolveWorkflowSlug(params.workflowSlug, new Set(availableSlugs))
 const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
+const templateOptions = yield* _(loadTemplateConfig())
+
 const result = yield* _(
       runWorkflow(spec, { user_input: params.prompt, cwd: process.cwd() }, {
         workflowsDir: wfDir
-      }).pipe(
+      }, templateOptions).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )
     )
