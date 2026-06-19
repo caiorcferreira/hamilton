@@ -112,13 +112,16 @@ export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slu
     if (Exit.isFailure(result)) {
       const cause = result.cause
       yield* Console.error(`Workflow failed: ${String(cause)}`)
-      if (typeof cause === "object" && cause !== null && "_tag" in cause && (cause as any)._tag === "WorkflowNotFoundError") {
-        const err = cause as unknown as { workflowName: string; nearestMatches: string[] }
-        if (err.nearestMatches && err.nearestMatches.length > 0) {
-          yield* Console.log("")
-          yield* Console.log("Did you mean:")
-          for (const match of err.nearestMatches) {
-            yield* Console.log(`  - ${match}`)
+      if (cause._tag === "Fail") {
+        const error = cause.error
+        if (error != null && typeof error === "object" && "_tag" in error && (error as any)._tag === "WorkflowNotFoundError") {
+          const err = error as unknown as { workflowName: string; nearestMatches: string[] }
+          if (err.nearestMatches && err.nearestMatches.length > 0) {
+            yield* Console.log("")
+            yield* Console.log("Did you mean:")
+            for (const match of err.nearestMatches) {
+              yield* Console.log(`  - ${match}`)
+            }
           }
         }
       }
