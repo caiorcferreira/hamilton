@@ -10,7 +10,8 @@ export function createSchema(db: Database): void {
       completed_at TEXT,
       current_task TEXT,
       error_message TEXT,
-      context_json TEXT DEFAULT '{}'
+      context_json TEXT DEFAULT '{}',
+      pid INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS tasks (

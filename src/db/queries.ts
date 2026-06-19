@@ -261,6 +261,16 @@ export interface RunSummary {
   current_task: string | null
 }
 
+export function updateRunPid(
+  db: Database,
+  runId: string,
+  pid: number
+): void {
+  db.prepare(
+    `UPDATE runs SET pid = ? WHERE id = ?`
+  ).run(pid, runId)
+}
+
 export function listRuns(
   db: Database,
   opts?: { status?: string; limit?: number }
