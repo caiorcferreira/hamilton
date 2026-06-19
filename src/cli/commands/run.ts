@@ -18,7 +18,7 @@ import { makeProviderRequestRepository } from "../../telemetry/repositories/prov
 import { loadTelemetryConfig } from "../../telemetry/config.js"
 import { dbPath } from "../../paths.js"
 import { loadTemplateConfig } from "../../prompts/config.js"
-import { updateRunPid } from "../../db/queries.js"
+import { updateRunPid, insertRunWithPid } from "../../db/queries.js"
 import { buildRunId } from "../../workflow/engine.js"
 import { migrate } from "../../db/migrations.js"
 
@@ -64,7 +64,6 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       yield* _(Effect.sync(() => {
         const db = new Database(dbPath())
         migrate(db)
-        updateRunPid(db, params.externalRunId!, process.pid)
         db.close()
       }))
     }
@@ -83,7 +82,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const result = yield* _(
       runWorkflow(spec, { user_input: params.prompt, cwd: process.cwd() }, {
         workflowsDir: wfDir
-      }, templateOptions).pipe(
+      }, templateOptions, params.externalRunId).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )
     )
@@ -118,7 +117,7 @@ export const runCommand = Command.make("run", { slug, prompt, variants, foregrou
       child.unref()
       const db = new Database(dbPath())
       migrate(db)
-      updateRunPid(db, runId, child.pid)
+      insertRunWithPid(db, runId, slug, new Date().toISOString(), child.pid)
       db.close()
       yield* Console.log(`Run ID: ${runId}`)
       yield* Console.log("Running in background. Use 'hamilton status <run-id>' to check progress.")

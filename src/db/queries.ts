@@ -62,6 +62,18 @@ export function insertRun(
   ).run(runId, workflowId, startedAt)
 }
 
+export function insertRunWithPid(
+  db: Database,
+  runId: string,
+  workflowId: string,
+  startedAt: string,
+  pid: number
+): void {
+  db.prepare(
+    `INSERT OR REPLACE INTO runs (id, workflow_id, status, started_at, pid) VALUES (?, ?, 'running', ?, ?)`
+  ).run(runId, workflowId, startedAt, pid)
+}
+
 export function insertTasks(
   db: Database,
   runId: string,

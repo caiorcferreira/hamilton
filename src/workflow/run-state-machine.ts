@@ -244,10 +244,23 @@ export function createWorkflowRuntime(
           new EngineError({ runId: existingRunId, message: `Run not found: ${existingRunId}` })
         )
       }
+      if (run.status === "running") {
+        const taskRows = getTasksByRunId(db, existingRunId)
+        const taskStates = new Map<string, TaskState>()
+        const compoundTaskIds = new Map<string, string>()
+        let maxExecutionIndex = 0
+        for (const task of taskRows) {
+          const state = task.status as TaskState
+          compoundTaskIds.set(task.task_name, task.id)
+          taskStates.set(task.task_name, state)
+          if (task.execution_index > maxExecutionIndex) maxExecutionIndex = task.execution_index
+        }
+        return new WorkflowRuntimeImpl(db, existingRunId, spec, "running", taskStates, compoundTaskIds, maxExecutionIndex + 1)
+      }
       if (run.status !== "paused") {
         db.close()
         return yield* Effect.fail(
-          new EngineError({ runId: existingRunId, message: `Run is not paused: ${run.status}` })
+          new EngineError({ runId: existingRunId, message: `Run is not paused or running: ${run.status}` })
         )
       }
 
