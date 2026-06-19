@@ -101,6 +101,9 @@ describe("loadWorkflowSpec", () => {
       const cause = exit.cause
       const defect = cause._tag === "Fail" ? cause.error : undefined
       expect(defect?._tag).toBe("WorkflowNotFoundError")
+      expect((defect as any).nearestMatches).toBeDefined()
+      expect(Array.isArray((defect as any).nearestMatches)).toBe(true)
+      expect((defect as any).nearestMatches.length).toBeGreaterThan(0)
     }
   })
 
