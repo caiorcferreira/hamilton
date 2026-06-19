@@ -96,7 +96,7 @@ describe("loadGuidelines", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toHaveLength(1)
       expect(exit.value[0].instructions).toHaveLength(1)
-      expect(exit.value[0].instructions![0].name).toBe("js-standards")
+      expect(exit.value[0].instructions![0].name).toBe("js-standards:code-style.md")
       expect(exit.value[0].instructions![0].content).toBe("Use const over let.")
     }
   })
@@ -395,6 +395,33 @@ describe("loadGuidelines", () => {
       expect(exit.value).toHaveLength(1)
       expect(exit.value[0].instructions).toHaveLength(1)
       expect(exit.value[0].instructions![0].content).toBe("Use bun.")
+    }
+  })
+
+  it("tags instruction files as guideline-name:file-name", async () => {
+    const dir = writeGuideline("my-guideline", [
+      "apiVersion: dag.hamiltonai.dev/v1alpha1",
+      "kind: Guideline",
+      "metadata:",
+      "  name: my-guideline",
+      "spec:",
+      "  instructions:",
+      "  - matching: ['**/*']",
+      "    files: [instructions.md]"
+    ].join("\n"))
+    Fs.writeFileSync(Path.join(dir, "instructions.md"), "do not use console.log")
+
+    Fs.mkdirSync(Path.join(tmpProject, "src"), { recursive: true })
+    Fs.writeFileSync(Path.join(tmpProject, "src/index.ts"), "console.log('hi')")
+
+    const exit = await Effect.runPromiseExit(loadGuidelines(Path.join(tmpHome, ".hamilton", "guidelines"), tmpProject))
+    expect(Exit.isSuccess(exit)).toBe(true)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value.length).toBe(1)
+      const guideline = exit.value[0]
+      expect(guideline.instructions).not.toBeNull()
+      const firstInstruction = guideline.instructions![0]
+      expect(firstInstruction.name).toBe("my-guideline:instructions.md")
     }
   })
 })

@@ -105,7 +105,7 @@ function loadSingleGuideline(
           const filePath = Path.join(dirPath, file)
           try {
             const content = Fs.readFileSync(filePath, "utf-8")
-            files.push({ name: manifest.metadata.name, content })
+            files.push({ name: `${manifest.metadata.name}:${file}`, content })
           } catch {
             yield* _(Effect.logWarning(`Missing instruction file "${file}" in guideline "${guidelineName}"`))
           }
