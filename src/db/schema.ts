@@ -10,6 +10,7 @@ export function createSchema(db: Database): void {
       completed_at TEXT,
       current_task TEXT,
       error_message TEXT,
+      pid INTEGER,
       context_json TEXT DEFAULT '{}'
     );
 

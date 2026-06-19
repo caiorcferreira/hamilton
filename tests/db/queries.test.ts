@@ -22,6 +22,7 @@ import {
   setDurableDeferred,
   getDurableDeferred,
   updateRunEnv,
+  insertRunPid,
   listRuns
 } from "../../src/db/queries.js"
 
@@ -198,6 +199,14 @@ describe("queries", () => {
   it("getRunById returns null for non-existent run", () => {
     const run = getRunById(db, "nonexistent")
     expect(run).toBeNull()
+  })
+
+  it("insertRunPid stores pid on a run", () => {
+    insertRun(db, "run-abc", "test-wf", new Date().toISOString())
+    insertRunPid(db, "run-abc", 4242)
+
+    const row = getRunById(db, "run-abc")
+    expect(row?.pid).toBe(4242)
   })
 })
 

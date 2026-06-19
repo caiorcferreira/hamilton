@@ -9,6 +9,7 @@ export interface RunRow {
   completed_at: string | null
   current_task: string | null
   error_message: string | null
+  pid: number | null
   context_json: string
 }
 
@@ -259,6 +260,16 @@ export interface RunSummary {
   started_at: string
   completed_at: string | null
   current_task: string | null
+}
+
+export function insertRunPid(
+  db: Database,
+  runId: string,
+  pid: number
+): void {
+  db.prepare(
+    `UPDATE runs SET pid = ? WHERE id = ?`
+  ).run(pid, runId)
 }
 
 export function listRuns(
