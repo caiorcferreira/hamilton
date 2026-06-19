@@ -262,7 +262,7 @@ export interface RunSummary {
   current_task: string | null
 }
 
-export function insertRunPid(
+export function updateRunPid(
   db: Database,
   runId: string,
   pid: number
