@@ -18,11 +18,15 @@ import { makeProviderRequestRepository } from "../../telemetry/repositories/prov
 import { loadTelemetryConfig } from "../../telemetry/config.js"
 import { dbPath } from "../../paths.js"
 import { loadTemplateConfig } from "../../prompts/config.js"
+import { updateRunPid } from "../../db/queries.js"
+import { buildRunId } from "../../workflow/engine.js"
+import { migrate } from "../../db/migrations.js"
 
 export interface RunParams {
   workflowSlug: string
   prompt: string
   variants?: string
+  externalRunId?: string
 }
 
 export interface RunResult {
@@ -56,6 +60,15 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       }).pipe(Effect.orElseSucceed(() => [] as string[]))
     )
 
+    if (params.externalRunId) {
+      yield* _(Effect.sync(() => {
+        const db = new Database(dbPath())
+        migrate(db)
+        updateRunPid(db, params.externalRunId!, process.pid)
+        db.close()
+      }))
+    }
+
     const activeVariants = params.variants
       ? params.variants.split(",").map(v => v.trim()).filter(v => v.length > 0)
       : []
@@ -86,10 +99,32 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
 const slug = Args.text({ name: "slug" })
 const prompt = Args.text({ name: "prompt" }).pipe(Args.repeated)
 const variants = Options.text("variants").pipe(Options.optional)
+const foreground = Options.boolean("foreground").pipe(Options.withAlias("f"), Options.optional)
+const runIdOption = Options.text("run-id").pipe(Options.optional)
 
-export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slug, prompt, variants }) =>
+export const runCommand = Command.make("run", { slug, prompt, variants, foreground, runIdOption }, ({ slug, prompt, variants, foreground, runIdOption }) =>
   Effect.gen(function* () {
     const promptText = prompt.join(" ")
+    const isForeground = foreground._tag === "Some" ? foreground.value : false
+    const externalRunId = runIdOption._tag === "Some" ? runIdOption.value : undefined
+
+    if (!isForeground && !externalRunId) {
+      const runId = buildRunId(slug)
+      const allArgs = ["run", slug, ...prompt, "--foreground", "--run-id", runId]
+      if (variants._tag === "Some") {
+        allArgs.push("--variants", variants.value)
+      }
+      const child = Bun.spawn([process.execPath, process.argv[1], ...allArgs], { detached: true })
+      child.unref()
+      const db = new Database(dbPath())
+      migrate(db)
+      updateRunPid(db, runId, child.pid)
+      db.close()
+      yield* Console.log(`Run ID: ${runId}`)
+      yield* Console.log("Running in background. Use 'hamilton status <run-id>' to check progress.")
+      return
+    }
+
     const result = yield* Effect.exit(
       Effect.scoped(
         Effect.gen(function* () {
@@ -105,7 +140,7 @@ export const runCommand = Command.make("run", { slug, prompt, variants }, ({ slu
             providerRequest: makeProviderRequestRepository(db),
             shouldWrite: () => dbEnabled
           })
-          return yield* executeRun({ workflowSlug: slug, prompt: promptText, variants: variants._tag === "Some" ? variants.value : undefined })
+          return yield* executeRun({ workflowSlug: slug, prompt: promptText, variants: variants._tag === "Some" ? variants.value : undefined, externalRunId })
         })
       ).pipe(Effect.provide(EventBusLive))
     )
