@@ -6,6 +6,7 @@ import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
 import type { TemplateOptions } from "../prompts/template.js"
 
+import { evaluateWhen, WhenError } from "../cel/evaluate.js"
 import { resolvePersona } from "../prompts/persona.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
@@ -244,11 +245,44 @@ export function runWorkflow(
       for (const task of sortedTasks) {
         if (workflowStatus === "failed") break
 
+        if (task.when) {
+          const maxDepth = resolveMaxRecursionDepth()
+          if (maxDepth !== null) {
+            const compoundId = ctx.compoundTaskIds.get(task.name)
+            if (compoundId) {
+              const depthRow = ctx.db.prepare("SELECT depth FROM tasks WHERE id = ?").get(compoundId) as { depth: number } | null
+              if (depthRow && depthRow.depth >= maxDepth) {
+                yield* _(ctx.transitionTask(task.name, "fail"))
+                const errorMsg = `max recursion depth (${maxDepth}) exceeded`
+                yield* _(ctx.fail(errorMsg))
+                workflowStatus = "failed"
+                break
+              }
+            }
+          }
+
+          try {
+            const result = evaluateWhen(task.when, { inputs: workflowEnv as Record<string, unknown> })
+            if (!result) {
+              yield* _(ctx.transitionTask(task.name, "complete"))
+              continue
+            }
+          } catch (e) {
+            const errorMsg = e instanceof WhenError ? e.message : String(e)
+            yield* _(ctx.transitionTask(task.name, "fail"))
+            yield* _(ctx.fail(errorMsg))
+            workflowStatus = "failed"
+            break
+          }
+        }
+
         if (task.template) {
           const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
           if (!templateTask) continue
 
           const resolvedArgs = resolveArguments(task, workflowEnv)
+
+          const compoundParentTaskId = ctx.compoundTaskIds.get(task.name) ?? undefined
 
           for (let i = 0; i < resolvedArgs.itemsCount; i++) {
             if (workflowStatus === "failed") break
@@ -264,11 +298,11 @@ export function runWorkflow(
               for (const subTask of sub) {
                 if (workflowStatus === "failed") break
                 const subInstanceName = `${instanceName}-${subTask.name}`
-                yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef))
+                yield* _(ctx.insertDynamicTask(subInstanceName, subTask.agent!.executorRef, compoundParentTaskId))
                 yield* _(executeSingleTask(subTask, taskEnv, subInstanceName))
               }
             } else if (templateTask.agent) {
-              yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef))
+              yield* _(ctx.insertDynamicTask(instanceName, templateTask.agent!.executorRef, compoundParentTaskId))
               yield* _(executeSingleTask(templateTask, taskEnv, instanceName))
             }
           }
