@@ -14,6 +14,7 @@
 - [ ] Integrate ponytail skill
 - [ ] Integrate talk normal skill
 - [ ] Use LSPs during file edit/file read
+- [ ] Implement a `script` field in tasks
 
 ## Completed
 
