@@ -39,7 +39,7 @@ const RUN_TRANSITIONS: Record<RunState, RunState[]> = {
 }
 
 const TASK_TRANSITIONS: Record<TaskState, TaskState[]> = {
-  pending: ["running"],
+  pending: ["running", "completed"],
   running: ["completed", "failed"],
   completed: [],
   failed: []

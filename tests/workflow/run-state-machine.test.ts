@@ -176,7 +176,10 @@ describe("WorkflowRuntime state machine", () => {
     const spec = makeSpec()
     const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
-    const result = await Effect.runPromiseExit(rt.transitionTask("task-1", "complete"))
+    await Effect.runPromise(rt.transitionTask("task-1", "start"))
+    await Effect.runPromise(rt.transitionTask("task-1", "complete"))
+
+    const result = await Effect.runPromiseExit(rt.transitionTask("task-1", "start"))
     expect(result._tag).toBe("Failure")
 
     await Effect.runPromise(rt.close())
