@@ -9,6 +9,7 @@ export interface RunRow {
   completed_at: string | null
   current_task: string | null
   error_message: string | null
+  pid: number | null
   context_json: string
 }
 
@@ -59,6 +60,18 @@ export function insertRun(
   db.prepare(
     `INSERT OR REPLACE INTO runs (id, workflow_id, status, started_at) VALUES (?, ?, 'running', ?)`
   ).run(runId, workflowId, startedAt)
+}
+
+export function insertRunWithPid(
+  db: Database,
+  runId: string,
+  workflowId: string,
+  startedAt: string,
+  pid: number
+): void {
+  db.prepare(
+    `INSERT OR REPLACE INTO runs (id, workflow_id, status, started_at, pid) VALUES (?, ?, 'running', ?, ?)`
+  ).run(runId, workflowId, startedAt, pid)
 }
 
 export function insertTasks(

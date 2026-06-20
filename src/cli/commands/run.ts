@@ -12,7 +12,7 @@ import { FileLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { Database } from "bun:sqlite"
 import { migrate } from "../../db/migrations.js"
-import { updateRunPid } from "../../db/queries.js"
+import { updateRunPid, insertRunWithPid } from "../../db/queries.js"
 import { buildRunId } from "../../workflow/engine.js"
 import { TelemetrySubscriber } from "../../telemetry/subscriber.js"
 import { makeTurnRepository } from "../../telemetry/repositories/turn-repository.js"
@@ -64,7 +64,6 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       yield* _(Effect.sync(() => {
         const db = new Database(dbPath())
         migrate(db)
-        updateRunPid(db, params.externalRunId!, process.pid)
         db.close()
       }))
     }
@@ -116,12 +115,10 @@ export const runCommand = Command.make("run", { slug, prompt, variants, foregrou
       }
       const child = Bun.spawn([process.execPath, process.argv[1], ...allArgs], { detached: true })
       child.unref()
-
-      const db = new Database(dbPath())
+const db = new Database(dbPath())
       migrate(db)
-      updateRunPid(db, runId, child.pid)
+      insertRunWithPid(db, runId, slug, new Date().toISOString(), child.pid)
       db.close()
-
       yield* Console.log(`Run ID: ${runId}`)
       yield* Console.log("Running in background. Use 'hamilton status <run-id>' to check progress.")
       return
@@ -152,7 +149,7 @@ export const runCommand = Command.make("run", { slug, prompt, variants, foregrou
       if (cause._tag === "Fail") {
         const error = cause.error
         if (error != null && typeof error === "object" && "_tag" in error && (error as any)._tag === "WorkflowNotFoundError") {
-          const err = error as { workflowName: string; nearestMatches: string[] }
+const err = error as unknown as { workflowName: string; nearestMatches: string[] }
           if (err.nearestMatches && err.nearestMatches.length > 0) {
             yield* Console.log("")
             yield* Console.log("Did you mean:")

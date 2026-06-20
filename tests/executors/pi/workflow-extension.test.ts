@@ -192,4 +192,42 @@ describe("createWorkflowExtension", () => {
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("Missing required field 'status'")
     expect(onComplete).not.toHaveBeenCalled()
   })
+
+  it("registers the git_diff tool on pi", () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const registeredNames = registerTool.mock.calls.map((c: any) => c[0].name)
+    expect(registeredNames).toContain("git_diff")
+  })
+
+  it("git_diff tool returns unstaged diff output when staged=false", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "git_diff")[0]
+    const result = await toolDef.execute("call-1", { staged: false }, undefined, undefined, {} as any)
+
+    expect(result.content[0].type).toBe("text")
+    expect(typeof (result.content[0] as { type: "text"; text: string }).text).toBe("string")
+  })
+
+  it("git_diff tool returns staged diff when staged=true", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "git_diff")[0]
+    const result = await toolDef.execute("call-1", { staged: true }, undefined, undefined, {} as any)
+
+    expect(result.content[0].type).toBe("text")
+  })
 })

@@ -10,13 +10,16 @@
 - [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
 - [ ] Add flag to run command to execute in background
 - [ ] guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
-- [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has.
-- [ ] Implement write progress tool
-- [ ] Implement write plan tool
+- [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has. We must use the SQLite database.
+- [ ] Implement a git diff tool
 - [ ] Ensure retry_step and `status: retry` work -> implement recursion support to solve this, use the Argo Workflows example
 - [ ] Add a todo/task tracking tool for the agent
 - [ ] Create a spec authoring skill
   - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
+- [ ] Review if RAG from Emanuel can be used to improve guidelines
+- [ ] Integrate ponytail skill
+- [ ] Integrate talk normal skill
+- [ ] Implement langfuse
 
 ## Completed
 

@@ -1,15 +1,6 @@
 import { Effect, Console } from "effect"
 import { Event, createSubscriber } from "../events/bus.js"
 
-function extractSlug(taskId: string, runId: string): string {
-  const prefix = runId + "-"
-  if (!taskId.startsWith(prefix)) return taskId
-  const afterRun = taskId.slice(prefix.length)
-  const lastDash = afterRun.lastIndexOf("-")
-  if (lastDash === -1) return afterRun
-  return afterRun.slice(0, lastDash)
-}
-
 function shortId(taskId: string): string {
   return taskId.split("-").pop() ?? taskId
 }
@@ -45,8 +36,7 @@ export const CliRenderer = createSubscriber(
       case "TaskStarted": {
         taskStartedAt.set(event.taskId, Date.now())
         taskTokens.set(event.taskId, { tokensIn: 0, tokensOut: 0 })
-        const slug = extractSlug(event.taskId, event.runId)
-        return Console.log(`  Task ${slug} (${shortId(event.taskId)}) started`)
+        return Console.log(`  Task ${event.taskName} (${shortId(event.taskId)}) started`)
       }
 
       case "TokenUsage": {
@@ -63,7 +53,7 @@ export const CliRenderer = createSubscriber(
         const startAt = taskStartedAt.get(event.taskId)
         const elapsed = startAt ? Date.now() - startAt : 0
         const tokens = taskTokens.get(event.taskId) ?? { tokensIn: 0, tokensOut: 0 }
-        const slug = extractSlug(event.taskId, event.runId)
+        const slug = event.taskName
         const id = shortId(event.taskId)
         const parts = [`  \u2713 ${slug} (${id}) completed (${formatDuration(elapsed)}`]
         if (tokens.tokensIn > 0 || tokens.tokensOut > 0) {
@@ -76,23 +66,19 @@ export const CliRenderer = createSubscriber(
       }
 
       case "TaskFailed": {
-        const slug = extractSlug(event.taskId, event.runId)
-        return Console.log(`  \u2717 ${slug} (${shortId(event.taskId)}) failed: ${event.message}`)
+        return Console.log(`  \u2717 ${event.taskName} (${shortId(event.taskId)}) failed: ${event.message}`)
       }
 
       case "TaskTimedOut": {
-        const slug = extractSlug(event.taskId, event.runId)
-        return Console.log(`  \u23F1 ${slug} (${shortId(event.taskId)}) timed out`)
+        return Console.log(`  \u23F1 ${event.taskName} (${shortId(event.taskId)}) timed out`)
       }
 
       case "TaskRetrying": {
-        const slug = extractSlug(event.taskId, event.runId)
-        return Console.log(`  \u21BB ${slug} (${shortId(event.taskId)}) retrying`)
+        return Console.log(`  \u21BB ${event.taskName} (${shortId(event.taskId)}) retrying`)
       }
 
       case "TaskPaused": {
-        const slug = extractSlug(event.taskId, event.runId)
-        return Console.log(`  \u23F8 ${slug} (${shortId(event.taskId)}) paused`)
+        return Console.log(`  \u23F8 ${event.taskName} (${shortId(event.taskId)}) paused`)
       }
 
       case "WorkflowCompleted": {

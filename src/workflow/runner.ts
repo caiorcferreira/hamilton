@@ -134,7 +134,7 @@ export function runWorkflow(
         const taskId = ctx.compoundTaskIds.get(instanceName) ?? buildTaskId(runId, instanceName)
 
         yield* _(ctx.transitionTask(instanceName, "start"))
-        yield* _(bus.publish({ _tag: "TaskStarted", runId, taskId }))
+        yield* _(bus.publish({ _tag: "TaskStarted", runId, taskId, taskName: instanceName }))
 
         const persona = yield* _(
           resolvePersona(agent.systemPrompt, agent.dirPath).pipe(
@@ -151,9 +151,15 @@ export function runWorkflow(
           agentConfig: agent
         }, guidelineFiles, templateOptions)
 
-        const finalPrompt = task.name === spec.spec.run.entrypoint
-          ? { ...prompt, taskPrompt: `${prompt.taskPrompt}\n\n# User input\n\n${taskEnv.user_input ?? ""}` }
-          : prompt
+        let taskPromptContent = prompt.taskPrompt
+        if (task.agent?.output?.schema?.content) {
+          const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
+          taskPromptContent = `<expected_output_schema>\n${schemaJson}\n</expected_output_schema>\n\n<task>\n${taskPromptContent}\n</task>`
+        }
+        if (task.name === spec.spec.run.entrypoint) {
+          taskPromptContent = `${taskPromptContent}\n\n# User input\n\n${taskEnv.user_input ?? ""}`
+        }
+        const finalPrompt = { ...prompt, taskPrompt: taskPromptContent }
 
         yield* _(bus.publish({
           _tag: "PromptBuilt",
@@ -193,7 +199,7 @@ export function runWorkflow(
               Schedule.recurs((task.agent!.on_failure?.max_retries ?? 1) - 1).pipe(
                 Schedule.tapInput(() =>
                   Effect.gen(function* () {
-                    yield* _(bus.publish({ _tag: "TaskRetrying", runId, taskId }))
+                    yield* _(bus.publish({ _tag: "TaskRetrying", runId, taskId, taskName: instanceName }))
                   }).pipe(Effect.catchAll(() => Effect.void))
                 )
               )
@@ -202,7 +208,7 @@ export function runWorkflow(
         )
 
         if (output === undefined || output === null) {
-          yield* _(bus.publish({ _tag: "TaskTimedOut", runId, taskId }))
+          yield* _(bus.publish({ _tag: "TaskTimedOut", runId, taskId, taskName: instanceName }))
           yield* _(ctx.transitionTask(instanceName, "fail"))
           workflowStatus = "failed"
           return
@@ -216,7 +222,7 @@ export function runWorkflow(
         if (fileEnabled) {
           yield* _(writeTaskOutput(runId, taskId, output))
         }
-        yield* _(bus.publish({ _tag: "TaskCompleted", runId, taskId }))
+        yield* _(bus.publish({ _tag: "TaskCompleted", runId, taskId, taskName: instanceName }))
       })
 
     const body = Effect.gen(function* () {
@@ -269,7 +275,7 @@ export function runWorkflow(
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(bus.publish({ _tag: "TaskPaused", runId, taskId: task.name }))
+          yield* _(bus.publish({ _tag: "TaskPaused", runId, taskId: task.name, taskName: task.name }))
           workflowStatus = "paused"
           break
         }

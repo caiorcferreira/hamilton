@@ -26,7 +26,7 @@ describe("migrations", () => {
     if (db) cleanupDb(db)
   })
 
-  it("migrate creates all tables from scratch (v1 -> v4)", () => {
+  it("migrate creates all tables from scratch (v1 -> v5)", () => {
     db = tempDb()
     const v = db.prepare("PRAGMA user_version").get() as { user_version: number }
     expect(v.user_version).toBe(0)
@@ -34,7 +34,7 @@ describe("migrations", () => {
     migrate(db)
 
     const v2 = db.prepare("PRAGMA user_version").get() as { user_version: number }
-    expect(v2.user_version).toBe(4)
+    expect(v2.user_version).toBe(5)
 
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as Array<{ name: string }>
     const names = tables.map(t => t.name)
@@ -81,11 +81,11 @@ describe("migrations", () => {
     db = tempDb()
     migrate(db)
     const v1 = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v1).toBe(4)
+    expect(v1).toBe(5)
 
     migrate(db)
     const v2 = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v2).toBe(4)
+    expect(v2).toBe(5)
   })
 
   it("v2 recovers from partial migration (crash between ALTER TABLE and PRAGMA)", () => {
@@ -102,7 +102,7 @@ describe("migrations", () => {
     migrate(db)
 
     const v = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v).toBe(4)
+    expect(v).toBe(5)
 
     const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
     const colNames = info.map(c => c.name)
@@ -125,7 +125,7 @@ describe("migrations", () => {
     migrate(db)
 
     const v = db.prepare("PRAGMA user_version").get() as { user_version: number }
-    expect(v.user_version).toBe(4)
+    expect(v.user_version).toBe(5)
 
     const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
     const colNames = info.map(c => c.name)
