@@ -62,7 +62,7 @@ const OnExhaustedSchema = Schema.Struct({
 const OnFailureSchema = Schema.Struct({
   max_retries: Schema.optional(Schema.Number),
   escalate_to: Schema.optional(Schema.String),
-  retry_step: Schema.optional(Schema.String),
+  
   on_exhausted: Schema.optional(OnExhaustedSchema)
 })
 
@@ -123,12 +123,14 @@ const WorkflowTaskSchema: Schema.Schema<any> = Schema.Struct({
   agent: Schema.optional(TaskAgentSchema),
   template: Schema.optional(Schema.String),
   arguments: Schema.optional(ArgumentsSchema),
-  tasks: Schema.optional(Schema.suspend(() => Schema.Array(WorkflowTaskSchema)))
+  tasks: Schema.optional(Schema.suspend(() => Schema.Array(WorkflowTaskSchema))),
+  when: Schema.optional(Schema.String)
 })
 
 const RunConfigSchema = Schema.Struct({
   entrypoint: Schema.String,
-  timeout: Schema.String
+  timeout: Schema.String,
+  max_recursion_depth: Schema.optional(Schema.Int.pipe(Schema.positive()))
 })
 
 const VariantsConfigSchema = Schema.Struct({

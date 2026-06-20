@@ -6,6 +6,7 @@ export type TaskId = string & { readonly __brand: "TaskId" }
 export interface RunConfig {
   entrypoint: string
   timeout: string
+  max_recursion_depth?: number
 }
 
 export interface SystemPromptPaths {
@@ -42,7 +43,7 @@ export interface OnExhausted {
 export interface OnFailure {
   max_retries?: number
   escalate_to?: string
-  retry_step?: string
+  
   on_exhausted?: OnExhausted
 }
 
@@ -91,6 +92,7 @@ export interface WorkflowTask {
   template?: string
   arguments?: Arguments
   tasks?: WorkflowTask[]
+  when?: string
 }
 
 export type VariantPlacement = "start" | "end"
