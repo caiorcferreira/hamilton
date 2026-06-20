@@ -6,7 +6,6 @@
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-- [ ] Ensure retry_step and `status: retry` work -> implement recursion support to solve this, use the Argo Workflows example
 - [ ] Add a todo/task tracking tool for the agent
 - [ ] Create a spec authoring skill
   - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
@@ -18,6 +17,7 @@
 
 ## Completed
 
+- [x] Remove retry_step and implement recursion support with `when` (CEL), `depth` tracking, and `max_recursion_depth`
 - [x] Implement a git diff tool
 - [x] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has. We must use the SQLite database.
 - [x] Guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
