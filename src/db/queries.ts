@@ -27,6 +27,8 @@ export interface TaskRow {
   retry_count: number
   error_message: string | null
   output_json: string | null
+  parent_task_id: string | null
+  depth: number
 }
 
 export interface RunStatusRow {
@@ -98,6 +100,21 @@ export function insertTask(
   db.prepare(
     `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status) VALUES (?, ?, ?, ?, ?, 'pending')`
   ).run(taskId, runId, agentName, taskName, executionIndex)
+}
+
+export function insertTaskWithParent(
+  db: Database,
+  runId: string,
+  taskId: string,
+  agentName: string,
+  taskName: string,
+  executionIndex: number,
+  parentTaskId: string | null,
+  depth: number
+): void {
+  db.prepare(
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status, parent_task_id, depth) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`
+  ).run(taskId, runId, agentName, taskName, executionIndex, parentTaskId, depth)
 }
 
 export function updateTaskStarted(

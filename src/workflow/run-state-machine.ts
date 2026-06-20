@@ -5,6 +5,7 @@ import {
   insertRun,
   insertTasks,
   insertTask,
+  insertTaskWithParent,
   getRunById,
   getTasksByRunId,
   updateTaskStarted,
@@ -60,7 +61,7 @@ export interface WorkflowRuntime {
   readonly shouldExecuteTask: (taskName: string) => Effect.Effect<boolean, EngineError>
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
   readonly transitionTask: (taskName: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
-  readonly insertDynamicTask: (taskName: string, agentName: string) => Effect.Effect<void, EngineError>
+  readonly insertDynamicTask: (taskName: string, agentName: string, parentTaskId?: string) => Effect.Effect<void, EngineError>
   readonly pause: () => Effect.Effect<void, EngineError>
   readonly complete: () => Effect.Effect<void, EngineError>
   readonly fail: (error: string) => Effect.Effect<void, EngineError>
@@ -137,11 +138,18 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     })
   }
 
-  insertDynamicTask(taskName: string, agentName: string): Effect.Effect<void, EngineError> {
+  insertDynamicTask(taskName: string, agentName: string, parentTaskId?: string): Effect.Effect<void, EngineError> {
     return Effect.sync(() => {
       const taskId = buildTaskId(this._runId, taskName)
       const idx = this._nextExecutionIndex++
-      insertTask(this._db, this._runId, taskId, agentName, taskName, idx)
+      let depth = 0
+      if (parentTaskId) {
+        const parentRow = this._db.prepare(
+          "SELECT depth FROM tasks WHERE id = ?"
+        ).get(parentTaskId) as { depth: number } | null
+        depth = (parentRow?.depth ?? 0) + 1
+      }
+      insertTaskWithParent(this._db, this._runId, taskId, agentName, taskName, idx, parentTaskId ?? null, depth)
       this._taskStates.set(taskName, "pending")
       this._compoundTaskIds.set(taskName, taskId)
     })
