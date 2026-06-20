@@ -6,12 +6,6 @@
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-- [ ] Inject output schema in task context
-- [ ] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
-- [ ] Add flag to run command to execute in background
-- [ ] guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
-- [ ] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has. We must use the SQLite database.
-- [ ] Implement a git diff tool
 - [ ] Ensure retry_step and `status: retry` work -> implement recursion support to solve this, use the Argo Workflows example
 - [ ] Add a todo/task tracking tool for the agent
 - [ ] Create a spec authoring skill
@@ -19,10 +13,16 @@
 - [ ] Review if RAG from Emanuel can be used to improve guidelines
 - [ ] Integrate ponytail skill
 - [ ] Integrate talk normal skill
-- [ ] Implement langfuse
+- [ ] Use LSPs during file edit/file read
 
 ## Completed
 
+- [x] Implement a git diff tool
+- [x] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has. We must use the SQLite database.
+- [x] Guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
+- [x] Add flag to run command to execute in background
+- [x] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
+- [x] Inject output schema in task context
 - [x] Add full fledge templating
 - [x] Use custom nanoid alphabet without `-` to make ID separator unambiguous
 - [x] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
