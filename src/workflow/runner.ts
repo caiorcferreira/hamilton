@@ -30,6 +30,7 @@ import { loadTelemetryConfig } from "../telemetry/config.js"
 
 export interface WorkflowRunnerConfig {
   workflowsDir: string
+  maxRecursionDepth?: number
 }
 
 export interface WorkflowResult {
@@ -51,6 +52,7 @@ export function runWorkflow(
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
+    const settingsMaxDepth = config.maxRecursionDepth
 
     const staticTasks = collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint)
     const sortedTasks = topologicalSort(staticTasks)
@@ -114,6 +116,11 @@ export function runWorkflow(
       run_id: runId,
       progress_file: progressFilePath,
       progress: progressContent
+    }
+
+    const resolveMaxRecursionDepth = (): number | null => {
+      if (spec.spec.run.max_recursion_depth !== undefined) return spec.spec.run.max_recursion_depth
+      return settingsMaxDepth ?? null
     }
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0

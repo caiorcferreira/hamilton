@@ -20,7 +20,7 @@ import { makeToolCallRepository } from "../../telemetry/repositories/tool-call-r
 import { makeProviderRequestRepository } from "../../telemetry/repositories/provider-request-repository.js"
 import { loadTelemetryConfig } from "../../telemetry/config.js"
 import { dbPath } from "../../paths.js"
-import { loadTemplateConfig } from "../../prompts/config.js"
+import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -78,10 +78,12 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const spec = yield* loadWorkflowSpec(wfDir, resolvedSlug, sharedAgentsDir, workflows, activeVariants)
 
     const templateOptions = yield* _(loadTemplateConfig())
+    const recursionConfig = yield* _(loadRecursionConfig())
 
     const result = yield* _(
       runWorkflow(spec, { user_input: params.prompt, cwd: process.cwd() }, {
-        workflowsDir: wfDir
+        workflowsDir: wfDir,
+        maxRecursionDepth: recursionConfig.maxDepth ?? undefined
       }, templateOptions, params.externalRunId).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )

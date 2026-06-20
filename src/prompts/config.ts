@@ -27,3 +27,30 @@ export function loadTemplateConfig(): Effect.Effect<TemplateOptions, TemplateCon
     catch: (e) => new TemplateConfigError({ message: String(e) })
   })
 }
+
+export interface RecursionConfig {
+  maxDepth: number | null
+}
+
+export function loadRecursionConfig(): Effect.Effect<RecursionConfig, TemplateConfigError> {
+  return Effect.try({
+    try: () => {
+      const path = settingsPath()
+      if (!Fs.existsSync(path)) return { maxDepth: null }
+
+      const content = Fs.readFileSync(path, "utf-8")
+      const doc = Yaml.parse(content) as Record<string, unknown> | null
+      if (!doc || typeof doc !== "object") return { maxDepth: null }
+
+      const recursion = doc["recursion"]
+      if (!recursion || typeof recursion !== "object") return { maxDepth: null }
+
+      const raw = (recursion as Record<string, unknown>)["max_depth"]
+      if (raw === undefined || raw === null) return { maxDepth: null }
+      const n = Number(raw)
+      if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) return { maxDepth: null }
+      return { maxDepth: n }
+    },
+    catch: (e) => new TemplateConfigError({ message: String(e) })
+  })
+}
