@@ -81,7 +81,6 @@ spec:
           agent:
             executorRef: tester
             on_failure:
-              retry_step: implement
               max_retries: 4
               on_exhausted:
                 escalate_to: human
