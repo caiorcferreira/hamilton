@@ -23,6 +23,7 @@ import { taskOutputFile } from "../../paths.js"
 import type { ResolvablePrompt } from "../../prompts/types.js"
 import { createGuidelineExtension } from "./extensions/guideline-extension.js"
 import { createRedactExtension } from "./extensions/redact-extension.js"
+import { createLspAutocheckExtension } from "./extensions/lsp-autocheck-extension.js"
 import type { CompiledRule } from "../../guidelines/types.js"
 
 export interface PiExecutorConfig {
@@ -131,6 +132,11 @@ export function executeWithPi(
     )
 
     extensionFactories.push(createRedactExtension())
+
+    const lspEntry = extSettings.extensions?.find((e) => e.name === "lsp")
+    if (lspEntry?.parameters?.autoCheck !== false) {
+      extensionFactories.push(createLspAutocheckExtension() as ExtensionFactory)
+    }
 
     const resolvedSkills = config.settings?.skills ?? null
     const loaderOptions: any = {
