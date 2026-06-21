@@ -76,6 +76,18 @@ export function eventsFilePath(runId: string): string {
   return Path.join(runDir(runId), "events.jsonl")
 }
 
+export function changeDir(changeId: string): string {
+  return Path.join(process.cwd(), ".hamilton", "changes", changeId)
+}
+
+export function nextIdFile(): string {
+  return Path.join(process.cwd(), ".hamilton", "changes", "next-id.txt")
+}
+
+export function changeMetadataFile(changeId: string): string {
+  return Path.join(changeDir(changeId), "workflow.metadata.json")
+}
+
 export function ensureHamiltonHome(): void {
   const dirs = [
     hamiltonHome(),
