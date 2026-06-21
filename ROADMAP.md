@@ -2,93 +2,104 @@
 
 ## Next Up
 
+### Core Engine
 - [ ] Trigger workflows from other workflows
+- [ ] Implement a `script` field in tasks
+
+### Agent Capabilities
+- [ ] Add a todo/task tracking tool for the agent
+- [ ] Use LSPs during file edit/file read
+
+### Extensions & Integrations
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
-- [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-- [ ] Add a todo/task tracking tool for the agent
-- [ ] Create a spec authoring skill
-  - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
+- [ ] Long term memory
+  - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
+  - Consolidated memory
+  - Expose memory via MCP to allow other agents to use it.
 - [ ] Review if RAG from Emanuel can be used to improve guidelines
 - [ ] Integrate ponytail skill
 - [ ] Integrate talk normal skill
-- [ ] Use LSPs during file edit/file read
-- [ ] Implement a `script` field in tasks
+
+### Tooling & DX
+- [ ] Create a spec authoring skill
+  - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
+  - [ ] Search for skills like Superpower's `brainstorm`
 
 ## Completed
 
 - [x] Remove retry_step and implement recursion support with `when` (CEL), `depth` tracking, and `max_recursion_depth`
-- [x] Implement a git diff tool
-- [x] Review application to check if anywhere depends on parsing runId/taskId. We should never depend on string parsing to find out which run a task belongs to or which tasks a run has. We must use the SQLite database.
-- [x] Guideline files in prompt built event is wrong. It should be `<guideline-name>/<file-name>`
-- [x] Add flag to run command to execute in background
-- [x] Improve error messages (e.g. when workflow name is not found, suggest the nearest match)
-- [x] Inject output schema in task context
-- [x] Add full fledge templating
-- [x] Use custom nanoid alphabet without `-` to make ID separator unambiguous
-- [x] Fix inconsistence in logs: some entries have `event` other have `_tag`. We should only have `event`.
-- [x] Replace all references of `step` for `task`
-- [x] Add list of guideline files loaded for the task
-- [x] Command status is printing nothing, just fronzen then terminal
-- [x] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
-- [x] Rename agents.md to INSTRUCTIONS.md
-- [x] Remove identity prompt from agents
-- [x] Fix bundle path references (manifest/ → bundle/) in init and install-logic
-- [x] Review system prompt construction — refactor buildAgentPrompt to use systemTemplate
-- [x] Review telemetry improvements based on [my-pi](https://github.com/spences10/my-pi/blob/main/packages/pi-telemetry/README.md)
-- [x] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
-- [x] Refactor workflow tools (write step output) into extension
-- [x] Refactor instructions to guidelines with rule-based tool call interception
-- [x] Add support for skills
-- [x] Implement YAML Agent manifest
-- [x] Update workflow files to use external schema files and prompt files
-- [x] Add settings, workflow-yaml, and agent-instructions documentation
-- [x] Extract prompts package — `src/prompts/` (template, types, persona, instructions, builder), unify executor on `ResolvablePrompt`, delete old `src/agent/activity.ts`, `persona.ts`, `instructions.ts`
-- [x] Create default settings.yaml on init — extensions: rtk + lsp enabled by default
-- [x] Add LSP binary checks to doctor command — `checkLspBun`, `checkLspNode`, `checkLspPyright`
-- [x] Add extension registry with settings-driven loading — `readExtensionSettings()` from `~/.hamilton/settings.yaml`, `buildExtensions()` with RTK and LSP factories, `ExtensionRegistry` service
-- [x] Remove RTK_DISABLED env var — settings.yaml replaces env vars entirely
-- [x] Add LSP extension wrapper — `createLspExtension()` wrapping `@spences10/<EMAIL_REDACTED>
-- [x] Change progress file location — store in ./.hamilton/workflows/progress-<YYYY-MM-DD>.txt, active management with ensureProgressFile
-- [x] Create Pi configs on init — --copy-pi-configs flag copies from ~/.pi/agent, fallback to sensible defaults (settings.json, models.json, auth.json)
-- [x] Refactor `output.schema` to `output.schema.content` — nest schema under content, add SchemaConfig type
-- [x] Support `output.schema.file` in workflow yaml — resolveWorkflowSpec reads JSON schema from file
-- [x] Support `prompt.file` in workflow yaml — resolveWorkflowSpec reads prompt content from file
-- [x] Load context files based on file type — ~/.hamilton/instruction with markdown + YAML frontmatter (name, extensions), scan project for extensions, inject matching instructions via agentsFilesOverride
-- [x] Fix status command task order for template/forEach tasks — resolveDagBase handles nested compound slugs, matching against DAG parent names
-- [x] Fix status command running task indicator — parse currentTask slug and highlight in task list with ⏳
-- [x] Fix run command printing nothing at start — subscriber race condition fixed with yieldNow() after forkScoped
-- [x] Add per-step token/time output — CliRenderer accumulates TokenUsage deltas per step and prints on StepCompleted
-- [x] Add total time and token usage to workflow summary — summary.json includes totalTokensIn, totalTokensOut, elapsedSeconds
-- [x] Fix status command — topological task ordering and newline display, tasks separated by new line, subtasks indented
-- [x] Allow 'failed' in status enum on all task output schemas
-- [x] Add output schema to all workflows based on the output defined in markdown prompts
-- [x] Fix shared agent distribution — remove per-workflow agent duplication from ~/.hamilton/agents/, add shared/agents symlink per workflow dir, change YAML paths from ../../agents/shared/ to shared/agents/
-- [x] Rename tamandua → hamilton branding in workflows and agent Co-Authored-By footers
-- [x] Refactor event architecture to use Effect event bus — decouple onLog, onTokenEvent, onTokenUsage into single-responsibility subscribers (logger, DB writer, CLI renderer)
-- [x] Refactor workflow engine from linear step-based to DAG task-based model — topological sort, reachable task collection, template/forEach expansion, auto-context from upstream outputs
+- [x] Refactor context/passing layer from forEach/context/vars/Context to arguments/inputs.*/WorkflowEnv with agent-level CONTEXT.md templates
+- [x] Use proper cli framework; we don't have support for help flag currently
+- [x] Add commands to list workflow runs
+- [x] Improve visualization of `hamilton workflow list` — tabular output with columns, color, grouping by category
+- [x] Add `do` workflow — single general-purpose agent that takes a prompt and executes it end-to-end without decomposition into steps
+- [x] Enrich `inputs.json` with workflow execution context (working directory, time requested)
+- [x] Create deterministic activities for workflows (enter/exit worktree, setup/teardown steps)
+- [x] Add greenfield workflow — scaffold new projects from scratch with a bootstrapper agent
+- [x] Refactor workflow engine from linear step-based to DAG task-based model — topological sort, template/forEach expansion, auto-context from upstream outputs
 - [x] Fix dynamic step generation: build a graph of tasks with DAG model, support forEach expansion for multi-instance tasks
-- [x] Agent Co-Authored-By footer — <EMAIL_REDACTED> in all agent commit messages
-- [x] Add task prompt to prompt_built event
-- [x] Implement retry feedback — on_failure.max_retries with event publishing on retry
+- [x] Refactor event architecture to use Effect event bus — decouple into single-responsibility subscribers
+- [x] Rename tamandua → hamilton branding in workflows and agent Co-Authored-By footers
+- [x] Fix shared agent distribution — shared/agents symlink per workflow dir
+- [x] Add output schema to all workflows based on the output defined in markdown prompts
+- [x] Allow 'failed' in status enum on all task output schemas
+- [x] Fix status command — topological task ordering, newline display, subtasks indented
+- [x] Add total time and token usage to workflow summary — summary.json includes totalTokensIn, totalTokensOut, elapsedSeconds
+- [x] Add per-step token/time output — CliRenderer accumulates TokenUsage deltas per step
+- [x] Fix run command printing nothing at start — subscriber race condition fixed with yieldNow()
+- [x] Fix status command running task indicator — parse currentTask slug and highlight with ⏳
+- [x] Fix status command task order for template/forEach tasks — resolveDagBase handles nested compound slugs
+- [x] Load context files based on file type — scan project for extensions, inject matching instructions
+- [x] Support `prompt.file` in workflow yaml — resolveWorkflowSpec reads prompt content from file
+- [x] Support `output.schema.file` in workflow yaml — resolveWorkflowSpec reads JSON schema from file
+- [x] Refactor `output.schema` to `output.schema.content` — nest schema under content, add SchemaConfig type
+- [x] Create Pi configs on init — --copy-pi-configs flag, fallback to sensible defaults
+- [x] Change progress file location — ./.hamilton/workflows/progress-<YYYY-MM-DD>.txt
+- [x] Add LSP extension wrapper — `createLspExtension()` wrapping `@spences10/pi-lsp`
+- [x] Remove RTK_DISABLED env var — settings.yaml replaces env vars entirely
+- [x] Add extension registry with settings-driven loading — RTK and LSP factories, ExtensionRegistry service
+- [x] Add LSP binary checks to doctor command — checkLspBun, checkLspNode, checkLspPyright
+- [x] Create default settings.yaml on init — extensions: rtk + lsp enabled by default
+- [x] Extract prompts package — unify executor on ResolvablePrompt, delete old activity/persona/instructions
+- [x] Add settings, workflow-yaml, and agent-instructions documentation
+- [x] Update workflow files to use external schema files and prompt files
+- [x] Implement YAML Agent manifest
+- [x] Add support for skills
+- [x] Refactor instructions to guidelines with rule-based tool call interception
+- [x] Refactor workflow tools (write step output) into extension
+- [x] Extensions: Implement fork of [redact](https://github.com/spences10/my-pi/blob/main/packages/pi-redact/README.md)
+- [x] Review telemetry improvements based on my-pi
+- [x] Review system prompt construction — refactor buildAgentPrompt to use systemTemplate
+- [x] Fix bundle path references (manifest/ → bundle/) in init and install-logic
+- [x] Remove identity prompt from agents
+- [x] Rename agents.md to INSTRUCTIONS.md
+- [x] Format INSTRUCTIONS.md files with STAR (Situation, Task, Action, Result)
+- [x] Command status is printing nothing, just frozen then terminal
+- [x] Add list of guideline files loaded for the task
+- [x] Replace all references of `step` for `task`
+- [x] Fix inconsistency in logs: some entries have `event` other have `_tag`. Only `event`.
+- [x] Use custom nanoid alphabet without `-` to make ID separator unambiguous
+- [x] Add full fledge templating
+- [x] Inject output schema in task context
+- [x] Improve error messages (suggest nearest match when workflow name not found)
+- [x] Add flag to run command to execute in background
+- [x] Guideline files in prompt built event should be `<guideline-name>/<file-name>`
+- [x] Review application: never depend on string parsing for run/task relationships, use SQLite
+- [x] Implement a git diff tool
+- [x] Task prompt template rendering — resolveTemplate handles {{...}} with dotted path resolution
 - [x] Make write_step_output accept a JSON object with ajv schema validation
-- [x] Task prompt template rendering — resolveTemplate handles {{...}} placeholders with dotted path resolution
-- [x] Fix on_fail.max_retries dead config — remove step.max_retries, use on_fail.max_retries as single source of truth, migrate all YAMLs
+- [x] Implement retry feedback — on_failure.max_retries with event publishing on retry
+- [x] Add task prompt to prompt_built event
+- [x] Agent Co-Authored-By footer in all agent commit messages
+- [x] Fix on_fail.max_retries dead config — single source of truth from on_fail, migrate all YAMLs
 - [x] Fix runId mismatch on error — move catchAll from run.ts to runner.ts where runId is in scope
 - [x] Add write_step_output reminder injection — up to 2 reminder prompts before failing
 - [x] Change workflow timeouts to 300 seconds
-- [x] Fix token_in/token_out always 0: use session.getSessionStats() delta on turn_end instead of dead tokenUsage field
-- [x] Make timeout configurable at the step level (step.timeoutSeconds → agent.timeoutSeconds → polling.timeoutSeconds → 300)
-- [x] Print run ID at workflow start (in workflow_started event formatter), not only at the end
-- [x] Change what we call workflow id to workflow slug, for example `feature-dev` is the workflow slug
-- [x] Rename step id to step slug, for example `triage` is the step slug
-- [x] The workflow id must have the format `<workflow-slug>-<uuid>`
-- [x] Step id must have format `<workflow-id>-<step-slug>-<uuid>`
-- [x] Add greenfield workflow — scaffold new projects from scratch with a bootstrapper agent that sets up project structure, dependencies, and initial files before the planner/developer loop
-- [x] Create deterministic activities for workflows (e.g. activities to enter/exit worktree, setup/teardown steps)
-- [x] Enrich `inputs.json` with workflow execution context (e.g. working directory where workflow was started, time when workflow was requested)
-- [x] Add `do` workflow — single general-purpose agent that takes a prompt and executes it end-to-end without decomposition into steps (for quick tasks that don't need a full pipeline)
-- [x] Improve visualization of `hamilton workflow list` — tabular output with columns, color, grouping by category
-- [x] Add commands to list workflow runs
-- [x] Use proper cli framework; we don't have support for help flag currently
-- [x] Refactor context/passing layer from forEach/context/vars/Context to arguments/inputs.*/WorkflowEnv with agent-level CONTEXT.md templates
+- [x] Fix token_in/token_out always 0: use session.getSessionStats() delta on turn_end
+- [x] Make timeout configurable at the step level (step → agent → polling → 300)
+- [x] Print run ID at workflow start, not only at the end
+- [x] Change workflow id to workflow slug (e.g. `feature-dev`)
+- [x] Rename step id to step slug (e.g. `triage`)
+- [x] Workflow id format: `<workflow-slug>-<uuid>`
+- [x] Step id format: `<workflow-id>-<step-slug>-<uuid>`
