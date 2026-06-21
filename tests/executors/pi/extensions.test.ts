@@ -52,6 +52,19 @@ describe("readExtensionSettings", () => {
     expect(result).toEqual({ other: true })
     expect(result.extensions).toBeUndefined()
   })
+
+  it("parses extensions with parameters field", () => {
+    const settings = {
+      extensions: [
+        { name: "lsp", enabled: true, parameters: { autoCheck: true } }
+      ]
+    }
+    writeSettings(Yaml.stringify(settings))
+    const result = readExtensionSettings()
+    expect(result.extensions).toEqual([
+      { name: "lsp", enabled: true, parameters: { autoCheck: true } }
+    ])
+  })
 })
 
 describe("buildExtensions", () => {

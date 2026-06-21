@@ -8,6 +8,7 @@ import lsp from "@narumitw/pi-lsp"
 export interface ExtensionEntry {
   name: string
   enabled: boolean
+  parameters?: Record<string, unknown>
 }
 
 export interface ExtensionSettings {
