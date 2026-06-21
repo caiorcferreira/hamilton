@@ -87,6 +87,30 @@ Security failures are **non-negotiable** — reject regardless of whether the co
    - **Responsiveness** — layout adapts appropriately at different widths (if applicable)
    - **No visual regressions** — nothing looks broken compared to expected appearance
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — verifier (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ### Result
 
 Based on your verification, produce one of two outputs:

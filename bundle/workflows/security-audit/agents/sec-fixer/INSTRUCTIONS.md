@@ -77,6 +77,30 @@ Examples:
 - `fix(security): add CSRF protection to form endpoints`
 - `fix(security): sanitize user input in comment display`
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — sec-fixer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result — Expected Output
 
 When the fix is complete, call `write_step_output` with:

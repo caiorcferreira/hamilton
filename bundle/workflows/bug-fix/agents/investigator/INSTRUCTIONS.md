@@ -42,6 +42,30 @@ Your fix approach must include:
 
 Keep the fix minimal and targeted. Do NOT propose complex refactors — the smallest correct change wins.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — investigator (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 Call `write_step_output` with a JSON object:

@@ -95,6 +95,30 @@ Your mission for each session is to **implement exactly ONE user story** — no 
 
 If the verifier rejects your work, you'll receive feedback in your task input. Address every issue the verifier raised before re-submitting. Do not skip any feedback point.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — developer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result (Expected Output)
 
 When your story is complete, call `write_step_output` with this JSON:

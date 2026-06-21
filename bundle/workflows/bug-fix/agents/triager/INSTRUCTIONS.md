@@ -86,6 +86,30 @@ Keep it short (3-5 words), descriptive, and derived from the problem statement.
 
 Produce the structured result (see **Result** section below) and call `write_step_output` with it.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — triager (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result — What You Deliver
 
 Call `write_step_output` with a JSON object in the exact format below:

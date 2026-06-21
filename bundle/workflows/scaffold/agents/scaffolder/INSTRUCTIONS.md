@@ -39,6 +39,30 @@ Follow these steps in order:
 - Do **not** forget the `.gitignore`
 - Do **not** install unnecessary dependencies
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — scaffolder (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 When all steps are complete, call `write_step_output` with exactly this structure:

@@ -31,6 +31,30 @@ Execute these steps in order, stopping early only if a step produces a hard fail
 
 6. **Produce the summary** — synthesize everything into a concise assessment: what improved (vulnerabilities fixed, count and severity change), what remains (if any, with severity and exploitability assessment), and whether the codebase is ready to proceed.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — sec-tester (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 Call `write_step_output` with a JSON object in one of two forms:

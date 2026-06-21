@@ -89,6 +89,30 @@ After committing, run `git diff HEAD~1 --stat` and confirm:
 
 Read the verification feedback carefully — it tells you exactly what's wrong. Fix the specific issues identified and re-verify. Do **not** start from scratch; iterate on your previous work.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — fixer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 ### Output — call `write_step_output` with the following JSON:

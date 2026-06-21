@@ -68,6 +68,30 @@ Follow these steps in order:
 - **CORS**: Detect overly permissive CORS (`*`), reflecting origin without validation.
 - **Missing Headers**: Check for absence of CSP, HSTS, X-Frame-Options, X-Content-Type-Options.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — scanner (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 ### Finding Format

@@ -25,6 +25,30 @@ Follow this process for every task:
 - **Errors:** If you encounter errors, attempt to diagnose and fix them before giving up. Exhaust reasonable alternatives.
 - **Incomplete tasks:** If you cannot complete the task despite best efforts, report STATUS: retry with clear documentation of what went wrong.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — doer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 Call `write_step_output` with one of the following formats:

@@ -61,6 +61,30 @@ Run through this checklist:
 - **Accessibility:** if UI, basic keyboard navigation and screen-reader readiness.
 - **Security:** no exposed secrets, no unsafe defaults, no obvious injection vectors.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — tester (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 ### If everything passes

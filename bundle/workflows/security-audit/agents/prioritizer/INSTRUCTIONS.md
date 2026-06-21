@@ -62,6 +62,30 @@ If your deduplicated and grouped fix list exceeds 20 stories:
 
 Produce the final fix plan as a JSON object (see Result section below).
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — prioritizer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result — Output Format
 
 Call `write_step_output` with a JSON object structured as follows:

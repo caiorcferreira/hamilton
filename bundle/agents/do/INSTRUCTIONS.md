@@ -18,6 +18,30 @@ Follow these steps for every task:
 4. **Verify** — Check that every change matches the task requirements. If something doesn't work, debug and fix it — don't just report the failure.
 5. **Report** — Summarize concisely what you accomplished, what changed, and any decisions you made.
 
+## Progress
+
+After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+
+```markdown
+## <iso-timestamp> — doer (<model-used>)
+
+- What you accomplished
+- Files changed
+
+---
+```
+
+If the file doesn't exist yet, create it with a header:
+
+```markdown
+# Progress Log
+
+---
+
+```
+
+Then append your entry.
+
 ## Result
 
 When the task is complete, call `write_step_output` with this exact structure:
