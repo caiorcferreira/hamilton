@@ -34,6 +34,8 @@ You MUST create a task for each of these items and complete them in order:
 1. **Setup change** - define change name and create change folder
 2. **Explore project context** — check files, docs, recent commits
 3. **Create the proposal** - write the proposal document outlining the change
+4. **Create the requeriments** - Detailed requeriment specification for the change
+5. **Create the design** - write a technical design document with implementation details
 
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -70,8 +72,6 @@ digraph brainstorming {
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
-
 ## The Process
 
 **Setup change:**
@@ -79,71 +79,21 @@ digraph brainstorming {
 - If no clear input provided, ask what they want to build
 - Create the change directory  in the path `.hamilton/changes/<change-name>/`
 
-**Create the proposal:**
-
-Read [references/proposal.md] for detailed instruction on how to create the proposal document.
-
-
-**Exploring approaches:**
-
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
-
-**Presenting the design:**
-
-- Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
-
-**Design for isolation and clarity:**
-
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
-- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
-
-3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-
-
-**Working in existing codebases:**
-
+**Explore project context:**
 - Explore the current structure before proposing changes. Follow existing patterns.
 - Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
 
-## After the Design
+**Create the proposal:**
 
-**Documentation:**
+Read [references/proposal.md] for detailed instruction on how to create the proposal document.
 
-- Write the validated design (spec) to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
-- Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+**Create the requeriments:**
+Read [references/requeriments.md] for detailed instruction on how to create the requeriments documents.
 
-**Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+**Create the design:**
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-
-Fix any issues inline. No need to re-review — just fix and move on.
-
-**User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding:
-
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
-
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
-
-**Implementation:**
-
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next task.
+Read [references/design.md] for detailed instruction on how to create the design document.
 
 ## Key Principles
 

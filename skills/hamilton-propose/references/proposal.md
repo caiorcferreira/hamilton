@@ -10,6 +10,7 @@ Create the proposal document that establishes WHY this change is needed.This is 
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
 - Focus on understanding: purpose, constraints, success criteria
+- After the user approved the proposal, commit the proposal document to git
 
 ## Format
 - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
