@@ -54,7 +54,7 @@ Handler logic:
 2. Return `undefined` if `event.isError` is truthy (aborted/failed tool)
 3. Extract `filePath` from `event.input`. Return `undefined` if missing.
 4. Match an LSP adapter via `adapter.isSupportedFile(filePath)`. Return `undefined` if no adapter covers this file.
-5. Call `runDiagnostics(adapter, { root: resolveRoot(), paths: [filePath], limit: 1 }, timeoutMs, signal, ctx, statusKey)`
+5. Call `runDiagnostics(adapter, { root: resolveRoot(), files: [filePath] }, timeoutMs, signal, ctx, statusKey)`
 6. If zero diagnostics, return `undefined` (silent).
 7. Format diagnostics as text. Prepend `[{ type: "text", text: formattedDiagnostics }, ...event.content]` to the content array.
 8. Return `{ content: augmentedContent }` — the edit already ran, the agent sees LSP feedback in the tool output.
