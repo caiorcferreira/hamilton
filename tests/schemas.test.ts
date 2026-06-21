@@ -85,6 +85,82 @@ describe("WorkflowSpecSchema", () => {
     }
     expect(() => decode(raw)).toThrow()
   })
+
+  it("accepts a valid script task", () => {
+    const raw = {
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
+      kind: "Workflow",
+      metadata: { version: 1, name: "script-test" },
+      spec: {
+        run: { entrypoint: "setup", timeout: "300s" },
+        tasks: [
+          { name: "setup", script: { command: "npm install" } }
+        ]
+      }
+    }
+    const spec = decode(raw)
+    expect(spec.spec.tasks[0].script.command).toBe("npm install")
+  })
+
+  it("accepts a script task with all optional fields", () => {
+    const raw = {
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
+      kind: "Workflow",
+      metadata: { version: 1, name: "full-script" },
+      spec: {
+        run: { entrypoint: "build", timeout: "300s" },
+        tasks: [
+          {
+            name: "build",
+            script: {
+              command: "npm run build",
+              workdir: "/app",
+              timeout: { fixed: "120s" },
+              on_failure: { max_retries: 3 },
+              output: { schema: { content: { type: "object", properties: { status: { type: "string" } }, required: ["status"] } } }
+            }
+          }
+        ]
+      }
+    }
+    const spec = decode(raw)
+    expect(spec.spec.tasks[0].script.command).toBe("npm run build")
+    expect(spec.spec.tasks[0].script.workdir).toBe("/app")
+    expect(spec.spec.tasks[0].script.timeout?.fixed).toBe("120s")
+    expect(spec.spec.tasks[0].script.on_failure?.max_retries).toBe(3)
+  })
+
+  it("rejects a task with both agent and script", () => {
+    const raw = {
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
+      kind: "Workflow",
+      metadata: { version: 1, name: "bad" },
+      spec: {
+        run: { entrypoint: "t1", timeout: "300s" },
+        tasks: [
+          { name: "t1", agent: { executorRef: "a", prompt: { content: "do" } }, script: { command: "echo hi" } }
+        ]
+      }
+    }
+    expect(() => decode(raw)).toThrow()
+  })
+
+  it("accepts a template task with script as target", () => {
+    const raw = {
+      apiVersion: "dag.hamiltonai.dev/v1alpha1",
+      kind: "Workflow",
+      metadata: { version: 1, name: "template-script" },
+      spec: {
+        run: { entrypoint: "build-all", timeout: "300s" },
+        tasks: [
+          { name: "build-one", script: { command: "npm run build" } },
+          { name: "build-all", template: "build-one" }
+        ]
+      }
+    }
+    const spec = decode(raw)
+    expect(spec.spec.tasks[1].template).toBe("build-one")
+  })
 })
 
 describe("AgentManifestSchema (k8s envelope)", () => {

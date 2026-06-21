@@ -102,6 +102,14 @@ const TaskAgentSchema = Schema.Struct({
   prompt: PromptSchema
 })
 
+const TaskScriptSchema = Schema.Struct({
+  command: Schema.String,
+  workdir: Schema.optional(Schema.String),
+  timeout: Schema.optional(TimeoutSchema),
+  on_failure: Schema.optional(OnFailureSchema),
+  output: Schema.optional(OutputConfigSchema)
+})
+
 const ForEachSchema = Schema.Struct({
   valueFrom: Schema.Struct({ ref: Schema.String }),
   as: Schema.String
@@ -121,6 +129,7 @@ const WorkflowTaskSchema: Schema.Schema<any> = Schema.Struct({
   name: Schema.String,
   dependencies: Schema.optional(Schema.Array(Schema.String)),
   agent: Schema.optional(TaskAgentSchema),
+  script: Schema.optional(TaskScriptSchema),
   template: Schema.optional(Schema.String),
   arguments: Schema.optional(ArgumentsSchema),
   tasks: Schema.optional(Schema.suspend(() => Schema.Array(WorkflowTaskSchema))),
@@ -152,7 +161,11 @@ export const WorkflowSpecSchema = Schema.Struct({
       const taskNames = new Set(spec.spec.tasks.map((t: any) => t.name))
       let valid = true
       for (const task of spec.spec.tasks) {
-        if (!task.agent && !task.template && !task.tasks) {
+        if (!task.agent && !task.script && !task.template && !task.tasks) {
+          valid = false
+          break
+        }
+        if (task.agent && task.script) {
           valid = false
           break
         }
@@ -163,7 +176,7 @@ export const WorkflowSpecSchema = Schema.Struct({
       }
       return valid
     },
-    { message: () => "every task must have agent, template, or nested tasks. template references must be valid task names." }
+    { message: () => "every task must have agent, script, template, or nested tasks. agent and script are mutually exclusive. template references must be valid task names." }
   )
 )
 

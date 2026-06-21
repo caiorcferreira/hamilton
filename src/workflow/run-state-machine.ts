@@ -223,6 +223,8 @@ function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agen
     for (const t of tasks) {
       if (t.agent) {
         result.push({ taskName: t.name, agentName: t.agent.executorRef })
+      } else if (t.script) {
+        result.push({ taskName: t.name, agentName: "script" })
       }
       if (t.tasks) {
         walk(t.tasks)

@@ -1,0 +1,41 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: script-example
+  version: 1
+  description: |
+    Demonstrates script tasks — runs build, test, and lint as
+    shell commands instead of delegating to AI agents. Zero tokens used.
+spec:
+  run:
+    entrypoint: install-deps
+    timeout: 300s
+
+  tasks:
+    - name: install-deps
+      dependencies: []
+      script:
+        command: npm install
+      output:
+        schema:
+          file: schemas/script-output.json
+      on_failure:
+        max_retries: 2
+
+    - name: build
+      dependencies: [install-deps]
+      script:
+        command: npm run build
+      output:
+        schema:
+          file: schemas/script-output.json
+
+    - name: test
+      dependencies: [build]
+      script:
+        command: npm test
+      output:
+        schema:
+          file: schemas/script-output.json
+      on_failure:
+        max_retries: 3

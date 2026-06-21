@@ -24,6 +24,31 @@ vi.mock("../../src/prompts/persona.js", () => {
   }
 })
 
+vi.mock("node:child_process", () => {
+  return {
+    execSync: vi.fn((cmd: string) => {
+      if (cmd === "echo hello") return "hello\n"
+      if (cmd === "exit 1") throw Object.assign(new Error("Command failed"), { status: 1, stdout: "", stderr: "error" })
+      if (cmd === "pwd") return "/test/workdir\n"
+      if (cmd === "echo test-value") return "test-value\n"
+      if (cmd === "slow-command") {
+        throw Object.assign(new Error("ETIMEDOUT"), { status: null, stdout: "", stderr: "timeout" })
+      }
+      if (cmd === "flaky-cmd") {
+        const callCount = ((vi as any).flakyCount ?? 0) + 1
+        ;(vi as any).flakyCount = callCount
+        if (callCount < 2) throw Object.assign(new Error("Flaky fail"), { status: 1, stdout: "", stderr: "flaky" })
+        return "success\n"
+      }
+      if (cmd === "always-fail") throw Object.assign(new Error("Always fails"), { status: 1, stdout: "", stderr: "fail" })
+      if (cmd.startsWith("large-output")) {
+        return "x".repeat(100000)
+      }
+      return "ok\n"
+    })
+  }
+})
+
 const makeAgentManifest = (name: string): AgentManifest => ({
   metadata: { name },
   dirPath: `/agents/${name}`,
@@ -93,7 +118,7 @@ describe("runWorkflow DAG-aware executor", () => {
   it("executes tasks in topological order", async () => {
     const spec = makeSpec()
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -108,7 +133,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -150,7 +175,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -183,7 +208,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -211,7 +236,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -223,7 +248,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -235,7 +260,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -272,7 +297,7 @@ describe("runWorkflow DAG-aware executor", () => {
     })
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const planPromptBuilt = events.find(e => e._tag === "PromptBuilt" && e.taskId.includes("plan"))
@@ -331,5 +356,250 @@ describe("topological sort + env integration", () => {
 
     const reachable = collectReachableTasks(tasks, "b")
     expect(reachable.map(t => t.name).sort()).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("script task execution", () => {
+  let tmpHome: string
+  const origHome = process.env.HOME
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-script-"))
+    process.env.HOME = tmpHome
+    const hh = Path.join(tmpHome, ".hamilton")
+    Fs.mkdirSync(Path.join(hh, "workflows"), { recursive: true })
+    Fs.mkdirSync(Path.join(hh, "runs"), { recursive: true })
+    Fs.mkdirSync(Path.join(hh, "agents"), { recursive: true })
+    const piDir = Path.join(hh, "executors", "pi", "agent")
+    Fs.mkdirSync(piDir, { recursive: true })
+    Fs.writeFileSync(Path.join(piDir, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }));
+    (vi as any).flakyCount = 0
+  })
+
+  afterEach(() => {
+    process.env.HOME = origHome
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  const runSpec = (overrides?: Partial<WorkflowSpec>) => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "script-test" },
+      spec: {
+        run: { entrypoint: "hello", timeout: "300s" },
+        tasks: [
+          { name: "hello", script: { command: "echo hello" } }
+        ]
+      },
+      agentRegistry: new Map(),
+      ...overrides
+    }
+    return Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+      .pipe(Effect.provide(EventBusLive))
+  }
+
+  it("executes a simple script command", async () => {
+    const result = await Effect.runPromise(runSpec())
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["hello"]).toBe("done")
+  })
+
+  it("captures script output in env.tasks", async () => {
+    const result = await Effect.runPromise(runSpec())
+    const outputs = (result.env.tasks as Record<string, unknown>)["hello"] as { outputs: Record<string, unknown> }
+    expect(outputs.outputs.status).toBe("done")
+    expect(outputs.outputs.exitCode).toBe(0)
+    expect(outputs.outputs.stdout).toBe("hello")
+    expect(outputs.outputs.stderr).toBe("")
+  })
+
+  it("handles failed script command", async () => {
+    const result = await Effect.runPromise(runSpec({
+      spec: {
+        run: { entrypoint: "failer", timeout: "300s" },
+        tasks: [{ name: "failer", script: { command: "exit 1" } }]
+      }
+    }))
+    expect(result.status).toBe("failed")
+  })
+
+  it("runs script in specified workdir", async () => {
+    const workdir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "script-wd-"))
+    const result = await Effect.runPromise(runSpec({
+      spec: {
+        run: { entrypoint: "pwd-task", timeout: "300s" },
+        tasks: [{ name: "pwd-task", script: { command: "pwd", workdir } }]
+      }
+    }))
+    expect(result.status).toBe("completed")
+    const outputs = (result.env.tasks as Record<string, unknown>)["pwd-task"] as { outputs: Record<string, unknown> }
+    expect(outputs.outputs.stdout).toContain("workdir")
+  })
+
+  it("publishes TaskStarted and TaskCompleted events for scripts", async () => {
+    const events: Event[] = []
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "script-test" },
+      spec: {
+        run: { entrypoint: "hello", timeout: "300s" },
+        tasks: [{ name: "hello", script: { command: "echo hello" } }]
+      },
+      agentRegistry: new Map()
+    }
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          yield* _(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    const started = events.filter(e => e._tag === "TaskStarted")
+    const completed = events.filter(e => e._tag === "TaskCompleted")
+    expect(started.length).toBe(1)
+    expect(completed.length).toBe(1)
+    expect(started[0]!.taskName).toBe("hello")
+  })
+
+  it("does not publish PromptBuilt event for script tasks", async () => {
+    const events: Event[] = []
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "script-test" },
+      spec: {
+        run: { entrypoint: "hello", timeout: "300s" },
+        tasks: [{ name: "hello", script: { command: "echo hello" } }]
+      },
+      agentRegistry: new Map()
+    }
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+          yield* _(Effect.forkScoped(
+            bus.subscribeAll.pipe(
+              Stream.tap((e) => Effect.sync(() => events.push(e))),
+              Stream.runDrain
+            )
+          ))
+          yield* _(Effect.sleep("10 millis"))
+          yield* _(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+        })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    const promptBuilt = events.filter(e => e._tag === "PromptBuilt")
+    expect(promptBuilt.length).toBe(0)
+  })
+
+  it("retries script on failure up to max_retries", async () => {
+    const result = await Effect.runPromise(runSpec({
+      spec: {
+        run: { entrypoint: "flaky", timeout: "300s" },
+        tasks: [{ name: "flaky", script: { command: "flaky-cmd", on_failure: { max_retries: 3 } } }]
+      }
+    }))
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["flaky"]).toBe("done")
+  })
+
+  it("fails script after exhausting retries", async () => {
+    const result = await Effect.runPromise(runSpec({
+      spec: {
+        run: { entrypoint: "always-fail", timeout: "300s" },
+        tasks: [{ name: "always-fail", script: { command: "always-fail", on_failure: { max_retries: 2 } } }]
+      }
+    }))
+    expect(result.status).toBe("failed")
+  })
+
+  it("renders template variables in script command", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "template-test" },
+      spec: {
+        run: { entrypoint: "echo-task", timeout: "300s" },
+        tasks: [
+          { name: "setup", script: { command: "echo test-value" } },
+          { name: "echo-task", dependencies: ["setup"], script: { command: "echo {{inputs.tasks.setup.outputs.stdout}}" } }
+        ]
+      },
+      agentRegistry: new Map()
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+        .pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+  })
+
+  it("script task can depend on agent task", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "mixed-dag" },
+      spec: {
+        run: { entrypoint: "plan", timeout: "300s" },
+        tasks: [
+          { name: "plan", agent: { executorRef: "planner", prompt: { content: "Plan" } } },
+          { name: "build", dependencies: ["plan"], script: { command: "echo hello" } }
+        ]
+      },
+      agentRegistry: new Map([
+        ["planner", makeAgentManifest("planner")]
+      ])
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+        .pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["plan"]).toBe("done")
+    expect(result.taskResults["build"]).toBe("done")
+  })
+
+  it("agent task can depend on script task", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "mixed-dag-reverse" },
+      spec: {
+        run: { entrypoint: "setup", timeout: "300s" },
+        tasks: [
+          { name: "setup", script: { command: "echo hello" } },
+          { name: "plan", dependencies: ["setup"], agent: { executorRef: "planner", prompt: { content: "Plan" } } }
+        ]
+      },
+      agentRegistry: new Map([
+        ["planner", makeAgentManifest("planner")]
+      ])
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false }))
+        .pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["setup"]).toBe("done")
+    expect(result.taskResults["plan"]).toBe("done")
+  })
+
+  it("collectReachableTasks works with script tasks", () => {
+    const tasks: WorkflowSpec["spec"]["tasks"] = [
+      { name: "a", script: { command: "echo a" } },
+      { name: "b", dependencies: ["a"], script: { command: "echo b" } }
+    ]
+    const reachable = collectReachableTasks(tasks, "a")
+    expect(reachable.map(t => t.name)).toEqual(["a", "b"])
+  })
+
+  it("topologicalSort works with script tasks", () => {
+    const tasks: WorkflowSpec["spec"]["tasks"] = [
+      { name: "setup", script: { command: "echo setup" } },
+      { name: "build", dependencies: ["setup"], script: { command: "echo build" } }
+    ]
+    const sorted = topologicalSort(tasks)
+    expect(sorted[0]!.name).toBe("setup")
+    expect(sorted[1]!.name).toBe("build")
   })
 })

@@ -85,10 +85,19 @@ export interface Arguments {
   parameters?: ArgumentParameter[]
 }
 
+export interface TaskScript {
+  command: string
+  workdir?: string
+  timeout?: Timeout
+  on_failure?: OnFailure
+  output?: OutputConfig
+}
+
 export interface WorkflowTask {
   name: string
   dependencies?: string[]
   agent?: TaskAgent
+  script?: TaskScript
   template?: string
   arguments?: Arguments
   tasks?: WorkflowTask[]

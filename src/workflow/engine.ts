@@ -108,5 +108,8 @@ export function resolveTaskTimeout(task: WorkflowTask, globalTimeout: string): n
   if (task.agent?.timeout?.fixed) {
     return parseDuration(task.agent.timeout.fixed)
   }
+  if (task.script?.timeout?.fixed) {
+    return parseDuration(task.script.timeout.fixed)
+  }
   return parseDuration(globalTimeout)
 }
