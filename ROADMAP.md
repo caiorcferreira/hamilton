@@ -24,6 +24,7 @@
 - [ ] Create a spec authoring skill
   - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
   - [ ] Search for skills like Superpower's `brainstorm`
+  - [ ] Create a way to nudge the agent to write the plan/progress when necessary
 
 ## Completed
 
