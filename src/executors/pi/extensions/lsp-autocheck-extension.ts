@@ -8,9 +8,10 @@ const STATUS_KEY = "lsp-autocheck"
 function formatDiagnosticsText(
   result: Awaited<ReturnType<typeof runDiagnostics>>
 ): string | undefined {
+  const summary = (result.details as Record<string, unknown> | undefined)?.summary as { diagnostics?: number } | undefined
+  if (!summary || summary.diagnostics === 0) return undefined
   const text = result.content?.find((c) => c.type === "text")?.text ?? ""
-  if (!text || text.includes("no diagnostics")) return undefined
-  return text
+  return text || undefined
 }
 
 export function createLspAutocheckExtension(): (pi: ExtensionAPI) => void {
@@ -48,12 +49,14 @@ export function createLspAutocheckExtension(): (pi: ExtensionAPI) => void {
               ...event.content
             ]
           }
-        } catch {
+        } catch (err) {
+          console.warn("[lsp-autocheck] diagnostics failed:", err)
           return undefined
         }
       })
     }
-  } catch {
+  } catch (err) {
+    console.warn("[lsp-autocheck] loadRuntime failed:", err)
     return () => {}
   }
 }
