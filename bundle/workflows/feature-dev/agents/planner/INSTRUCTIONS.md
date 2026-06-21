@@ -115,7 +115,11 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Output
 
-When your plannign is complete write it to output with this JSON:
+Before writing your JSON task output, you MUST write the full plan as a markdown file:
+
+1. Write the plan to `{{inputs.change_dir}}/plan.md` — use the markdown format from this document (header, file structure, tasks with steps). Include ALL task details — no placeholders. This is the canonical record of the plan for this change.
+
+2. After writing plan.md, call `write_step_output` with this JSON:
 
 ```json
 {
