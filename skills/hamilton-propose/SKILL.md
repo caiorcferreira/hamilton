@@ -36,32 +36,29 @@ You MUST create a task for each of these items and complete them in order:
 3. **Create the proposal** - write the proposal document outlining the change
 4. **Create the requeriments** - Detailed requeriment specification for the change
 5. **Create the design** - write a technical design document containing implementation details in coloboration with the user, asking questions and presenting approaches
-7. **User reviews written artifacts** — ask user to review the artifacts file before proceeding
+7. **User reviews written artifacts** — ask user to review the artifacts file before proceeding. If the user asks for changes, go to back steps to rewrite all artifacts the user asked for. If the user approves, notify them that you are ready for implementation.
 
 ## Process Flow
 
 ```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
-    "User reviews spec?" [shape=diamond];
-    "Invoke writing-plans skill" [shape=doublecircle];
+digraph hamilton_propose {
+    "Setup change\n(derive name, create folder)" [shape=box];
+    "Explore project context\n(check files, docs, commits)" [shape=box];
+    "Create proposal\n(proposal.md — why)" [shape=box];
+    "Create requeriments\n(requeriments.md — what)" [shape=box];
+    "Collaborate on design\n(ask questions,\npresent 2-3 approaches)" [shape=box];
+    "Write design doc\n(design.md — how)" [shape=box];
+    "User reviews artifacts?" [shape=diamond];
+    "Change ready\nfor implementation" [shape=doublecircle];
 
-    "Explore project context" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
+    "Setup change\n(derive name, create folder)" -> "Explore project context\n(check files, docs, commits)";
+    "Explore project context\n(check files, docs, commits)" -> "Create proposal\n(proposal.md — why)";
+    "Create proposal\n(proposal.md — why)" -> "Create requeriments\n(requeriments.md — what)";
+    "Create requeriments\n(requeriments.md — what)" -> "Collaborate on design\n(ask questions,\npresent 2-3 approaches)";
+    "Collaborate on design\n(ask questions,\npresent 2-3 approaches)" -> "Write design doc\n(design.md — how)";
+    "Write design doc\n(design.md — how)" -> "User reviews artifacts?";
+    "User reviews artifacts?" -> "Create proposal\n(proposal.md — why)" [label="changes requested — rewrite affected artifacts"];
+    "User reviews artifacts?" -> "Change ready\nfor implementation" [label="approved"];
 }
 ```
 
