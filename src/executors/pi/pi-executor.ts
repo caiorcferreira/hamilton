@@ -134,8 +134,8 @@ export function executeWithPi(
     extensionFactories.push(createRedactExtension())
 
     const lspEntry = extSettings.extensions?.find((e) => e.name === "lsp")
-    if (lspEntry?.parameters?.autoCheck !== false) {
-      extensionFactories.push(createLspAutocheckExtension() as ExtensionFactory)
+    if (lspEntry && lspEntry.enabled !== false && lspEntry.parameters?.autoCheck !== false) {
+      extensionFactories.push(createLspAutocheckExtension())
     }
 
     const resolvedSkills = config.settings?.skills ?? null
