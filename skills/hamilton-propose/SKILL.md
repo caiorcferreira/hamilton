@@ -1,22 +1,22 @@
 ---
-name: propose
+name: hamilton-propose
 description: "Propose a new change with all artifacts. Explores user intent, requirements and design before implementation."
 ---
 
-# Brainstorming Ideas Into Designs
+# Proposing new changes
 
 Help turn ideas into fully formed proposals and designs through natural collaborative dialogue.
 
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 Once the user approves, I'll create a change with artifacts:
-- proposal.md (what & why)
+- proposal.md (why)
+- requeriments.md (what, can be multiple files)
 - design.md (how)
 
 <HARD_GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD_GATE>
-
 
 ## Input
 
@@ -35,15 +35,8 @@ You MUST create a task for each of these items and complete them in order:
 2. **Explore project context** — check files, docs, recent commits
 3. **Create the proposal** - write the proposal document outlining the change
 4. **Create the requeriments** - Detailed requeriment specification for the change
-5. **Create the design** - write a technical design document with implementation details
-
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `.hamilton/changes/<change-name>/proposal.md` and commit
-6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-7. **User reviews written spec** — ask user to review the spec file before proceeding
-8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+5. **Create the design** - write a technical design document containing implementation details in coloboration with the user, asking questions and presenting approaches
+7. **User reviews written artifacts** — ask user to review the artifacts file before proceeding
 
 ## Process Flow
 
