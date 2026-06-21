@@ -8,7 +8,6 @@
 
 ### Agent Capabilities
 - [ ] Add a todo/task tracking tool for the agent
-- [ ] Use LSPs during file edit/file read
 
 ### Extensions & Integrations
 - [ ] Refactor repo into multiple packages to expose pi extensions
@@ -28,6 +27,7 @@
 
 ## Completed
 
+- [x] Use LSPs during file edit/file read — autocheck extension runs diagnostics post-edit
 - [x] Remove retry_step and implement recursion support with `when` (CEL), `depth` tracking, and `max_recursion_depth`
 - [x] Refactor context/passing layer from forEach/context/vars/Context to arguments/inputs.*/WorkflowEnv with agent-level CONTEXT.md templates
 - [x] Use proper cli framework; we don't have support for help flag currently
