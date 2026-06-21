@@ -51,7 +51,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["branchout", "worktree"])
-    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan"])
   })
 
   it("chains multiple end tasks in supported order", () => {
@@ -74,7 +74,7 @@ describe("composeVariants", () => {
       { name: "plan", agent: { executorRef: "setup", prompt: { content: "" } } }
     ])
     const result = composeVariants(spec, spec.agentRegistry, ["worktree", "branchout"])
-    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan", "cleanup-worktree"])
+    expect(result.spec.tasks.map(t => t.name)).toEqual(["create-worktree", "plan"])
   })
 
   it("does not mutate input spec", () => {

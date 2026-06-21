@@ -79,6 +79,31 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
     tasks: [
       {
         placement: "end",
+        capabilities: { provides: ["workspace-cleaned"], replaces: [], requires: ["workspace-created"] },
+        task: {
+          name: "cleanup-worktree",
+          agent: {
+            executorRef: "setup",
+            prompt: {
+              content: `## Steps
+              1. Run the command: cd {{cwd}}
+              2. Run the command: git worktree remove ./.worktree/<branch-name>
+              
+              ## Output
+              Set your output with a JSON like:
+              \`\`\`json
+              {"status": "done", "worktree_path": "<worktree-path>"}
+              \`\`\`
+
+              ## User Input
+              {{user_input}}
+              `
+            }
+          }
+        }
+      },
+      {
+        placement: "end",
         capabilities: { provides: ["branch-merged"], replaces: [] },
         task: {
           name: "finalize-merge",
@@ -155,27 +180,36 @@ export function composeVariants(
 
   const orderedBySupported = supported.filter(v => activeVariants.includes(v))
 
-  const startTasks: VariantTask[] = []
-  const endTasks: VariantTask[] = []
-
+  const allVariantTasks: VariantTask[] = []
   for (const v of orderedBySupported) {
     const def = VARIANT_REGISTRY[v]
     if (!def) continue
     for (const vt of def.tasks) {
-      if (vt.placement === "start") startTasks.push(vt)
-      else endTasks.push(vt)
+      allVariantTasks.push(vt)
     }
   }
 
-  const replacedCapabilities: string[] = []
-
-  const allVariantTasks = [...startTasks, ...endTasks]
+  const providedCapabilities = new Set<string>()
   for (const vt of allVariantTasks) {
+    for (const p of vt.capabilities.provides) {
+      providedCapabilities.add(p)
+    }
+  }
+
+  const withRequirementsMet = allVariantTasks.filter(vt =>
+    (vt.capabilities.requires ?? []).every(r => providedCapabilities.has(r))
+  )
+
+  const startTasks = withRequirementsMet.filter(vt => vt.placement === "start")
+  const endTasks = withRequirementsMet.filter(vt => vt.placement === "end")
+
+  const replacedCapabilities: string[] = []
+  for (const vt of withRequirementsMet) {
     replacedCapabilities.push(...vt.capabilities.replaces)
   }
 
   const kept: VariantTask[] = []
-  for (const vt of allVariantTasks) {
+  for (const vt of withRequirementsMet) {
     const isReplaced = vt.capabilities.provides.some(p => replacedCapabilities.includes(p))
     const isReplacer = vt.capabilities.replaces.length > 0
     if (isReplaced && !isReplacer) continue

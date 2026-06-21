@@ -100,6 +100,7 @@ export type VariantPlacement = "start" | "end"
 export interface VariantCapabilities {
   provides: string[]
   replaces: string[]
+  requires?: string[]
 }
 
 export interface VariantTask {
