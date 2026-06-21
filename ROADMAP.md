@@ -2,9 +2,13 @@
 
 ## Next Up
 
+- [ ] Change `init` command to `setup`
+- [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
+- [ ] Create documentation for the project
+
 ### Core Engine
 - [ ] Trigger workflows from other workflows
-- [ ] Implement a `script` field in tasks
+- [X] Implement a `script` field in tasks
 
 ### Agent Capabilities
 - [ ] Add a todo/task tracking tool for the agent
