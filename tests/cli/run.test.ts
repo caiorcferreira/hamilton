@@ -20,6 +20,14 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
   }
 })
 
+vi.mock("../../src/curator/change-id.js", () => {
+  const { Effect: E } = require("effect")
+  return {
+    determineChangeId: vi.fn(() => E.succeed("test-change")),
+    CURATOR_SYSTEM_PROMPT: ""
+  }
+})
+
 vi.mock("../../src/prompts/persona.js", () => {
   const { Effect: E } = require("effect")
   return {

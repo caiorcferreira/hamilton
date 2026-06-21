@@ -1,4 +1,5 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
+import { VERSION } from "../index.js"
 import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentPrompt } from "../prompts/builder.js"
 
@@ -21,6 +22,8 @@ import {
   appendEngineLog,
   ensureProgressFile
 } from "../observability/run-dir.js"
+import { readNextId, writeNextId, ensureChangeDir, writeWorkflowMetadata } from "../observability/change-dir.js"
+import { determineChangeId } from "../curator/change-id.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
@@ -82,6 +85,35 @@ export function runWorkflow(
 
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
 
+    let changeId: string | null = null
+    yield* _(Effect.gen(function* () {
+      const nextId = yield* _(readNextId())
+      const paddedId = String(nextId + 1).padStart(3, "0")
+
+      const title = yield* _(determineChangeId(
+        initialParameters.user_input ?? "untitled-change",
+        runId
+      ))
+
+      const id = `${paddedId}-${title}`
+      yield* _(ensureChangeDir(id))
+      changeId = id
+
+      const sortedTaskNames = sortedTasks.map(t => t.name)
+
+      yield* _(writeWorkflowMetadata(id, {
+        workflow_id: runId,
+        change_id: id,
+        tasks: sortedTaskNames,
+        input_prompt: initialParameters.user_input ?? "",
+        hamilton_version: VERSION,
+        created_at: new Date().toISOString(),
+        variants: spec.spec.variants?.supported ?? []
+      }))
+
+      yield* _(writeNextId(nextId + 1))
+    }).pipe(Effect.catchAll(() => Effect.void)))
+
     if (fileEnabled) {
       yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
     }
@@ -115,6 +147,7 @@ export function runWorkflow(
       ...initialParameters,
       tasks: {},
       run_id: runId,
+      change_dir: changeId ?? undefined,
       progress_file: progressFilePath,
       progress: progressContent
     }
