@@ -4,6 +4,7 @@ export interface WorkflowEnv {
   run_id?: string
   progress_file?: string
   progress?: string
+  change_dir?: string
   tasks?: Record<string, { outputs: Record<string, unknown> }>
   parameters?: Record<string, unknown>
   [key: string]: unknown
