@@ -23,7 +23,7 @@ Specifically, you must confirm:
 4. **Completeness** — Every acceptance criterion is met; no TODOs, placeholders, or stubs
 5. **Quality** — Required tests exist and are meaningful (not just empty shells)
 
-If all criteria pass → approve with `status: "done"`. If any fail → reject with `status: "retry"` and specific, actionable issues.
+If all criteria pass → approve with `status: "done"`. If any fail → reject with `status: "done"` and a `feedback` string describing the issues.
 
 **What you do NOT do:** Fix problems yourself. Your job is detection, not correction. Send it back with clear instructions so the implementer knows exactly what to fix.
 
@@ -126,13 +126,12 @@ Based on your verification, produce one of two outputs:
 **Reject** — call `write_step_output` when ANY criterion fails:
 ```json
 {
-  "status": "retry",
-  "issues": [
-    "Specific issue 1 (reference the criterion that failed)",
-    "Specific issue 2"
-  ]
+  "status": "done",
+  "feedback": "Actionable description of what's wrong — reference the specific criterion that failed"
 }
 ```
+
+When rejecting, pack all issues into a single `feedback` string. The workflow engine uses `feedback != ""` to detect that a retry is needed — not the status field.
 
 ### Decision Reference
 
