@@ -451,10 +451,9 @@ Hamilton creates and reads project-local files:
 ```
 <repo>/.hamilton/
   changes/
-    next-id.txt                          # Monotonic change counter
-    001-my-change/workflow.metadata.json # Per-change metadata
-  workflows/
-    progress-2025-06-15.txt              # Dated progress log
+    <change-id>/workflow.metadata.json  # Per-change metadata
+    <change-id>/progress.md             # Append-only agent progress log
+    <change-id>/plan.md                 # Implementation plan
 ```
 
 ### Run Files

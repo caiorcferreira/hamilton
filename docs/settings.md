@@ -264,14 +264,11 @@ gracefully degrades to sensible defaults.
 These are created with sensible defaults by `hamilton init`. Copy existing configs from
 `~/.pi/agent/` with `hamilton init --copy-pi-configs`.
 
-### Progress Files (`./.hamilton/workflows/`)
-
-Progress files are project-local, written to `./.hamilton/workflows/progress-<YYYY-MM-DD>.txt`.
-Agents append entries to track story completion and discovered codebase patterns across
-multiple sessions.
-
 ### Change Directories (`./.hamilton/changes/`)
 
-Change directories track per-change workflow metadata. Located at
-`./.hamilton/changes/<padded-id>-<title>/workflow.metadata.json`. A monotonic counter
-at `./.hamilton/changes/next-id.txt` assigns IDs.
+Change directories track per-change artifacts. Located at
+`./.hamilton/changes/<change-id>/`. Each directory contains:
+
+- `progress.md` — append-only log written by workflow agents
+- `plan.md` — implementation plan written by the planner agent
+- `workflow.metadata.json` — workflow execution metadata
