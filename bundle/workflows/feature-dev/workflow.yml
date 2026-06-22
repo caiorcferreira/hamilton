@@ -29,14 +29,12 @@ spec:
         executorRef: planner
         prompt:
           content: |
+            ## Goal
             Decompose the following specification into ordered tasks for autonomous execution.
 
-            <retry_feedback>
-              (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about)
-              {{retry_feedback}}
-            </retry_feedback>
+            
   
-            Instructions:
+            ## Instructions
             1. Explore the codebase to understand the stack, conventions, and patterns
             2. Break the specification into tasks (maximun 20)
             3. Order by dependency: schema/DB first, backend, frontend, integration
@@ -58,9 +56,10 @@ spec:
         executorRef: setup
         prompt:
           content: |
+            ## Goal
             Prepare the development environment for this feature.
 
-            Instructions:
+            ## Instructions
             1. Run the command: cd {{inputs.cwd}}
             2. Run the command to learn the current branch: git branch --show-current
             3. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
@@ -69,6 +68,7 @@ spec:
             6. Run the tests to establish a baseline
             7. Compile a baseline report
   
+            ## Output
             Set your output with:
             `{"status": "done", "current_branch": "<current-branch>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
         output:
@@ -78,165 +78,168 @@ spec:
         max_retries: 4
         escalate_to: human
   
-    - name: implement-stories
+    - name: apply-plan
       dependencies: [setup]
-      template: implement-story
+      template: implement-task
       arguments:
         forEach:
           valueFrom:
             ref: inputs.tasks.plan.outputs.tasks
           as: current_task
-    
-    - name: implement-story
-      agent:
-        executorRef: developer
-        prompt:
-          content: |
-            Implement the code for following task. You are working on ONE task in a fresh session.
 
-            Repository: {{inputs.cwd}}
-            Branch: {{inputs.tasks.setup.outputs.current_branch}}
-            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
-            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
-  
-            Current task:
-            {{inputs.parameters.current_task}}
-  
-            VERIFY FEEDBACK (if retrying):
-            {{verify_feedback}}
-  
-            TIMEOUT RETRY (if previous attempt timed out):
-            {{timeout_retry}}
-  
-            PROGRESS LOG:
-            {{inputs.progress}}
-   
-            Instructions:
-            1. Read {{inputs.progress_file}} — especially the Codebase Patterns section
-            2. Pull latest on the branch
-            3. Implement this task only
-            4. Write tests for this task's functionality
-            5. Run typecheck / build
-            6. Run tests to confirm they pass
-            7. Commit: "feat: {{inputs.parameters.current_task.title}}"
-            8. Rewrite {{inputs.progress_file}} with updated story results and patterns
-            9. Update Codebase Patterns if you found reusable patterns
-  
-            Reply with:
-            STATUS: done
-            CHANGES: what you implemented
-            TESTS: what tests you wrote
-        output:
-          schema:
-            file: schemas/implement-story.json
-      on_failure:
-        max_retries: 4
-        escalate_to: human
-  
-    - name: verify-stories
-      dependencies: [implement-stories]
-      template: verify-story
-      arguments:
-        forEach:
-          valueFrom:
-            ref: inputs.tasks.plan.outputs.tasks
-          as: current_task
-  
-    - name: verify-story
-      agent:
-        executorRef: verifier
-        prompt:
-          content: |
-            Verify the developer's work on this story.
+    - name: implement-task
+      tasks:
+        - name: code
+          agent:
+            executorRef: developer
+            prompt:
+              content: |
+                ## Goal
+                Implement the code for following task. You are working on ONE task in a fresh session.
 
-            REPO: {{inputs.tasks.plan.outputs.repo}}
-            BRANCH: {{inputs.tasks.plan.outputs.branch}}
-            CHANGES: {{changes}}
-            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
-  
-            CURRENT STORY:
-            {{inputs.parameters.current_task}}
-  
-            PROGRESS LOG:
-            {{inputs.progress}}
-   
-            Check:
-            1. Code exists (not just TODOs or placeholders)
-            2. Each acceptance criterion for the story is met
-            3. Tests were written for this story's functionality
-            4. Tests pass (run {{inputs.tasks.setup.outputs.test_cmd}})
-            5. No obvious incomplete work
-            6. Typecheck passes
-  
-            ## Visual Verification (Frontend Changes)
-            Has frontend changes: {{has_frontend_changes}}
-  
-            If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
-            1. Use the agent-browser skill to visually inspect the changed UI
-            2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
-            3. Take a screenshot of the rendered page
-            4. Visually confirm:
-               - Layout renders correctly (no broken/overlapping elements)
-               - Styling is applied as expected (colors, fonts, spacing)
-               - All visible elements from the story are present and properly positioned
-               - No missing images, icons, or visual assets
-               - Text is readable and not clipped or hidden
-            5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
-            6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
-            7. Include your visual findings in VERIFIED output
-  
-            If {{has_frontend_changes}} is 'false', skip visual verification entirely.
-  
-            Reply with:
-            STATUS: done
-            VERIFIED: What you confirmed
-  
-            Or if incomplete:
-            STATUS: retry
-            ISSUES:
-            - What's missing or incomplete
-        output:
-          schema:
-            file: schemas/verify-story.json
-      on_failure:
-        max_retries: 4
-        escalate_to: human
-  
-    - name: test
-      dependencies: [verify-stories]
-      agent:
-        executorRef: tester
-        prompt:
-          content: |
-            Integration and E2E testing of the implementation.
+                ## Context
+                Repository: {{inputs.cwd}}
+                Branch: {{inputs.tasks.setup.outputs.current_branch}}
+                Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+      
+                Current task:
+                {{inputs.parameters.current_task}}
 
-            REPO: {{inputs.tasks.plan.outputs.repo}}
-            BRANCH: {{inputs.tasks.plan.outputs.branch}}
-            CHANGES: {{changes}}
-            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
-   
-            PROGRESS LOG:
-            {{inputs.progress}}
-   
-            Your job (integration/E2E testing — unit tests were already written per-story):
-            1. Run the full test suite ({{inputs.tasks.setup.outputs.test_cmd}}) to confirm everything passes together
-            2. Look for integration issues between stories
-            3. If this is a UI feature, use agent-browser to test it end-to-end
-            4. Check cross-cutting concerns: error handling, edge cases across features
-            5. Verify the overall feature works as a cohesive whole
-  
-            Reply with:
-            STATUS: done
-            RESULTS: What you tested and the outcomes
-  
-            Or if issues found:
-            STATUS: retry
-            FAILURES:
-            - Specific test failures or bugs found
-        output:
-          schema:
-            file: schemas/test.json
-      on_failure:
-        max_retries: 4
-        escalate_to: human
+                {{#if input.parameters.validation_feedback}}
+                ## Retry
+
+                ### Validation feedback
+                {{input.parameters.validation_feedback}}
+                {{/if}}
+      
+                ## Instructions
+                1. Read {{inputs.progress_file}} — especially the Codebase Patterns section
+                2. Pull latest on the branch
+                3. Implement this task only
+                4. Write tests for this task's functionality
+                5. Run typecheck / build
+                6. Run tests to confirm they pass
+                7. Commit: "feat: {{inputs.parameters.current_task.title}}"
+                8. Rewrite {{inputs.progress_file}} with updated story results and patterns
+                9. Update Codebase Patterns if you found reusable patterns
+      
+                ## Output
+                Set your output with:
+                `{"status": "done", "changes": "<what you implemented>", "tests": "<what tests you wrote"}`
+            output:
+              schema:
+                file: schemas/code.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+
+        - name: test
+          dependencies: [code]
+          agent:
+            executorRef: tester
+            prompt:
+              content: |
+                ## Goal
+                Review unit tests and write integration/E2E tests for the implementation.
+
+                ## Task
+                {{inputs.parameters.current_task}}
+
+                ## Setup
+                Build command: `{{inputs.tasks.setup.outputs.build_cmd}}`
+                Test command: `{{inputs.tasks.setup.outputs.test_cmd}}`
+      
+                ## Instructions
+                Your job is:
+                1. Run the full test suite ({{inputs.tasks.setup.outputs.test_cmd}}) to confirm everything passes together
+                2. Look for integration issues between stories
+                3. If this is a UI feature, use agent-browser to test it end-to-end
+                4. Check cross-cutting concerns: error handling, edge cases across features
+                5. Verify the overall feature works as a cohesive whole
+
+                ## Output
+                If sucessful, set your output with:
+                `{"status": "done", "results": "<summary of tests created, modified and executed>"}`
+
+                Or, if issues found set your output with:
+                `{"status": "retry", "failures": "specific test failures or bugs found"}`
+            output:
+              schema:
+                file: schemas/test.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+
+        - name: verify-implementation
+          agent:
+            dependencies: [test]
+            executorRef: verifier
+            prompt:
+              content: |
+                ## Goal
+                Verify the developer's work on this story.
+
+                ## Context
+                Repository: {{inputs.tasks.plan.outputs.repo}}
+                Branch: {{inputs.tasks.plan.outputs.branch}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+      
+                Current Task:
+                {{inputs.parameters.current_task}}
+
+                ## Instructions      
+                Make the following checks:
+                1. Code exists (not just TODOs or placeholders)
+                2. Each acceptance criterion for the story is met
+                3. Tests were written for this story's functionality
+                4. Tests pass (run {{inputs.tasks.setup.outputs.test_cmd}})
+                5. No obvious incomplete work
+                6. Typecheck passes
+      
+                ### Visual Verification (Frontend Changes)
+                Has frontend changes: {{has_frontend_changes}}
+      
+                If {{has_frontend_changes}} is 'true', you MUST also perform visual verification:
+                1. Use the agent-browser skill to visually inspect the changed UI
+                2. Open the changed HTML file directly (file:// URL) or spin up a local dev server if the project requires one
+                3. Take a screenshot of the rendered page
+                4. Visually confirm:
+                  - Layout renders correctly (no broken/overlapping elements)
+                  - Styling is applied as expected (colors, fonts, spacing)
+                  - All visible elements from the story are present and properly positioned
+                  - No missing images, icons, or visual assets
+                  - Text is readable and not clipped or hidden
+                5. A visual PASS means: the page renders without broken layout, missing elements, or overlapping content
+                6. A visual FAIL means: broken layout, missing/invisible elements, overlapping or misaligned content, unstyled raw HTML, or obvious rendering errors
+                7. Include your visual findings in VERIFIED output
+      
+                If {{has_frontend_changes}} is 'false', skip visual verification entirely.
+      
+
+                ## Output
+                If sucessful, set your output with:
+                `{"status": "done", "verified": "<what you confirmed>"}`
+
+                Or, if issues found set your output with:
+                `{"status": "done", "feedback": "<What's missing or incomplete>"}`
+            output:
+              schema:
+                file: schemas/verify-implementation.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+
+        - name: apply-verification-feedback
+          template: implement-task
+          when: 'inputs.tasks.verify-implementation.outputs.feedback != ""'
+          arguments:
+            parameters:
+            - name: current_task
+              valueFrom:
+                ref: inputs.parameters.current_task
+            - name: validation_feedback
+              valueFrom:
+                ref: inputs.tasks.verify-implementation.outputs.feedback
+
+      
