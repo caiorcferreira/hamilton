@@ -422,6 +422,76 @@ The `retry-if-needed` subtask re-enters the same template when the verifier retu
 
 ---
 
+## Initial Parameters
+
+When a workflow starts, the engine initializes the workflow environment with a set of
+top-level parameters. These are available to all tasks via template variables.
+
+### Parameter Sources
+
+Parameters come from two sources:
+
+1. **CLI-provided** — set by `hamilton workflow run` and passed directly to the engine
+2. **Engine-injected** — added by the runner before the first task executes
+
+### CLI-Provided Parameters
+
+These are set by the `run` command in `src/cli/commands/run.ts`:
+
+```ts
+{ user_input: params.prompt, cwd: process.cwd() }
+```
+
+| Variable | Source | Description |
+|----------|--------|-------------|
+| `user_input` | `--prompt` argument | The user's prompt or feature description. Appended to the entrypoint task's prompt as `# User input`. |
+| `cwd` | `process.cwd()` | Absolute path to the working directory where the CLI was invoked. |
+
+### Engine-Injected Parameters
+
+These are added by the runner at `src/workflow/runner.ts:113-115` before task execution begins:
+
+| Variable | Set By | Description |
+|----------|--------|-------------|
+| `project_dir` | Runner | Same as `cwd`. Provides a semantic alias for tasks that reason about the project root. |
+| `run_id` | Engine | Unique run identifier (e.g. `feature-dev-xjuwp`). Generated from workflow name + nanoid. |
+| `change_dir` | Runner (conditional) | Path to `.hamilton/changes/<change-id>` directory when a matching change is found. |
+
+### Accumulated Parameters
+
+These are populated as tasks complete during the run:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `tasks` | `Record<string, { outputs: Record<string, unknown> }>` | Completed task outputs, keyed by task instance name. |
+| `parameters` | `Record<string, unknown>` | forEach iteration variables injected by template tasks. |
+| `currentIteration.tasks` | `Record<string, { outputs: ... }>` | Outputs of sibling subtasks within the current template iteration. |
+
+### Accessing in Templates
+
+All initial parameters are accessed under the `inputs` prefix in template variables:
+
+```yaml
+prompt:
+  content: |
+    Working directory: {{inputs.cwd}}
+    User prompt: {{inputs.user_input}}
+    Run ID: {{inputs.run_id}}
+```
+
+Task outputs use dotted paths from the root:
+
+```yaml
+prompt:
+  content: |
+    Plan: {{inputs.tasks.plan.outputs.status}}
+    Setup branch: {{inputs.tasks.setup.outputs.current_branch}}
+```
+
+For full details on variable resolution and path patterns, see [Template Variables](#template-variables).
+
+---
+
 ## Template Variables
 
 Agent prompts support `{{path.to.key}}` template variables resolved at runtime from the
@@ -432,6 +502,10 @@ workflow environment. The engine uses Handlebars with custom escaping.
 | Pattern | Source |
 |---------|--------|
 | `{{inputs.cwd}}` | Current working directory |
+| `{{inputs.user_input}}` | User's prompt |
+| `{{inputs.project_dir}}` | Project root directory |
+| `{{inputs.run_id}}` | Unique run identifier |
+| `{{inputs.change_dir}}` | Change directory path (when applicable) |
 | `{{inputs.tasks.<name>.outputs.<field>}}` | Output of a completed task |
 | `{{inputs.parameters.<name>}}` | forEach iteration variable |
 | `{{inputs.currentIteration.tasks.<name>.outputs.<field>}}` | Output of a sibling subtask within the current template iteration |
