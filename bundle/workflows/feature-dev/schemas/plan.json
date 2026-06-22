@@ -1,20 +1,26 @@
 {
   "type": "object",
-  "required": ["status"],
+  "required": ["status", "tasks"],
   "properties": {
     "status": { "type": "string", "enum": ["done", "failed"] },
     "feature_name": { "type": "string" },
     "architecture": { "type": "string" },
     "tech_stack": { "type": "string" },
     "repo": { "type": "string" },
+    "change_id": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "tasks": {
       "type": "array",
       "items": {
-"type": "object",
-          "required": ["title"],
-          "properties": {
-            "title": { "type": "string" },
-            "files": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "title": { "type": "string" },
+          "files": {
             "type": "object",
             "properties": {
               "create": { "type": "array", "items": { "type": "string" } },
@@ -29,6 +35,7 @@
               "type": "object",
               "required": ["title", "description"],
               "properties": {
+                "id": { "type": "string" },
                 "title": { "type": "string" },
                 "description": { "type": "string" }
               }
