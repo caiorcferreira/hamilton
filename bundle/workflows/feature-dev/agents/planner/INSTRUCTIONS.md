@@ -157,7 +157,7 @@ Before writing your JSON task output:
 ---
 ```
 
-4. After writing both files, call `write_step_output` with this JSON:
+4. After writing both files, call `write_task_output` with this JSON:
 
 ```json
 {
