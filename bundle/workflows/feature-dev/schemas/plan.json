@@ -8,6 +8,7 @@
     "tech_stack": { "type": "string" },
     "repo": { "type": "string" },
     "change_id": { "type": "string" },
+    "progress_file": { "type": "string" },
     "artifacts": {
       "type": "array",
       "items": { "type": "string" }
