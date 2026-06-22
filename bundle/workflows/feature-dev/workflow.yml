@@ -168,8 +168,8 @@ spec:
             escalate_to: human
 
         - name: verifyImplementation
+          dependencies: [test]
           agent:
-            dependencies: [test]
             executorRef: verifier
             prompt:
               content: |
@@ -208,6 +208,7 @@ spec:
             escalate_to: human
 
         - name: applyVerificationFeedback
+          dependencies: [verifyImplementation]
           template: implementTask
           when: 'inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""'
           arguments:
