@@ -4,16 +4,11 @@ metadata:
   name: feature-dev
   version: 6
   description: |
-    Plan, implement, test, and verify features story-by-story in a local-only pipeline without merge or PR.
+    Plan, implement, test, and verify features story-by-story in a local-only pipeline.
     Story-based execution pipeline for local-only repos. Planner decomposes tasks
     into user stories. Setup prepares the environment and establishes baseline.
     Developer implements each story (with tests) in a fresh session. Verifier
     checks each story. Then integration/E2E testing.
-  
-    Stops after testing — does NOT create a pull request or run code review.
-    Use this workflow when the repo has no remote (or no `gh` CLI), or when you
-    just want the work committed locally on a feature branch. For the full
-    PR-creating pipeline, use `feature-dev-github-pr`.
 spec:
   run:
     entrypoint: plan
@@ -41,7 +36,7 @@ spec:
             4. Each task must fit in one developer agent session (one context window)
             5. Every acceptance criterion must be mechanically verifiable
             6. Always include "typecheck passes"/"project compile" as the last criterion in every task
-            7. Every tasl MUST include test criteria — "Tests for [feature] pass"
+            7. Every task MUST include test criteria — "Tests for [feature] pass"
             8. The developer is expected to write tests as part of each task
         output:
           schema:
@@ -78,16 +73,16 @@ spec:
         max_retries: 4
         escalate_to: human
   
-    - name: apply-plan
+    - name: applyPlan
       dependencies: [setup]
-      template: implement-task
+      template: implementTask
       arguments:
         forEach:
           valueFrom:
             ref: inputs.tasks.plan.outputs.tasks
           as: current_task
 
-    - name: implement-task
+    - name: implementTask
       tasks:
         - name: code
           agent:
@@ -159,7 +154,7 @@ spec:
                 5. Verify the overall feature works as a cohesive whole
 
                 ## Output
-                If sucessful, set your output with:
+                If successful, set your output with:
                 `{"status": "done", "results": "<summary of tests created, modified and executed>"}`
 
                 Or, if issues found set your output with:
@@ -171,7 +166,7 @@ spec:
             max_retries: 4
             escalate_to: human
 
-        - name: verify-implementation
+        - name: verifyImplementation
           agent:
             dependencies: [test]
             executorRef: verifier
@@ -218,21 +213,21 @@ spec:
       
 
                 ## Output
-                If sucessful, set your output with:
+                If successful, set your output with:
                 `{"status": "done", "verified": "<what you confirmed>"}`
 
                 Or, if issues found set your output with:
                 `{"status": "done", "feedback": "<What's missing or incomplete>"}`
             output:
               schema:
-                file: schemas/verify-implementation.json
+                file: schemas/verifyImplementation.json
           on_failure:
             max_retries: 4
             escalate_to: human
 
-        - name: apply-verification-feedback
-          template: implement-task
-          when: 'inputs.tasks.verify-implementation.outputs.feedback != ""'
+        - name: applyVerificationFeedback
+          template: implementTask
+          when: 'inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""'
           arguments:
             parameters:
             - name: current_task
@@ -240,6 +235,6 @@ spec:
                 ref: inputs.parameters.current_task
             - name: validation_feedback
               valueFrom:
-                ref: inputs.tasks.verify-implementation.outputs.feedback
+                ref: inputs.currentIteration.tasks.verifyImplementation.outputs.feedback
 
       

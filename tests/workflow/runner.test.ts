@@ -145,7 +145,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("resolves agent refs correctly", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const completed = events.filter(e => e._tag === "TaskCompleted")
@@ -154,7 +154,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("publishes WorkflowStarted and WorkflowCompleted events", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     expect(events[0]._tag).toBe("WorkflowStarted")
@@ -277,7 +277,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("publishes PromptBuilt events for agent tasks", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") })
+      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
     )
 
     const promptBuilt = events.filter(e => e._tag === "PromptBuilt")
@@ -582,6 +582,129 @@ describe("script task execution", () => {
     expect(result.status).toBe("completed")
     expect(result.taskResults["setup"]).toBe("done")
     expect(result.taskResults["plan"]).toBe("done")
+  })
+
+  it("executes template with nested subtasks and populates env.tasks with instance names", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "template-subtasks" },
+      spec: {
+        run: { entrypoint: "process", timeout: "300s" },
+        tasks: [
+          {
+            name: "process",
+            template: "step",
+            arguments: {
+              forEach: {
+                valueFrom: { ref: "inputs.parameters.items" },
+                as: "item"
+              }
+            }
+          },
+          {
+            name: "step",
+            tasks: [
+              { name: "build", agent: { executorRef: "builder", prompt: { content: "Build {{inputs.parameters.item}}" } } },
+              { name: "check", dependencies: ["build"], agent: { executorRef: "checker", prompt: { content: "Check {{inputs.parameters.item}}" } } }
+            ]
+          }
+        ]
+      },
+      agentRegistry: new Map([
+        ["builder", makeAgentManifest("builder")],
+        ["checker", makeAgentManifest("checker")]
+      ])
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(spec, { parameters: { items: ["a", "b"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["process/0-build"]).toBe("done")
+    expect(result.taskResults["process/0-check"]).toBe("done")
+    expect(result.taskResults["process/1-build"]).toBe("done")
+    expect(result.taskResults["process/1-check"]).toBe("done")
+    expect((result.env.tasks as Record<string, unknown>)["process/0-build"]).toBeDefined()
+    expect((result.env.tasks as Record<string, unknown>)["process/1-build"]).toBeDefined()
+  })
+
+  it("cleans up currentIteration after template iteration completes", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "currentiteration-cleanup" },
+      spec: {
+        run: { entrypoint: "process", timeout: "300s" },
+        tasks: [
+          {
+            name: "process",
+            template: "step",
+            arguments: {
+              forEach: {
+                valueFrom: { ref: "inputs.parameters.items" },
+                as: "item"
+              }
+            }
+          },
+          {
+            name: "step",
+            tasks: [
+              { name: "build", agent: { executorRef: "builder", prompt: { content: "Build" } } },
+              { name: "verify", dependencies: ["build"], agent: { executorRef: "verifier", prompt: { content: "Verify" } } }
+            ]
+          }
+        ]
+      },
+      agentRegistry: new Map([
+        ["builder", makeAgentManifest("builder")],
+        ["verifier", makeAgentManifest("verifier")]
+      ])
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(spec, { parameters: { items: ["a", "b"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+    expect(result.env.currentIteration).toBeUndefined()
+  })
+
+  it("does not leak currentIteration between forEach iterations", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "no-leak-currentiteration" },
+      spec: {
+        run: { entrypoint: "process", timeout: "300s" },
+        tasks: [
+          {
+            name: "process",
+            template: "step",
+            arguments: {
+              forEach: {
+                valueFrom: { ref: "inputs.parameters.items" },
+                as: "item"
+              }
+            }
+          },
+          {
+            name: "step",
+            tasks: [
+              { name: "build", agent: { executorRef: "builder", prompt: { content: "Build {{inputs.parameters.item}}" } } }
+            ]
+          }
+        ]
+      },
+      agentRegistry: new Map([
+        ["builder", makeAgentManifest("builder")]
+      ])
+    }
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(spec, { parameters: { items: ["x", "y", "z"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows") }, { strict: false })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+    expect(result.status).toBe("completed")
+    expect(result.taskResults["process/0-build"]).toBe("done")
+    expect(result.taskResults["process/1-build"]).toBe("done")
+    expect(result.taskResults["process/2-build"]).toBe("done")
+    expect(result.env.currentIteration).toBeUndefined()
   })
 
   it("collectReachableTasks works with script tasks", () => {

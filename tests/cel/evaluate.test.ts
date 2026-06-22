@@ -65,4 +65,53 @@ describe("evaluateWhen", () => {
       expect(err.message).toContain("inputs.tasks.bogus")
     }
   })
+
+  describe("currentIteration paths", () => {
+    const ciContext = {
+      inputs: {
+        tasks: {
+          "applyPlan/0": { outputs: {} }
+        },
+        currentIteration: {
+          tasks: {
+            verifyImplementation: { outputs: { feedback: "missing tests" } },
+            build: { outputs: { status: "done" } }
+          }
+        }
+      }
+    }
+
+    it("resolves currentIteration.tasks.verifyImplementation.outputs.feedback != \"\" as true", () => {
+      expect(evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', ciContext)).toBe(true)
+    })
+
+    it("resolves equality on currentIteration task outputs", () => {
+      expect(evaluateWhen('inputs.currentIteration.tasks.build.outputs.status == "done"', ciContext)).toBe(true)
+    })
+
+    it("returns false when currentIteration feedback is empty", () => {
+      const emptyFeedback = {
+        inputs: {
+          ...ciContext.inputs,
+          currentIteration: {
+            tasks: {
+              verifyImplementation: { outputs: { feedback: "" } }
+            }
+          }
+        }
+      }
+      expect(evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', emptyFeedback)).toBe(false)
+    })
+
+    it("fails with WhenError when currentIteration path is missing", () => {
+      const noCI = {
+        inputs: {
+          tasks: {
+            "applyPlan/0": { outputs: {} }
+          }
+        }
+      }
+      expect(() => evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', noCI)).toThrow(WhenError)
+    })
+  })
 })

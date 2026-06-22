@@ -2,8 +2,8 @@
   "type": "object",
   "required": ["status"],
   "properties": {
-    "status": { "type": "string", "enum": ["done", "retry", "failed"] },
+    "status": { "type": "string", "enum": ["done", "failed"] },
     "verified": { "type": "string" },
-    "issues": { "type": "array" }
+    "feedback": { "type": "string" }
   }
 }

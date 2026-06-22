@@ -7,5 +7,8 @@ export interface WorkflowEnv {
   change_dir?: string
   tasks?: Record<string, { outputs: Record<string, unknown> }>
   parameters?: Record<string, unknown>
+  currentIteration?: {
+    tasks?: Record<string, { outputs: Record<string, unknown> }>
+  }
   [key: string]: unknown
 }

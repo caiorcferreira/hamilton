@@ -415,6 +415,7 @@ export function runWorkflow(
             }
 
             if (templateTask.tasks && templateTask.tasks.length > 0) {
+              workflowEnv.currentIteration = { tasks: {} }
               const sub = topologicalSort(templateTask.tasks)
               for (const subTask of sub) {
                 if (workflowStatus === "failed") break
@@ -422,7 +423,12 @@ export function runWorkflow(
                 const subRef = subTask.agent?.executorRef ?? "script"
                 yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
                 yield* _(executeSingleTask(subTask, taskEnv, subInstanceName))
+                const subOutput = workflowEnv.tasks?.[subInstanceName]
+                if (subOutput && workflowEnv.currentIteration?.tasks) {
+                  workflowEnv.currentIteration.tasks[subTask.name] = subOutput
+                }
               }
+              delete workflowEnv.currentIteration
             } else if (templateTask.agent || templateTask.script) {
               const ref = templateTask.agent?.executorRef ?? "script"
               yield* _(ctx.insertDynamicTask(instanceName, ref, compoundParentTaskId))
