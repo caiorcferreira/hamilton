@@ -103,7 +103,7 @@ Then append your entry.
 
 ## Result — Expected Output
 
-When the fix is complete, call `write_step_output` with:
+When the fix is complete, the expected output format is:
 
 ```json
 {

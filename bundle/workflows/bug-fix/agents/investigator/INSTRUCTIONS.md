@@ -68,7 +68,7 @@ Then append your entry.
 
 ## Result
 
-Call `write_step_output` with a JSON object:
+The expected output format is:
 
 ```json
 {

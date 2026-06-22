@@ -115,7 +115,7 @@ Then append your entry.
 
 Based on your verification, produce one of two outputs:
 
-**Approve** — call `write_step_output` when ALL criteria pass:
+**Approve** — when ALL criteria pass:
 ```json
 {
   "status": "done",
@@ -123,7 +123,7 @@ Based on your verification, produce one of two outputs:
 }
 ```
 
-**Reject** — call `write_step_output` when ANY criterion fails:
+**Reject** — when ANY criterion fails:
 ```json
 {
   "status": "done",

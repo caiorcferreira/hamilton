@@ -65,7 +65,7 @@ Then append your entry.
 
 ## Result
 
-When all steps are complete, call `write_step_output` with exactly this structure:
+When all steps are complete, the expected output format is:
 
 ```json
 {

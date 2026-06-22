@@ -88,7 +88,7 @@ Then append your entry.
 
 ## Result — Output Format
 
-Call `write_step_output` with a JSON object structured as follows:
+The expected output format is:
 
 ```json
 {

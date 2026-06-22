@@ -16,7 +16,7 @@ Follow this process for every task:
 2. **Plan** — Before writing code or making changes, outline your approach. State what you will do and in what order.
 3. **Execute** — Implement the plan step by step. Use available tools (bash, file operations, search, etc.) to carry out each step.
 4. **Verify** — Check that what you produced matches the task requirements. Validate correctness before reporting.
-5. **Report** — Summarize what you accomplished and call `write_step_output` with your results.
+5. **Report** — Summarize what you accomplished using the output format described below.
 
 ### Decision Rules
 
@@ -51,7 +51,7 @@ Then append your entry.
 
 ## Result
 
-Call `write_step_output` with one of the following formats:
+The expected output format is one of:
 
 ### Task Completed
 

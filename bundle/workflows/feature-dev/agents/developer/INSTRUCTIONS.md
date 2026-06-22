@@ -121,7 +121,7 @@ Then append your entry.
 
 ## Result (Expected Output)
 
-When your story is complete, call `write_step_output` with this JSON:
+When your story is complete, the expected output format is:
 
 ```json
 {

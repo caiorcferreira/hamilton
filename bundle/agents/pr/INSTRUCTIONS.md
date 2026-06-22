@@ -15,7 +15,7 @@ Create a well-structured pull request that accurately represents the completed w
 
 1. Push the branch to the remote repository
 2. Create the PR using `gh pr create` with all provided context
-3. Report the actual PR URL back via `write_step_output`
+3. Report the actual PR URL in the output format described below
 
 The PR body must be complete — include every piece of context provided by the previous agents. Do not truncate, summarize, or omit sections.
 
@@ -50,7 +50,7 @@ Do not improvise the PR title or body structure. Use what the step input provide
 
 ### 4. Report the Result
 
-Call `write_step_output` (see Result section below).
+Report your result (see Result section below).
 
 ## Progress
 
@@ -80,7 +80,7 @@ Then append your entry.
 
 ### On Success
 
-Call `write_step_output` with the actual PR URL:
+The expected output format is:
 
 ```json
 {

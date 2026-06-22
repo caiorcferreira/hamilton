@@ -101,7 +101,7 @@ Approve only when **all** of these are true:
 - Every disabled test has an explanatory quarantine comment
 - The test suite is stable across two consecutive runs
 
-Call `write_step_output` with:
+The expected output format is:
 ```json
 {
   "status": "done",
@@ -121,7 +121,7 @@ Reject if **any** of these are true:
 - Quarantine comments are missing or unclear
 - Test suite is unstable (passes one run, fails the next)
 
-Call `write_step_output` with specific, actionable issues:
+The expected output format for rejection is:
 ```json
 {
   "status": "retry",

@@ -44,7 +44,7 @@ Then append your entry.
 
 ## Result
 
-When the task is complete, call `write_step_output` with this exact structure:
+When the task is complete, the expected output format is:
 
 ```json
 {

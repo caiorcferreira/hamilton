@@ -89,7 +89,7 @@ Then append your entry.
 
 ### If everything passes
 
-Call `write_step_output` with:
+The expected output format is:
 
 ```json
 {
@@ -100,7 +100,7 @@ Call `write_step_output` with:
 
 ### If issues found
 
-Call `write_step_output` with:
+The expected output format is:
 
 ```json
 {

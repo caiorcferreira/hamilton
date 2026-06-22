@@ -76,7 +76,7 @@ Then append your entry.
 
 ## Result
 
-Call `write_step_output` with a JSON object using **exactly** these keys:
+The expected output format uses **exactly** these keys:
 
 ```json
 {

@@ -57,7 +57,7 @@ Then append your entry.
 
 ## Result
 
-Call `write_step_output` with a JSON object in one of two forms:
+The expected output format is one of two forms:
 
 **Success — all steps pass, ready to proceed:**
 

@@ -128,7 +128,7 @@ Then append your entry.
 
 ## Result
 
-Call `write_step_output` with a JSON object summarizing the outcome.
+The expected output is a JSON object summarizing the outcome.
 
 ### All tests passing (clean suite):
 

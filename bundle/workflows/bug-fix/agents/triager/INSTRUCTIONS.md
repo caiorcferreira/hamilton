@@ -84,7 +84,7 @@ Keep it short (3-5 words), descriptive, and derived from the problem statement.
 
 ### 6. Assemble and Deliver the Output
 
-Produce the structured result (see **Result** section below) and call `write_step_output` with it.
+Produce the structured result (see **Result** section below).
 
 ## Progress
 
@@ -112,7 +112,7 @@ Then append your entry.
 
 ## Result — What You Deliver
 
-Call `write_step_output` with a JSON object in the exact format below:
+The expected output format is:
 
 ```json
 {

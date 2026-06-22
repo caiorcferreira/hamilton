@@ -115,7 +115,7 @@ Every finding must include these fields:
 
 ### Final Output
 
-When done, call `write_step_output` with a JSON object in exactly this format:
+When done, the expected output format is:
 
 ```json
 {

@@ -115,7 +115,7 @@ Then append your entry.
 
 ## Result
 
-### Output — call `write_step_output` with the following JSON:
+### Output
 
 ```json
 {
