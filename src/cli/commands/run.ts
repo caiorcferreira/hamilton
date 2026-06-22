@@ -111,7 +111,7 @@ export const runCommand = Command.make("run", { slug, prompt, variants, foregrou
 
     if (!isForeground && !externalRunId) {
       const runId = buildRunId(slug)
-      const allArgs = ["run", slug, ...prompt, "--foreground", "--run-id", runId]
+      const allArgs = ["workflow", "run", slug, ...prompt, "--foreground", "--run-id", runId]
       if (variants._tag === "Some") {
         allArgs.push("--variants", variants.value)
       }
