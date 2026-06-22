@@ -63,16 +63,6 @@ export function settingsPath(): string {
   return Path.join(hamiltonHome(), "settings.yaml")
 }
 
-export function progressDir(projectDir?: string): string {
-  const base = projectDir ?? process.cwd()
-  return Path.join(base, ".hamilton", "workflows")
-}
-
-export function progressFile(projectDir?: string): string {
-  const day = new Date().toISOString().slice(0, 10)
-  return Path.join(progressDir(projectDir), `progress-${day}.txt`)
-}
-
 export function eventsFilePath(runId: string): string {
   return Path.join(runDir(runId), "events.jsonl")
 }
@@ -80,11 +70,6 @@ export function eventsFilePath(runId: string): string {
 export function changeDir(changeId: string, projectDir?: string): string {
   const base = projectDir ?? process.cwd()
   return Path.join(base, ".hamilton", "changes", changeId)
-}
-
-export function nextIdFile(projectDir?: string): string {
-  const base = projectDir ?? process.cwd()
-  return Path.join(base, ".hamilton", "changes", "next-id.txt")
 }
 
 export function changeMetadataFile(changeId: string, projectDir?: string): string {
