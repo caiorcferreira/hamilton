@@ -63,7 +63,7 @@ Run through this checklist:
 
 ## Progress
 
-After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+After completing your work, you MUST append a progress entry to `{{inputs.tasks.plan.outputs.progress_file}}`:
 
 ```markdown
 ## <iso-timestamp> — tester (<model-used>)
