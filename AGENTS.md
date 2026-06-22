@@ -29,7 +29,7 @@ src/observability/    # Run dirs, streaming, JSONL logs
 tests/                # vitest, mirrors src/ structure
 manifest/workflows/   # Bundled workflow YAML specs + agent personas
 manifest/agents/      # Shared agent personas (installed to ~/.hamilton/agents/)
-docs/superpowers/     # Design specs + implementation plans
+.superpowers/          # Design specs + implementation plans
 ```
 
 CLI commands use `@effect/cli` 0.75.2: `Command.make(name, { args, options }, handler)` with `Command.withSubcommands([])`. Each command file exports its `Command` — `main.ts` just composes them.
