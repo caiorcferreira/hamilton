@@ -7,10 +7,10 @@ export class ChangeDirError extends Data.TaggedError("ChangeDirError")<{
   message: string
 }> {}
 
-export function readNextId(): Effect.Effect<number, ChangeDirError> {
+export function readNextId(projectDir?: string): Effect.Effect<number, ChangeDirError> {
   return Effect.try({
     try: () => {
-      const file = nextIdFile()
+      const file = nextIdFile(projectDir)
       if (!Fs.existsSync(file)) return 0
       const content = Fs.readFileSync(file, "utf-8").trim()
       if (content === "") return 0
@@ -21,10 +21,10 @@ export function readNextId(): Effect.Effect<number, ChangeDirError> {
   })
 }
 
-export function writeNextId(id: number): Effect.Effect<void, ChangeDirError> {
+export function writeNextId(id: number, projectDir?: string): Effect.Effect<void, ChangeDirError> {
   return Effect.try({
     try: () => {
-      const file = nextIdFile()
+      const file = nextIdFile(projectDir)
       const dir = Path.dirname(file)
       Fs.mkdirSync(dir, { recursive: true })
       Fs.writeFileSync(file, String(id))
@@ -33,10 +33,10 @@ export function writeNextId(id: number): Effect.Effect<void, ChangeDirError> {
   })
 }
 
-export function ensureChangeDir(changeId: string): Effect.Effect<void, ChangeDirError> {
+export function ensureChangeDir(changeId: string, projectDir?: string): Effect.Effect<void, ChangeDirError> {
   return Effect.try({
     try: () => {
-      const dir = changeDir(changeId)
+      const dir = changeDir(changeId, projectDir)
       if (Fs.existsSync(dir)) {
         throw new Error(`Change directory already exists: ${dir}`)
       }
@@ -46,10 +46,10 @@ export function ensureChangeDir(changeId: string): Effect.Effect<void, ChangeDir
   })
 }
 
-export function writeWorkflowMetadata(changeId: string, metadata: Record<string, unknown>): Effect.Effect<void, ChangeDirError> {
+export function writeWorkflowMetadata(changeId: string, metadata: Record<string, unknown>, projectDir?: string): Effect.Effect<void, ChangeDirError> {
   return Effect.try({
     try: () => {
-      const file = changeMetadataFile(changeId)
+      const file = changeMetadataFile(changeId, projectDir)
       const dir = Path.dirname(file)
       Fs.mkdirSync(dir, { recursive: true })
       Fs.writeFileSync(file, JSON.stringify(metadata, null, 2))

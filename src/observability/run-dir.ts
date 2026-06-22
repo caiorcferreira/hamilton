@@ -80,12 +80,12 @@ export function appendEngineLog(
   })
 }
 
-export function ensureProgressFile(runId: string): Effect.Effect<string, RunDirError> {
+export function ensureProgressFile(runId: string, projectDir?: string): Effect.Effect<string, RunDirError> {
   return Effect.try({
     try: () => {
-      const dir = progressDir()
+      const dir = progressDir(projectDir)
       Fs.mkdirSync(dir, { recursive: true })
-      const filePath = progressFile()
+      const filePath = progressFile(projectDir)
       if (!Fs.existsSync(filePath)) {
         const header = `# Progress Log — ${new Date().toISOString().slice(0, 10)}\n\n## Run ${runId}\n\n`
         Fs.writeFileSync(filePath, header)

@@ -38,6 +38,7 @@ import { loadScriptConfig } from "../workflow/script-config.js"
 export interface WorkflowRunnerConfig {
   workflowsDir: string
   maxRecursionDepth?: number
+  projectDir?: string
 }
 
 export interface WorkflowResult {
@@ -91,7 +92,7 @@ export function runWorkflow(
 
     let changeId: string | null = null
     yield* _(Effect.gen(function* () {
-      const nextId = yield* _(readNextId())
+      const nextId = yield* _(readNextId(config.projectDir))
       const paddedId = String(nextId + 1).padStart(3, "0")
 
       const title = yield* _(determineChangeId(
@@ -100,7 +101,7 @@ export function runWorkflow(
       ))
 
       const id = `${paddedId}-${title}`
-      yield* _(ensureChangeDir(id))
+      yield* _(ensureChangeDir(id, config.projectDir))
       changeId = id
 
       const sortedTaskNames = sortedTasks.map(t => t.name)
@@ -113,9 +114,9 @@ export function runWorkflow(
         hamilton_version: VERSION,
         created_at: new Date().toISOString(),
         variants: spec.spec.variants?.supported ?? []
-      }))
+      }, config.projectDir))
 
-      yield* _(writeNextId(nextId + 1))
+      yield* _(writeNextId(nextId + 1, config.projectDir))
     }).pipe(Effect.catchAll(() => Effect.void)))
 
     if (fileEnabled) {
@@ -142,7 +143,7 @@ export function runWorkflow(
 
     const skillRegistry = loadSkillRegistry(skillsDir())
 
-    const progressFilePath = yield* _(ensureProgressFile(runId))
+    const progressFilePath = yield* _(ensureProgressFile(runId, config.projectDir))
     const progressContent = Fs.existsSync(progressFilePath)
       ? Fs.readFileSync(progressFilePath, "utf-8")
       : ""
