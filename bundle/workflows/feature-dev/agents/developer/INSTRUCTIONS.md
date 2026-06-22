@@ -18,10 +18,10 @@ Your mission for each session is to **implement exactly ONE user story** — no 
 
 ### Phase 1 — Orient
 
-1. **Read `{{inputs.progress_file}}`** — start with the **Codebase Patterns** section at the top; these are patterns discovered by previous sessions that you should follow.
+1. **Read `{{inputs.tasks.plan.outputs.progress_file}}`** — start with the **Codebase Patterns** section at the top; these are patterns discovered by previous sessions that you should follow.
 2. **Locate the relevant codebase** for your story.
 3. **Check git status** is clean. Pull latest if needed.
-4. **Understand the task fully** before writing any code. Review the Story Plan section in `{{inputs.progress_file}}` to see how your story fits into the broader feature.
+4. **Understand the task fully** before writing any code. Review the Story Plan section in `{{inputs.tasks.plan.outputs.progress_file}}` to see how your story fits into the broader feature.
 
 ### Phase 2 — Set Up
 
@@ -69,7 +69,7 @@ Your mission for each session is to **implement exactly ONE user story** — no 
 
 ### Phase 7 — Document Learnings
 
-12. **Update `{{inputs.progress_file}}`** by rewriting the entire file. Append a completion block:
+12. **Update `{{inputs.tasks.plan.outputs.progress_file}}`** by rewriting the entire file. Append a completion block:
 
     ```markdown
     ## <date/time> - <story-id>: <title>
@@ -79,7 +79,7 @@ Your mission for each session is to **implement exactly ONE user story** — no 
     ---
     ```
 
-13. **Update Codebase Patterns** in `{{inputs.progress_file}}` if you discovered reusable patterns. Examples:
+13. **Update Codebase Patterns** in `{{inputs.tasks.plan.outputs.progress_file}}` if you discovered reusable patterns. Examples:
     - "This project uses `node:sqlite` DatabaseSync, not async"
     - "All API routes are in `src/server/dashboard.ts`"
     - "Tests use node:test, run with `node --test`"
@@ -97,7 +97,7 @@ If the verifier rejects your work, you'll receive feedback in your task input. A
 
 ## Progress
 
-After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+After completing your work, you MUST append a progress entry to `{{inputs.tasks.plan.outputs.progress_file}}`:
 
 ```markdown
 ## <iso-timestamp> — developer (<model-used>)
@@ -139,40 +139,6 @@ Before finalizing, ask yourself:
 - Did I find a pattern that works well here?
 - Did I discover a gotcha future developers should know?
 
-If yes, ensure you've updated `AGENTS.md` or `{{inputs.progress_file}}` accordingly.
+If yes, ensure you've updated `AGENTS.md` or `{{inputs.tasks.plan.outputs.progress_file}}` accordingly.
 
----
 
-## Reference: progress.txt Format
-
-If `{{inputs.progress_file}}` doesn't exist yet, create it with this header:
-
-```markdown
-# Progress Log
-Run: <run-id>
-Task: <task description>
-Started: <timestamp>
-
-## Codebase Patterns
-(add patterns here as you discover them)
-
----
-```
-
-**Story Plan Section:** After the planner step completes, a `## Story Plan` section is automatically pre-populated. It lists every planned story with its ID, title, description, and acceptance criteria:
-
-```markdown
-## Story Plan
-
-### US-001: Story title here
-
-**Description:** ...
-
-**Acceptance Criteria:**
-- ...
-
-### US-002: Another story
-...
-```
-
-You can reference this section at any time to understand upcoming work and how your current story fits into the broader plan. The Story Plan is updated if re-planning occurs, and it is preserved alongside any `## Codebase Patterns` you've added.
