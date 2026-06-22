@@ -53,6 +53,7 @@ Every step must contain the actual content an engineer needs. These are **plan f
 ```json
 {
   "change_id": "<change id for which the plan is being built.>",
+  "progress_file": "<absolute path to .hamilton/changes/<change-id>/progress.md>",
   "artifacts": ["/path/to/proposal.md", "/path/to/design.md", "/path/to/requeriments/capability1/requeriments.md", "/path/to/requeriments/capability2/requeriments.md"],
   "tasks": [{...}]
 }
@@ -140,17 +141,30 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Output
 
-Before writing your JSON task output, you MUST write the full plan as a markdown file:
+Before writing your JSON task output:
 
-1. Write the plan to `.hamilton/changes/<change-id>/plan.md` — use the markdown format from this document (header, file structure, tasks with steps). Include ALL task details — no placeholders. This is the canonical record of the plan for this change.
+1. **Deduce the change-id** from the user prompt. Scan `{{project_dir}}/.hamilton/changes/` for subdirectories. Match the user prompt against directory contents (proposal.md title, design.md context). If no matching directory is found, output `status: "failed"` with the message "No matching change directory found in .hamilton/changes/ — run hamilton-propose first".
 
-2. After writing plan.md, call `write_step_output` with this JSON:
+2. **Write the plan** to `{{project_dir}}/.hamilton/changes/<change-id>/plan.md` — use the markdown format from this document (header, file structure, tasks with steps). Include ALL task details — no placeholders. This is the canonical record of the plan for this change.
+
+3. **Create `progress.md`** at `{{project_dir}}/.hamilton/changes/<change-id>/progress.md` with this initial content:
+
+```markdown
+# Progress Log
+
+## Change: <change-id>
+
+---
+```
+
+4. After writing both files, call `write_step_output` with this JSON:
 
 ```json
 {
   "status": "done",
-  "change_id": "...",
-  "artifacts": ["..."],
+  "change_id": "<deduced-change-id>",
+  "progress_file": "<absolute path to progress.md>",
+  "artifacts": ["<path to plan.md>"],
   "tasks": [ {...} ]
 }
 ```
