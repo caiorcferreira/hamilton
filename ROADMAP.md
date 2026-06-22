@@ -2,13 +2,12 @@
 
 ## Next Up
 
+### Core Engine
 - [ ] Change `init` command to `setup`
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
-- [ ] Create documentation for the project
-
-### Core Engine
+- [ ] Move shared agents schema to the agent folder and use in workflows
+- [ ] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
-- [X] Implement a `script` field in tasks
 
 ### Agent Capabilities
 - [ ] Add a todo/task tracking tool for the agent
@@ -18,8 +17,8 @@
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
 - [ ] Long term memory
   - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
-  - Consolidated memory
-  - Expose memory via MCP to allow other agents to use it.
+  - [ ] Consolidated memory
+  - [ ] Expose memory via MCP to allow other agents to use it.
 - [ ] Review if RAG from Emanuel can be used to improve guidelines
 - [ ] Integrate ponytail skill
 - [ ] Integrate talk normal skill
@@ -32,6 +31,13 @@
 
 ## Completed
 
+- [x] Align plan.json schema with planner INSTRUCTIONS.md output format — change_id, artifacts, task name, step id
+- [x] Resolve review issues 2-6 in feature-dev workflow — has_frontend_changes, input.parameters typo, max_recursion_depth, plan task title, branch reference
+- [x] Add currentIteration scope to WorkflowEnv for template subtask when-expression support
+- [x] Evaluate when conditions on template subtasks and support nested template expansion
+- [x] Align verifier agent output format with feature-dev workflow schema — feedback string replaces issues array
+- [x] Create documentation for the project
+- [x] Implement a `script` field in tasks
 - [x] Use LSPs during file edit/file read — autocheck extension runs diagnostics post-edit
 - [x] Remove retry_step and implement recursion support with `when` (CEL), `depth` tracking, and `max_recursion_depth`
 - [x] Refactor context/passing layer from forEach/context/vars/Context to arguments/inputs.*/WorkflowEnv with agent-level CONTEXT.md templates
