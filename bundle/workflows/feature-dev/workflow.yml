@@ -28,8 +28,6 @@ spec:
             ## Goal
             Decompose the following specification into ordered tasks for autonomous execution.
 
-            
-  
             ## Instructions
             1. Explore the codebase to understand the stack, conventions, and patterns
             2. Break the specification into tasks (maximun 20)
@@ -39,6 +37,10 @@ spec:
             6. Always include "typecheck passes"/"project compile" as the last criterion in every task
             7. Every task MUST include test criteria — "Tests for [feature] pass"
             8. The developer is expected to write tests as part of each task
+
+            ## Output
+            Set your output with:
+            `{"status": "done", "change_id": "<change id>", "progress_file": "<absolute path to progress file>", "artifacts": ["<optional path to specification, e.g. /path/to/proposal.md>"], "tasks": [{...}]}`
         output:
           schema:
             file: schemas/plan.json
