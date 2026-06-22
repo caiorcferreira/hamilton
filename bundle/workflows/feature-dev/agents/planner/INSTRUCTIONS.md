@@ -12,9 +12,11 @@ Your input is a specification, such as a feature or bug fix.
 
 The specification can be short, ill-defined and abstract. In this case, elaborate the plan and makes notes ambiguities, contradictions and uncertainties.
 
-The specification can be details, well-scoped and concrete. In this case, write the plan and make sure the tasks cover all requeriments of the specification.
+The specification can be a spec-driven change, living in `.hamilton/changes/<change-id>`. Inside the change directory you have `proposal.md`, `design.md` and `requeriments/`. Read all files to learn about the user goal and constrains before proceding.
 
-## File Structure
+## Guidelines
+
+### File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
 
@@ -25,7 +27,7 @@ Before defining tasks, map out which files will be created or modified and what 
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
-## Bite-Sized Task Granularity
+### Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
 - "Write the failing test" - step
@@ -34,58 +36,7 @@ This structure informs the task decomposition. Each task should produce self-con
 - "Run the tests and make sure they pass" - step
 - "Commit" - step
 
-## Plan Document Header
-
-**Every plan MUST have the following general fields:**
-
-```json
-{
-  "feature_name": "<descriptive feature name>",
-  "architecture": "<2-3 sentences about approach>",
-  "tech_stack": "<Key technologies or libraries>"
-}
-```
-
-## Task Structure
-
-```json
-{
-  "tasks": [
-    {
-      "files": {
-        "create": ["exact/path/to/file.py"],
-        "modify": ["exact/path/to/existing.py:123-145"],
-        "delete": ["exact/path/to/existing-2.py"],
-        "test": ["tests/exact/path/to/test.py"]
-      },
-      "steps": [
-        {
-          "title": "Write the failing test",
-          "description": "```python\ndef test_specific_behavior():\n    result = function(input)\n    assert result == expected\n```"
-        },
-        {
-          "title": "Run test to verify it fails",
-          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: FAIL with 'function not defined'"
-        },
-        {
-          "title": "Write minimal implementation",
-          "description": "```python\ndef function(input):\n    return expected\n```"
-        },
-        {
-          "title": "Run test to verify it passes",
-          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: PASS"
-        },
-        {
-          "title": "Commit",
-          "description": "```bash\ngit add tests/path/test.py src/path/file.py\ngit commit -m \"feat: add specific feature\"\n```"
-        }
-      ]
-    }
-  ]
-}
-```
-
-## No Placeholders
+### No Placeholders
 
 Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
 - "TBD", "TODO", "implement later", "fill in details"
@@ -95,11 +46,79 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - Steps that describe what to do without showing how (code blocks required for code steps)
 - References to types, functions, or methods not defined in any task
 
-## Remember
-- Exact file paths always
-- Complete code in every step — if a step changes code, show the code
-- Exact commands with expected output
-- DRY, YAGNI, TDD, frequent commits
+## Plan Schema
+
+**Every plan MUST have the following general fields:**
+
+```json
+{
+  "change_id": "<change id for which the plan is being built.>",
+  "artifacts": ["/path/to/proposal.md", "/path/to/design.md", "/path/to/requeriments/capability1/requeriments.md", "/path/to/requeriments/capability2/requeriments.md"],
+  "tasks": [{...}]
+}
+```
+
+### Task Schema
+
+```json
+{
+  "tasks": [
+    {
+      "name": "MVP"
+      "files": {
+        "create": ["exact/path/to/file.py"],
+        "modify": ["exact/path/to/existing.py:123-145"],
+        "delete": ["exact/path/to/existing-2.py"],
+        "test": ["tests/exact/path/to/test.py"]
+      },
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Write the failing test",
+          "description": "```python\ndef test_specific_behavior():\n    result = function(input)\n    assert result == expected\n```"
+        },
+        {
+          "id": "1.2",
+          "title": "Run test to verify it fails",
+          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: FAIL with 'function not defined'"
+        },
+        {
+          "id": "1.3",
+          "title": "Write minimal implementation",
+          "description": "```python\ndef function(input):\n    return expected\n```"
+        },
+        {
+          "id": "1.4",
+          "title": "Run test to verify it passes",
+          "description": "Run: `pytest tests/path/test.py::test_name -v`\nExpected: PASS"
+        },
+        {
+          "id": "1.5",
+          "title": "Commit",
+          "description": "```bash\ngit add tests/path/test.py src/path/file.py\ngit commit -m \"feat: add specific feature\"\n```"
+        }
+      ]
+    },
+    {
+      "name": "Core Implementation"
+      "files": {
+        "create": ["exact/path/to/file.py"],
+        "modify": ["exact/path/to/existing.py:123-145"],
+        "delete": ["exact/path/to/existing-2.py"],
+        "test": ["tests/exact/path/to/test.py"]
+      },
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Improve the code",
+          "description": "```python\ndef test_specific_behavior():\n    result = function(input)\n    assert result == expected\n```"
+        },
+        ...
+      ]
+    }
+  ]
+}
+```
 
 ## Self-Review
 
@@ -113,21 +132,27 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
+### Remember
+- Exact file paths always
+- Complete code in every step — if a step changes code, show the code
+- Exact commands with expected output
+- DRY, YAGNI, TDD, frequent commits
+
 ## Output
 
 Before writing your JSON task output, you MUST write the full plan as a markdown file:
 
-1. Write the plan to `{{inputs.change_dir}}/plan.md` — use the markdown format from this document (header, file structure, tasks with steps). Include ALL task details — no placeholders. This is the canonical record of the plan for this change.
+1. Write the plan to `.hamilton/changes/<change-id>/plan.md` — use the markdown format from this document (header, file structure, tasks with steps). Include ALL task details — no placeholders. This is the canonical record of the plan for this change.
 
 2. After writing plan.md, call `write_step_output` with this JSON:
 
 ```json
 {
   "status": "done",
-  "feature_name": "...",
-  "architecture": "...",
-  "tech_stack": "...",
+  "change_id": "...",
+  "artifacts": ["..."],
   "tasks": [ {...} ]
 }
 ```
+
 
