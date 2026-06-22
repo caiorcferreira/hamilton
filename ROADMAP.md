@@ -2,6 +2,15 @@
 
 ## Next Up
 
+- [ ] Use XDG_HOME for settings file
+- [ ] Review events stored in events.jsonl; events like task start, task end should be included.
+- [ ] Fix suggestion in run commands that is incorrect, it should be `hamilton workflow status <status-id>`.
+- [ ] Add some id to connect turn_end event to another event
+- [ ] Duplication between cwd and project_dir in the initial parameters must be solved
+- [ ] Check if agent system prompt template is being rendered
+- [ ] Add model being used for agent in events
+- [ ] Improve error handling when call fails
+
 ### Core Engine
 - [ ] Change `init` command to `setup`
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.

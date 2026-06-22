@@ -127,7 +127,7 @@ export function executeWithPi(
         config.runId,
         config.taskId,
         config.outputSchema,
-        () => { sessionRef?.abort().catch(() => {}) }
+        () => { sessionRef?.abort().catch(() => { }) }
       )
     )
 
@@ -232,7 +232,7 @@ export function executeWithPi(
         reminders++
         yield* _(
           Effect.promise(() =>
-            session.prompt("REMINDER: You must call write_task_output to save your work. Call write_task_output now with your findings.")
+            session.prompt("REMINDER: You must call write_task_output to save your work. Call write_task_output now with the JSON task output.")
           )
         )
       }
