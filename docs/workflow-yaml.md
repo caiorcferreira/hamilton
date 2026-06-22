@@ -379,6 +379,47 @@ Group related tasks under a parent:
 Nested tasks undergo the same topological sort as top-level tasks. The parent task is considered
 completed when all nested tasks are done.
 
+Subtasks support `when` conditions and template expansion, enabling recursion within a template
+iteration. The `currentIteration` scope provides access to sibling subtask outputs:
+
+```yaml
+- name: implement-story
+  tasks:
+    - name: code
+      agent:
+        executorRef: developer
+        prompt:
+          content: |
+            Implement {{inputs.parameters.current_task}}
+            {{#if inputs.parameters.validation_feedback}}
+            ## Retry
+            {{inputs.parameters.validation_feedback}}
+            {{/if}}
+
+    - name: verify
+      dependencies: [code]
+      agent:
+        executorRef: verifier
+        prompt:
+          content: Verify the implementation...
+
+    - name: retry-if-needed
+      dependencies: [verify]
+      when: 'inputs.currentIteration.tasks.verify.outputs.feedback != ""'
+      template: implement-story
+      arguments:
+        parameters:
+          - name: current_task
+            valueFrom:
+              ref: inputs.parameters.current_task
+          - name: validation_feedback
+            valueFrom:
+              ref: inputs.currentIteration.tasks.verify.outputs.feedback
+```
+
+The `retry-if-needed` subtask re-enters the same template when the verifier returns feedback.
+`max_recursion_depth` in `spec.run` limits how many times the recursion can loop.
+
 ---
 
 ## Template Variables
@@ -393,6 +434,7 @@ workflow environment. The engine uses Handlebars with custom escaping.
 | `{{inputs.cwd}}` | Current working directory |
 | `{{inputs.tasks.<name>.outputs.<field>}}` | Output of a completed task |
 | `{{inputs.parameters.<name>}}` | forEach iteration variable |
+| `{{inputs.currentIteration.tasks.<name>.outputs.<field>}}` | Output of a sibling subtask within the current template iteration |
 | `{{inputs.progress}}` | Contents of the progress file |
 | `{{inputs.progress_file}}` | Path to the progress file |
 | `{{retry_feedback}}` | Feedback from a failed attempt (set on retry) |

@@ -117,7 +117,7 @@ Approve:
 {"status": "done", "verified": "what you confirmed"}
 
 Reject:
-{"status": "retry", "issues": ["specific issue 1", "specific issue 2"]}
+{"status": "done", "feedback": "Actionable description of what's wrong, referencing the specific criterion that failed"}
 ```
 
 ### Output Contract
@@ -309,7 +309,7 @@ wouldn't include).
 |------|---------|
 | INSTRUCTIONS.md | 5-phase verification: security scan, diff inspection, build/test, acceptance criteria, visual (conditional) |
 | SOUL.md | Skeptical, evidence-based, specific and actionable |
-| Output | `{ status: "done", verified }` or `{ status: "retry", issues: [...] }` |
+| Output | `{ status: "done", verified }` or `{ status: "done", feedback }` |
 
 ### do
 
