@@ -1,5 +1,5 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
-import { VERSION } from "../index.js"
+
 import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentPrompt } from "../prompts/builder.js"
 
@@ -20,13 +20,10 @@ import {
   writeInput,
   writeTaskOutput,
   writeSummary,
-  appendEngineLog,
-  ensureProgressFile
+  appendEngineLog
 } from "../observability/run-dir.js"
-import { readNextId, writeNextId, ensureChangeDir, writeWorkflowMetadata } from "../observability/change-dir.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
-import * as Fs from "node:fs"
 import * as ChildProcess from "node:child_process"
 import { loadGuidelines } from "../guidelines/loader.js"
 import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
@@ -89,33 +86,6 @@ export function runWorkflow(
 
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
 
-    let changeId: string | null = null
-    yield* _(Effect.gen(function* () {
-      const nextId = yield* _(readNextId(config.projectDir))
-      const paddedId = String(nextId + 1).padStart(3, "0")
-
-      const rawInput = initialParameters.user_input ?? "untitled-change"
-      const title = rawInput.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60)
-
-      const id = `${paddedId}-${title}`
-      yield* _(ensureChangeDir(id, config.projectDir))
-      changeId = id
-
-      const sortedTaskNames = sortedTasks.map(t => t.name)
-
-      yield* _(writeWorkflowMetadata(id, {
-        workflow_id: runId,
-        change_id: id,
-        tasks: sortedTaskNames,
-        input_prompt: initialParameters.user_input ?? "",
-        hamilton_version: VERSION,
-        created_at: new Date().toISOString(),
-        variants: spec.spec.variants?.supported ?? []
-      }, config.projectDir))
-
-      yield* _(writeNextId(nextId + 1, config.projectDir))
-    }).pipe(Effect.catchAll(() => Effect.void)))
-
     if (fileEnabled) {
       yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
     }
@@ -140,18 +110,11 @@ export function runWorkflow(
 
     const skillRegistry = loadSkillRegistry(skillsDir())
 
-    const progressFilePath = yield* _(ensureProgressFile(runId, config.projectDir))
-    const progressContent = Fs.existsSync(progressFilePath)
-      ? Fs.readFileSync(progressFilePath, "utf-8")
-      : ""
-
     const workflowEnv: WorkflowEnv = {
       ...initialParameters,
+      project_dir: config.projectDir ?? process.cwd(),
       tasks: {},
-      run_id: runId,
-      change_dir: changeId ?? undefined,
-      progress_file: progressFilePath,
-      progress: progressContent
+      run_id: runId
     }
 
     const resolveMaxRecursionDepth = (): number | null => {
