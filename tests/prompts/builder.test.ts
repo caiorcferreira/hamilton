@@ -156,4 +156,31 @@ describe("buildAgentPrompt", () => {
     const result = buildAgentPrompt(params)
     expect(result.taskPrompt).toBe("Keep {{this}} as-is")
   })
+
+  it("resolves template expressions in agentFile via env", () => {
+    const env: WorkflowEnv = { tasks: { setup: { outputs: { repo: "hamilton" } } } }
+    const params: PromptParams = {
+      agentFile: "You are a coder for {{inputs.tasks.setup.outputs.repo}}.",
+      soulFile: "",
+      prompt: { content: "Fix the bug" },
+      env,
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.systemPrompt).toContain("You are a coder for hamilton.")
+  })
+
+  it("resolves template expressions in soulFile via env", () => {
+    const env: WorkflowEnv = { cwd: "/tmp/repo" }
+    const params: PromptParams = {
+      agentFile: "You are a coder.",
+      soulFile: "Working from {{inputs.cwd}}",
+      prompt: { content: "Fix the bug" },
+      env,
+      agentConfig: {}
+    }
+    const result = buildAgentPrompt(params)
+    expect(result.systemPrompt).toContain("<persona>")
+    expect(result.systemPrompt).toContain("Working from /tmp/repo")
+  })
 })
