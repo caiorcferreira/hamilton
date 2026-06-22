@@ -10,9 +10,11 @@
     "tasks": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "files": {
+"type": "object",
+          "required": ["title"],
+          "properties": {
+            "title": { "type": "string" },
+            "files": {
             "type": "object",
             "properties": {
               "create": { "type": "array", "items": { "type": "string" } },
