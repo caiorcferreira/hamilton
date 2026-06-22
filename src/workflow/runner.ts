@@ -24,7 +24,6 @@ import {
   ensureProgressFile
 } from "../observability/run-dir.js"
 import { readNextId, writeNextId, ensureChangeDir, writeWorkflowMetadata } from "../observability/change-dir.js"
-import { determineChangeId } from "../curator/change-id.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as Fs from "node:fs"
@@ -95,10 +94,8 @@ export function runWorkflow(
       const nextId = yield* _(readNextId(config.projectDir))
       const paddedId = String(nextId + 1).padStart(3, "0")
 
-      const title = yield* _(determineChangeId(
-        initialParameters.user_input ?? "untitled-change",
-        runId
-      ))
+      const rawInput = initialParameters.user_input ?? "untitled-change"
+      const title = rawInput.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60)
 
       const id = `${paddedId}-${title}`
       yield* _(ensureChangeDir(id, config.projectDir))
