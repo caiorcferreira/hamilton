@@ -420,6 +420,75 @@ export function runWorkflow(
               for (const subTask of sub) {
                 if (workflowStatus === "failed") break
                 const subInstanceName = `${instanceName}-${subTask.name}`
+
+                if (subTask.when) {
+                  const maxDepth = resolveMaxRecursionDepth()
+                  if (maxDepth !== null) {
+                    const compoundId = ctx.compoundTaskIds.get(subInstanceName)
+                    if (compoundId) {
+                      const depthRow = ctx.db.prepare("SELECT depth FROM tasks WHERE id = ?").get(compoundId) as { depth: number } | null
+                      if (depthRow && depthRow.depth >= maxDepth) {
+                        yield* _(ctx.transitionTask(subInstanceName, "fail"))
+                        const errorMsg = `max recursion depth (${maxDepth}) exceeded`
+                        yield* _(ctx.fail(errorMsg))
+                        workflowStatus = "failed"
+                        break
+                      }
+                    }
+                  }
+
+                  try {
+                    const result = evaluateWhen(subTask.when, { inputs: workflowEnv as Record<string, unknown> })
+                    if (!result) {
+                      yield* _(ctx.transitionTask(subInstanceName, "complete"))
+                      continue
+                    }
+                  } catch (e) {
+                    const errorMsg = e instanceof WhenError ? e.message : String(e)
+                    yield* _(ctx.transitionTask(subInstanceName, "fail"))
+                    yield* _(ctx.fail(errorMsg))
+                    workflowStatus = "failed"
+                    break
+                  }
+                }
+
+                if (subTask.template) {
+                  const nestedTemplate = spec.spec.tasks.find((t: WorkflowTask) => t.name === subTask.template)
+                  if (!nestedTemplate) continue
+
+                  const nestedArgs = resolveArguments(subTask, workflowEnv)
+                  const nestedEnv: WorkflowEnv = { ...workflowEnv, parameters: nestedArgs.parameters }
+
+                  const subRef = nestedTemplate.agent?.executorRef ?? nestedTemplate.tasks?.[0]?.agent?.executorRef ?? "script"
+                  yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
+
+                  if (nestedTemplate.tasks && nestedTemplate.tasks.length > 0) {
+                    const savedIteration: WorkflowEnv["currentIteration"] = workflowEnv.currentIteration
+                    workflowEnv.currentIteration = { tasks: {} }
+                    const nestedSub = topologicalSort(nestedTemplate.tasks)
+                    for (const nestedSubTask of nestedSub) {
+                      if (workflowStatus === "failed") break
+                      const nestedInstanceName = `${subInstanceName}-${nestedSubTask.name}`
+                      const nestedRef = nestedSubTask.agent?.executorRef ?? "script"
+                      yield* _(ctx.insertDynamicTask(nestedInstanceName, nestedRef, compoundParentTaskId))
+                      yield* _(executeSingleTask(nestedSubTask, nestedEnv, nestedInstanceName))
+                      const nestedOutput = workflowEnv.tasks?.[nestedInstanceName]
+                      if (nestedOutput && workflowEnv.currentIteration?.tasks) {
+                        workflowEnv.currentIteration.tasks[nestedSubTask.name] = nestedOutput
+                      }
+                    }
+                    delete workflowEnv.currentIteration
+                    workflowEnv.currentIteration = savedIteration
+                  } else if (nestedTemplate.agent || nestedTemplate.script) {
+                    yield* _(executeSingleTask(nestedTemplate, nestedEnv, subInstanceName))
+                  }
+                  const subOutput = workflowEnv.tasks?.[subInstanceName]
+                  if (subOutput && workflowEnv.currentIteration?.tasks) {
+                    workflowEnv.currentIteration.tasks[subTask.name] = subOutput
+                  }
+                  continue
+                }
+
                 const subRef = subTask.agent?.executorRef ?? "script"
                 yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
                 yield* _(executeSingleTask(subTask, taskEnv, subInstanceName))
