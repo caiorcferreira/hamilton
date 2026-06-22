@@ -303,8 +303,8 @@ describe("runWorkflow DAG-aware executor", () => {
     const planPromptBuilt = events.find(e => e._tag === "PromptBuilt" && e.taskId.includes("plan"))
     expect(planPromptBuilt).toBeDefined()
     const ppb = planPromptBuilt as Extract<Event, { _tag: "PromptBuilt" }>
-    expect(ppb.taskPrompt).toContain("<expected_output_schema>")
-    expect(ppb.taskPrompt).toContain("</expected_output_schema>")
+    expect(ppb.taskPrompt).toContain("<task_output_schema>")
+    expect(ppb.taskPrompt).toContain("</task_output_schema>")
     expect(ppb.taskPrompt).toContain('"type": "object"')
     expect(ppb.taskPrompt).toContain("<task>")
     expect(ppb.taskPrompt).toContain("</task>")
@@ -313,7 +313,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const implPromptBuilt = events.find(e => e._tag === "PromptBuilt" && e.taskId.includes("implement"))
     expect(implPromptBuilt).toBeDefined()
     const ipb = implPromptBuilt as Extract<Event, { _tag: "PromptBuilt" }>
-    expect(ipb.taskPrompt).not.toContain("<expected_output_schema>")
+    expect(ipb.taskPrompt).not.toContain("<task_output_schema>")
   })
 })
 

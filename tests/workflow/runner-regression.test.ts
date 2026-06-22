@@ -130,7 +130,7 @@ describe("runWorkflow regression tests", () => {
     const promptBuilt = events.find((e) => e._tag === "PromptBuilt")
     expect(promptBuilt).toBeDefined()
     if (promptBuilt && promptBuilt._tag === "PromptBuilt") {
-      expect(promptBuilt.taskPrompt).toContain("# User input")
+      expect(promptBuilt.taskPrompt).toContain("<user_prompt>")
       expect(promptBuilt.taskPrompt).toContain("build a login page")
     }
   })

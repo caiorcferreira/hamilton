@@ -156,10 +156,10 @@ export function runWorkflow(
         let taskPromptContent = prompt.taskPrompt
         if (task.agent?.output?.schema?.content) {
           const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
-          taskPromptContent = `<expected_output_schema>\n${schemaJson}\n</expected_output_schema>\n\n<task>\n${taskPromptContent}\n</task>`
+          taskPromptContent = `<task>\n${taskPromptContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
         }
         if (task.name === spec.spec.run.entrypoint) {
-          taskPromptContent = `${taskPromptContent}\n\n# User input\n\n${taskEnv.user_input ?? ""}`
+          taskPromptContent = `${taskPromptContent}\n\n<user_prompt>\n\n${taskEnv.user_input ?? ""}\n</user_prompt>`
         }
         const finalPrompt = { ...prompt, taskPrompt: taskPromptContent }
 
