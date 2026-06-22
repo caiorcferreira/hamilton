@@ -4,8 +4,8 @@ Create requeriment specification files that define WHAT the system should do. Re
 
 ## Process
 Create one requeriment file per capability listed in the proposal's Capabilities section.
-- New capabilities: use the exact kebab-case name from the proposal (`specs/<capability>/requeriment.md`).
-- Modified capabilities: use the existing capability folder name from `openspec/specs/<capability>/` when creating the delta spec at `specs/<capability>/requeriment.md`.
+- New capabilities: use the exact kebab-case name from the proposal (`.hamilton/changes/<change-id>/requeriments/<capability>/requeriments.md`).
+- Modified capabilities: use the existing capability folder name from `.hamilton/specs/<capability>/` when creating the delta spec at `.hamilton/changes/<change-id>/requeriments/<capability>/requeriments.md`.
 
 ### Delta operations (use ## headers):
 - **ADDED Requirements**: New capabilities
@@ -14,7 +14,7 @@ Create one requeriment file per capability listed in the proposal's Capabilities
 - **RENAMED Requirements**: Name changes only - use FROM:/TO: format
 
 ### MODIFIED requirements workflow
-1. Locate the existing requirement in `openspec/specs/<capability>/spec.md`
+1. Locate the existing requirement in `.hamilton/specs/<capability>/spec.md`
 2. Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios)
 3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
 4. Ensure header text matches exactly (whitespace-insensitive)

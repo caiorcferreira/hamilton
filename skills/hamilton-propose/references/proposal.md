@@ -16,8 +16,8 @@ Create the proposal document that establishes WHY this change is needed.This is 
 - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
 - **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals. Mark breaking changes with **BREAKING**.
 - **Capabilities**: Identify which requeriments will be created or modified:
-  - **New Capabilities**: List capabilities being introduced. Each becomes a new `requeriments/<name>/requeriments.md`. Use kebab-case names (e.g., `user-auth`, `data-export`).
-  - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Only include if requeriments-level behavior changes (not just implementation details). Each needs a delta requeriments file. Check `openspec/requeriments/` for existing capabilities names. Leave empty if no requirement changes.
+  - **New Capabilities**: List capabilities being introduced. Each becomes a new `.hamilton/changes/<change-id>/requeriments/<name>/requeriments.md`. Use kebab-case names (e.g., `user-auth`, `data-export`).
+  - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Only include if requeriments-level behavior changes (not just implementation details). Each needs a delta requeriments file. Check `.hamilton/specs/` for existing capabilities names. Leave empty if no requirement changes.
 - **Impact**: Affected code, APIs, dependencies, or systems.
 
 Use the template below fo generate the file:
@@ -35,13 +35,13 @@ Use the template below fo generate the file:
 ## Capabilities
 
 ### New Capabilities
-<!-- Capabilities being introduced. Replace <name> with kebab-case identifier (e.g., user-auth, data-export, api-rate-limiting). Each creates specs/<name>/spec.md -->
+<!-- Capabilities being introduced. Replace <name> with kebab-case identifier (e.g., user-auth, data-export, api-rate-limiting). Each creates requeriments/<name>/requeriments.md -->
 - `<name>`: <brief description of what this capability covers>
 
 ### Modified Capabilities
 <!-- Existing capabilities whose REQUIREMENTS are changing (not just implementation).
-     Only list here if spec-level behavior changes. Each needs a delta spec file.
-     Use existing spec names from openspec/specs/. Leave empty if no requirement changes. -->
+     Only list here if requeriment-level behavior changes. Each needs a delta requeriment file.
+     Use existing capabilities names from .hamilton/specs/. Leave empty if no requirement changes. -->
 - `<existing-name>`: <what requirement is changing>
 
 ## Impact
