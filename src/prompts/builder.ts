@@ -56,8 +56,14 @@ export function buildAgentPrompt(
   guidelineFiles: Array<{ name: string; content: string }> = [],
   options: TemplateOptions = { strict: false }
 ): BuiltPrompt {
-  const persona = params.soulFile
-    ? `<persona>\n${params.soulFile}\n</persona>`
+  const resolvedAgentFile = resolveTemplate(params.agentFile, { inputs: params.env }, options)
+
+  const resolvedSoul = params.soulFile
+    ? resolveTemplate(params.soulFile, { inputs: params.env }, options)
+    : ""
+
+  const persona = resolvedSoul
+    ? `<persona>\n${resolvedSoul}\n</persona>`
     : ""
 
   const template = params.contextTemplate || defaultContextTemplate
@@ -67,7 +73,7 @@ export function buildAgentPrompt(
   const renderedContext = resolveTemplate(template, contextForTemplate, options)
 
   const resolvedSystem = resolveTemplate(systemTemplate, {
-    instructions: params.agentFile,
+    instructions: resolvedAgentFile,
     persona,
     context: renderedContext,
   }, options)
