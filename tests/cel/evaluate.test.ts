@@ -48,22 +48,16 @@ describe("evaluateWhen", () => {
     expect(() => evaluateWhen("inputs.tasks.===", context)).toThrow(WhenError)
   })
 
-  it("fails with WhenError on missing path", () => {
-    expect(() => evaluateWhen("inputs.tasks.nonexistent.outputs.x != ''", context)).toThrow(WhenError)
+  it("returns false on missing path", () => {
+    expect(evaluateWhen("inputs.tasks.nonexistent.outputs.x != ''", context)).toBe(false)
   })
 
-  it("fails with WhenError on partial missing path", () => {
-    expect(() => evaluateWhen("inputs.tasks.plan.outputs.nonexistent == 1", context)).toThrow(WhenError)
+  it("returns false on partial missing path", () => {
+    expect(evaluateWhen("inputs.tasks.plan.outputs.nonexistent == 1", context)).toBe(false)
   })
 
-  it("includes path in error message", () => {
-    try {
-      evaluateWhen("inputs.tasks.bogus.foo == 1", context)
-      expect(false).toBe(true)
-    } catch (e) {
-      const err = e as WhenError
-      expect(err.message).toContain("inputs.tasks.bogus")
-    }
+  it("returns false for completely bogus path", () => {
+    expect(evaluateWhen("inputs.tasks.bogus.foo == 1", context)).toBe(false)
   })
 
   describe("currentIteration paths", () => {
@@ -103,7 +97,7 @@ describe("evaluateWhen", () => {
       expect(evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', emptyFeedback)).toBe(false)
     })
 
-    it("fails with WhenError when currentIteration path is missing", () => {
+    it("returns false when currentIteration path is missing", () => {
       const noCI = {
         inputs: {
           tasks: {
@@ -111,7 +105,7 @@ describe("evaluateWhen", () => {
           }
         }
       }
-      expect(() => evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', noCI)).toThrow(WhenError)
+      expect(evaluateWhen('inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""', noCI)).toBe(false)
     })
   })
 })

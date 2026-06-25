@@ -3,7 +3,7 @@ import { Data } from "effect"
 
 export class WhenError extends Data.TaggedError("WhenError")<{
   message: string
-}> {}
+}> { }
 
 function extractPaths(expression: string): string[] {
   const paths: string[] = []
@@ -34,7 +34,7 @@ export function evaluateWhen(expression: string, context: { inputs: Record<strin
   const paths = extractPaths(expression)
   for (const path of paths) {
     if (!pathExists(context, path)) {
-      throw new WhenError({ message: `CEL path not found: ${path}` })
+      return false
     }
   }
 
