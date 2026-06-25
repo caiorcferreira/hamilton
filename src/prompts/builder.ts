@@ -48,8 +48,13 @@ IMPORTANT:
 </context>
 `
 
+
 const defaultContextTemplate = `## Context
-{{inputs}}`
+- Current directory: {{inputs.parameters.cwd}}
+- Available tools:
+  - All built-in tools: read, bash, edit, write, grep, find, ls
+  - write_task_output: saves your task results (call once when done, input must be a JSON object with 'status' field)
+`
 
 export function buildAgentPrompt(
   params: PromptParams,
@@ -67,9 +72,7 @@ export function buildAgentPrompt(
     : ""
 
   const template = params.contextTemplate || defaultContextTemplate
-  const contextForTemplate = params.contextTemplate
-    ? { inputs: params.env }
-    : { inputs: JSON.stringify(params.env) }
+  const contextForTemplate = { inputs: params.env }
   const renderedContext = resolveTemplate(template, contextForTemplate, options)
 
   const resolvedSystem = resolveTemplate(systemTemplate, {

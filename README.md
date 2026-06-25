@@ -173,6 +173,42 @@ Agent ids referenced in `shared/` use paths like `../../agents/shared/setup/AGEN
 - **YAML parsing**: `yaml` 2.4.5
 - **Test runner**: vitest 4.1.8 via `bun --bun vitest run`
 
+## Patches
+
+This project patches the Pi SDK to fix an upstream bug where `max_tokens` is not sent to the GenPlat API gateway, causing output to be truncated at **2048 tokens** (GenPlat's default).
+
+### Pi SDK maxTokens fallback
+
+**Bug**: The OpenAI completions provider only sets `max_tokens` when `options.maxTokens` is explicitly set. The Pi agent loop never extracts `model.maxTokens` as `options.maxTokens`, so the request goes out with no max token limit. GenPlat then defaults to 2048 output tokens, truncating agent responses mid-task.
+
+**Fix** (3 parts, documented in `patches/pi-ai-openai-maxTokens.md`):
+
+1. **Patch `openai-completions.js`** — add `model.maxTokens` fallback to the `max_tokens` check (both copies: top-level `pi-ai` and the nested copy inside `pi-coding-agent`)
+2. **Set `maxTokensField` in `models.json`** — GenPlat only recognizes `max_tokens`, not `max_completion_tokens`. The `detectCompat` function picks the wrong field for GenPlat URLs
+3. **Verify no stale copies** — run the check command from the patch file
+
+**To re-apply after a clean install:**
+
+```bash
+# 1. Patch both copies of openai-completions.js (line 406)
+#    Change: if (options?.maxTokens) {
+#      To:   if (options?.maxTokens ?? model.maxTokens) {
+#    Files:
+#      node_modules/@earendil-works/pi-ai/dist/providers/openai-completions.js
+#      node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/providers/openai-completions.js
+
+# 2. Add compat override to models.json (both files)
+#      ~/.hamilton/executors/pi/agent/models.json
+#      ~/.pi/agent/models.json
+#    Add "compat": { "maxTokensField": "max_tokens" } to each model definition
+
+# 3. Verify
+find node_modules -path "*/dist/providers/openai-completions.js" \
+  -exec sh -c 'grep -L "options?.maxTokens ?? model.maxTokens" "$1"' _ {} \;
+```
+
+See `patches/pi-ai-openai-maxTokens.md` for the full rationale, example before/after code, and revert instructions.
+
 ## Development
 
 ```bash

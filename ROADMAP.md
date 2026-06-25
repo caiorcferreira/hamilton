@@ -12,6 +12,7 @@
 - [ ] Improve error handling when call fails
 - [ ] Add more details to events, like stop reason, cached tokens, tool call id, response id
 - [ ] Improve settings.yaml structure
+- [ ] Inject avaiable tools dynamically into system prompt
 
 ### Core Engine
 - [ ] Change `init` command to `setup`
