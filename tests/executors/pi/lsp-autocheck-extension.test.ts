@@ -16,6 +16,12 @@ vi.mock("@narumitw/pi-lsp/src/runner.js", () => ({
 import { createLspAutocheckExtension } from "../../../src/executors/pi/extensions/lsp-autocheck-extension.js"
 import { loadRuntime } from "@narumitw/pi-lsp/src/adapters.js"
 import { runDiagnostics } from "@narumitw/pi-lsp/src/runner.js"
+import { Effect } from "effect"
+import type { EventBusService, Event } from "../../../src/events/bus.js"
+
+const mockBus = {
+  publish: (_event: Event): Effect.Effect<void> => Effect.void
+} as EventBusService
 
 function makeAdapter(overrides: Partial<any> = {}) {
   return {
@@ -44,7 +50,7 @@ function makePi(): { api: Record<string, any>; getHandler: (event: string) => Fu
 describe("createLspAutocheckExtension", () => {
   it("returns a no-op factory when no adapters are configured", () => {
     vi.mocked(loadRuntime).mockReturnValue({ adapters: [], timeoutMs: 20000 })
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     const pi: any = { on: vi.fn() }
     ext(pi)
     expect(pi.on).not.toHaveBeenCalled()
@@ -52,7 +58,7 @@ describe("createLspAutocheckExtension", () => {
 
   it("returns a no-op when loadRuntime throws", () => {
     vi.mocked(loadRuntime).mockImplementation(() => { throw new Error("no config") })
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     const pi: any = { on: vi.fn() }
     ext(pi)
     expect(pi.on).not.toHaveBeenCalled()
@@ -64,7 +70,7 @@ describe("createLspAutocheckExtension", () => {
       timeoutMs: 20000
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
     expect(getHandler("tool_result")).toBeDefined()
   })
@@ -75,7 +81,7 @@ describe("createLspAutocheckExtension", () => {
       timeoutMs: 20000
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -96,7 +102,7 @@ describe("createLspAutocheckExtension", () => {
       timeoutMs: 20000
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -117,7 +123,7 @@ describe("createLspAutocheckExtension", () => {
       timeoutMs: 20000
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -138,7 +144,7 @@ describe("createLspAutocheckExtension", () => {
       timeoutMs: 20000
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -163,7 +169,7 @@ describe("createLspAutocheckExtension", () => {
       details: { summary: { files: 1, diagnostics: 1 } }
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -193,7 +199,7 @@ describe("createLspAutocheckExtension", () => {
       details: { summary: { files: 1, diagnostics: 0 } }
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -215,7 +221,7 @@ describe("createLspAutocheckExtension", () => {
     })
     vi.mocked(runDiagnostics).mockRejectedValue(new Error("LSP crashed"))
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
@@ -240,7 +246,7 @@ describe("createLspAutocheckExtension", () => {
       details: { summary: { files: 1, diagnostics: 1 } }
     })
     const { api, getHandler } = makePi()
-    const ext = createLspAutocheckExtension()
+    const ext = createLspAutocheckExtension(mockBus, "run-1", "task-1")
     ext(api as unknown as ExtensionAPI)
 
     const result = await getHandler("tool_result")({
