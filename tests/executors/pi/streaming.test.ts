@@ -227,6 +227,99 @@ describe("subscribePiEvents", () => {
     expect(toolResults).toHaveLength(1)
   })
 
+  it("publishes LlmThinking on message_end with thinking content", async () => {
+    const collected: Event[] = []
+    const program = Effect.scoped(
+      Effect.gen(function* (_) {
+        const bus = yield* _(EventBus)
+        yield* _(Effect.forkScoped(
+          bus.subscribeAll.pipe(
+            Stream.tap((e) => Effect.sync(() => collected.push(e))),
+            Stream.runDrain
+          )
+        ))
+        yield* _(Effect.sleep("10 millis"))
+        yield* _(handler({
+          type: "message_end",
+          message: {
+            role: "assistant",
+            content: [{ type: "thinking", thinking: "Let me think..." }],
+            model: "glm-5.1",
+            provider: "openai"
+          }
+        }))
+        yield* _(Effect.sleep("50 millis"))
+      })
+    )
+
+    await Effect.runPromise(program.pipe(Effect.provide(EventBusLive)))
+
+    const thinkingEvents = collected.filter((e) => e._tag === "LlmThinking")
+    expect(thinkingEvents).toHaveLength(1)
+  })
+
+  it("publishes TurnEnd and TokenUsage on turn_end with computed deltas", async () => {
+    const collected: Event[] = []
+    const program = Effect.scoped(
+      Effect.gen(function* (_) {
+        const bus = yield* _(EventBus)
+        yield* _(Effect.forkScoped(
+          bus.subscribeAll.pipe(
+            Stream.tap((e) => Effect.sync(() => collected.push(e))),
+            Stream.runDrain
+          )
+        ))
+        yield* _(Effect.sleep("10 millis"))
+
+        sessionStats = { inputTokens: 100, outputTokens: 50 }
+        yield* _(handler({
+          type: "turn_end",
+          message: {
+            role: "assistant",
+            content: [],
+            model: "glm-5.1",
+            provider: "openai",
+            usage: { input: 100, output: 50, cacheRead: 0, cacheWrite: 0, totalTokens: 150 },
+            stopReason: "stop"
+          },
+          toolResults: []
+        }))
+
+        sessionStats = { inputTokens: 250, outputTokens: 120 }
+        yield* _(handler({
+          type: "turn_end",
+          message: {
+            role: "assistant",
+            content: [],
+            model: "glm-5.1",
+            provider: "openai",
+            usage: { input: 150, output: 70, cacheRead: 0, cacheWrite: 0, totalTokens: 220 },
+            stopReason: "toolUse"
+          },
+          toolResults: []
+        }))
+
+        yield* _(Effect.sleep("50 millis"))
+      })
+    )
+
+    await Effect.runPromise(program.pipe(Effect.provide(EventBusLive)))
+
+    const turnEnds = collected.filter((e) => e._tag === "TurnEnd")
+    expect(turnEnds).toHaveLength(2)
+    if (turnEnds[0]?._tag === "TurnEnd") {
+      expect(turnEnds[0].tokensIn).toBe(100)
+      expect(turnEnds[0].tokensOut).toBe(50)
+    }
+    if (turnEnds[1]?._tag === "TurnEnd") {
+      expect(turnEnds[1].tokensIn).toBe(150)
+      expect(turnEnds[1].tokensOut).toBe(70)
+    }
+
+    const tokenUsages = collected.filter((e) => e._tag === "TokenUsage")
+    expect(tokenUsages).toHaveLength(2)
+  })
+
   it("does not emit events for message_update", async () => {
     const collected: Event[] = []
     const program = Effect.scoped(
