@@ -84,7 +84,7 @@ Create a progress file with the format
 
 ### 5. Set task output
 
-Set the task output following the output format
+Use the tool `write_task_output` to set the task output following the output format.
 
 ## Output format
 

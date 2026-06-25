@@ -48,7 +48,7 @@ IMPORTANT:
 </context>
 `
 
-const defaultContextTemplate = `## Inputs
+const defaultContextTemplate = `## Context
 {{inputs}}`
 
 export function buildAgentPrompt(
