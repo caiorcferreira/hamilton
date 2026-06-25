@@ -44,13 +44,7 @@ export const TelemetrySubscriber = (repos: TelemetryRepos): Effect.Effect<void, 
         }).pipe(Effect.catchAll(() => Effect.void))
       }
 
-      if (event._tag === "ToolCall" && event.isPartialUpdate) {
-        return repos.toolCall.incrementPartialUpdates(event.toolCallId).pipe(
-          Effect.catchAll(() => Effect.void)
-        )
-      }
-
-      if (event._tag === "ToolCall" && !event.isPartialUpdate) {
+      if (event._tag === "ToolCall") {
         const turnId = currentTurns.get(turnKey(event.runId, event.taskId))
         if (!turnId) return Effect.void
         const argsSummary = JSON.stringify(summarizeToolArgs(event.input))
