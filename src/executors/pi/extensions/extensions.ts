@@ -30,6 +30,7 @@ export function readExtensionSettings(): ExtensionSettings {
 
 export type ExtensionFactory = (pi: ExtensionAPI) => void
 
+// todo: support other entry names
 export function buildExtensions(
   settings: ExtensionSettings
 ): ExtensionFactory[] {

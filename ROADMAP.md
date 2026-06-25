@@ -10,6 +10,8 @@
 - [ ] Check if agent system prompt template is being rendered
 - [ ] Add model being used for agent in events
 - [ ] Improve error handling when call fails
+- [ ] Add more details to events, like stop reason, cached tokens, tool call id, response id
+- [ ] Improve settings.yaml structure
 
 ### Core Engine
 - [ ] Change `init` command to `setup`
