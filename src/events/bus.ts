@@ -1,6 +1,6 @@
 import { Effect, PubSub, Stream, Context, Layer, Scope } from "effect"
 
-type EventBusService = {
+export type EventBusService = {
   readonly publish: (event: Event) => Effect.Effect<void>
   readonly subscribeAll: Stream.Stream<Event>
   readonly subscribeTo: <T extends Event["_tag"]>(

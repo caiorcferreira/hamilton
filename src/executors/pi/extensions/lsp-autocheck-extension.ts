@@ -2,6 +2,8 @@ import { loadRuntime } from "@narumitw/pi-lsp/src/adapters.js"
 import { resolveRoot } from "@narumitw/pi-lsp/src/files.js"
 import { runDiagnostics } from "@narumitw/pi-lsp/src/runner.js"
 import type { ExtensionAPI, ToolResultEvent } from "@earendil-works/pi-coding-agent"
+import { Effect } from "effect"
+import { type EventBusService } from "../../../events/bus.js"
 
 const STATUS_KEY = "lsp-autocheck"
 
@@ -14,7 +16,7 @@ function formatDiagnosticsText(
   return text || undefined
 }
 
-export function createLspAutocheckExtension(): (pi: ExtensionAPI) => void {
+export function createLspAutocheckExtension(bus: EventBusService, runId: string, taskId: string): (pi: ExtensionAPI) => void {
   try {
     const { adapters, timeoutMs } = loadRuntime()
     if (adapters.length === 0) return () => {}
@@ -41,6 +43,18 @@ export function createLspAutocheckExtension(): (pi: ExtensionAPI) => void {
           )
 
           const diagnosticsText = formatDiagnosticsText(result)
+          if (diagnosticsText) {
+            Effect.runPromise(bus.publish({
+              _tag: "LspDiagnostic",
+              runId,
+              taskId,
+              filePath,
+              text: diagnosticsText
+            }).pipe(
+              Effect.catchAll(() => Effect.void)
+            ))
+          }
+
           if (!diagnosticsText) return undefined
 
           return {
