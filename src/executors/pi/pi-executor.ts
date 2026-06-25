@@ -133,11 +133,6 @@ export function executeWithPi(
 
     extensionFactories.push(createRedactExtension())
 
-    const lspEntry = extSettings.extensions?.find((e) => e.name === "lsp")
-    if (lspEntry && lspEntry.enabled !== false && lspEntry.parameters?.autoCheck !== false) {
-      extensionFactories.push(createLspAutocheckExtension())
-    }
-
     const resolvedSkills = config.settings?.skills ?? null
     const loaderOptions: any = {
       cwd,
@@ -215,6 +210,11 @@ export function executeWithPi(
     )
 
     const bus = yield* _(EventBus)
+
+    const lspEntry = extSettings.extensions?.find((e) => e.name === "lsp")
+    if (lspEntry && lspEntry.enabled !== false && lspEntry.parameters?.autoCheck !== false) {
+      extensionFactories.push(createLspAutocheckExtension(bus, config.runId, config.taskId))
+    }
 
     const unsubscribe = session.subscribe((piEvent) => {
       Effect.runPromise(handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]).pipe(
