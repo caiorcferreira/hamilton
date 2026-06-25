@@ -18,9 +18,6 @@ export const TelemetrySubscriber = (repos: TelemetryRepos): Effect.Effect<void, 
 
   const turnKey = (runId: string, taskId: string) => runId + ":" + taskId
 
-  const buildCallId = (runId: string, taskId: string, tool: string) =>
-    runId + "-" + taskId + "-" + tool
-
   return createSubscriber(
     (bus) => bus.subscribeAll,
     (event: Event) => {
@@ -41,15 +38,14 @@ export const TelemetrySubscriber = (repos: TelemetryRepos): Effect.Effect<void, 
         const turnId = currentTurns.get(turnKey(event.runId, event.taskId))
         if (!turnId) return Effect.void
         return repos.turn.finish(turnId, {
-          stopReason: "end_turn",
+          stopReason: event.stopReason,
           toolResultCount: 0,
           completedAt: new Date().toISOString()
         }).pipe(Effect.catchAll(() => Effect.void))
       }
 
       if (event._tag === "ToolCall" && event.isPartialUpdate) {
-        const callId = buildCallId(event.runId, event.taskId, event.tool)
-        return repos.toolCall.incrementPartialUpdates(callId).pipe(
+        return repos.toolCall.incrementPartialUpdates(event.toolCallId).pipe(
           Effect.catchAll(() => Effect.void)
         )
       }
@@ -57,10 +53,9 @@ export const TelemetrySubscriber = (repos: TelemetryRepos): Effect.Effect<void, 
       if (event._tag === "ToolCall" && !event.isPartialUpdate) {
         const turnId = currentTurns.get(turnKey(event.runId, event.taskId))
         if (!turnId) return Effect.void
-        const callId = buildCallId(event.runId, event.taskId, event.tool)
         const argsSummary = JSON.stringify(summarizeToolArgs(event.input))
         return repos.toolCall.insert({
-          id: callId,
+          id: event.toolCallId,
           runId: event.runId,
           taskId: event.taskId,
           turnId,
@@ -71,9 +66,8 @@ export const TelemetrySubscriber = (repos: TelemetryRepos): Effect.Effect<void, 
       }
 
       if (event._tag === "ToolResult") {
-        const callId = buildCallId(event.runId, event.taskId, event.tool)
         const resultSummary = "{}"
-        return repos.toolCall.finish(callId, {
+        return repos.toolCall.finish(event.toolCallId, {
           resultSummary,
           isError: event.isError,
           completedAt: new Date().toISOString()

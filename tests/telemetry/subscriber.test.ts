@@ -67,7 +67,12 @@ describe("TelemetrySubscriber", () => {
             runId: "run-1",
             taskId: "task-1",
             tokensIn: 100,
-            tokensOut: 200
+            tokensOut: 200,
+            stopReason: "toolUse",
+            cacheRead: 0,
+            cacheWrite: 0,
+            model: "glm-5.1",
+            provider: "openai"
           }))
           yield* _(Effect.sleep("5 millis"))
         })
@@ -78,7 +83,7 @@ describe("TelemetrySubscriber", () => {
     const row = db.prepare("SELECT * FROM turns WHERE id = ?").get("turn-1") as any
     expect(row).not.toBeNull()
     expect(row.turn_index).toBe(0)
-    expect(row.stop_reason).toBe("end_turn")
+    expect(row.stop_reason).toBe("toolUse")
     expect(row.tool_result_count).toBe(0)
   })
 
@@ -112,14 +117,16 @@ describe("TelemetrySubscriber", () => {
             runId: "run-1",
             taskId: "task-1",
             tool: "bash",
-            input: { command: "ls" }
+            input: { command: "ls" },
+            toolCallId: "call-bash"
           }))
           yield* _(bus.publish({
             _tag: "ToolResult",
             runId: "run-1",
             taskId: "task-1",
             tool: "bash",
-            isError: false
+            isError: false,
+            toolCallId: "call-bash"
           }))
           yield* _(Effect.sleep("5 millis"))
         })
