@@ -17,13 +17,15 @@ export const FileLogger = createSubscriber(
 export function formatForFile(event: Event): Record<string, unknown> {
   switch (event._tag) {
     case "LlmMessage":
-      return { event: "llm_message", text: event.text, task_id: event.taskId }
+      return { event: "llm_message", text: event.text, task_id: event.taskId, model: event.model, provider: event.provider }
+    case "LlmThinking":
+      return { event: "llm_thinking", text: event.text, task_id: event.taskId, model: event.model, provider: event.provider }
     case "ToolCall":
-      return { event: "tool_call", tool: event.tool, input: event.input, task_id: event.taskId }
+      return { event: "tool_call", tool: event.tool, input: event.input, task_id: event.taskId, tool_call_id: event.toolCallId, model: event.model, provider: event.provider }
     case "ToolResult":
-      return { event: "tool_result", tool: event.tool, isError: event.isError, task_id: event.taskId }
+      return { event: "tool_result", tool: event.tool, isError: event.isError, task_id: event.taskId, tool_call_id: event.toolCallId }
     case "TurnEnd":
-      return { event: "turn_end", tokens_in: event.tokensIn, tokens_out: event.tokensOut, task_id: event.taskId }
+      return { event: "turn_end", tokens_in: event.tokensIn, tokens_out: event.tokensOut, task_id: event.taskId, stop_reason: event.stopReason, cache_read: event.cacheRead, cache_write: event.cacheWrite, model: event.model, provider: event.provider }
     case "TokenUsage":
       return { event: "token_usage", tokens_in: event.tokensIn, tokens_out: event.tokensOut, task_id: event.taskId }
     case "TaskStarted":
@@ -46,6 +48,8 @@ export function formatForFile(event: Event): Record<string, unknown> {
       return { event: "provider_request_started", task_id: event.taskId, turn_id: event.turnId, request_id: event.requestId, provider: event.provider, model: event.model, payload_summary: event.payloadSummary, timestamp: event.timestamp }
     case "ModelSelected":
       return { event: "model_selected", task_id: event.taskId, provider: event.provider, model: event.model, timestamp: event.timestamp }
+    case "LspDiagnostic":
+      return { event: "lsp_diagnostic", file_path: event.filePath, text: event.text, task_id: event.taskId }
     default: {
       const { _tag, ...rest } = event as { _tag: string; [key: string]: unknown }
       return { event: _tag.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase(), ...rest }

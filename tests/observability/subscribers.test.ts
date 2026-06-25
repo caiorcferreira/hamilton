@@ -9,27 +9,27 @@ import { EventBus, EventBusLive, Event } from "../../src/events/bus.js"
 describe("formatForFile", () => {
   const cases: Array<{ input: Event; expected: Record<string, unknown> }> = [
     {
-      input: { _tag: "TaskStarted", runId: "r1", taskId: "t1" },
+      input: { _tag: "TaskStarted", runId: "r1", taskId: "t1", taskName: "test" },
       expected: { event: "task_started", task_id: "t1" },
     },
     {
-      input: { _tag: "TaskCompleted", runId: "r1", taskId: "t1" },
+      input: { _tag: "TaskCompleted", runId: "r1", taskId: "t1", taskName: "test" },
       expected: { event: "task_completed", task_id: "t1" },
     },
     {
-      input: { _tag: "TaskFailed", runId: "r1", taskId: "t1", message: "boom" },
+      input: { _tag: "TaskFailed", runId: "r1", taskId: "t1", taskName: "test", message: "boom" },
       expected: { event: "task_failed", task_id: "t1", message: "boom" },
     },
     {
-      input: { _tag: "TaskTimedOut", runId: "r1", taskId: "t1" },
+      input: { _tag: "TaskTimedOut", runId: "r1", taskId: "t1", taskName: "test" },
       expected: { event: "task_timed_out", task_id: "t1" },
     },
     {
-      input: { _tag: "TaskRetrying", runId: "r1", taskId: "t1" },
+      input: { _tag: "TaskRetrying", runId: "r1", taskId: "t1", taskName: "test" },
       expected: { event: "task_retrying", task_id: "t1" },
     },
     {
-      input: { _tag: "TaskPaused", runId: "r1", taskId: "t1" },
+      input: { _tag: "TaskPaused", runId: "r1", taskId: "t1", taskName: "test" },
       expected: { event: "task_paused", task_id: "t1" },
     },
     {
@@ -37,20 +37,24 @@ describe("formatForFile", () => {
       expected: { event: "prompt_built", task_id: "t1", system_prompt: "sys", task_prompt: "tsk", guideline_files: ["g1.md", "g2.md"] },
     },
     {
-      input: { _tag: "LlmMessage", runId: "r1", taskId: "t1", text: "hi" },
-      expected: { event: "llm_message", text: "hi", task_id: "t1" },
+      input: { _tag: "LlmMessage", runId: "r1", taskId: "t1", text: "hi", model: "glm-5.1", provider: "openai" },
+      expected: { event: "llm_message", text: "hi", task_id: "t1", model: "glm-5.1", provider: "openai" },
     },
     {
-      input: { _tag: "ToolCall", runId: "r1", taskId: "t1", tool: "bash", input: { cmd: "ls" } },
-      expected: { event: "tool_call", tool: "bash", input: { cmd: "ls" }, task_id: "t1" },
+      input: { _tag: "LlmThinking", runId: "r1", taskId: "t1", text: "let me think", model: "glm-5.1", provider: "openai" },
+      expected: { event: "llm_thinking", text: "let me think", task_id: "t1", model: "glm-5.1", provider: "openai" },
     },
     {
-      input: { _tag: "ToolResult", runId: "r1", taskId: "t1", tool: "bash", isError: false },
-      expected: { event: "tool_result", tool: "bash", isError: false, task_id: "t1" },
+      input: { _tag: "ToolCall", runId: "r1", taskId: "t1", tool: "bash", input: { cmd: "ls" }, toolCallId: "call-1", model: "glm-5.1", provider: "openai" },
+      expected: { event: "tool_call", tool: "bash", input: { cmd: "ls" }, task_id: "t1", tool_call_id: "call-1", model: "glm-5.1", provider: "openai" },
     },
     {
-      input: { _tag: "TurnEnd", runId: "r1", taskId: "t1", tokensIn: 10, tokensOut: 20 },
-      expected: { event: "turn_end", tokens_in: 10, tokens_out: 20, task_id: "t1" },
+      input: { _tag: "ToolResult", runId: "r1", taskId: "t1", tool: "bash", isError: false, toolCallId: "call-1" },
+      expected: { event: "tool_result", tool: "bash", isError: false, task_id: "t1", tool_call_id: "call-1" },
+    },
+    {
+      input: { _tag: "TurnEnd", runId: "r1", taskId: "t1", tokensIn: 10, tokensOut: 20, stopReason: "toolUse", cacheRead: 100, cacheWrite: 0, model: "glm-5.1", provider: "openai" },
+      expected: { event: "turn_end", tokens_in: 10, tokens_out: 20, task_id: "t1", stop_reason: "toolUse", cache_read: 100, cache_write: 0, model: "glm-5.1", provider: "openai" },
     },
     {
       input: { _tag: "TokenUsage", runId: "r1", taskId: "t1", tokensIn: 10, tokensOut: 20 },
@@ -67,6 +71,10 @@ describe("formatForFile", () => {
     {
       input: { _tag: "ModelSelected", runId: "r1", taskId: "t1", provider: "openai", model: "gpt-4", timestamp: "2025-01-01T00:00:00Z" },
       expected: { event: "model_selected", task_id: "t1", provider: "openai", model: "gpt-4", timestamp: "2025-01-01T00:00:00Z" },
+    },
+    {
+      input: { _tag: "LspDiagnostic", runId: "r1", taskId: "t1", filePath: "/src/test.ts", text: "error: unused variable" },
+      expected: { event: "lsp_diagnostic", file_path: "/src/test.ts", text: "error: unused variable", task_id: "t1" },
     },
   ]
 
@@ -94,7 +102,7 @@ describe("FileLogger", () => {
           yield* _(Effect.sleep("10 millis"))
           const bus = yield* _(EventBus)
           yield* _(bus.publish({ _tag: "LlmMessage", runId: "r1", taskId: "s1", text: "hello" }))
-          yield* _(bus.publish({ _tag: "ToolCall", runId: "r1", taskId: "s1", tool: "bash", input: { cmd: "ls" } }))
+          yield* _(bus.publish({ _tag: "ToolCall", runId: "r1", taskId: "s1", tool: "bash", input: { cmd: "ls" }, toolCallId: "call-1" }))
           yield* _(Effect.sleep("50 millis"))
         })
       )
