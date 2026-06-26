@@ -31,6 +31,7 @@ export interface AgentManifest {
     systemPrompt?: SystemPromptPaths
   }
   systemPrompt: SystemPromptPaths
+  outputSchema?: Record<string, unknown>
 }
 
 export interface Timeout {

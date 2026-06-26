@@ -102,13 +102,10 @@ spec:
             BUILD_CMD: <build command>
             TEST_CMD: <test command>
             BASELINE: <baseline status>
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
-  
+   
     - name: fix
       dependencies: [setup]
       agent:
@@ -194,9 +191,6 @@ spec:
             STATUS: retry
             ISSUES:
             - What's wrong or incomplete
-        output:
-          schema:
-            file: schemas/verify.json
       on_failure:
         max_retries: 6
         escalate_to: human

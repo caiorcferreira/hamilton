@@ -3,7 +3,7 @@ import { Schema } from "@effect/schema"
 import * as Yaml from "yaml"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import type { WorkflowSpec } from "../types.js"
+import type { WorkflowSpec, AgentManifest } from "../types.js"
 import { WorkflowSpecSchema, InvalidManifestEnvelopeError } from "../schemas.js"
 import { composeVariants } from "./variants.js"
 import { findNearestSlugs } from "./resolver.js"
@@ -33,7 +33,7 @@ function walkTasks(tasks: any[]): any[] {
   return tasks
 }
 
-export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
+export function resolveWorkflowSpec(workflowDir: string, spec: any, agentRegistry: Map<string, AgentManifest>): any {
   const tasks = walkTasks(spec.spec.tasks)
   for (const task of tasks) {
     if (!task.agent) continue
@@ -60,6 +60,15 @@ export function resolveWorkflowSpec(workflowDir: string, spec: any): any {
         throw new Error(`Schema file not found: ${task.agent.output.schema.file}`)
       }
       task.agent.output.schema.content = JSON.parse(raw)
+    }
+  }
+  for (const task of tasks) {
+    if (!task.agent) continue
+    if (task.agent.output?.schema) continue
+    const agentManifest = agentRegistry.get(task.agent.executorRef)
+    if (!agentManifest) continue
+    if (agentManifest.outputSchema) {
+      task.agent.output = { schema: { content: agentManifest.outputSchema } }
     }
   }
   return spec
@@ -113,7 +122,7 @@ export function loadWorkflowSpec(
     const spec = yield* _(
       Effect.try({
         try: () => {
-          const decoded = resolveWorkflowSpec(dir, Schema.decodeUnknownSync(WorkflowSpecSchema)(raw))
+          const decoded = resolveWorkflowSpec(dir, Schema.decodeUnknownSync(WorkflowSpecSchema)(raw), agentRegistry as Map<string, AgentManifest>)
           return (composeVariants(decoded as WorkflowSpec, agentRegistry, activeVariants) as unknown) as Schema.Schema.Type<typeof WorkflowSpecSchema>
         },
         catch: (e) => new WorkflowParseError({ workflowName, message: String(e) })

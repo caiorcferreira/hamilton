@@ -69,13 +69,10 @@ spec:
             ## Output
             Set your output with:
             `{"status": "done", "current_branch": "<current-branch>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
-  
+   
     - name: applyPlan
       dependencies: [setup]
       template: implementTask
@@ -202,9 +199,6 @@ spec:
 
                 Or, if issues found set your output with:
                 `{"status": "done", "feedback": "<What's missing or incomplete>"}`
-            output:
-              schema:
-                file: schemas/verifyImplementation.json
           on_failure:
             max_retries: 4
             escalate_to: human

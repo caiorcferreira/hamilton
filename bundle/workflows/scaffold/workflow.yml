@@ -71,9 +71,6 @@ spec:
             Or if issues found:
               - status: done
               - issues: list of what's wrong
-        output:
-          schema:
-            file: schemas/verify.json
       on_failure:
         max_retries: 2
         escalate_to: human

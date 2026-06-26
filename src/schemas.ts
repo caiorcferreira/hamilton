@@ -41,13 +41,29 @@ const AgentManifestSettingsSchema = Schema.Struct({
   skills: Schema.optional(Schema.Array(Schema.String))
 })
 
+const SchemaConfigSchema = Schema.Union(
+  Schema.Struct({
+    content: Schema.Record({ key: Schema.String, value: Schema.Unknown })
+  }),
+  Schema.Struct({
+    file: Schema.String
+  }),
+  Schema.Struct({
+    content: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+    file: Schema.String
+  })
+)
+
 export const AgentManifestSchema = Schema.Struct({
   apiVersion: Schema.Literal("dag.hamiltonai.dev/v1alpha1"),
   kind: Schema.Literal("Agent"),
   metadata: AgentMetadataSchema,
   spec: Schema.Struct({
     settings: AgentManifestSettingsSchema,
-    systemPrompt: Schema.optional(SystemPromptPathsSchema)
+    systemPrompt: Schema.optional(SystemPromptPathsSchema),
+    output: Schema.optional(Schema.Struct({
+      schema: Schema.optional(SchemaConfigSchema)
+    }))
   })
 })
 
@@ -65,19 +81,6 @@ const OnFailureSchema = Schema.Struct({
   
   on_exhausted: Schema.optional(OnExhaustedSchema)
 })
-
-const SchemaConfigSchema = Schema.Union(
-  Schema.Struct({
-    content: Schema.Record({ key: Schema.String, value: Schema.Unknown })
-  }),
-  Schema.Struct({
-    file: Schema.String
-  }),
-  Schema.Struct({
-    content: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-    file: Schema.String
-  })
-)
 
 const OutputConfigSchema = Schema.Struct({
   schema: Schema.optional(SchemaConfigSchema)

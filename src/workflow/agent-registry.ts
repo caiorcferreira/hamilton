@@ -88,6 +88,21 @@ function loadAgentDir(
     const explicitPrompt = raw.spec?.systemPrompt as SystemPromptPaths | undefined
     const systemPrompt = mergeSystemPrompt(explicitPrompt, defaults)
 
+    let outputSchema: Record<string, unknown> | undefined = undefined
+    const outputConfig = raw.spec?.output?.schema
+    if (outputConfig?.file) {
+      const schemaPath = Path.resolve(dirPath, outputConfig.file)
+      try {
+        const schemaRaw = Fs.readFileSync(schemaPath, "utf-8")
+        outputSchema = JSON.parse(schemaRaw)
+      } catch {
+        throw new AgentManifestParseError({
+          filePath,
+          message: `Output schema file not found or invalid: ${outputConfig.file}`
+        })
+      }
+    }
+
     return {
       metadata: {
         name,
@@ -101,7 +116,8 @@ function loadAgentDir(
         },
         systemPrompt: explicitPrompt
       },
-      systemPrompt
+      systemPrompt,
+      outputSchema
     }
   })
 }

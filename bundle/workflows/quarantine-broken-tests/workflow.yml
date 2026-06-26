@@ -55,13 +55,10 @@ spec:
             TEST_CMD: <test command>
             CI_NOTES: <brief CI notes>
             BASELINE: <baseline status including test results>
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
-  
+   
     - name: quarantine
       dependencies: [setup]
       agent:

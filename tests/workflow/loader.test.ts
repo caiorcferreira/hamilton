@@ -174,7 +174,7 @@ describe("resolveWorkflowSpec", () => {
           tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "prompts/my-prompt.md" } } }]
         }
       }
-      const resolved = resolveWorkflowSpec(wfDir, spec)
+      const resolved = resolveWorkflowSpec(wfDir, spec, new Map())
       expect(resolved.spec.tasks[0].agent.prompt.content).toBe("prompt from file")
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -197,7 +197,7 @@ describe("resolveWorkflowSpec", () => {
           tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "schemas/out.json" } } } }]
         }
       }
-      const resolved = resolveWorkflowSpec(wfDir, spec)
+      const resolved = resolveWorkflowSpec(wfDir, spec, new Map())
       expect(resolved.spec.tasks[0].agent.output.schema.content).toEqual({ type: "object", required: ["status"], properties: { status: { type: "string" } } })
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -216,7 +216,7 @@ describe("resolveWorkflowSpec", () => {
           tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { file: "nonexistent.md" } } }]
         }
       }
-      expect(() => resolveWorkflowSpec(tmpDir, spec)).toThrow("Prompt file not found: nonexistent.md")
+      expect(() => resolveWorkflowSpec(tmpDir, spec, new Map())).toThrow("Prompt file not found: nonexistent.md")
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
     }
@@ -234,7 +234,7 @@ describe("resolveWorkflowSpec", () => {
           tasks: [{ name: "t1", agent: { executorRef: "a1", prompt: { content: "do" }, output: { schema: { file: "nonexistent.json" } } } }]
         }
       }
-      expect(() => resolveWorkflowSpec(tmpDir, spec)).toThrow("Schema file not found: nonexistent.json")
+      expect(() => resolveWorkflowSpec(tmpDir, spec, new Map())).toThrow("Schema file not found: nonexistent.json")
     } finally {
       Fs.rmSync(tmpDir, { recursive: true, force: true })
     }
