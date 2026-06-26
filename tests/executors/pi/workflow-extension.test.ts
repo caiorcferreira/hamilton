@@ -3,6 +3,7 @@ import { createWorkflowExtension, validateTodoList } from "../../../src/executor
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
+import { Effect } from "effect"
 
 describe("createWorkflowExtension", () => {
   let tmpDir: string
@@ -335,6 +336,138 @@ describe("validateTodoList", () => {
     const result = validateTodoList([{ content: "x", status: "pending", priority: "high" }])
     expect(result.valid).toBe(false)
     expect(result.error).toContain("set one item to in_progress")
+  })
+})
+
+describe("todowrite", () => {
+  it("registers the todowrite tool on pi", () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const registeredNames = registerTool.mock.calls.map((c: any) => c[0].name)
+    expect(registeredNames).toContain("todowrite")
+  })
+
+  it("accepts a valid todo list and returns success", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    const result = await toolDef.execute("call-1", {
+      todos: [
+        { content: "write tests", status: "completed", priority: "high" },
+        { content: "implement feature", status: "in_progress", priority: "high" }
+      ]
+    }, undefined, undefined, {} as any)
+
+    expect(result.content[0].type).toBe("text")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Task list updated")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("[completed] write tests")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("[in_progress] implement feature")
+  })
+
+  it("rejects empty content in a todo item", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    const result = await toolDef.execute("call-1", {
+      todos: [{ content: "", status: "pending", priority: "high" }]
+    }, undefined, undefined, {} as any)
+
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Invalid todo list")
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("content")
+  })
+
+  it("rejects more than one in_progress", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1")
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    const result = await toolDef.execute("call-1", {
+      todos: [
+        { content: "a", status: "in_progress", priority: "high" },
+        { content: "b", status: "in_progress", priority: "high" }
+      ]
+    }, undefined, undefined, {} as any)
+
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Expected exactly 1 in_progress")
+  })
+
+  it("publishes TodoListUpdated event when valid", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+    const publishedEvents: Array<{ _tag: string }> = []
+    const mockBus = {
+      publish: (event: { _tag: string }) => {
+        publishedEvents.push(event)
+        return Effect.void
+      }
+    }
+
+    const ext = createWorkflowExtension("run-1", "task-1", undefined, undefined, mockBus as any)
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    await toolDef.execute("call-1", {
+      todos: [{ content: "do thing", status: "in_progress", priority: "high" }]
+    }, undefined, undefined, {} as any)
+
+    expect(publishedEvents).toHaveLength(1)
+    expect(publishedEvents[0]._tag).toBe("TodoListUpdated")
+  })
+
+  it("publishes TodoConstraintError event on validation failure", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+    const publishedEvents: Array<{ _tag: string }> = []
+    const mockBus = {
+      publish: (event: { _tag: string }) => {
+        publishedEvents.push(event)
+        return Effect.void
+      }
+    }
+
+    const ext = createWorkflowExtension("run-1", "task-1", undefined, undefined, mockBus as any)
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    await toolDef.execute("call-1", {
+      todos: [
+        { content: "a", status: "in_progress", priority: "high" },
+        { content: "b", status: "in_progress", priority: "high" }
+      ]
+    }, undefined, undefined, {} as any)
+
+    expect(publishedEvents).toHaveLength(1)
+    expect(publishedEvents[0]._tag).toBe("TodoConstraintError")
+  })
+
+  it("does not throw when eventBus is undefined", async () => {
+    const registerTool = vi.fn()
+    const mockPi = { registerTool }
+
+    const ext = createWorkflowExtension("run-1", "task-1", undefined, undefined)
+    ext(mockPi as any)
+
+    const toolDef = registerTool.mock.calls.find((c: any) => c[0].name === "todowrite")![0]
+    const result = await toolDef.execute("call-1", {
+      todos: [{ content: "do thing", status: "in_progress", priority: "high" }]
+    }, undefined, undefined, {} as any)
+
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Task list updated")
   })
 })
 

@@ -2,6 +2,8 @@ import { defineTool } from "@earendil-works/pi-coding-agent"
 import { Type } from "typebox"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import { validateAndWrite } from "../../../agent/write-task-output.js"
+import type { EventBusService } from "../../../events/bus.js"
+import { Effect } from "effect"
 
 export function validateTodoList(input: unknown): { valid: true } | { valid: false; error: string } {
   if (!Array.isArray(input)) {
@@ -47,7 +49,8 @@ export function createWorkflowExtension(
   runId: string,
   taskId: string,
   outputSchema?: Record<string, unknown>,
-  onComplete?: () => void
+  onComplete?: () => void,
+  eventBus?: EventBusService
 ): (pi: ExtensionAPI) => void {
   return (pi: ExtensionAPI) => {
     pi.registerTool(defineTool({
@@ -110,6 +113,56 @@ export function createWorkflowExtension(
             content: [{ type: "text" as const, text: `git diff error: ${String(e)}` }],
             details: {}
           }
+        }
+      }
+    }))
+
+    const todoListMap = new Map<string, Array<{ content: string; status: string; priority: string }>>()
+
+    pi.registerTool(defineTool({
+      name: "todowrite",
+      label: "Update Task List",
+      description: "Track your sub-steps as a structured task list. Pass the FULL array each call. Each item has: content (string), status (\"pending\"|\"in_progress\"|\"completed\"|\"cancelled\"), priority (\"high\"|\"medium\"|\"low\"). Exactly ONE item must be in_progress at a time (or zero if all done). Use when the task has 3+ distinct steps. Skip for single straightforward actions.",
+      parameters: Type.Object({
+        todos: Type.Array(Type.Object({
+          content: Type.String({ description: "Brief description of the sub-step" }),
+          status: Type.Union([Type.Literal("pending"), Type.Literal("in_progress"), Type.Literal("completed"), Type.Literal("cancelled")], { description: "Current status" }),
+          priority: Type.Union([Type.Literal("high"), Type.Literal("medium"), Type.Literal("low")], { description: "Priority level" })
+        }))
+      }),
+      promptSnippet: "- todowrite: track sub-steps as a structured task list. Each item has content (string), status (pending|in_progress|completed|cancelled), priority (high|medium|low). Exactly ONE in_progress (or zero if all done). Use for 3+ distinct steps.",
+      execute: async (_toolCallId, { todos }, _signal, _onUpdate, _ctx) => {
+        const validation = validateTodoList(todos)
+        if (!validation.valid) {
+          if (eventBus) {
+            Effect.runPromise(eventBus.publish({
+              _tag: "TodoConstraintError",
+              runId,
+              taskId,
+              message: validation.error
+            })).catch(() => {})
+          }
+          return {
+            content: [{ type: "text" as const, text: `Invalid todo list: ${validation.error}` }],
+            details: {}
+          }
+        }
+
+        todoListMap.set(taskId, todos as Array<{ content: string; status: string; priority: string }>)
+
+        if (eventBus) {
+          Effect.runPromise(eventBus.publish({
+            _tag: "TodoListUpdated",
+            runId,
+            taskId,
+            todos: todos as Array<{ content: string; status: "pending" | "in_progress" | "completed" | "cancelled"; priority: "high" | "medium" | "low" }>
+          })).catch(() => {})
+        }
+
+        const summary = (todos as Array<{ content: string; status: string }>).map(t => `  [${t.status}] ${t.content}`).join("\n")
+        return {
+          content: [{ type: "text" as const, text: `Task list updated (${todos.length} items):\n${summary}` }],
+          details: {}
         }
       }
     }))
