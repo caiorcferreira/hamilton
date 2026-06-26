@@ -1,11 +1,14 @@
 import { describe, it, expect } from "vitest"
+import { Effect } from "effect"
 import {
   buildAgentsPrompts,
   PromptParams
 } from "../../src/prompts/builder.js"
+import { Template } from "../../src/prompts/template.js"
 import type { WorkflowEnv } from "../../src/workflow/env.js"
 
 describe("buildAgentsPrompts", () => {
+  const render = (t: Template): string => Effect.runSync(t.render()).trim()
   const baseFragments = { agent: { content: "" }, soul: { content: "" }, context: { content: "" } }
   const baseParams: PromptParams = {
     fragments: baseFragments,
@@ -22,13 +25,13 @@ describe("buildAgentsPrompts", () => {
       agentConfig: { metadata: { name: "coder" }, dirPath: "", spec: { settings: {} } }
     }
     const result = buildAgentsPrompts(params)
-    expect(result).toHaveProperty("systemPrompt")
-    expect(result).toHaveProperty("taskPrompt")
-    expect(result.systemPrompt).toContain("<platform>")
-    expect(result.systemPrompt).toContain("<persona>")
-    expect(result.systemPrompt).toContain("Concise and direct")
-    expect(result.systemPrompt).toContain("You are a coder.")
-    expect(result.taskPrompt).toContain("Fix the bug")
+    expect(result).toHaveProperty("systemTemplate")
+    expect(result).toHaveProperty("taskTemplate")
+    expect(render(result.systemTemplate)).toContain("<platform>")
+    expect(render(result.systemTemplate)).toContain("<persona>")
+    expect(render(result.systemTemplate)).toContain("Concise and direct")
+    expect(render(result.systemTemplate)).toContain("You are a coder.")
+    expect(render(result.taskTemplate)).toContain("Fix the bug")
   })
 
   it("resolves template expressions in the task prompt via env", () => {
@@ -39,7 +42,7 @@ describe("buildAgentsPrompts", () => {
       env
     }
     const result = buildAgentsPrompts(params)
-    expect(result.taskPrompt).toContain("Fix bug in hamilton")
+    expect(render(result.taskTemplate)).toContain("Fix bug in hamilton")
   })
 
   it("resolves non-string template values as JSON", () => {
@@ -50,7 +53,7 @@ describe("buildAgentsPrompts", () => {
       env
     }
     const result = buildAgentsPrompts(params)
-    expect(result.taskPrompt).toContain('Stories: [{"id":"US-001","title":"Add thing"}]')
+    expect(render(result.taskTemplate)).toContain('Stories: [{"id":"US-001","title":"Add thing"}]')
   })
 
   it("includes context from env in the system prompt", () => {
@@ -60,9 +63,9 @@ describe("buildAgentsPrompts", () => {
       env
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain("<context>")
-    expect(result.systemPrompt).toContain('"branch":"main"')
-    expect(result.systemPrompt).toContain('"status":"approved"')
+    expect(render(result.systemTemplate)).toContain("<context>")
+    expect(render(result.systemTemplate)).toContain('"branch":"main"')
+    expect(render(result.systemTemplate)).toContain('"status":"approved"')
   })
 
   it("includes structured data from env as JSON in the system prompt", () => {
@@ -72,20 +75,20 @@ describe("buildAgentsPrompts", () => {
       env
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain('"stories_json"')
-    expect(result.systemPrompt).toContain('"Story"')
+    expect(render(result.systemTemplate)).toContain('"stories_json"')
+    expect(render(result.systemTemplate)).toContain('"Story"')
   })
 
   it("omits persona section when soulFile is empty", () => {
     const result = buildAgentsPrompts(baseParams)
-    expect(result.systemPrompt).not.toContain("<persona>")
-    expect(result.taskPrompt).toContain("Fix the bug")
+    expect(render(result.systemTemplate)).not.toContain("<persona>")
+    expect(render(result.taskTemplate)).toContain("Fix the bug")
   })
 
   it("includes Hamilton platform section", () => {
     const result = buildAgentsPrompts(baseParams)
-    expect(result.systemPrompt).toContain("Hamilton Agentic Orchestration")
-    expect(result.systemPrompt).toContain("write_task_output")
+    expect(render(result.systemTemplate)).toContain("Hamilton Agentic Orchestration")
+    expect(render(result.systemTemplate)).toContain("write_task_output")
   })
 
   it("passes guidelineFiles through to AgentPrompts", () => {
@@ -107,8 +110,8 @@ describe("buildAgentsPrompts", () => {
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain("/tmp/repo")
-    expect(result.systemPrompt).toContain("## Context")
+    expect(render(result.systemTemplate)).toContain("/tmp/repo")
+    expect(render(result.systemTemplate)).toContain("## Context")
   })
 
   it("uses custom context template when provided", () => {
@@ -119,8 +122,8 @@ describe("buildAgentsPrompts", () => {
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain("Working in /tmp/repo")
-    expect(result.systemPrompt).not.toContain("## Context")
+    expect(render(result.systemTemplate)).toContain("Working in /tmp/repo")
+    expect(render(result.systemTemplate)).not.toContain("## Context")
   })
 
   it("passes TemplateOptions through to resolution", () => {
@@ -130,7 +133,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {}, name: "world" }
     }
     const result = buildAgentsPrompts(params, [], { strict: false })
-    expect(result.taskPrompt).toBe("Hello world")
+    expect(render(result.taskTemplate)).toBe("Hello world")
   })
 
   it("defaults TemplateOptions to lenient when not provided", () => {
@@ -140,7 +143,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {} }
     }
     const result = buildAgentsPrompts(params)
-    expect(result.taskPrompt).toBe("Hello")
+    expect(render(result.taskTemplate)).toBe("Hello")
   })
 
   it("skips template resolution when prompt has skipTemplate flag", () => {
@@ -150,7 +153,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {} }
     }
     const result = buildAgentsPrompts(params)
-    expect(result.taskPrompt).toBe("Keep {{this}} as-is")
+    expect(render(result.taskTemplate)).toBe("Keep {{this}} as-is")
   })
 
   it("resolves template expressions in agentFile via env", () => {
@@ -162,7 +165,7 @@ describe("buildAgentsPrompts", () => {
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain("You are a coder for hamilton.")
+    expect(render(result.systemTemplate)).toContain("You are a coder for hamilton.")
   })
 
   it("resolves template expressions in soulFile via env", () => {
@@ -174,7 +177,7 @@ describe("buildAgentsPrompts", () => {
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
-    expect(result.systemPrompt).toContain("<persona>")
-    expect(result.systemPrompt).toContain("Working from /tmp/repo")
+    expect(render(result.systemTemplate)).toContain("<persona>")
+    expect(render(result.systemTemplate)).toContain("Working from /tmp/repo")
   })
 })

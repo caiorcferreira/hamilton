@@ -89,7 +89,7 @@ export function buildAgentsPrompts(
 
   let taskTemplate: Template
   if (params.taskPrompt.skipTemplate) {
-    taskTemplate = Template.make(params.taskPrompt.content ?? "", options)
+    taskTemplate = Template.make((params.taskPrompt.content ?? "").replace(/{{/g, "\\{{"), options)
   } else {
     taskTemplate = Template.make(params.taskPrompt.content ?? "", options).setVar("inputs", params.env)
   }
