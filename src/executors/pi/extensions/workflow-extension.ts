@@ -140,7 +140,7 @@ export function createWorkflowExtension(
               runId,
               taskId,
               message: validation.error
-            })).catch(() => {})
+            }).pipe(Effect.catchAll(() => Effect.void)))
           }
           return {
             content: [{ type: "text" as const, text: `Invalid todo list: ${validation.error}` }],
@@ -156,7 +156,7 @@ export function createWorkflowExtension(
             runId,
             taskId,
             todos: todos as Array<{ content: string; status: "pending" | "in_progress" | "completed" | "cancelled"; priority: "high" | "medium" | "low" }>
-          })).catch(() => {})
+          }).pipe(Effect.catchAll(() => Effect.void)))
         }
 
         const summary = (todos as Array<{ content: string; status: string }>).map(t => `  [${t.status}] ${t.content}`).join("\n")
