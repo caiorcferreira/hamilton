@@ -30,7 +30,6 @@
   - [ ] Extensions: Implement fork of [pirecall](https://github.com/spences10/my-pi/tree/main/packages/pi-recall)
   - [ ] Consolidated memory
   - [ ] Expose memory via MCP to allow other agents to use it.
-- [ ] Review if RAG from Emanuel can be used to improve guidelines
 - [ ] Integrate ponytail skill
 - [ ] Integrate talk normal skill
 
