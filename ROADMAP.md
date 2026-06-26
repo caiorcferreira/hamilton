@@ -8,7 +8,10 @@
 - [ ] Duplication between cwd and project_dir in the initial parameters must be solved
 - [ ] Improve error handling when call fails
 - [ ] Improve settings.yaml structure
-- [ ] Inject avaiable tools dynamically into system prompt
+
+- [ ] Look for opencode system prompt as example to improve
+- [ ] Keep improving agents and workflow prompts
+- [ ] Split git tools into their own extension
 
 ### Core Engine
 - [ ] Change `init` command to `setup`
@@ -37,6 +40,7 @@
 
 ## Completed
 
+- [x] Inject available tools dynamically into system prompt
 - [x] Add more details to events, like stop reason, cached tokens, tool call id, response id
 - [x] Add model being used for agent in events
 - [x] Check if agent system prompt template is being rendered
