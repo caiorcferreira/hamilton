@@ -262,11 +262,11 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
         : undefined
     const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases }))
     if (Exit.isFailure(result)) {
-      yield* Console.error(`Init failed: ${String(result.cause)}`)
+      yield* Console.error(`Setup failed: ${String(result.cause)}`)
       return
     }
     const installed = Exit.getOrElse(result, () => [] as string[])
-    yield* Console.log("Hamilton initialized successfully.")
+    yield* Console.log("Hamilton set up successfully.")
     yield* Console.log(`Installed ${installed.length} workflows.`)
     for (const id of installed) {
       yield* Console.log(`  ${id}`)
