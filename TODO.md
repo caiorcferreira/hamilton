@@ -4,19 +4,14 @@
 
 - [ ] Use XDG_HOME for settings file
 - [ ] Review events stored in events.jsonl; events like task start, task end should be included.
-- [ ] Fix suggestion in run commands that is incorrect, it should be `hamilton workflow status <status-id>`.
-- [ ] Duplication between cwd and project_dir in the initial parameters must be solved
 - [ ] Improve error handling when call fails
 - [ ] Improve settings.yaml structure
 - [ ] Look for opencode system prompt as example to improve
 - [ ] Keep improving agents and workflow prompts
-- [ ] Split git tools into their own extension
 - [ ] Refactor the write task output reminder into a hook system
 
 ### Core Engine
-- [ ] Change `init` command to `setup`
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
-- [ ] Move shared agents schema to the agent folder and use in workflows
 - [ ] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
 
@@ -39,6 +34,11 @@
 
 ## Completed
 
+- [x] Move shared agent output schemas into agent manifests with inheritance in workflow loader
+- [x] Rename init command to setup
+- [x] Split git tools into standalone extension — createGitExtension, registered via settings.yaml
+- [x] Deduplicate cwd and project_dir in initial parameters — keep only project_dir
+- [x] Fix suggestion in run commands — use `hamilton workflow status <run-id>` instead of `hamilton status <run-id>`
 - [x] Inject available tools dynamically into system prompt
 - [x] Add more details to events, like stop reason, cached tokens, tool call id, response id
 - [x] Add model being used for agent in events
