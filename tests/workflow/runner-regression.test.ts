@@ -97,10 +97,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
-            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"),
-            projectDir: tmpHome
-          }, { strict: false }))
+          return yield* _(runWorkflow(testSpec, { user_input: "test", project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -131,10 +128,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { user_input: "build a login page" }, {
-            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"),
-            projectDir: tmpHome
-          }, { strict: false }))
+          return yield* _(runWorkflow(testSpec, { user_input: "build a login page", project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -153,10 +147,7 @@ describe("runWorkflow regression tests", () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* FileLogger
-          return yield* runWorkflow(testSpec, { user_input: "test" }, {
-            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"),
-            projectDir: tmpHome
-          }, { strict: false })
+          return yield* runWorkflow(testSpec, { user_input: "test", project_dir: tmpHome }, { strict: false })
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -202,10 +193,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
-            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"),
-            projectDir: tmpHome
-          }, { strict: false }))
+          return yield* _(runWorkflow(testSpec, { user_input: "test", project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -227,10 +215,7 @@ describe("runWorkflow regression tests", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          return yield* _(runWorkflow(testSpec, { user_input: "test" }, {
-            workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"),
-            projectDir: tmpHome
-          }, { strict: false }))
+          return yield* _(runWorkflow(testSpec, { user_input: "test", project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )

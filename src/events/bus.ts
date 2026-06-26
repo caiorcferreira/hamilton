@@ -16,7 +16,7 @@ export type Event =
   | { readonly _tag: "TaskTimedOut"; readonly runId: string; readonly taskId: string; readonly taskName: string }
   | { readonly _tag: "TaskRetrying"; readonly runId: string; readonly taskId: string; readonly taskName: string }
   | { readonly _tag: "TaskPaused"; readonly runId: string; readonly taskId: string; readonly taskName: string }
-  | { readonly _tag: "WorkflowCompleted"; readonly runId: string; readonly message?: string }
+  | { readonly _tag: "WorkflowCompleted"; readonly runId: string; readonly message?: string; readonly summary?: Record<string, unknown> }
   | { readonly _tag: "LlmMessage"; readonly runId: string; readonly taskId: string; readonly text: string; readonly model?: string; readonly provider?: string }
   | { readonly _tag: "LlmThinking"; readonly runId: string; readonly taskId: string; readonly text: string; readonly model?: string; readonly provider?: string }
   | { readonly _tag: "ToolCall"; readonly runId: string; readonly taskId: string; readonly tool: string; readonly input: unknown; readonly toolCallId: string; readonly model?: string; readonly provider?: string; readonly isPartialUpdate?: boolean }

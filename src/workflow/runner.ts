@@ -11,12 +11,6 @@ import { checkRecursionDepth, evaluateWhenCondition } from "../workflow/when-gua
 import { collectReachableTasks, topologicalSort } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
-import {
-  createRunDir,
-  writeInput,
-  writeSummary,
-  appendEngineLog
-} from "../observability/run-dir.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 
@@ -28,12 +22,8 @@ import { expandTemplate } from "../workflow/template-expander.js"
 import { skillsDir, guidelinesDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
-
-export interface WorkflowRunnerConfig {
-  workflowsDir: string
-  maxRecursionDepth?: number
-  projectDir?: string
-}
+import { createRunDir, writeInput } from "../observability/run-dir.js"
+import { RunDirSubscriber } from "../observability/run-dir-subscriber.js"
 
 export interface WorkflowResult {
   runId: string
@@ -47,14 +37,13 @@ export interface WorkflowResult {
 export function runWorkflow(
   spec: WorkflowSpec,
   initialParameters: WorkflowEnv,
-  config: WorkflowRunnerConfig,
   templateOptions: TemplateOptions,
-  existingRunId?: string
+  existingRunId?: string,
+  maxRecursionDepth?: number
 ): Effect.Effect<WorkflowResult, Error, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
-    const settingsMaxDepth = config.maxRecursionDepth
 
     const staticTasks = collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint)
     const sortedTasks = topologicalSort(staticTasks)
@@ -65,8 +54,6 @@ export function runWorkflow(
       )
     )
 
-    const runId = ctx.runId
-
     yield* _(DbWriter(ctx.db))
 
     const telemetryConfig = yield* _(loadTelemetryConfig)
@@ -74,19 +61,17 @@ export function runWorkflow(
     const scriptConfig = yield* _(loadScriptConfig)
 
     if (fileEnabled) {
-      yield* _(createRunDir(runId))
-      yield* _(writeInput(runId, {
+      yield* _(createRunDir(ctx.runId))
+      yield* _(writeInput(ctx.runId, {
         spec,
         initialParameters,
         executionContext: { project_dir: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
       }))
     }
 
-    yield* _(bus.publish({ _tag: "WorkflowStarted", runId }))
+    yield* _(RunDirSubscriber(telemetryConfig, spec, initialParameters, startedAt))
 
-    if (fileEnabled) {
-      yield* _(appendEngineLog(runId, { event: "workflow_started", workflowId: spec.metadata.name }))
-    }
+    yield* _(bus.publish({ _tag: "WorkflowStarted", runId: ctx.runId }))
 
     const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
     const { files: guidelineFiles, rules: allRules } = extractGuidelineArtifacts(loadedGuidelines)
@@ -95,14 +80,14 @@ export function runWorkflow(
 
     const workflowEnv: WorkflowEnv = {
       ...initialParameters,
-      project_dir: config.projectDir ?? process.cwd(),
+      project_dir: (initialParameters.project_dir as string) ?? process.cwd(),
       tasks: {},
-      run_id: runId
+      run_id: ctx.runId
     }
 
     const resolveMaxRecursionDepth = (): number | null => {
       if (spec.spec.run.max_recursion_depth !== undefined) return spec.spec.run.max_recursion_depth
-      return settingsMaxDepth ?? null
+      return maxRecursionDepth ?? null
     }
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0
@@ -161,7 +146,7 @@ export function runWorkflow(
 
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
-          yield* _(bus.publish({ _tag: "TaskPaused", runId, taskId: task.name, taskName: task.name }))
+          yield* _(bus.publish({ _tag: "TaskPaused", runId: ctx.runId, taskId: task.name, taskName: task.name }))
           workflowStatus.value = "paused"
           break
         }
@@ -183,32 +168,19 @@ export function runWorkflow(
       }
 
       const elapsedSeconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-      const summary = { runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
-      if (fileEnabled) {
-        yield* _(writeSummary(runId, summary))
-      }
-      yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
-      if (fileEnabled) {
-        yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus.value }))
-      }
+      const summary = { runId: ctx.runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
 
-      return { runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt } as WorkflowResult
+      yield* _(bus.publish({ _tag: "WorkflowCompleted", runId: ctx.runId, summary }))
+
+      return { runId: ctx.runId, status: workflowStatus.value as WorkflowResult["status"], taskResults, env: workflowEnv, startedAt, completedAt }
     })
-
-    const completedAt = new Date().toISOString()
 
     return yield* _(body.pipe(
       Effect.catchAll((error) =>
         Effect.gen(function* () {
-          yield* _(bus.publish({ _tag: "WorkflowCompleted", runId, message: String(error) }))
-          if (fileEnabled) {
-            yield* _(appendEngineLog(runId, { event: "workflow_failed", error: String(error) }))
-          }
+          yield* _(bus.publish({ _tag: "WorkflowCompleted", runId: ctx.runId, message: String(error) }))
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
-          if (fileEnabled) {
-            yield* _(writeSummary(runId, { runId, status: "failed", taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds: Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) }))
-          }
-          return { runId, status: "failed" as const, taskResults, env: workflowEnv, startedAt, completedAt }
+          return { runId: ctx.runId, status: "failed" as const, taskResults, env: workflowEnv, startedAt, completedAt: new Date().toISOString() }
         })
       ),
       Effect.ensuring(ctx.close())

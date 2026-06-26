@@ -132,7 +132,7 @@ describe("runWorkflow DAG-aware executor", () => {
   it("executes tasks in topological order", async () => {
     const spec = makeSpec()
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -147,7 +147,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -159,7 +159,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("resolves agent refs correctly", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(makeSpec(), { project_dir: tmpHome }, { strict: false })
     )
 
     const completed = events.filter(e => e._tag === "TaskCompleted")
@@ -168,7 +168,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("publishes WorkflowStarted and WorkflowCompleted events", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(makeSpec(), { project_dir: tmpHome }, { strict: false })
     )
 
     expect(events[0]._tag).toBe("WorkflowStarted")
@@ -189,7 +189,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -222,7 +222,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -250,7 +250,7 @@ describe("runWorkflow DAG-aware executor", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -262,7 +262,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -274,7 +274,7 @@ describe("runWorkflow DAG-aware executor", () => {
     const spec = makeSpec()
     await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -291,7 +291,7 @@ describe("runWorkflow DAG-aware executor", () => {
 
   it("publishes PromptBuilt events for agent tasks", async () => {
     const events = await collectEvents(
-      runWorkflow(makeSpec(), {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(makeSpec(), { project_dir: tmpHome }, { strict: false })
     )
 
     const promptBuilt = events.filter(e => e._tag === "PromptBuilt")
@@ -311,7 +311,7 @@ describe("runWorkflow DAG-aware executor", () => {
     })
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const promptBuilt = events.filter(e => e._tag === "PromptBuilt")
@@ -395,7 +395,7 @@ describe("script task execution", () => {
       agentRegistry: new Map(),
       ...overrides
     }
-    return Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+    return Effect.scoped(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
       .pipe(Effect.provide(EventBusLive))
   }
 
@@ -458,7 +458,7 @@ describe("script task execution", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          yield* _(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+          yield* _(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -491,7 +491,7 @@ describe("script task execution", () => {
             )
           ))
           yield* _(Effect.sleep("10 millis"))
-          yield* _(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+          yield* _(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
         })
       ).pipe(Effect.provide(EventBusLive))
     )
@@ -534,7 +534,7 @@ describe("script task execution", () => {
       agentRegistry: new Map()
     }
     const result = await Effect.runPromise(
-      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+      Effect.scoped(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
         .pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")
@@ -555,7 +555,7 @@ describe("script task execution", () => {
       ])
     }
     const result = await Effect.runPromise(
-      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+      Effect.scoped(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
         .pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")
@@ -578,7 +578,7 @@ describe("script task execution", () => {
       ])
     }
     const result = await Effect.runPromise(
-      Effect.scoped(runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false }))
+      Effect.scoped(runWorkflow(spec, { project_dir: tmpHome }, { strict: false }))
         .pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")
@@ -618,7 +618,7 @@ describe("script task execution", () => {
     }
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, { parameters: { items: ["a", "b"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { parameters: { items: ["a", "b"] }, project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")
@@ -662,7 +662,7 @@ describe("script task execution", () => {
     }
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, { parameters: { items: ["a", "b"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { parameters: { items: ["a", "b"] }, project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")
@@ -699,7 +699,7 @@ describe("script task execution", () => {
     }
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, { parameters: { items: ["x", "y", "z"] } }, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+        runWorkflow(spec, { parameters: { items: ["x", "y", "z"] }, project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
     expect(result.status).toBe("completed")

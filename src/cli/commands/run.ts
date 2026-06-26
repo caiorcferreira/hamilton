@@ -81,10 +81,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const recursionConfig = yield* _(loadRecursionConfig())
 
     const result = yield* _(
-      runWorkflow(spec, { user_input: params.prompt, project_dir: process.cwd() }, {
-        workflowsDir: wfDir,
-        maxRecursionDepth: recursionConfig.maxDepth ?? undefined
-      }, templateOptions, params.externalRunId).pipe(
+      runWorkflow(spec, { user_input: params.prompt, project_dir: process.cwd() }, templateOptions, params.externalRunId, recursionConfig.maxDepth ?? undefined).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )
     )

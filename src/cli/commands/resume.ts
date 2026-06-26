@@ -86,10 +86,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
         Effect.gen(function* () {
           yield* FileLogger
           yield* CliRenderer
-          return yield* runWorkflow(spec as unknown as WorkflowSpec, context, {
-            workflowsDir: wfDir,
-            maxRecursionDepth: recursionConfig.maxDepth ?? undefined
-          }, templateOptions, runId).pipe(
+          return yield* runWorkflow(spec as unknown as WorkflowSpec, context, templateOptions, runId, recursionConfig.maxDepth ?? undefined).pipe(
             Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
           )
         })

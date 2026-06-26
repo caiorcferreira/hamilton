@@ -109,7 +109,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -134,7 +134,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -159,7 +159,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     expect(events.some(e => e._tag === "WorkflowCompleted")).toBe(true)
@@ -182,7 +182,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     expect(events.some(e => e._tag === "WorkflowCompleted")).toBe(true)
@@ -205,7 +205,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
@@ -226,7 +226,7 @@ describe("workflow when and recursion", () => {
 
     const result = await Effect.runPromise(
       Effect.scoped(
-        runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
       ).pipe(Effect.provide(EventBusLive))
     )
 
@@ -246,7 +246,7 @@ describe("workflow when and recursion", () => {
     }
 
     const events = await collectEvents(
-      runWorkflow(spec, {}, { workflowsDir: Path.join(tmpHome, ".hamilton", "workflows"), maxRecursionDepth: 1, projectDir: tmpHome }, { strict: false })
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false }, undefined, 1)
     )
 
     const started = events.filter(e => e._tag === "TaskStarted")
