@@ -141,7 +141,8 @@ export function executeWithPi(
         config.runId,
         config.taskId,
         config.outputSchema,
-        () => { sessionRef?.abort().catch(() => { }) }
+        () => { sessionRef?.abort().catch(() => { }) },
+        bus
       )
     )
 
