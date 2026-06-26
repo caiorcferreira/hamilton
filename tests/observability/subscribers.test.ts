@@ -76,6 +76,14 @@ describe("formatForFile", () => {
       input: { _tag: "LspDiagnostic", runId: "r1", taskId: "t1", filePath: "/src/test.ts", text: "error: unused variable" },
       expected: { event: "lsp_diagnostic", file_path: "/src/test.ts", text: "error: unused variable", task_id: "t1" },
     },
+    {
+      input: { _tag: "TodoListUpdated", runId: "r1", taskId: "t1", todos: [{ content: "do thing", status: "in_progress", priority: "high" }] },
+      expected: { event: "todo_list_updated", runId: "r1", taskId: "t1", todos: [{ content: "do thing", status: "in_progress", priority: "high" }] },
+    },
+    {
+      input: { _tag: "TodoConstraintError", runId: "r1", taskId: "t1", message: "Expected exactly 1 in_progress" },
+      expected: { event: "todo_constraint_error", runId: "r1", taskId: "t1", message: "Expected exactly 1 in_progress" },
+    },
   ]
 
   for (const { input, expected } of cases) {
