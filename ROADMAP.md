@@ -5,12 +5,8 @@
 - [ ] Use XDG_HOME for settings file
 - [ ] Review events stored in events.jsonl; events like task start, task end should be included.
 - [ ] Fix suggestion in run commands that is incorrect, it should be `hamilton workflow status <status-id>`.
-- [ ] Add some id to connect turn_end event to another event
 - [ ] Duplication between cwd and project_dir in the initial parameters must be solved
-- [ ] Check if agent system prompt template is being rendered
-- [ ] Add model being used for agent in events
 - [ ] Improve error handling when call fails
-- [ ] Add more details to events, like stop reason, cached tokens, tool call id, response id
 - [ ] Improve settings.yaml structure
 - [ ] Inject avaiable tools dynamically into system prompt
 
@@ -38,11 +34,15 @@
 ### Tooling & DX
 - [ ] Create a spec authoring skill
   - [ ] Organize files in `.specs` folder with `changes/<change-id>/<prd|plan|progress>.md`, `archives`, `templates`, `shared` and `memory` (long term memory of the project)
-  - [ ] Search for skills like Superpower's `brainstorm`
-  - [ ] Create a way to nudge the agent to write the plan/progress when necessary
 
 ## Completed
 
+- [x] Add more details to events, like stop reason, cached tokens, tool call id, response id
+- [x] Add model being used for agent in events
+- [x] Check if agent system prompt template is being rendered
+- [x] Add some id to connect turn_end event to another event
+- [x] Create a way to nudge the agent to write the plan/progress when necessary
+- [x] Search for skills like Superpower's `brainstorm`
 - [x] Align plan.json schema with planner INSTRUCTIONS.md output format — change_id, artifacts, task name, step id
 - [x] Resolve review issues 2-6 in feature-dev workflow — has_frontend_changes, input.parameters typo, max_recursion_depth, plan task title, branch reference
 - [x] Add currentIteration scope to WorkflowEnv for template subtask when-expression support
