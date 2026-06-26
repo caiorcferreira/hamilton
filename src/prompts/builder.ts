@@ -58,9 +58,6 @@ IMPORTANT:
 
 const defaultContextTemplate = `## Context
 - Current directory: {{inputs.parameters.cwd}}
-- Available tools:
-  - All built-in tools: read, bash, edit, write, grep, find, ls
-  - write_task_output: saves your task results (call once when done, input must be a JSON object with 'status' field)
 `
 
 export function buildAgentsPrompts(
