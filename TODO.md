@@ -8,10 +8,10 @@
 - [ ] Duplication between cwd and project_dir in the initial parameters must be solved
 - [ ] Improve error handling when call fails
 - [ ] Improve settings.yaml structure
-
 - [ ] Look for opencode system prompt as example to improve
 - [ ] Keep improving agents and workflow prompts
 - [ ] Split git tools into their own extension
+- [ ] Refactor the write task output reminder into a hook system
 
 ### Core Engine
 - [ ] Change `init` command to `setup`
