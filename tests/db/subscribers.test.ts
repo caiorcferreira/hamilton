@@ -75,4 +75,35 @@ describe("DbWriter", () => {
     expect(events).toHaveLength(1)
     expect(events[0].tokens_in).toBe(10)
   })
+
+  it("stores TodoListUpdated events in workflow_state", async () => {
+    const program = Effect.scoped(
+      Effect.gen(function* (_) {
+        yield* DbWriter(db)
+        yield* _(Effect.sleep("10 millis"))
+        const bus = yield* _(EventBus)
+        yield* _(bus.publish({
+          _tag: "TodoListUpdated",
+          runId: "r1",
+          taskId: "t1",
+          todos: [
+            { content: "write tests", status: "completed", priority: "high" },
+            { content: "implement feature", status: "in_progress", priority: "high" }
+          ]
+        }))
+        yield* _(Effect.sleep("50 millis"))
+      })
+    )
+
+    await Effect.runPromise(program.pipe(Effect.provide(EventBusLive)))
+
+    const row = db.prepare("SELECT value FROM workflow_state WHERE run_id = ? AND key = ?").get("r1", "todo_list:t1") as { value: string } | null
+    expect(row).not.toBeNull()
+    const parsed = JSON.parse(row!.value)
+    expect(parsed).toHaveLength(2)
+    expect(parsed[0].content).toBe("write tests")
+    expect(parsed[0].status).toBe("completed")
+    expect(parsed[1].content).toBe("implement feature")
+    expect(parsed[1].status).toBe("in_progress")
+  })
 })
