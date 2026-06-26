@@ -122,7 +122,7 @@ const db = new Database(dbPath())
       insertRunWithPid(db, runId, slug, new Date().toISOString(), child.pid)
       db.close()
       yield* Console.log(`Run ID: ${runId}`)
-      yield* Console.log("Running in background. Use 'hamilton status <run-id>' to check progress.")
+      yield* Console.log("Running in background. Use 'hamilton workflow status <run-id>' to check progress.")
       return
     }
 
