@@ -1,17 +1,17 @@
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
+import type { SystemPromptFragments } from "./persona.js"
 import { resolveTemplate, type TemplateOptions } from "./template.js"
 
 export interface PromptParams {
-  agentFile: string
-  soulFile: string
-  prompt: Prompt
+  fragments: SystemPromptFragments
+  taskPrompt: Prompt
+
   env: WorkflowEnv
-  contextTemplate?: string
   agentConfig: Partial<AgentManifest>
 }
 
-export interface BuiltPrompt {
+export interface AgentPrompts {
   systemPrompt: string
   taskPrompt: string
   guidelineFiles: Array<{ name: string; content: string }>
@@ -56,22 +56,22 @@ const defaultContextTemplate = `## Context
   - write_task_output: saves your task results (call once when done, input must be a JSON object with 'status' field)
 `
 
-export function buildAgentPrompt(
+export function buildAgentsPrompts(
   params: PromptParams,
   guidelineFiles: Array<{ name: string; content: string }> = [],
   options: TemplateOptions = { strict: false }
-): BuiltPrompt {
-  const resolvedAgentFile = resolveTemplate(params.agentFile, { inputs: params.env }, options)
+): AgentPrompts {
+  const resolvedAgentFile = resolveTemplate(params.fragments.agent.content ?? "", { inputs: params.env }, options)
 
-  const resolvedSoul = params.soulFile
-    ? resolveTemplate(params.soulFile, { inputs: params.env }, options)
+  const resolvedSoul = params.fragments.soul.content
+    ? resolveTemplate(params.fragments.soul.content, { inputs: params.env }, options)
     : ""
 
   const persona = resolvedSoul
     ? `<persona>\n${resolvedSoul}\n</persona>`
     : ""
 
-  const template = params.contextTemplate || defaultContextTemplate
+  const template = params.fragments.context.content || defaultContextTemplate
   const contextForTemplate = { inputs: params.env }
   const renderedContext = resolveTemplate(template, contextForTemplate, options)
 
@@ -81,9 +81,9 @@ export function buildAgentPrompt(
     context: renderedContext,
   }, options)
 
-  const resolvedInput = params.prompt.skipTemplate
-    ? (params.prompt.content ?? "")
-    : resolveTemplate(params.prompt.content ?? "", { inputs: params.env }, options)
+  const resolvedInput = params.taskPrompt.skipTemplate
+    ? (params.taskPrompt.content ?? "")
+    : resolveTemplate(params.taskPrompt.content ?? "", { inputs: params.env }, options)
 
   return {
     systemPrompt: resolvedSystem.trim(),
