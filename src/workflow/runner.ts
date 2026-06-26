@@ -5,11 +5,10 @@ import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
 import type { TemplateOptions } from "../prompts/template.js"
-import { Template } from "../prompts/template.js"
 
 import { checkRecursionDepth, evaluateWhenCondition } from "../workflow/when-guard.js"
 
-import { collectReachableTasks, topologicalSort, buildTaskInstanceName } from "../workflow/engine.js"
+import { collectReachableTasks, topologicalSort } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
@@ -25,6 +24,7 @@ import { loadGuidelines } from "../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
 import { loadSkillRegistry } from "../skills/registry.js"
 import { dispatchTask } from "./task-executor.js"
+import { expandTemplate } from "../workflow/template-expander.js"
 import { skillsDir, guidelinesDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
@@ -149,102 +149,8 @@ export function runWorkflow(
         }
 
         if (task.template) {
-          const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
-          if (!templateTask) continue
-
-          const resolvedArgs = resolveArguments(task, workflowEnv)
-
-          const compoundParentTaskId = ctx.compoundTaskIds.get(task.name) ?? undefined
-
-          for (let i = 0; i < resolvedArgs.itemsCount; i++) {
-            if (workflowStatus.value === "failed") break
-
-            const instanceName = buildTaskInstanceName(task.name, i)
-            const taskEnv: WorkflowEnv = {
-              ...workflowEnv,
-              parameters: resolvedArgs.parameters
-            }
-
-            if (templateTask.tasks && templateTask.tasks.length > 0) {
-              workflowEnv.currentIteration = { tasks: {} }
-              const sub = topologicalSort(templateTask.tasks)
-              for (const subTask of sub) {
-                if (workflowStatus.value === "failed") break
-                const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
-
-                if (subTask.when) {
-                  const maxDepth = resolveMaxRecursionDepth()
-                  const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, subInstanceName))
-                  if (depthResult === "fail") {
-                    workflowStatus.value = "failed"
-                    break
-                  }
-
-                  const whenResult = evaluateWhenCondition(subTask, workflowEnv)
-                  if (whenResult === "skip") {
-                    yield* _(ctx.transitionTask(subInstanceName, "complete"))
-                    continue
-                  }
-                  if (typeof whenResult === "object" && whenResult._tag === "error") {
-                    yield* _(ctx.transitionTask(subInstanceName, "fail"))
-                    yield* _(ctx.fail(whenResult.message))
-                    workflowStatus.value = "failed"
-                    break
-                  }
-                }
-
-                if (subTask.template) {
-                  const nestedTemplate = spec.spec.tasks.find((t: WorkflowTask) => t.name === subTask.template)
-                  if (!nestedTemplate) continue
-
-                  const nestedArgs = resolveArguments(subTask, workflowEnv)
-                  const nestedEnv: WorkflowEnv = { ...workflowEnv, parameters: nestedArgs.parameters }
-
-                  const subRef = nestedTemplate.agent?.executorRef ?? nestedTemplate.tasks?.[0]?.agent?.executorRef ?? "script"
-                  yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
-
-                  if (nestedTemplate.tasks && nestedTemplate.tasks.length > 0) {
-                    const savedIteration: WorkflowEnv["currentIteration"] = workflowEnv.currentIteration
-                    workflowEnv.currentIteration = { tasks: {} }
-                    const nestedSub = topologicalSort(nestedTemplate.tasks)
-                    for (const nestedSubTask of nestedSub) {
-                      if (workflowStatus.value === "failed") break
-                      const nestedInstanceName = buildTaskInstanceName(subInstanceName, nestedSubTask.name)
-                      const nestedRef = nestedSubTask.agent?.executorRef ?? "script"
-                      yield* _(ctx.insertDynamicTask(nestedInstanceName, nestedRef, compoundParentTaskId))
-                      yield* _(dispatchTask(nestedSubTask, nestedEnv, nestedInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
-                      const nestedOutput = workflowEnv.tasks?.[nestedInstanceName]
-                      if (nestedOutput && workflowEnv.currentIteration?.tasks) {
-                        workflowEnv.currentIteration.tasks[nestedSubTask.name] = nestedOutput
-                      }
-                    }
-                    delete workflowEnv.currentIteration
-                    workflowEnv.currentIteration = savedIteration
-                  } else if (nestedTemplate.agent || nestedTemplate.script) {
-                    yield* _(dispatchTask(nestedTemplate, nestedEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
-                  }
-                  const subOutput = workflowEnv.tasks?.[subInstanceName]
-                  if (subOutput && workflowEnv.currentIteration?.tasks) {
-                    workflowEnv.currentIteration.tasks[subTask.name] = subOutput
-                  }
-                  continue
-                }
-
-                const subRef = subTask.agent?.executorRef ?? "script"
-                yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
-                yield* _(dispatchTask(subTask, taskEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
-                const subOutput = workflowEnv.tasks?.[subInstanceName]
-                if (subOutput && workflowEnv.currentIteration?.tasks) {
-                  workflowEnv.currentIteration.tasks[subTask.name] = subOutput
-                }
-              }
-              delete workflowEnv.currentIteration
-            } else if (templateTask.agent || templateTask.script) {
-              const ref = templateTask.agent?.executorRef ?? "script"
-              yield* _(ctx.insertDynamicTask(instanceName, ref, compoundParentTaskId))
-              yield* _(dispatchTask(templateTask, taskEnv, instanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
-            }
-          }
+          const maxDepth = resolveMaxRecursionDepth()
+          yield* _(expandTemplate(ctx, task, spec, workflowEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
           continue
         }
 
