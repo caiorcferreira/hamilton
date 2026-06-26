@@ -8,7 +8,7 @@ import { type WorkflowEnv } from "../workflow/env.js"
 import type { TemplateOptions } from "../prompts/template.js"
 import { Template } from "../prompts/template.js"
 
-import { evaluateWhen, WhenError } from "../cel/evaluate.js"
+import { checkRecursionDepth, evaluateWhenCondition } from "../workflow/when-guard.js"
 import { resolveSystemPromptFragments } from "../prompts/system.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
@@ -305,27 +305,20 @@ export function runWorkflow(
 
         if (task.when) {
           const maxDepth = resolveMaxRecursionDepth()
-          if (maxDepth !== null) {
-            const depth = yield* _(ctx.getTaskDepth(task.name))
-            if (depth !== null && depth >= maxDepth) {
-              yield* _(ctx.transitionTask(task.name, "fail"))
-              const errorMsg = `max recursion depth (${maxDepth}) exceeded`
-              yield* _(ctx.fail(errorMsg))
-              workflowStatus = "failed"
-              break
-            }
+          const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, task.name))
+          if (depthResult === "fail") {
+            workflowStatus = "failed"
+            break
           }
 
-          try {
-            const result = evaluateWhen(task.when, { inputs: workflowEnv as Record<string, unknown> })
-            if (!result) {
-              yield* _(ctx.transitionTask(task.name, "complete"))
-              continue
-            }
-          } catch (e) {
-            const errorMsg = e instanceof WhenError ? e.message : String(e)
+          const whenResult = evaluateWhenCondition(task, workflowEnv)
+          if (whenResult === "skip") {
+            yield* _(ctx.transitionTask(task.name, "complete"))
+            continue
+          }
+          if (typeof whenResult === "object" && whenResult._tag === "error") {
             yield* _(ctx.transitionTask(task.name, "fail"))
-            yield* _(ctx.fail(errorMsg))
+            yield* _(ctx.fail(whenResult.message))
             workflowStatus = "failed"
             break
           }
@@ -357,27 +350,20 @@ export function runWorkflow(
 
                 if (subTask.when) {
                   const maxDepth = resolveMaxRecursionDepth()
-                  if (maxDepth !== null) {
-                    const depth = yield* _(ctx.getTaskDepth(subInstanceName))
-                    if (depth !== null && depth >= maxDepth) {
-                      yield* _(ctx.transitionTask(subInstanceName, "fail"))
-                      const errorMsg = `max recursion depth (${maxDepth}) exceeded`
-                      yield* _(ctx.fail(errorMsg))
-                      workflowStatus = "failed"
-                      break
-                    }
+                  const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, subInstanceName))
+                  if (depthResult === "fail") {
+                    workflowStatus = "failed"
+                    break
                   }
 
-                  try {
-                    const result = evaluateWhen(subTask.when, { inputs: workflowEnv as Record<string, unknown> })
-                    if (!result) {
-                      yield* _(ctx.transitionTask(subInstanceName, "complete"))
-                      continue
-                    }
-                  } catch (e) {
-                    const errorMsg = e instanceof WhenError ? e.message : String(e)
+                  const whenResult = evaluateWhenCondition(subTask, workflowEnv)
+                  if (whenResult === "skip") {
+                    yield* _(ctx.transitionTask(subInstanceName, "complete"))
+                    continue
+                  }
+                  if (typeof whenResult === "object" && whenResult._tag === "error") {
                     yield* _(ctx.transitionTask(subInstanceName, "fail"))
-                    yield* _(ctx.fail(errorMsg))
+                    yield* _(ctx.fail(whenResult.message))
                     workflowStatus = "failed"
                     break
                   }
