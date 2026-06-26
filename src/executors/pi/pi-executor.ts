@@ -151,7 +151,7 @@ export function executeWithPi(
     const loaderOptions: any = {
       cwd,
       agentDir,
-      systemPromptOverride: () => systemPrompt,
+      appendSystemPrompt: () => systemPrompt,
       agentsFilesOverride: (current: any) => ({
         agentsFiles: [
           ...(current?.agentsFiles ?? []),
