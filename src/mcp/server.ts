@@ -4,7 +4,7 @@ import { z } from "zod"
 import { Effect } from "effect"
 import { loadWorkflowSpec } from "../workflow/loader.js"
 import type { WorkflowDescriptor } from "../workflow/agent-registry.js"
-import { resolvePersona } from "../prompts/persona.js"
+import { resolveSystemPromptFragments } from "../prompts/persona.js"
 import { openDb } from "../workflow/state.js"
 import { getRunStatus as getDbRunStatus, listRuns } from "../db/queries.js"
 import { getRunLogs } from "../cli/commands/logs.js"
@@ -122,13 +122,13 @@ export function createMcpServer(): McpServer {
         const agentsPath = Path.join(dir, slug, "INSTRUCTIONS.md")
         if (!Fs.existsSync(agentsPath)) continue
         const persona = await Effect.runPromise(Effect.option(
-          resolvePersona(
+          resolveSystemPromptFragments(
             { agent: agentsPath, soul: Path.join(dir, slug, "SOUL.md") },
             dir
           )
         ))
         if (persona._tag === "Some") {
-          results.push({ slug, soul: persona.value.soul })
+          results.push({ slug, soul: persona.value.soul.content })
         }
       }
       return textResult(JSON.stringify(results, null, 2))

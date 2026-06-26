@@ -3,9 +3,9 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { resolvePersona, PersonaNotFoundError } from "../../src/prompts/persona.js"
+import { resolveSystemPromptFragments, PersonaNotFoundError } from "../../src/prompts/persona.js"
 
-describe("resolvePersona", () => {
+describe("resolveSystemPromptFragments", () => {
   let tmpDir: string
 
   beforeEach(() => {
@@ -25,11 +25,11 @@ describe("resolvePersona", () => {
       soul: "soul.md"
     }
 
-    const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
+    const exit = await Effect.runPromiseExit(resolveSystemPromptFragments(paths, tmpDir))
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.agent).toBe("agent instructions")
-      expect(exit.value.soul).toBe("soul content")
+      expect(exit.value.agent.content).toBe("agent instructions")
+      expect(exit.value.soul.content).toBe("soul content")
     }
   })
 
@@ -41,11 +41,11 @@ describe("resolvePersona", () => {
       soul: "no-soul.md"
     }
 
-    const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
+    const exit = await Effect.runPromiseExit(resolveSystemPromptFragments(paths, tmpDir))
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.agent).toBe("agent instructions")
-      expect(exit.value.soul).toBe("")
+      expect(exit.value.agent.content).toBe("agent instructions")
+      expect(exit.value.soul.content).toBe("")
     }
   })
 
@@ -55,7 +55,7 @@ describe("resolvePersona", () => {
       soul: "soul.md"
     }
 
-    const exit = await Effect.runPromiseExit(resolvePersona(paths, tmpDir))
+    const exit = await Effect.runPromiseExit(resolveSystemPromptFragments(paths, tmpDir))
     expect(Exit.isFailure(exit)).toBe(true)
   })
 
@@ -76,11 +76,11 @@ describe("resolvePersona", () => {
       soul: "shared/agents/setup/SOUL.md"
     }
 
-    const exit = await Effect.runPromiseExit(resolvePersona(paths, workflowDir))
+    const exit = await Effect.runPromiseExit(resolveSystemPromptFragments(paths, workflowDir))
     expect(Exit.isSuccess(exit)).toBe(true)
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.agent).toBe("shared setup agent")
-      expect(exit.value.soul).toBe("shared setup soul")
+      expect(exit.value.agent.content).toBe("shared setup agent")
+      expect(exit.value.soul.content).toBe("shared setup soul")
     }
   })
 })

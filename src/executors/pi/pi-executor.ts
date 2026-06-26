@@ -116,6 +116,17 @@ export function executeWithPi(
     const systemPrompt = Effect.runSync(systemTemplate.render())
     const taskPrompt = Effect.runSync(taskTemplate.render())
 
+    const bus = yield* _(EventBus)
+
+    yield* _(bus.publish({
+      _tag: "PromptBuilt",
+      runId: config.runId,
+      taskId: config.taskId,
+      systemPrompt,
+      taskPrompt,
+      guidelineFiles: guidelineFiles.map(g => g.name)
+    }))
+
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)
 
@@ -211,8 +222,6 @@ export function executeWithPi(
         }
       }
     )
-
-    const bus = yield* _(EventBus)
 
     const lspEntry = extSettings.extensions?.find((e) => e.name === "lsp")
     if (lspEntry && lspEntry.enabled !== false && lspEntry.parameters?.autoCheck !== false) {

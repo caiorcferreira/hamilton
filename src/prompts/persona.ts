@@ -2,20 +2,19 @@ import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import type { SystemPromptPaths } from "../types.js"
+import type { Prompt } from "../types.js"
 
-// TODO: rename interface to SystemPromptFragments
-export interface Persona {
-  agent: string // TODO: make it use the Prompt interface type
-  soul: string // TODO: make it use the Prompt interface type
-  context: string // TODO: make it use the Prompt interface type
+export interface SystemPromptFragments {
+  agent: Prompt
+  soul: Prompt
+  context: Prompt
 }
 
 export class PersonaNotFoundError extends Data.TaggedError("PersonaNotFoundError")<{
   agentPath: string
 }> { }
 
-// TODO: rename to readOptionalFile
-function tryReadOptional(filePath: string): string {
+function readOptionalFile(filePath: string): string {
   try {
     return Fs.readFileSync(filePath, "utf-8")
   } catch {
@@ -23,29 +22,28 @@ function tryReadOptional(filePath: string): string {
   }
 }
 
-// TODO: rename function to resolveSystemPromptFragments
-export function resolvePersona(
+export function resolveSystemPromptFragments(
   paths: SystemPromptPaths,
   agentDir: string
-): Effect.Effect<Persona, PersonaNotFoundError> {
+): Effect.Effect<SystemPromptFragments, PersonaNotFoundError> {
   return Effect.gen(function* (_) {
     const resolvePath = (p: string) => Path.resolve(agentDir, p)
 
     const agent = yield* _(
       Effect.try({
-        try: () => {
-          if (!paths.agent) return "" // TODO: remove this if; it stops the logic from failing to catch if the path is empty
-          return Fs.readFileSync(resolvePath(paths.agent), "utf-8")
-        },
+        try: () => Fs.readFileSync(resolvePath(paths.agent), "utf-8"),
         catch: () => new PersonaNotFoundError({ agentPath: paths.agent })
       })
     )
 
-    const soul = paths.soul ? tryReadOptional(resolvePath(paths.soul)) : ""
+    const soul = paths.soul ? readOptionalFile(resolvePath(paths.soul)) : ""
 
-    // TODO: should use a paths.context instead of a hard-coded file name
-    const context = tryReadOptional(resolvePath("CONTEXT.md"))
+    const context = paths.context ? readOptionalFile(resolvePath(paths.context)) : ""
 
-    return { agent, soul, context }
+    return {
+      agent: { content: agent },
+      soul: { content: soul },
+      context: { content: context }
+    }
   })
 }

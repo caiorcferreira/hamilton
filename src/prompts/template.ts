@@ -1,7 +1,6 @@
 import { Data, Effect } from "effect"
 import Handlebars from "handlebars"
 import * as Fs from "node:fs"
-import { WorkflowEnv } from "src/workflow/env.js"
 
 export interface TemplateOptions {
   strict: boolean
@@ -93,22 +92,8 @@ export class Template extends Data.Class<{
   readonly options: TemplateOptions
 }> {
 
-  // Factory — clean starting point, no need to pass vars manually
   static make(template: string, options: TemplateOptions = { strict: false }): Template {
     return new Template({ template, vars: {}, options: options })
-  }
-
-  // Returns a NEW instance — does not mutate
-  setVar(key: string, value: any): Template {
-    return new Template({
-      template: this.template,
-      vars: { ...this.vars, [key]: value },
-      options: this.options,
-    })
-  }
-
-  setInputEnv(value: WorkflowEnv): Template {
-    return this.setVar("inputs", value)
   }
 
   static fromFile(filePath: string, options: TemplateOptions = { strict: false }): Effect.Effect<Template, TemplateError> {
@@ -127,7 +112,18 @@ export class Template extends Data.Class<{
     })
   }
 
-  // Effectful render — fails if any variable is still missing
+  setVar(key: string, value: any): Template {
+    return new Template({
+      template: this.template,
+      vars: { ...this.vars, [key]: value },
+      options: this.options,
+    })
+  }
+
+  setInputEnv(value: Record<string, unknown>): Template {
+    return this.setVar("inputs", value)
+  }
+
   render(): Effect.Effect<string, TemplateError> {
     return Effect.try({
       try: () => {

@@ -1,7 +1,7 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
 
 import { WorkflowSpec, WorkflowTask } from "../types.js"
-import { buildAgentPrompt } from "../prompts/builder.js"
+import { buildAgentsPrompts } from "../prompts/builder.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
@@ -9,7 +9,7 @@ import type { TemplateOptions } from "../prompts/template.js"
 import { Template } from "../prompts/template.js"
 
 import { evaluateWhen, WhenError } from "../cel/evaluate.js"
-import { resolvePersona } from "../prompts/persona.js"
+import { resolveSystemPromptFragments } from "../prompts/persona.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
@@ -138,40 +138,21 @@ export function runWorkflow(
         const agent = spec.agentRegistry.get(task.agent.executorRef)
         if (!agent) return
 
-        const persona = yield* _(
-          resolvePersona(agent.systemPrompt, agent.dirPath).pipe(
+        const fragments = yield* _(
+          resolveSystemPromptFragments(agent.systemPrompt, agent.dirPath).pipe(
             Effect.mapError((e) => new Error(e.agentPath))
           )
         )
 
-        const agentPrompts = buildAgentPrompt({
-          agentFile: persona.agent,
-          soulFile: persona.soul,
-          contextTemplate: persona.context,
-          prompt: task.agent!.prompt,
+        const agentPrompts = buildAgentsPrompts({
+          fragments,
+          taskPrompt: task.agent!.prompt,
+          outputSchema: task.agent?.output?.schema?.content,
+          userInput: taskEnv.user_input ?? undefined,
+          isEntrypoint: task.name === spec.spec.run.entrypoint,
           env: taskEnv,
           agentConfig: agent
         }, guidelineFiles, templateOptions)
-
-        // TODO: move this logic (output schema, user prompt) to inside buildAgentPrompt
-        let taskPromptContent = Effect.runSync(agentPrompts.taskTemplate.render())
-        const systemPromptContent = Effect.runSync(agentPrompts.systemTemplate.render())
-        if (task.agent?.output?.schema?.content) {
-          const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
-          taskPromptContent = `<task>\n${taskPromptContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
-        }
-        if (task.name === spec.spec.run.entrypoint) {
-          taskPromptContent = `${taskPromptContent}\n\n<user_prompt>\n\n${taskEnv.user_input ?? ""}\n</user_prompt>`
-        }
-
-        yield* _(bus.publish({
-          _tag: "PromptBuilt",
-          runId,
-          taskId,
-          systemPrompt: systemPromptContent,
-          taskPrompt: taskPromptContent,
-          guidelineFiles: guidelineFiles.map(g => g.name)
-        }))
 
         const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
         const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
@@ -243,7 +224,7 @@ export function runWorkflow(
 
         const renderedCommand = Effect.runSync(
           Template.make(task.script.command, templateOptions)
-            .setVar("inputs", taskEnv)
+            .setInputEnv(taskEnv as Record<string, unknown>)
             .render()
         )
         const workdir = task.script.workdir ?? (taskEnv.cwd as string | undefined) ?? process.cwd()

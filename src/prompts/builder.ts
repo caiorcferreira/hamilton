@@ -1,26 +1,27 @@
-import { Effect } from "effect"
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
+import type { SystemPromptFragments } from "./persona.js"
 import { Template, type TemplateOptions } from "./template.js"
+import { Effect } from "effect"
 
 export interface PromptParams {
-  agentFile: string
-  soulFile: string
-  contextTemplate?: string
-
-  prompt: Prompt // TODO: rename to taskPrompt
+  fragments: SystemPromptFragments
+  taskPrompt: Prompt
+  outputSchema?: Record<string, unknown>
+  userInput?: string
+  isEntrypoint?: boolean
 
   env: WorkflowEnv
   agentConfig: Partial<AgentManifest>
 }
 
-export interface BuiltPrompt {
+export interface AgentPrompts {
   systemTemplate: Template
   taskTemplate: Template
   guidelineFiles: Array<{ name: string; content: string }>
 }
 
-const systemTemplate = `
+const systemTemplateStr = `
 <platform>
 # Hamilton Agentic Orchestration
 
@@ -44,13 +45,16 @@ IMPORTANT:
 {{instructions}}
 </instructions>
 
+{{#if persona}}
+<persona>
 {{persona}}
+</persona>
+{{/if}}
 
 <context>
 {{context}}
 </context>
 `
-
 
 const defaultContextTemplate = `## Context
 - Current directory: {{inputs.parameters.cwd}}
@@ -59,53 +63,57 @@ const defaultContextTemplate = `## Context
   - write_task_output: saves your task results (call once when done, input must be a JSON object with 'status' field)
 `
 
-export function buildAgentPrompt(
+export function buildAgentsPrompts(
   params: PromptParams,
   guidelineFiles: Array<{ name: string; content: string }> = [],
   options: TemplateOptions = { strict: false }
-): BuiltPrompt {
-  const resolvedAgentFileStr = Effect.runSync(
-    Template.make(params.agentFile, options)
-      .setVar("inputs", params.env)
-      .render()
-  )
+): AgentPrompts {
+  const resolvedAgentFile = Template.make(params.fragments.agent.content ?? "", options)
+    .setVar("inputs", params.env)
 
-  const resolvedSoulStr = params.soulFile
-    ? Effect.runSync(
-        Template.make(params.soulFile, options)
-          .setVar("inputs", params.env)
-          .render()
-      )
-    : ""
+  const soulTemplate = params.fragments.soul.content
+    ? Template.make(params.fragments.soul.content, options).setVar("inputs", params.env)
+    : null
 
-  const persona = resolvedSoulStr
-    ? `<persona>\n${resolvedSoulStr}\n</persona>`
-    : ""
+  const contextContent = params.fragments.context.content || defaultContextTemplate
+  const contextTemplate = Template.make(contextContent, options).setVar("inputs", params.env)
 
-  const renderedContextStr = Effect.runSync(
-    Template.make(params.contextTemplate || defaultContextTemplate, options)
-      .setVar("inputs", params.env)
-      .render()
-  )
+  const resolvedSoul = soulTemplate ? Effect.runSync(soulTemplate.render()) : ""
 
-  const taskContent = params.prompt.skipTemplate
-    ? (params.prompt.content ?? "").replace(/{{/g, "\\{{")
-    : Effect.runSync(
-        Template.make(params.prompt.content ?? "", options)
-          .setVar("inputs", params.env)
-          .render()
-      )
+  const persona = resolvedSoul
 
-  const systemTemplateInst = Template.make(systemTemplate, options)
-    .setVar("instructions", resolvedAgentFileStr)
+  const renderedAgentFile = Effect.runSync(resolvedAgentFile.render())
+  const renderedContext = Effect.runSync(contextTemplate.render())
+
+  const systemTemplate = Template.make(systemTemplateStr, options)
+    .setVar("instructions", renderedAgentFile)
     .setVar("persona", persona)
-    .setVar("context", renderedContextStr)
+    .setVar("context", renderedContext)
 
-  const taskTemplateInst = Template.make(taskContent, options)
+  let taskTemplateContent = params.taskPrompt.skipTemplate
+    ? (params.taskPrompt.content ?? "")
+    : params.taskPrompt.content ?? ""
+
+  if (params.outputSchema) {
+    const schemaJson = JSON.stringify(params.outputSchema, null, 2)
+    taskTemplateContent = `<task>\n${taskTemplateContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
+  }
+  if (params.isEntrypoint && params.userInput) {
+    taskTemplateContent = `${taskTemplateContent}\n\n<user_prompt>\n\n${params.userInput}\n</user_prompt>`
+  }
+
+  let taskTemplate: Template
+  if (params.taskPrompt.skipTemplate && !params.outputSchema && !(params.isEntrypoint && params.userInput)) {
+    taskTemplate = Template.make((params.taskPrompt.content ?? "").replace(/{{/g, "\\{{"), options)
+  } else if (params.taskPrompt.skipTemplate) {
+    taskTemplate = Template.make(taskTemplateContent, options)
+  } else {
+    taskTemplate = Template.make(taskTemplateContent, options).setVar("inputs", params.env)
+  }
 
   return {
-    systemTemplate: systemTemplateInst,
-    taskTemplate: taskTemplateInst,
+    systemTemplate,
+    taskTemplate,
     guidelineFiles
   }
 }
