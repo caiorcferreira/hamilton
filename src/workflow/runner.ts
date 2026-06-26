@@ -1,6 +1,6 @@
 import { Effect, Scope } from "effect"
 
-import { WorkflowSpec, WorkflowTask } from "../types.js"
+import { WorkflowSpec } from "../types.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
