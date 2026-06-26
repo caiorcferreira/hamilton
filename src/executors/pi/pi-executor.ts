@@ -111,7 +111,10 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
-    const { systemPrompt, taskPrompt, guidelineFiles } = config.prompt
+    const { systemTemplate, taskTemplate, guidelineFiles } = config.prompt
+
+    const systemPrompt = Effect.runSync(systemTemplate.render())
+    const taskPrompt = Effect.runSync(taskTemplate.render())
 
     const extSettings = readExtensionSettings()
     const extensionFactories = buildExtensions(extSettings)

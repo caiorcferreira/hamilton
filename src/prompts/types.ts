@@ -1,5 +1,7 @@
+import type { Template } from "./template.js"
+
 export interface ResolvablePrompt {
-  systemPrompt: string
-  taskPrompt: string
+  systemTemplate: Template
+  taskTemplate: Template
   guidelineFiles: Array<{ name: string; content: string }>
 }

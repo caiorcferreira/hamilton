@@ -6,7 +6,7 @@ import { buildAgentsPrompts } from "../prompts/builder.js"
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
 import type { TemplateOptions } from "../prompts/template.js"
-import { resolveTemplate } from "../prompts/template.js"
+import { Template } from "../prompts/template.js"
 
 import { evaluateWhen, WhenError } from "../cel/evaluate.js"
 import { resolveSystemPromptFragments } from "../prompts/persona.js"
@@ -144,14 +144,15 @@ export function runWorkflow(
           )
         )
 
-        const prompt = buildAgentsPrompts({
+        const agentPrompts = buildAgentsPrompts({
           fragments,
           taskPrompt: task.agent!.prompt,
           env: taskEnv,
           agentConfig: agent
         }, guidelineFiles, templateOptions)
 
-        let taskPromptContent = prompt.taskPrompt
+        let taskPromptContent = Effect.runSync(agentPrompts.taskTemplate.render())
+        const systemPromptContent = Effect.runSync(agentPrompts.systemTemplate.render())
         if (task.agent?.output?.schema?.content) {
           const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
           taskPromptContent = `<task>\n${taskPromptContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
@@ -159,14 +160,13 @@ export function runWorkflow(
         if (task.name === spec.spec.run.entrypoint) {
           taskPromptContent = `${taskPromptContent}\n\n<user_prompt>\n\n${taskEnv.user_input ?? ""}\n</user_prompt>`
         }
-        const finalPrompt = { ...prompt, taskPrompt: taskPromptContent }
 
         yield* _(bus.publish({
           _tag: "PromptBuilt",
           runId,
           taskId,
-          systemPrompt: finalPrompt.systemPrompt,
-          taskPrompt: finalPrompt.taskPrompt,
+          systemPrompt: systemPromptContent,
+          taskPrompt: taskPromptContent,
           guidelineFiles: guidelineFiles.map(g => g.name)
         }))
 
@@ -178,7 +178,11 @@ export function runWorkflow(
 
         const output = yield* _(
           executeWithPi({
-            prompt: finalPrompt,
+            prompt: {
+              systemTemplate: agentPrompts.systemTemplate,
+              taskTemplate: agentPrompts.taskTemplate,
+              guidelineFiles: agentPrompts.guidelineFiles
+            },
             taskId,
             agentId: agent.metadata.name,
             runId,
@@ -234,7 +238,11 @@ export function runWorkflow(
       Effect.gen(function* () {
         if (!task.script) return
 
-        const renderedCommand = resolveTemplate(task.script.command, taskEnv as Record<string, unknown>, templateOptions)
+        const renderedCommand = Effect.runSync(
+          Template.make(task.script.command, templateOptions)
+            .setInputEnv(taskEnv as Record<string, unknown>)
+            .render()
+        )
         const workdir = task.script.workdir ?? (taskEnv.cwd as string | undefined) ?? process.cwd()
         const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
         const maxRetries = task.script.on_failure?.max_retries ?? 1
