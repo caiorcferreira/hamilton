@@ -10,6 +10,7 @@ export type EventBusService = {
 
 export type Event =
   | { readonly _tag: "WorkflowStarted"; readonly runId: string }
+  | { readonly _tag: "WorkflowStatusChanged"; readonly runId: string; readonly status: string }
   | { readonly _tag: "TaskStarted"; readonly runId: string; readonly taskId: string; readonly taskName: string }
   | { readonly _tag: "TaskCompleted"; readonly runId: string; readonly taskId: string; readonly taskName: string }
   | { readonly _tag: "TaskFailed"; readonly runId: string; readonly taskId: string; readonly taskName: string; readonly message: string }
