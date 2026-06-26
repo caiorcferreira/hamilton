@@ -10,11 +10,29 @@ import { buildTaskInstanceName, topologicalSort } from "./engine.js"
 import { checkRecursionDepth, handleWhenGuard } from "./when-guard.js"
 import { dispatchTask, type TaskExecutionState } from "./task-executor.js"
 
+export interface ExpansionResult {
+  inserted: string[]
+  taskScopes: Record<string, string>
+  originalNames: Record<string, string>
+}
+
+function taskConfigFrom(t: WorkflowTask): Record<string, unknown> {
+  return {
+    agent: t.agent ?? undefined,
+    script: t.script ?? undefined,
+    template: t.template ?? undefined,
+    arguments: t.arguments ?? undefined,
+    when: t.when ?? undefined,
+    tasks: t.tasks ?? undefined
+  }
+}
+
 export function expandTemplate(
   ctx: WorkflowRuntime,
   task: WorkflowTask,
   spec: WorkflowSpec,
   env: WorkflowEnv,
+  depth: number,
   maxDepth: number | null,
   guidelineFiles: Array<{ name: string; content: string }>,
   allRules: CompiledRule[],
@@ -22,19 +40,22 @@ export function expandTemplate(
   templateOptions: TemplateOptions,
   scriptConfig: { maxOutputBytes: number },
   state: TaskExecutionState,
-  parentCompoundId?: string,
   namePrefix?: string
-): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
+): Effect.Effect<ExpansionResult, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
+    const bus = yield* _(EventBus)
+
     const initialStatus = yield* _(Ref.get(state.workflowStatus))
-    if (initialStatus === "failed") return
+    if (initialStatus === "failed") return { inserted: [], taskScopes: {}, originalNames: {} }
 
     const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
-    if (!templateTask) return
+    if (!templateTask) return { inserted: [], taskScopes: {}, originalNames: {} }
 
     const resolvedArgs = resolveArguments(task, state.workflowEnv)
 
-    const compoundParentTaskId = parentCompoundId ?? ctx.compoundTaskIds.get(task.name) ?? undefined
+    const inserted: string[] = []
+    const taskScopes: Record<string, string> = {}
+    const originalNames: Record<string, string> = {}
 
     for (let i = 0; i < resolvedArgs.itemsCount; i++) {
       const loopStatus = yield* _(Ref.get(state.workflowStatus))
@@ -79,8 +100,15 @@ export function expandTemplate(
 
           if (subTask.template) {
             const subRef = subTask.agent?.executorRef ?? subTask.tasks?.[0]?.agent?.executorRef ?? "script"
-            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, 0, [], {}))
-            yield* _(expandTemplate(ctx, subTask, spec, taskEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state, compoundParentTaskId, subInstanceName))
+            const subResolvedDeps = (subTask.dependencies ?? []).map(dep => buildTaskInstanceName(instanceName, dep))
+            const subConfig = taskConfigFrom(subTask)
+            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, depth + 1, subResolvedDeps, subConfig))
+            yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(subInstanceName) ?? subInstanceName, taskName: subInstanceName, scopeKey: instanceName, depth: depth + 1 }))
+            inserted.push(subInstanceName)
+            taskScopes[subInstanceName] = instanceName
+            originalNames[subInstanceName] = subTask.name
+
+            yield* _(expandTemplate(ctx, subTask, spec, taskEnv, depth + 1, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state, subInstanceName))
             const subOutput = state.workflowEnv.tasks?.[subInstanceName]
             if (subOutput && state.workflowEnv.currentIteration?.tasks) {
               state.workflowEnv.currentIteration.tasks[subTask.name] = subOutput
@@ -89,7 +117,14 @@ export function expandTemplate(
           }
 
           const subRef = subTask.agent?.executorRef ?? "script"
-          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, 0, [], {}))
+          const subResolvedDeps = (subTask.dependencies ?? []).map(dep => buildTaskInstanceName(instanceName, dep))
+          const subConfig = taskConfigFrom(subTask)
+          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, depth + 1, subResolvedDeps, subConfig))
+          yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(subInstanceName) ?? subInstanceName, taskName: subInstanceName, scopeKey: instanceName, depth: depth + 1 }))
+          inserted.push(subInstanceName)
+          taskScopes[subInstanceName] = instanceName
+          originalNames[subInstanceName] = subTask.name
+
           yield* _(dispatchTask(subTask, taskEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
           const subOutput = state.workflowEnv.tasks?.[subInstanceName]
           if (subOutput && state.workflowEnv.currentIteration?.tasks) {
@@ -100,9 +135,18 @@ export function expandTemplate(
         state.workflowEnv.currentIteration = savedIteration
       } else if (templateTask.agent || templateTask.script) {
         const ref = templateTask.agent?.executorRef ?? "script"
-        yield* _(ctx.insertDynamicTask(instanceName, ref, 0, [], {}))
+        const resolvedDeps = (templateTask.dependencies ?? [])
+        const config = taskConfigFrom(templateTask)
+        yield* _(ctx.insertDynamicTask(instanceName, ref, depth + 1, resolvedDeps, config))
+        yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(instanceName) ?? instanceName, taskName: instanceName, scopeKey: namePrefix ?? task.name, depth: depth + 1 }))
+        inserted.push(instanceName)
+        taskScopes[instanceName] = namePrefix ?? task.name
+        originalNames[instanceName] = task.name
+
         yield* _(dispatchTask(templateTask, taskEnv, instanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
       }
     }
+
+    return { inserted, taskScopes, originalNames }
   })
 }

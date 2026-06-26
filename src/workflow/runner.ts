@@ -158,7 +158,7 @@ export function runWorkflow(
 
         if (task.template) {
           const maxDepth = resolveMaxRecursionDepth()
-          yield* _(expandTemplate(ctx, task, spec, workflowEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
+          yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
           continue
         }
 
