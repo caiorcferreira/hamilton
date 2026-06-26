@@ -166,6 +166,11 @@ export function runWorkflow(
         yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
       }
 
+      const currentBeforeComplete = yield* _(Ref.get(workflowStatus))
+      if (currentBeforeComplete === "in-progress") {
+        yield* _(Ref.set(workflowStatus, "completed"))
+      }
+
       const completedAt = new Date().toISOString()
 
       const finalStatus = yield* _(Ref.get(workflowStatus))
