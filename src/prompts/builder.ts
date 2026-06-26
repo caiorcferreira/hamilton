@@ -69,14 +69,14 @@ export function buildAgentsPrompts(
   options: TemplateOptions = { strict: false }
 ): AgentPrompts {
   const resolvedAgentFile = Template.make(params.fragments.agent.content ?? "", options)
-    .setVar("inputs", params.env)
+    .setInputEnv(params.env)
 
   const soulTemplate = params.fragments.soul.content
-    ? Template.make(params.fragments.soul.content, options).setVar("inputs", params.env)
+    ? Template.make(params.fragments.soul.content, options).setInputEnv(params.env)
     : null
 
   const contextContent = params.fragments.context.content || defaultContextTemplate
-  const contextTemplate = Template.make(contextContent, options).setVar("inputs", params.env)
+  const contextTemplate = Template.make(contextContent, options).setInputEnv(params.env)
 
   const resolvedSoul = soulTemplate ? Effect.runSync(soulTemplate.render()) : ""
 
@@ -108,7 +108,7 @@ export function buildAgentsPrompts(
   } else if (params.taskPrompt.skipTemplate) {
     taskTemplate = Template.make(taskTemplateContent, options)
   } else {
-    taskTemplate = Template.make(taskTemplateContent, options).setVar("inputs", params.env)
+    taskTemplate = Template.make(taskTemplateContent, options).setInputEnv(params.env)
   }
 
   return {

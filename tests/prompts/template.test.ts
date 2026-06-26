@@ -9,7 +9,7 @@ const lenient: TemplateOptions = { strict: false }
 const strict: TemplateOptions = { strict: true }
 
 const render = (t: string, ctx: Record<string, unknown>, opts: TemplateOptions): string =>
-  Effect.runSync(Template.make(t, opts).setVar("inputs", ctx).render())
+  Effect.runSync(Template.make(t, opts).setInputEnv(ctx).render())
 
 describe("resolveTemplate", () => {
   it("replaces {{name}} with context value", () => {
