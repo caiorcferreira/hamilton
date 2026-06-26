@@ -5,7 +5,6 @@ import {
   insertRun,
   insertTasks,
   insertTask,
-  insertTaskWithParent,
   getRunById,
   getTasksByRunId,
   updateTaskStarted,
@@ -61,7 +60,7 @@ export interface WorkflowRuntime {
   readonly shouldExecuteTask: (taskName: string) => Effect.Effect<boolean, EngineError>
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
   readonly transitionTask: (taskName: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
-  readonly insertDynamicTask: (taskName: string, agentName: string, parentTaskId?: string) => Effect.Effect<void, EngineError>
+  readonly insertDynamicTask: (taskName: string, agentName: string, depth: number, dependencies?: string[], taskConfig?: Record<string, unknown>) => Effect.Effect<void, EngineError>
   readonly getTaskDepth: (taskName: string) => Effect.Effect<number | null, EngineError>
   readonly pause: () => Effect.Effect<void, EngineError>
   readonly complete: () => Effect.Effect<void, EngineError>
@@ -139,18 +138,11 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     })
   }
 
-  insertDynamicTask(taskName: string, agentName: string, parentTaskId?: string): Effect.Effect<void, EngineError> {
+  insertDynamicTask(taskName: string, agentName: string, depth: number, dependencies: string[] = [], taskConfig: Record<string, unknown> = {}): Effect.Effect<void, EngineError> {
     return Effect.sync(() => {
       const taskId = buildTaskId(this._runId, taskName)
       const idx = this._nextExecutionIndex++
-      let depth = 0
-      if (parentTaskId) {
-        const parentRow = this._db.prepare(
-          "SELECT depth FROM tasks WHERE id = ?"
-        ).get(parentTaskId) as { depth: number } | null
-        depth = (parentRow?.depth ?? 0) + 1
-      }
-      insertTaskWithParent(this._db, this._runId, taskId, agentName, taskName, idx, parentTaskId ?? null, depth)
+      insertTask(this._db, this._runId, taskId, agentName, taskName, idx, depth, dependencies, taskConfig)
       this._taskStates.set(taskName, "pending")
       this._compoundTaskIds.set(taskName, taskId)
     })
@@ -316,7 +308,7 @@ const runId = buildRunId(spec.metadata.name)
 
 insertRun(db, runId, spec.metadata.name, new Date().toISOString())
     const taskEntries = collectAllTaskNames(spec)
-    insertTasks(db, runId, taskEntries.map((t, i) => ({ taskName: t.taskName, agentName: t.agentName, executionIndex: i })))
+    insertTasks(db, runId, taskEntries.map((t, i) => ({ taskName: t.taskName, agentName: t.agentName, executionIndex: i, depth: 0, dependencies: [], taskConfig: {} })))
     updateRunEnv(db, runId, JSON.stringify(params))
 
     const taskRows = getTasksByRunId(db, runId)

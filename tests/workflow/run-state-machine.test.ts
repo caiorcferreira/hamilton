@@ -201,7 +201,7 @@ describe("WorkflowRuntime state machine", () => {
     const spec = makeSpec()
     const rt = await Effect.runPromise(createWorkflowRuntime(spec, { tasks: {} }))
 
-    await Effect.runPromise(rt.insertDynamicTask("dynamic-task", "agent-a"))
+    await Effect.runPromise(rt.insertDynamicTask("dynamic-task", "agent-a", 0))
 
     const should = await Effect.runPromise(rt.shouldExecuteTask("dynamic-task"))
     expect(should).toBe(true)

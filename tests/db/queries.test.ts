@@ -67,8 +67,8 @@ describe("queries", () => {
   it("insertTasks creates all tasks", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
     insertTasks(db, "run-1", [
-      { taskName: "task-1", agentName: "agent-1", executionIndex: 0 },
-      { taskName: "task-2", agentName: "agent-2", executionIndex: 1 }
+      { taskName: "task-1", agentName: "agent-1", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} },
+      { taskName: "task-2", agentName: "agent-2", executionIndex: 1, depth: 0, dependencies: [], taskConfig: {} }
     ])
     const tasks = getTasksByRunId(db, "run-1")
     expect(tasks).toHaveLength(2)
@@ -83,7 +83,7 @@ describe("queries", () => {
 
   it("insertTask inserts a single task", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertTask(db, "run-1", "run-1-dynamic-abcde", "agent-1", "dynamic-task", 99)
+    insertTask(db, "run-1", "run-1-dynamic-abcde", "agent-1", "dynamic-task", 99, 0, [], {})
     const tasks = getTasksByRunId(db, "run-1")
     expect(tasks).toHaveLength(1)
     expect(tasks[0].id).toBe("run-1-dynamic-abcde")
@@ -95,7 +95,7 @@ describe("queries", () => {
 
   it("updateTaskStarted sets status to running", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0 }])
+    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} }])
     const tasks = getTasksByRunId(db, "run-1")
     const taskId = tasks[0].id
     updateTaskStarted(db, "run-1", taskId, "2025-01-01T00:01:00Z")
@@ -108,7 +108,7 @@ describe("queries", () => {
 
   it("updateTaskCompleted sets status, tokens, output", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0 }])
+    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} }])
     const tasks = getTasksByRunId(db, "run-1")
     const taskId = tasks[0].id
     updateTaskStarted(db, "run-1", taskId, "2025-01-01T00:01:00Z")
@@ -126,7 +126,7 @@ describe("queries", () => {
 
   it("updateTaskFailed sets status and error", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0 }])
+    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} }])
     const tasks = getTasksByRunId(db, "run-1")
     const taskId = tasks[0].id
     updateTaskFailed(db, "run-1", taskId, "something went wrong")
@@ -164,7 +164,7 @@ describe("queries", () => {
 
   it("getRunStatus returns formatted status for CLI", () => {
     insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
-    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0 }])
+    insertTasks(db, "run-1", [{ taskName: "task-1", agentName: "agent-1", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} }])
     const tasks = getTasksByRunId(db, "run-1")
     const taskId = tasks[0].id
     updateTaskStarted(db, "run-1", taskId, "2025-01-01T00:01:00Z")
@@ -186,9 +186,9 @@ describe("queries", () => {
   it("getRunStatus returns tasks ordered by execution_index", () => {
     insertRun(db, "run-order", "wf-order", "2025-01-01T00:00:00Z")
     insertTasks(db, "run-order", [
-      { taskName: "third", agentName: "agent-c", executionIndex: 2 },
-      { taskName: "first", agentName: "agent-a", executionIndex: 0 },
-      { taskName: "second", agentName: "agent-b", executionIndex: 1 }
+      { taskName: "third", agentName: "agent-c", executionIndex: 2, depth: 0, dependencies: [], taskConfig: {} },
+      { taskName: "first", agentName: "agent-a", executionIndex: 0, depth: 0, dependencies: [], taskConfig: {} },
+      { taskName: "second", agentName: "agent-b", executionIndex: 1, depth: 0, dependencies: [], taskConfig: {} }
     ])
     const status = getRunStatus(db, "run-order")
     expect(status!.tasks[0].taskName).toBe("first")

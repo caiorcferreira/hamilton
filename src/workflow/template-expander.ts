@@ -79,7 +79,7 @@ export function expandTemplate(
 
           if (subTask.template) {
             const subRef = subTask.agent?.executorRef ?? subTask.tasks?.[0]?.agent?.executorRef ?? "script"
-            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
+            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, 0, [], {}))
             yield* _(expandTemplate(ctx, subTask, spec, taskEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state, compoundParentTaskId, subInstanceName))
             const subOutput = state.workflowEnv.tasks?.[subInstanceName]
             if (subOutput && state.workflowEnv.currentIteration?.tasks) {
@@ -89,7 +89,7 @@ export function expandTemplate(
           }
 
           const subRef = subTask.agent?.executorRef ?? "script"
-          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
+          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, 0, [], {}))
           yield* _(dispatchTask(subTask, taskEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
           const subOutput = state.workflowEnv.tasks?.[subInstanceName]
           if (subOutput && state.workflowEnv.currentIteration?.tasks) {
@@ -100,7 +100,7 @@ export function expandTemplate(
         state.workflowEnv.currentIteration = savedIteration
       } else if (templateTask.agent || templateTask.script) {
         const ref = templateTask.agent?.executorRef ?? "script"
-        yield* _(ctx.insertDynamicTask(instanceName, ref, compoundParentTaskId))
+        yield* _(ctx.insertDynamicTask(instanceName, ref, 0, [], {}))
         yield* _(dispatchTask(templateTask, taskEnv, instanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
       }
     }

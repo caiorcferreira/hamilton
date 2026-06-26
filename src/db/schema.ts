@@ -28,6 +28,9 @@ pid INTEGER,
       retry_count INTEGER DEFAULT 0,
       error_message TEXT,
       output_json TEXT,
+      depth INTEGER NOT NULL DEFAULT 0,
+      dependencies TEXT,
+      task_def TEXT,
       FOREIGN KEY (run_id) REFERENCES runs(id)
     );
 

@@ -35,6 +35,12 @@ const MIGRATIONS: Record<number, (db: Database) => void> = {
     catch (e: any) { if (!String(e).includes("duplicate column name")) throw e }
     try { db.exec("ALTER TABLE tasks ADD COLUMN depth INTEGER NOT NULL DEFAULT 0") }
     catch (e: any) { if (!String(e).includes("duplicate column name")) throw e }
+  },
+  7: (db) => {
+    try { db.exec("ALTER TABLE tasks ADD COLUMN dependencies TEXT") }
+    catch (e: any) { if (!String(e).includes("duplicate column name")) throw e }
+    try { db.exec("ALTER TABLE tasks ADD COLUMN task_def TEXT") }
+    catch (e: any) { if (!String(e).includes("duplicate column name")) throw e }
   }
 }
 

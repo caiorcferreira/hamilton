@@ -27,8 +27,9 @@ export interface TaskRow {
   retry_count: number
   error_message: string | null
   output_json: string | null
-  parent_task_id: string | null
   depth: number
+  dependencies: string | null
+  task_def: string | null
 }
 
 export interface RunStatusRow {
@@ -79,13 +80,20 @@ export function insertRunWithPid(
 export function insertTasks(
   db: Database,
   runId: string,
-  tasks: Array<{ taskName: string; agentName: string; executionIndex: number }>
+  tasks: Array<{
+    taskName: string
+    agentName: string
+    executionIndex: number
+    depth: number
+    dependencies: string[]
+    taskConfig: Record<string, unknown>
+  }>
 ): void {
   const stmt = db.prepare(
-    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status) VALUES (?, ?, ?, ?, ?, 'pending')`
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status, depth, dependencies, task_def) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
   )
   for (const task of tasks) {
-    stmt.run(buildTaskId(runId, task.taskName), runId, task.agentName, task.taskName, task.executionIndex)
+    stmt.run(buildTaskId(runId, task.taskName), runId, task.agentName, task.taskName, task.executionIndex, task.depth, JSON.stringify(task.dependencies), JSON.stringify(task.taskConfig))
   }
 }
 
@@ -95,26 +103,14 @@ export function insertTask(
   taskId: string,
   agentName: string,
   taskName: string,
-  executionIndex: number
-): void {
-  db.prepare(
-    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status) VALUES (?, ?, ?, ?, ?, 'pending')`
-  ).run(taskId, runId, agentName, taskName, executionIndex)
-}
-
-export function insertTaskWithParent(
-  db: Database,
-  runId: string,
-  taskId: string,
-  agentName: string,
-  taskName: string,
   executionIndex: number,
-  parentTaskId: string | null,
-  depth: number
+  depth: number,
+  dependencies: string[],
+  taskConfig: Record<string, unknown>
 ): void {
   db.prepare(
-    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status, parent_task_id, depth) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`
-  ).run(taskId, runId, agentName, taskName, executionIndex, parentTaskId, depth)
+    `INSERT OR REPLACE INTO tasks (id, run_id, agent_id, task_name, execution_index, status, depth, dependencies, task_def) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
+  ).run(taskId, runId, agentName, taskName, executionIndex, depth, JSON.stringify(dependencies), JSON.stringify(taskConfig))
 }
 
 export function updateTaskStarted(
