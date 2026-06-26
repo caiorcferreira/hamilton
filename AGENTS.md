@@ -68,9 +68,9 @@ CLI commands use `@effect/cli` 0.75.2: `Command.make(name, { args, options }, ha
 - `doctor.ts` uses an extensible `checks` array — currently only `checkRtk`. Add new checks by pushing to the array.
 - `main.ts` deletes were: `rtk.ts` + `rtk.test.ts` (replaced by `doctor.ts`).
 
-## ROADMAP Conventions
+## TODO Conventions
 
-When a task in `ROADMAP.md` is marked `[x]` done, move it from `## Next Up` to `## Completed`. Completed items use `- [x]` and stay ordered by completion time (most recent first).
+When a task in `TODO.md` is marked `[x]` done, move it from `## Next Up` to `## Completed`. Completed items use `- [x]` and stay ordered by completion time (most recent first).
 
 ## Stale Worktrees
 
