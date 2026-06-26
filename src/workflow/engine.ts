@@ -104,6 +104,11 @@ export function buildTaskId(runId: string, taskName: string): string {
   return `${runId}-${sanitized}-${nanoid(5)}`
 }
 
+export function buildTaskInstanceName(parent: string, childOrIndex: string | number): string {
+  if (typeof childOrIndex === "number") return `${parent}/${childOrIndex}`
+  return `${parent}-${childOrIndex}`
+}
+
 export function resolveTaskTimeout(task: WorkflowTask, globalTimeout: string): number {
   if (task.agent?.timeout?.fixed) {
     return parseDuration(task.agent.timeout.fixed)

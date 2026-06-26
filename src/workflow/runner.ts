@@ -12,7 +12,7 @@ import { evaluateWhen, WhenError } from "../cel/evaluate.js"
 import { resolveSystemPromptFragments } from "../prompts/system.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
-import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
+import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId, buildTaskInstanceName } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
@@ -359,7 +359,7 @@ export function runWorkflow(
           for (let i = 0; i < resolvedArgs.itemsCount; i++) {
             if (workflowStatus === "failed") break
 
-            const instanceName = `${task.name}/${i}`
+            const instanceName = buildTaskInstanceName(task.name, i)
             const taskEnv: WorkflowEnv = {
               ...workflowEnv,
               parameters: resolvedArgs.parameters
@@ -370,7 +370,7 @@ export function runWorkflow(
               const sub = topologicalSort(templateTask.tasks)
               for (const subTask of sub) {
                 if (workflowStatus === "failed") break
-                const subInstanceName = `${instanceName}-${subTask.name}`
+                const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
 
                 if (subTask.when) {
                   const maxDepth = resolveMaxRecursionDepth()
@@ -419,7 +419,7 @@ export function runWorkflow(
                     const nestedSub = topologicalSort(nestedTemplate.tasks)
                     for (const nestedSubTask of nestedSub) {
                       if (workflowStatus === "failed") break
-                      const nestedInstanceName = `${subInstanceName}-${nestedSubTask.name}`
+                      const nestedInstanceName = buildTaskInstanceName(subInstanceName, nestedSubTask.name)
                       const nestedRef = nestedSubTask.agent?.executorRef ?? "script"
                       yield* _(ctx.insertDynamicTask(nestedInstanceName, nestedRef, compoundParentTaskId))
                       yield* _(executeSingleTask(nestedSubTask, nestedEnv, nestedInstanceName))
