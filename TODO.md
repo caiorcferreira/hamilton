@@ -15,9 +15,6 @@
 - [ ] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
 
-### Agent Capabilities
-- [ ] Add a todo/task tracking tool for the agent
-
 ### Extensions & Integrations
 - [ ] Refactor repo into multiple packages to expose pi extensions
 - [ ] Extensions: Implement fork of [nopeek](https://github.com/spences10/my-pi/blob/main/packages/pi-nopeek/README.md)
@@ -34,6 +31,7 @@
 
 ## Completed
 
+- [x] Add a todo/task tracking tool for the agent
 - [x] Move shared agent output schemas into agent manifests with inheritance in workflow loader
 - [x] Rename init command to setup
 - [x] Split git tools into standalone extension — createGitExtension, registered via settings.yaml
