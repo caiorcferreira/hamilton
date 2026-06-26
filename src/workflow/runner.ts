@@ -61,9 +61,6 @@ export function runWorkflow(
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
 
-    const staticTasks = collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint)
-    const sortedTasks = topologicalSort(staticTasks)
-
     const ctx: WorkflowRuntime = yield* _(
       createWorkflowRuntime(spec, initialParameters, existingRunId).pipe(
         Effect.mapError((e) => new Error(e.message))
@@ -131,55 +128,88 @@ export function runWorkflow(
       yield* _(Ref.set(workflowStatus, "in-progress"))
       yield* _(bus.publish({ _tag: "WorkflowStatusChanged", runId: ctx.runId, status: "in-progress" }))
 
-      for (const task of sortedTasks) {
-        const currentStatus = yield* _(Ref.get(workflowStatus))
-        if (currentStatus === "failed") break
+      const reachableTaskNames = new Set(collectReachableTasks(spec.spec.tasks, spec.spec.run.entrypoint).map(t => t.name))
+      const initialTaskNames = getTasksByRunId(ctx.db, ctx.runId).map(r => r.task_name)
+      for (const name of initialTaskNames) {
+        if (!reachableTaskNames.has(name)) {
+          yield* _(ctx.transitionTask(name, "complete"))
+        }
+      }
 
-        if (task.when) {
-          const maxDepth = resolveMaxRecursionDepth()
-          const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, task.name))
-          if (depthResult === "fail") {
-            yield* _(Ref.set(workflowStatus, "failed"))
-            break
+      const taskScopes: Record<string, string> = {}
+      const originalNames: Record<string, string> = {}
+      const iterationOutputs: Record<string, Record<string, { outputs: Record<string, unknown> }>> = {}
+      let pending = true
+
+      while (pending) {
+        const allTasks = collectAllTasksFromDb(ctx)
+        const sorted = topologicalSort(allTasks)
+        pending = false
+
+        for (const task of sorted) {
+          const currentStatus = yield* _(Ref.get(workflowStatus))
+          if (currentStatus === "failed") break
+
+          if (task.when) {
+            const maxDepth = resolveMaxRecursionDepth()
+            const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, task.name))
+            if (depthResult === "fail") {
+              yield* _(Ref.set(workflowStatus, "failed"))
+              break
+            }
+
+            const whenResult = handleWhenGuard(task, workflowEnv)
+            if (whenResult === "skip") {
+              yield* _(ctx.transitionTask(task.name, "complete"))
+              continue
+            }
+            if (typeof whenResult === "object" && whenResult._tag === "error") {
+              yield* _(ctx.transitionTask(task.name, "fail"))
+              yield* _(ctx.fail(whenResult.message))
+              yield* _(Ref.set(workflowStatus, "failed"))
+              break
+            }
           }
 
-          const whenResult = handleWhenGuard(task, workflowEnv)
-          if (whenResult === "skip") {
+          if (task.template) {
+            const result = yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0))
+            Object.assign(taskScopes, result.taskScopes)
+            Object.assign(originalNames, result.originalNames)
             yield* _(ctx.transitionTask(task.name, "complete"))
-            continue
-          }
-          if (typeof whenResult === "object" && whenResult._tag === "error") {
-            yield* _(ctx.transitionTask(task.name, "fail"))
-            yield* _(ctx.fail(whenResult.message))
-            yield* _(Ref.set(workflowStatus, "failed"))
+            pending = true
             break
           }
+
+          if (!task.agent && !task.script) continue
+
+          const shouldExec = yield* _(ctx.shouldExecuteTask(task.name))
+          if (!shouldExec) continue
+
+          const shouldPauseResult = yield* _(ctx.shouldPause())
+          if (shouldPauseResult) {
+            yield* _(bus.publish({ _tag: "TaskPaused", runId: ctx.runId, taskId: task.name, taskName: task.name }))
+            yield* _(Ref.set(workflowStatus, "paused"))
+            break
+          }
+
+          const scopeKey = taskScopes[task.name]
+          const resolvedArgs = resolveArguments(task, workflowEnv)
+          const taskEnv: WorkflowEnv = scopeKey
+            ? {
+                ...workflowEnv,
+                currentIteration: { tasks: iterationOutputs[scopeKey] ?? {} },
+                parameters: resolvedArgs.parameters
+              }
+            : { ...workflowEnv, parameters: resolvedArgs.parameters }
+
+          yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
+
+          const originalName = originalNames[task.name]
+          const output = workflowEnv.tasks?.[task.name]
+          if (scopeKey && originalName && output) {
+            (iterationOutputs[scopeKey] ??= {})[originalName] = output
+          }
         }
-
-        if (task.template) {
-          const maxDepth = resolveMaxRecursionDepth()
-          yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
-          continue
-        }
-
-        if (!task.agent && !task.script) continue
-
-        const shouldExec = yield* _(ctx.shouldExecuteTask(task.name))
-        if (!shouldExec) continue
-
-        const shouldPauseResult = yield* _(ctx.shouldPause())
-        if (shouldPauseResult) {
-          yield* _(bus.publish({ _tag: "TaskPaused", runId: ctx.runId, taskId: task.name, taskName: task.name }))
-          yield* _(Ref.set(workflowStatus, "paused"))
-          break
-        }
-
-        const resolvedArgs = resolveArguments(task, workflowEnv)
-        const taskEnv: WorkflowEnv = {
-          ...workflowEnv,
-          parameters: resolvedArgs.parameters
-        }
-        yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
       }
 
       const currentBeforeComplete = yield* _(Ref.get(workflowStatus))

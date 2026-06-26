@@ -1,14 +1,10 @@
-import { Effect, Ref, Scope } from "effect"
+import { Effect, Scope } from "effect"
 import { EventBus } from "../events/bus.js"
 import type { WorkflowSpec, WorkflowTask } from "../types.js"
 import type { WorkflowEnv } from "./env.js"
 import type { WorkflowRuntime } from "./run-state-machine.js"
-import type { TemplateOptions } from "../prompts/template.js"
-import type { CompiledRule } from "../guidelines/types.js"
 import { resolveArguments } from "./arguments.js"
 import { buildTaskInstanceName, topologicalSort } from "./engine.js"
-import { checkRecursionDepth, handleWhenGuard } from "./when-guard.js"
-import { dispatchTask, type TaskExecutionState } from "./task-executor.js"
 
 export interface ExpansionResult {
   inserted: string[]
@@ -33,70 +29,29 @@ export function expandTemplate(
   spec: WorkflowSpec,
   env: WorkflowEnv,
   depth: number,
-  maxDepth: number | null,
-  guidelineFiles: Array<{ name: string; content: string }>,
-  allRules: CompiledRule[],
-  skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
-  templateOptions: TemplateOptions,
-  scriptConfig: { maxOutputBytes: number },
-  state: TaskExecutionState,
   namePrefix?: string
 ): Effect.Effect<ExpansionResult, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
 
-    const initialStatus = yield* _(Ref.get(state.workflowStatus))
-    if (initialStatus === "failed") return { inserted: [], taskScopes: {}, originalNames: {} }
-
     const templateTask = spec.spec.tasks.find((t: WorkflowTask) => t.name === task.template)
     if (!templateTask) return { inserted: [], taskScopes: {}, originalNames: {} }
 
-    const resolvedArgs = resolveArguments(task, state.workflowEnv)
+    const resolvedArgs = resolveArguments(task, env)
 
     const inserted: string[] = []
     const taskScopes: Record<string, string> = {}
     const originalNames: Record<string, string> = {}
 
     for (let i = 0; i < resolvedArgs.itemsCount; i++) {
-      const loopStatus = yield* _(Ref.get(state.workflowStatus))
-      if (loopStatus === "failed") break
-
       const instanceName = namePrefix
         ? buildTaskInstanceName(namePrefix, i)
         : buildTaskInstanceName(task.name, i)
-      const taskEnv: WorkflowEnv = {
-        ...state.workflowEnv,
-        parameters: resolvedArgs.parameters
-      }
 
       if (templateTask.tasks && templateTask.tasks.length > 0) {
-        const savedIteration = state.workflowEnv.currentIteration
-        state.workflowEnv.currentIteration = { tasks: {} }
         const sub = topologicalSort(templateTask.tasks)
         for (const subTask of sub) {
-          const innerStatus = yield* _(Ref.get(state.workflowStatus))
-          if (innerStatus === "failed") break
           const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
-
-          if (subTask.when) {
-            const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, subInstanceName))
-            if (depthResult === "fail") {
-              yield* _(Ref.set(state.workflowStatus, "failed"))
-              break
-            }
-
-            const whenResult = handleWhenGuard(subTask, state.workflowEnv)
-            if (whenResult === "skip") {
-              yield* _(ctx.transitionTask(subInstanceName, "complete"))
-              continue
-            }
-            if (typeof whenResult === "object" && whenResult._tag === "error") {
-              yield* _(ctx.transitionTask(subInstanceName, "fail"))
-              yield* _(ctx.fail(whenResult.message))
-              yield* _(Ref.set(state.workflowStatus, "failed"))
-              break
-            }
-          }
 
           if (subTask.template) {
             const subRef = subTask.agent?.executorRef ?? subTask.tasks?.[0]?.agent?.executorRef ?? "script"
@@ -108,11 +63,10 @@ export function expandTemplate(
             taskScopes[subInstanceName] = instanceName
             originalNames[subInstanceName] = subTask.name
 
-            yield* _(expandTemplate(ctx, subTask, spec, taskEnv, depth + 1, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state, subInstanceName))
-            const subOutput = state.workflowEnv.tasks?.[subInstanceName]
-            if (subOutput && state.workflowEnv.currentIteration?.tasks) {
-              state.workflowEnv.currentIteration.tasks[subTask.name] = subOutput
-            }
+            const childResult = yield* _(expandTemplate(ctx, subTask, spec, env, depth + 1, subInstanceName))
+            inserted.push(...childResult.inserted)
+            Object.assign(taskScopes, childResult.taskScopes)
+            Object.assign(originalNames, childResult.originalNames)
             continue
           }
 
@@ -124,15 +78,7 @@ export function expandTemplate(
           inserted.push(subInstanceName)
           taskScopes[subInstanceName] = instanceName
           originalNames[subInstanceName] = subTask.name
-
-          yield* _(dispatchTask(subTask, taskEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
-          const subOutput = state.workflowEnv.tasks?.[subInstanceName]
-          if (subOutput && state.workflowEnv.currentIteration?.tasks) {
-            state.workflowEnv.currentIteration.tasks[subTask.name] = subOutput
-          }
         }
-        delete state.workflowEnv.currentIteration
-        state.workflowEnv.currentIteration = savedIteration
       } else if (templateTask.agent || templateTask.script) {
         const ref = templateTask.agent?.executorRef ?? "script"
         const resolvedDeps = (templateTask.dependencies ?? [])
@@ -142,8 +88,6 @@ export function expandTemplate(
         inserted.push(instanceName)
         taskScopes[instanceName] = namePrefix ?? task.name
         originalNames[instanceName] = task.name
-
-        yield* _(dispatchTask(templateTask, taskEnv, instanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, state))
       }
     }
 
