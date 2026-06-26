@@ -5,7 +5,7 @@ import * as Os from "node:os"
 import { Effect, Exit, Stream, Scope } from "effect"
 import { runWorkflow } from "../../src/workflow/runner.js"
 import { Event, EventBus, EventBusLive } from "../../src/events/bus.js"
-import { FileLogger } from "../../src/observability/subscribers.js"
+import { TaskLogger } from "../../src/observability/subscribers.js"
 import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 vi.mock("../../src/executors/pi/pi-executor.js", () => {
@@ -142,11 +142,11 @@ describe("runWorkflow regression tests", () => {
     }
   })
 
-  it("writes PromptBuilt event to task logs via FileLogger", async () => {
+  it("writes PromptBuilt event to task logs via TaskLogger", async () => {
     const result = await Effect.runPromiseExit(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* FileLogger
+          yield* TaskLogger
           return yield* runWorkflow(testSpec, { user_input: "test", project_dir: tmpHome }, { strict: false })
         })
       ).pipe(Effect.provide(EventBusLive))

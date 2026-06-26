@@ -5,7 +5,7 @@ import type { TelemetryConfig } from "../telemetry/config.js"
 import type { WorkflowSpec } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
 
-export const RunDirSubscriber = (
+export const WorkflowLogger = (
   telemetryConfig: TelemetryConfig,
   spec: WorkflowSpec,
   initialParameters: WorkflowEnv,
@@ -19,7 +19,7 @@ export const RunDirSubscriber = (
 
       if (event._tag === "WorkflowStarted") {
         return Effect.gen(function* (_) {
-          yield* _(appendEngineLog(event.runId, { event: "workflow_started", workflowId: spec.metadata.name }))
+          yield* _(appendEngineLog(event.runId, { event: "workflow_started", workflowId: spec.metadata.name, parameters: initialParameters, startedAt }))
         }).pipe(Effect.catchAll(() => Effect.void))
       }
 

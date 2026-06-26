@@ -8,7 +8,7 @@ import { loadWorkflowSpec } from "../../workflow/loader.js"
 import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import { EventBus, EventBusLive } from "../../events/bus.js"
-import { FileLogger } from "../../observability/subscribers.js"
+import { TaskLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { Database } from "bun:sqlite"
 import { migrate } from "../../db/migrations.js"
@@ -126,7 +126,7 @@ const db = new Database(dbPath())
     const result = yield* Effect.exit(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* FileLogger
+          yield* TaskLogger
           yield* CliRenderer
           const telemetryCfg = yield* loadTelemetryConfig
           const db = new Database(dbPath())

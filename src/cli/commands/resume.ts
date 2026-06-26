@@ -10,7 +10,7 @@ import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import type { WorkflowSpec } from "../../types.js"
 import { EventBusLive } from "../../events/bus.js"
-import { FileLogger } from "../../observability/subscribers.js"
+import { TaskLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js"
 
@@ -84,7 +84,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     const result = yield* _(
       Effect.scoped(
         Effect.gen(function* () {
-          yield* FileLogger
+          yield* TaskLogger
           yield* CliRenderer
           return yield* runWorkflow(spec as unknown as WorkflowSpec, context, templateOptions, runId, recursionConfig.maxDepth ?? undefined).pipe(
             Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))

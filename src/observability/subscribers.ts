@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import { Event, createSubscriber } from "../events/bus.js"
 import { appendTaskLog } from "./run-dir.js"
 
-export const FileLogger = createSubscriber(
+export const TaskLogger = createSubscriber(
   (bus) => bus.subscribeAll,
   (event: Event) => {
     if ("taskId" in event && event.taskId) {

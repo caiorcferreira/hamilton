@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
-import { formatForFile, FileLogger } from "../../src/observability/subscribers.js"
+import { formatForFile, TaskLogger } from "../../src/observability/subscribers.js"
 import { EventBus, EventBusLive, Event } from "../../src/events/bus.js"
 
 describe("formatForFile", () => {
@@ -95,9 +95,9 @@ describe("formatForFile", () => {
   }
 })
 
-describe("FileLogger", () => {
+describe("TaskLogger", () => {
   it("writes task-scoped events to appendTaskLog via JSONL", async () => {
-    const tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-filelogger-"))
+    const tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-tasklogger-"))
     const origHome = process.env.HOME
     process.env.HOME = tmpHome
 
@@ -106,7 +106,7 @@ describe("FileLogger", () => {
 
       const program = Effect.scoped(
         Effect.gen(function* (_) {
-          yield* FileLogger
+          yield* TaskLogger
           yield* _(Effect.sleep("10 millis"))
           const bus = yield* _(EventBus)
           yield* _(bus.publish({ _tag: "LlmMessage", runId: "r1", taskId: "s1", text: "hello" }))

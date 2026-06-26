@@ -23,7 +23,7 @@ import { skillsDir, guidelinesDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
 import { createRunDir, writeInput } from "../observability/run-dir.js"
-import { RunDirSubscriber } from "../observability/run-dir-subscriber.js"
+import { WorkflowLogger } from "../observability/workflow-logger.js"
 
 export interface WorkflowResult {
   runId: string
@@ -69,7 +69,7 @@ export function runWorkflow(
       }))
     }
 
-    yield* _(RunDirSubscriber(telemetryConfig, spec, initialParameters, startedAt))
+    yield* _(WorkflowLogger(telemetryConfig, spec, initialParameters, startedAt))
 
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId: ctx.runId }))
 
