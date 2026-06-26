@@ -23,7 +23,8 @@ export function expandTemplate(
   scriptConfig: { maxOutputBytes: number },
   fileEnabled: boolean,
   state: TaskExecutionState,
-  parentCompoundId?: string
+  parentCompoundId?: string,
+  namePrefix?: string
 ): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     if (state.workflowStatus.value === "failed") return
@@ -38,7 +39,9 @@ export function expandTemplate(
     for (let i = 0; i < resolvedArgs.itemsCount; i++) {
       if (state.workflowStatus.value === "failed") break
 
-      const instanceName = buildTaskInstanceName(task.name, i)
+      const instanceName = namePrefix
+        ? buildTaskInstanceName(namePrefix, i)
+        : buildTaskInstanceName(task.name, i)
       const taskEnv: WorkflowEnv = {
         ...state.workflowEnv,
         parameters: resolvedArgs.parameters
@@ -73,7 +76,9 @@ export function expandTemplate(
           }
 
           if (subTask.template) {
-            yield* _(expandTemplate(ctx, subTask, spec, taskEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, state, compoundParentTaskId))
+            const subRef = subTask.agent?.executorRef ?? subTask.tasks?.[0]?.agent?.executorRef ?? "script"
+            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
+            yield* _(expandTemplate(ctx, subTask, spec, taskEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, state, compoundParentTaskId, subInstanceName))
             const subOutput = state.workflowEnv.tasks?.[subInstanceName]
             if (subOutput && state.workflowEnv.currentIteration?.tasks) {
               state.workflowEnv.currentIteration.tasks[subTask.name] = subOutput
