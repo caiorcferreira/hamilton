@@ -15,7 +15,7 @@ export function getRunStatus(opts: GetRunStatusOpts): Effect.Effect<RunStatus, R
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new RunStateError({
         runId: opts.runId,
-        message: 'Hamilton is not initialized. Run "hamilton init" first.'
+        message: 'Hamilton is not initialized. Run "hamilton setup" first.'
       })))
     }
 

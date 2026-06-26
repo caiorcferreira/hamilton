@@ -45,7 +45,7 @@ function discoverWorkflows(dir: string): WorkflowDescriptor[] {
 export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
-      return yield* _(Effect.fail(new Error('Hamilton is not initialized. Run "hamilton init" first.')))
+      return yield* _(Effect.fail(new Error('Hamilton is not initialized. Run "hamilton setup" first.')))
     }
     const wfDir = workflowsDir()
     const availableSlugs = yield* _(

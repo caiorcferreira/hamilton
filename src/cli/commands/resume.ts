@@ -24,7 +24,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new ResumeError({
         runId,
-        message: 'Hamilton is not initialized. Run "hamilton init" first.'
+        message: 'Hamilton is not initialized. Run "hamilton setup" first.'
       })))
     }
 

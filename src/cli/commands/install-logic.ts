@@ -30,7 +30,7 @@ export function installWorkflow(
   return Effect.gen(function* () {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* Effect.fail(
-        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton setup" first.' })
       )
     }
 
@@ -77,7 +77,7 @@ export function uninstallWorkflow(
   return Effect.gen(function* () {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* Effect.fail(
-        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton init" first.' })
+        new InstallError({ workflowSlug, message: 'Hamilton is not initialized. Run "hamilton setup" first.' })
       )
     }
 

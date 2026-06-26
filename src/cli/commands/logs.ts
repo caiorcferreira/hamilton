@@ -26,7 +26,7 @@ export function getRunLogs(params: LogsParams): Effect.Effect<LogEvent[], LogsEr
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new LogsError({
         runId: params.runId,
-        message: 'Hamilton is not initialized. Run "hamilton init" first.'
+        message: 'Hamilton is not initialized. Run "hamilton setup" first.'
       })))
     }
 

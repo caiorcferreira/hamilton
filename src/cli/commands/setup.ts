@@ -13,7 +13,7 @@ import { green, red } from "../formatting/colors.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
-export class InitError extends Data.TaggedError("InitError")<{
+export class SetupError extends Data.TaggedError("SetupError")<{
   message: string
 }> {}
 
@@ -27,16 +27,16 @@ export function parseModelAliasArgs(entries: string[]): Record<string, string> {
   return aliases
 }
 
-export function askModelAliases(): Effect.Effect<Record<string, string>, InitError> {
+export function askModelAliases(): Effect.Effect<Record<string, string>, SetupError> {
   return Effect.gen(function* () {
     yield* Console.log("Configure model aliases (optional)")
     yield* Console.log("Aliases let you reference models by name in workflow YAMLs.")
 
     const rl = Readline.createInterface({ input: process.stdin, output: process.stdout })
-    const question = (q: string): Effect.Effect<string, InitError> =>
+    const question = (q: string): Effect.Effect<string, SetupError> =>
       Effect.tryPromise({
         try: () => new Promise<string>(resolve => rl.question(q, resolve)),
-        catch: (e) => new InitError({ message: `Failed to read input: ${String(e)}` })
+        catch: (e) => new SetupError({ message: `Failed to read input: ${String(e)}` })
       })
 
     const answer = (yield* question("Add a model alias? (y/n) ")).trim().toLowerCase()
@@ -60,7 +60,7 @@ export function askModelAliases(): Effect.Effect<Record<string, string>, InitErr
   })
 }
 
-function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const sharedDir = Path.join(PROJECT_ROOT, "bundle", "agents")
     if (!Fs.existsSync(sharedDir)) return
@@ -78,13 +78,13 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, In
       yield* Effect.try({
         try: () => Fs.cpSync(srcPath, destPath, { recursive: true, force: true }),
         catch: (e) =>
-          new InitError({ message: `Failed to copy shared agent "${entry.name}": ${String(e)}` })
+          new SetupError({ message: `Failed to copy shared agent "${entry.name}": ${String(e)}` })
       })
     }
   })
 }
 
-function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const manifestDir = Path.join(PROJECT_ROOT, "bundle", "skills")
     if (!Fs.existsSync(manifestDir)) return
@@ -94,12 +94,12 @@ function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, 
     yield* Effect.try({
       try: () => Fs.cpSync(manifestDir, destSkills, { recursive: true, force: true }),
       catch: (e) =>
-        new InitError({ message: `Failed to copy skill manifests: ${String(e)}` })
+        new SetupError({ message: `Failed to copy skill manifests: ${String(e)}` })
     })
   })
 }
 
-function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const manifestDir = Path.join(PROJECT_ROOT, "bundle", "guidelines")
     if (!Fs.existsSync(manifestDir)) return
@@ -109,12 +109,12 @@ function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<vo
     yield* Effect.try({
       try: () => Fs.cpSync(manifestDir, destGuidelines, { recursive: true, force: true }),
       catch: (e) =>
-        new InitError({ message: `Failed to copy guideline manifests: ${String(e)}` })
+        new SetupError({ message: `Failed to copy guideline manifests: ${String(e)}` })
     })
   })
 }
 
-function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<void, InitError> {
+function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const agentDir = piAgentDir()
 
@@ -134,7 +134,7 @@ function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<vo
           Fs.writeFileSync(auth, JSON.stringify({}, null, 2))
         }
       },
-      catch: (e) => new InitError({ message: `Failed to create default Pi configs: ${String(e)}` })
+      catch: (e) => new SetupError({ message: `Failed to create default Pi configs: ${String(e)}` })
     })
   })
 }
@@ -184,7 +184,7 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
   return String(doc)
 }
 
-function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Effect<void, InitError> {
+function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Effect<void, SetupError> {
   return Effect.try({
     try: () => {
       const path = settingsPath()
@@ -192,11 +192,11 @@ function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Eff
         Fs.writeFileSync(path, buildSettingsYaml(modelAliases))
       }
     },
-    catch: (e) => new InitError({ message: `Failed to write settings: ${String(e)}` })
+    catch: (e) => new SetupError({ message: `Failed to write settings: ${String(e)}` })
   })
 }
 
-function copyPiConfigsFromHome(): Effect.Effect<void, InitError> {
+function copyPiConfigsFromHome(): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const piSource = Path.join(process.env.HOME ?? "", ".pi", "agent")
     if (!Fs.existsSync(piSource)) return
@@ -211,22 +211,22 @@ function copyPiConfigsFromHome(): Effect.Effect<void, InitError> {
 
       yield* Effect.try({
         try: () => Fs.copyFileSync(src, dest),
-        catch: (e) => new InitError({ message: `Failed to copy ${file}: ${String(e)}` })
+        catch: (e) => new SetupError({ message: `Failed to copy ${file}: ${String(e)}` })
       })
     }
   })
 }
 
-export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string> }): Effect.Effect<string[], InitError> {
+export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string> }): Effect.Effect<string[], SetupError> {
   return Effect.gen(function* () {
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
       catch: (e) =>
-        new InitError({ message: `Failed to create hamilton home directories: ${String(e)}` })
+        new SetupError({ message: `Failed to create hamilton home directories: ${String(e)}` })
     })
 
     const db = yield* Effect.mapError(openDb(), (e) =>
-      new InitError({ message: `Failed to open database: ${e.message}` })
+      new SetupError({ message: `Failed to open database: ${e.message}` })
     )
     yield* Effect.sync(() => db.close())
 
@@ -241,7 +241,7 @@ export function initHamilton(options?: { force?: boolean; copyPiConfigs?: boolea
     yield* writeDefaultSettings(options?.modelAliases)
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
-      new InitError({ message: `Failed to install workflows: ${e.message}` })
+      new SetupError({ message: `Failed to install workflows: ${e.message}` })
     )
 
     return workflowSlugs
@@ -252,7 +252,7 @@ const force = Options.boolean("force")
 const copyPiConfigs = Options.boolean("copy-pi-configs")
 const modelAlias = Options.text("model-alias").pipe(Options.repeated)
 
-export const initCommand = Command.make("init", { force, copyPiConfigs, modelAlias }, ({ force, copyPiConfigs, modelAlias }) =>
+export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias }, ({ force, copyPiConfigs, modelAlias }) =>
   Effect.gen(function* () {
     const flagAliases = parseModelAliasArgs(modelAlias)
     const modelAliases = Object.keys(flagAliases).length > 0
@@ -260,7 +260,7 @@ export const initCommand = Command.make("init", { force, copyPiConfigs, modelAli
       : !Fs.existsSync(settingsPath())
         ? yield* askModelAliases()
         : undefined
-    const result = yield* Effect.exit(initHamilton({ force, copyPiConfigs, modelAliases }))
+    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Init failed: ${String(result.cause)}`)
       return

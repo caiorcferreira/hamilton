@@ -4,9 +4,9 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import * as Yaml from "yaml"
 import { Effect, Exit } from "effect"
-import { initHamilton, parseModelAliasArgs, buildSettingsYaml } from "../../src/cli/commands/init.js"
+import { setupHamilton, parseModelAliasArgs, buildSettingsYaml } from "../../src/cli/commands/setup.js"
 
-describe("initHamilton", () => {
+describe("setupHamilton", () => {
   let tmpHome: string
   const originalHome = process.env.HOME
 
@@ -21,7 +21,7 @@ describe("initHamilton", () => {
   })
 
   it("creates all required directories", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton"))).toBe(true)
@@ -32,14 +32,14 @@ describe("initHamilton", () => {
   })
 
   it("creates the SQLite DB", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "hamilton.db"))).toBe(true)
   })
 
   it("copies shared agents from project root", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
@@ -49,14 +49,14 @@ describe("initHamilton", () => {
   })
 
   it("installs bundled workflows", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "workflow.yml"))).toBe(true)
   })
 
   it("does NOT copy per-workflow agents to shared agents dir", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
@@ -66,10 +66,10 @@ describe("initHamilton", () => {
   })
 
   it("is idempotent", async () => {
-    const exit1 = await Effect.runPromiseExit(initHamilton())
+    const exit1 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit1)).toBe(true)
 
-    const exit2 = await Effect.runPromiseExit(initHamilton())
+    const exit2 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit2)).toBe(true)
 
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "hamilton.db"))).toBe(true)
@@ -77,7 +77,7 @@ describe("initHamilton", () => {
   })
 
   it("skips agent copy when already exists without --force", async () => {
-    const exit1 = await Effect.runPromiseExit(initHamilton())
+    const exit1 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit1)).toBe(true)
 
     const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
@@ -85,7 +85,7 @@ describe("initHamilton", () => {
 
     Fs.writeFileSync(agentPath, "modified")
 
-    const exit2 = await Effect.runPromiseExit(initHamilton())
+    const exit2 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit2)).toBe(true)
 
     const content = Fs.readFileSync(agentPath, "utf-8")
@@ -94,13 +94,13 @@ describe("initHamilton", () => {
   })
 
   it("overwrites agents with --force", async () => {
-    const exit1 = await Effect.runPromiseExit(initHamilton())
+    const exit1 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit1)).toBe(true)
 
     const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
     Fs.writeFileSync(agentPath, "modified")
 
-    const exit2 = await Effect.runPromiseExit(initHamilton({ force: true }))
+    const exit2 = await Effect.runPromiseExit(setupHamilton({ force: true }))
     expect(Exit.isSuccess(exit2)).toBe(true)
 
     const content = Fs.readFileSync(agentPath, "utf-8")
@@ -108,7 +108,7 @@ describe("initHamilton", () => {
   })
 
   it("returns installed workflow IDs", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     if (Exit.isSuccess(exit)) {
       expect(Array.isArray(exit.value)).toBe(true)
       expect(exit.value.length).toBeGreaterThan(0)
@@ -119,7 +119,7 @@ describe("initHamilton", () => {
   })
 
   it("creates default Pi config files", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
@@ -136,24 +136,24 @@ describe("initHamilton", () => {
   })
 
   it("does not overwrite existing Pi configs on re-init", async () => {
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
 
     const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
     Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
 
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
 
     const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
     expect(settings.defaultProvider).toBe("custom")
   })
 
   it("overwrites Pi configs with --force", async () => {
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
 
     const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
     Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
 
-    await Effect.runPromiseExit(initHamilton({ force: true }))
+    await Effect.runPromiseExit(setupHamilton({ force: true }))
 
     const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
     expect(settings.defaultProvider).toBe("openai")
@@ -166,7 +166,7 @@ describe("initHamilton", () => {
     Fs.writeFileSync(Path.join(piSource, "models.json"), JSON.stringify({ providers: { openai: {} } }))
     Fs.writeFileSync(Path.join(piSource, "auth.json"), JSON.stringify({ key: "secret" }))
 
-    await Effect.runPromiseExit(initHamilton({ copyPiConfigs: true }))
+    await Effect.runPromiseExit(setupHamilton({ copyPiConfigs: true }))
 
     const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
 
@@ -182,7 +182,7 @@ describe("initHamilton", () => {
   })
 
   it("creates default settings.yaml on init", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
@@ -195,19 +195,19 @@ describe("initHamilton", () => {
   })
 
   it("does not overwrite existing settings.yaml on re-init", async () => {
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
 
     const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
     Fs.writeFileSync(settingsPath, "extensions:\n  - name: rtk\n    enabled: false\n")
 
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
 
     const content = Fs.readFileSync(settingsPath, "utf-8")
     expect(content).toContain("enabled: false")
   })
 
   it("writes model aliases to settings.yaml when provided", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton({
+    const exit = await Effect.runPromiseExit(setupHamilton({
       modelAliases: { cheap: "deepseek-v4", thinking: "o3-pro" }
     }))
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -219,7 +219,7 @@ describe("initHamilton", () => {
   })
 
   it("omits models section when no aliases provided", async () => {
-    const exit = await Effect.runPromiseExit(initHamilton())
+    const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
     const content = Fs.readFileSync(Path.join(tmpHome, ".hamilton", "settings.yaml"), "utf-8")
@@ -228,11 +228,11 @@ describe("initHamilton", () => {
   })
 
   it("skips model aliases on re-init even if provided", async () => {
-    await Effect.runPromiseExit(initHamilton())
+    await Effect.runPromiseExit(setupHamilton())
     const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
     Fs.writeFileSync(settingsPath, "extensions:\n  - name: rtk\n    enabled: false\n")
 
-    await Effect.runPromiseExit(initHamilton({ modelAliases: { cheap: "deepseek-v4" } }))
+    await Effect.runPromiseExit(setupHamilton({ modelAliases: { cheap: "deepseek-v4" } }))
 
     const content = Fs.readFileSync(settingsPath, "utf-8")
     expect(content).toContain("enabled: false")
