@@ -20,11 +20,11 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
   }
 })
 
-vi.mock("../../src/prompts/persona.js", () => {
+vi.mock("../../src/prompts/system.js", () => {
   const { Effect: E } = require("effect")
   return {
     resolveSystemPromptFragments: vi.fn(() => E.succeed({ agent: { content: "test-agent" }, soul: { content: "test-soul" }, context: { content: "" } })),
-    PersonaNotFoundError: class PersonaNotFoundError extends Error { }
+    SystemPromptFragmentsNotFoundError: class SystemPromptFragmentsNotFoundError extends Error { }
   }
 })
 

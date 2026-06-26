@@ -1,6 +1,6 @@
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
-import type { SystemPromptFragments } from "./persona.js"
+import type { SystemPromptFragments } from "./system.js"
 import { Template, type TemplateOptions } from "./template.js"
 import { Effect } from "effect"
 

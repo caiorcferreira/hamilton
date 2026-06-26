@@ -10,7 +10,7 @@ export interface SystemPromptFragments {
   context: Prompt
 }
 
-export class PersonaNotFoundError extends Data.TaggedError("PersonaNotFoundError")<{
+export class SystemPromptFragmentsNotFoundError extends Data.TaggedError("SystemPromptFragmentsNotFoundError")<{
   agentPath: string
 }> { }
 
@@ -25,14 +25,14 @@ function readOptionalFile(filePath: string): string {
 export function resolveSystemPromptFragments(
   paths: SystemPromptPaths,
   agentDir: string
-): Effect.Effect<SystemPromptFragments, PersonaNotFoundError> {
+): Effect.Effect<SystemPromptFragments, SystemPromptFragmentsNotFoundError> {
   return Effect.gen(function* (_) {
     const resolvePath = (p: string) => Path.resolve(agentDir, p)
 
     const agent = yield* _(
       Effect.try({
         try: () => Fs.readFileSync(resolvePath(paths.agent), "utf-8"),
-        catch: () => new PersonaNotFoundError({ agentPath: paths.agent })
+        catch: () => new SystemPromptFragmentsNotFoundError({ agentPath: paths.agent })
       })
     )
 

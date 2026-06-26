@@ -9,7 +9,7 @@ import type { TemplateOptions } from "../prompts/template.js"
 import { Template } from "../prompts/template.js"
 
 import { evaluateWhen, WhenError } from "../cel/evaluate.js"
-import { resolveSystemPromptFragments } from "../prompts/persona.js"
+import { resolveSystemPromptFragments } from "../prompts/system.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"

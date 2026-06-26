@@ -3,7 +3,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit } from "effect"
-import { resolveSystemPromptFragments, PersonaNotFoundError } from "../../src/prompts/persona.js"
+import { resolveSystemPromptFragments, SystemPromptFragmentsNotFoundError } from "../../src/prompts/system.js"
 
 describe("resolveSystemPromptFragments", () => {
   let tmpDir: string
@@ -49,7 +49,7 @@ describe("resolveSystemPromptFragments", () => {
     }
   })
 
-  it("fails with PersonaNotFoundError for missing agent file", async () => {
+  it("fails with SystemPromptFragmentsNotFoundError for missing agent file", async () => {
     const paths = {
       agent: "nonexistent.md",
       soul: "soul.md"
