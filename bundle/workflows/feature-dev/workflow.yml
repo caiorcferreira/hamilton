@@ -58,7 +58,7 @@ spec:
             Prepare the development environment for this feature.
 
             ## Instructions
-            1. Run the command: cd {{inputs.cwd}}
+            1. Run the command: cd {{inputs.project_dir}}
             2. Run the command to learn the current branch: git branch --show-current
             3. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
             4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
@@ -96,7 +96,7 @@ spec:
                 Implement the code for following task. You are working on ONE task in a fresh session.
 
                 ## Context
-                Repository: {{inputs.cwd}}
+                Repository: {{inputs.project_dir}}
                 Branch: {{inputs.tasks.setup.outputs.current_branch}}
                 Build command: {{inputs.tasks.setup.outputs.build_cmd}}
                 Test command: {{inputs.tasks.setup.outputs.test_cmd}}

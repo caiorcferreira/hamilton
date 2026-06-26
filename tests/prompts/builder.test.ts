@@ -57,7 +57,7 @@ describe("buildAgentsPrompts", () => {
   })
 
   it("includes context from env in the system prompt", () => {
-    const env: WorkflowEnv = { tasks: {}, parameters: { cwd: "/tmp/repo" } }
+    const env: WorkflowEnv = { tasks: {}, parameters: { project_dir: "/tmp/repo" } }
     const params: PromptParams = {
       ...baseParams,
       env
@@ -108,7 +108,7 @@ describe("buildAgentsPrompts", () => {
     const params: PromptParams = {
       fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "" } },
       taskPrompt: { content: "do" },
-      env: { tasks: {}, parameters: { cwd: "/tmp/repo" } },
+      env: { tasks: {}, parameters: { project_dir: "/tmp/repo" } },
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
@@ -118,9 +118,9 @@ describe("buildAgentsPrompts", () => {
 
   it("uses custom context template when provided", () => {
     const params: PromptParams = {
-      fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "Working in {{inputs.cwd}}" } },
+      fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "Working in {{inputs.project_dir}}" } },
       taskPrompt: { content: "do" },
-      env: { tasks: {}, cwd: "/tmp/repo" },
+      env: { tasks: {}, project_dir: "/tmp/repo" },
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
@@ -171,9 +171,9 @@ describe("buildAgentsPrompts", () => {
   })
 
   it("resolves template expressions in soulFile via env", () => {
-    const env: WorkflowEnv = { cwd: "/tmp/repo" }
+    const env: WorkflowEnv = { project_dir: "/tmp/repo" }
     const params: PromptParams = {
-      fragments: { agent: { content: "You are a coder." }, soul: { content: "Working from {{inputs.cwd}}" }, context: { content: "" } },
+      fragments: { agent: { content: "You are a coder." }, soul: { content: "Working from {{inputs.project_dir}}" }, context: { content: "" } },
       taskPrompt: { content: "Fix the bug" },
       env,
       agentConfig: {}

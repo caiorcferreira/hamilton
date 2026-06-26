@@ -80,7 +80,7 @@ export function runWorkflow(
       yield* _(writeInput(runId, {
         spec,
         initialParameters,
-        executionContext: { cwd: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
+        executionContext: { project_dir: process.cwd(), requestedAt: startedAt, workflowName: spec.metadata.name }
       }))
     }
 
@@ -227,7 +227,7 @@ export function runWorkflow(
             .setInputEnv(taskEnv as Record<string, unknown>)
             .render()
         )
-        const workdir = task.script.workdir ?? (taskEnv.cwd as string | undefined) ?? process.cwd()
+        const workdir = task.script.workdir ?? (taskEnv.project_dir as string | undefined) ?? process.cwd()
         const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
         const maxRetries = task.script.on_failure?.max_retries ?? 1
 

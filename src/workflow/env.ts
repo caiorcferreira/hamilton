@@ -1,5 +1,4 @@
 export interface WorkflowEnv {
-  cwd?: string
   user_input?: string
   run_id?: string
   

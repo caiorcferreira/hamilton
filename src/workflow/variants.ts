@@ -25,7 +25,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
               content: `## Steps
               1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
               2. Run the command to learn the original branch: git branch --show-current
-              2. Run the command: cd {{cwd}}
+              2. Run the command: cd {{project_dir}}
               3. Run the command: git checkout -b <branch-name>
               
               ## Output
@@ -55,7 +55,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
             prompt: {
               content: `## Steps
               1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
-              2. Run the command: cd {{cwd}}
+              2. Run the command: cd {{project_dir}}
               3. Run the command to learn the original branch: git branch --show-current
               4. Run the command: git worktree add -b <branch-name> ./.worktree/<branch-name> <original-branch>
               6. Run the command: cd <worktree-path>
@@ -86,7 +86,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
             executorRef: "setup",
             prompt: {
               content: `## Steps
-              1. Run the command: cd {{cwd}}
+              1. Run the command: cd {{project_dir}}
               2. Run the command: git worktree remove ./.worktree/<branch-name>
               
               ## Output
@@ -111,7 +111,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
             executorRef: "merger",
             prompt: {
               content: `## Steps
-              1. Run the command: cd {{cwd}}
+              1. Run the command: cd {{project_dir}}
               2. Run the command to get the current branch: git branch --show-current
               3. Squash all commits into a clean history
               4. Merge the branch into the main branch
@@ -142,7 +142,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
             executorRef: "developer",
             prompt: {
               content: `## Steps
-              1. Run the command: cd {{cwd}}
+              1. Run the command: cd {{project_dir}}
               2. Run the command to get the current branch: git branch --show-current
               3. Create a pull request using gh CLI
               4. Use the user input to craft a descriptive PR title and body

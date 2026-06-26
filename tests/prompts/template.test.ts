@@ -25,12 +25,12 @@ describe("resolveTemplate", () => {
   it("resolves dotted paths via inputs namespace", () => {
     const ctx = {
       tasks: { setup: { outputs: { repo: "/tmp/repo", branch: "feat/x" } } },
-      cwd: "/home/project",
+      project_dir: "/home/project",
       parameters: { current_task: { title: "Add login" } }
     }
     expect(render("REPO: {{inputs.tasks.setup.outputs.repo}}", ctx, lenient)).toBe("REPO: /tmp/repo")
     expect(render("BRANCH: {{inputs.tasks.setup.outputs.branch}}", ctx, lenient)).toBe("BRANCH: feat/x")
-    expect(render("DIR: {{inputs.cwd}}", ctx, lenient)).toBe("DIR: /home/project")
+    expect(render("DIR: {{inputs.project_dir}}", ctx, lenient)).toBe("DIR: /home/project")
   })
 
   it("resolves dotted paths on top-level context (no inputs prefix)", () => {

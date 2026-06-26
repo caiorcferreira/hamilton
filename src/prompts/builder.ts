@@ -57,7 +57,7 @@ IMPORTANT:
 `
 
 const defaultContextTemplate = `## Context
-- Current directory: {{inputs.parameters.cwd}}
+- Current directory: {{inputs.parameters.project_dir}}
 `
 
 export function buildAgentsPrompts(
