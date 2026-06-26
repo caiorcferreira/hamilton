@@ -3,16 +3,18 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import type { SystemPromptPaths } from "../types.js"
 
+// TODO: rename interface to SystemPromptFragments
 export interface Persona {
-  agent: string
-  soul: string
-  context: string
+  agent: string // TODO: make it use the Prompt interface type
+  soul: string // TODO: make it use the Prompt interface type
+  context: string // TODO: make it use the Prompt interface type
 }
 
 export class PersonaNotFoundError extends Data.TaggedError("PersonaNotFoundError")<{
   agentPath: string
-}> {}
+}> { }
 
+// TODO: rename to readOptionalFile
 function tryReadOptional(filePath: string): string {
   try {
     return Fs.readFileSync(filePath, "utf-8")
@@ -21,6 +23,7 @@ function tryReadOptional(filePath: string): string {
   }
 }
 
+// TODO: rename function to resolveSystemPromptFragments
 export function resolvePersona(
   paths: SystemPromptPaths,
   agentDir: string
@@ -31,7 +34,7 @@ export function resolvePersona(
     const agent = yield* _(
       Effect.try({
         try: () => {
-          if (!paths.agent) return ""
+          if (!paths.agent) return "" // TODO: remove this if; it stops the logic from failing to catch if the path is empty
           return Fs.readFileSync(resolvePath(paths.agent), "utf-8")
         },
         catch: () => new PersonaNotFoundError({ agentPath: paths.agent })
@@ -40,6 +43,7 @@ export function resolvePersona(
 
     const soul = paths.soul ? tryReadOptional(resolvePath(paths.soul)) : ""
 
+    // TODO: should use a paths.context instead of a hard-coded file name
     const context = tryReadOptional(resolvePath("CONTEXT.md"))
 
     return { agent, soul, context }

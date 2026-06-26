@@ -1,6 +1,7 @@
 import { Data, Effect } from "effect"
 import Handlebars from "handlebars"
 import * as Fs from "node:fs"
+import { WorkflowEnv } from "src/workflow/env.js"
 
 export interface TemplateOptions {
   strict: boolean
@@ -47,7 +48,7 @@ function createHandlebars(): typeof Handlebars {
   return hbs
 }
 
-export function resolveTemplate(
+function resolveTemplate(
   template: string,
   context: Record<string, unknown>,
   options: TemplateOptions = { strict: false }
@@ -86,24 +87,58 @@ function scanTemplatePaths(template: string): string[] {
   return [...paths]
 }
 
-export function resolveFileTemplate(
-  filePath: string,
-  context: Record<string, unknown>,
-  options: TemplateOptions
-): Effect.Effect<string, TemplateError> {
-  return Effect.try({
-    try: () => {
-      if (!Fs.existsSync(filePath)) {
-        throw new TemplateFileError({ filePath, message: "File not found" })
+export class Template extends Data.Class<{
+  readonly template: string
+  readonly vars: Readonly<Record<string, string>>
+  readonly options: TemplateOptions
+}> {
+
+  // Factory — clean starting point, no need to pass vars manually
+  static make(template: string, options: TemplateOptions = { strict: false }): Template {
+    return new Template({ template, vars: {}, options: options })
+  }
+
+  // Returns a NEW instance — does not mutate
+  setVar(key: string, value: any): Template {
+    return new Template({
+      template: this.template,
+      vars: { ...this.vars, [key]: value },
+      options: this.options,
+    })
+  }
+
+  setInputEnv(value: WorkflowEnv): Template {
+    return this.setVar("inputs", value)
+  }
+
+  static fromFile(filePath: string, options: TemplateOptions = { strict: false }): Effect.Effect<Template, TemplateError> {
+    return Effect.try({
+      try: () => {
+        if (!Fs.existsSync(filePath)) {
+          throw new TemplateFileError({ filePath, message: "File not found" })
+        }
+        const content = Fs.readFileSync(filePath, "utf-8")
+        return Template.make(content, options)
+      },
+      catch: (e) => {
+        if (e instanceof TemplateFileError) return e
+        return new TemplateFileError({ filePath, message: String(e) })
       }
-      const content = Fs.readFileSync(filePath, "utf-8")
-      return resolveTemplate(content, context, options)
-    },
-    catch: (e) => {
-      if (e instanceof MissingVariableError || e instanceof TemplateSyntaxError || e instanceof TemplateFileError) {
-        return e
+    })
+  }
+
+  // Effectful render — fails if any variable is still missing
+  render(): Effect.Effect<string, TemplateError> {
+    return Effect.try({
+      try: () => {
+        return resolveTemplate(this.template, this.vars, this.options)
+      },
+      catch: (e) => {
+        if (e instanceof MissingVariableError || e instanceof TemplateSyntaxError) {
+          return e
+        }
+        return new TemplateSyntaxError({ message: String(e) })
       }
-      return new TemplateFileError({ filePath, message: String(e) })
-    }
-  })
+    })
+  }
 }

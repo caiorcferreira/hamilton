@@ -1,19 +1,22 @@
+import { Effect } from "effect"
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
-import { resolveTemplate, type TemplateOptions } from "./template.js"
+import { Template, type TemplateOptions } from "./template.js"
 
 export interface PromptParams {
   agentFile: string
   soulFile: string
-  prompt: Prompt
-  env: WorkflowEnv
   contextTemplate?: string
+
+  prompt: Prompt // TODO: rename to taskPrompt
+
+  env: WorkflowEnv
   agentConfig: Partial<AgentManifest>
 }
 
 export interface BuiltPrompt {
-  systemPrompt: string
-  taskPrompt: string
+  systemTemplate: Template
+  taskTemplate: Template
   guidelineFiles: Array<{ name: string; content: string }>
 }
 
@@ -61,33 +64,48 @@ export function buildAgentPrompt(
   guidelineFiles: Array<{ name: string; content: string }> = [],
   options: TemplateOptions = { strict: false }
 ): BuiltPrompt {
-  const resolvedAgentFile = resolveTemplate(params.agentFile, { inputs: params.env }, options)
+  const resolvedAgentFileStr = Effect.runSync(
+    Template.make(params.agentFile, options)
+      .setVar("inputs", params.env)
+      .render()
+  )
 
-  const resolvedSoul = params.soulFile
-    ? resolveTemplate(params.soulFile, { inputs: params.env }, options)
+  const resolvedSoulStr = params.soulFile
+    ? Effect.runSync(
+        Template.make(params.soulFile, options)
+          .setVar("inputs", params.env)
+          .render()
+      )
     : ""
 
-  const persona = resolvedSoul
-    ? `<persona>\n${resolvedSoul}\n</persona>`
+  const persona = resolvedSoulStr
+    ? `<persona>\n${resolvedSoulStr}\n</persona>`
     : ""
 
-  const template = params.contextTemplate || defaultContextTemplate
-  const contextForTemplate = { inputs: params.env }
-  const renderedContext = resolveTemplate(template, contextForTemplate, options)
+  const renderedContextStr = Effect.runSync(
+    Template.make(params.contextTemplate || defaultContextTemplate, options)
+      .setVar("inputs", params.env)
+      .render()
+  )
 
-  const resolvedSystem = resolveTemplate(systemTemplate, {
-    instructions: resolvedAgentFile,
-    persona,
-    context: renderedContext,
-  }, options)
+  const taskContent = params.prompt.skipTemplate
+    ? (params.prompt.content ?? "").replace(/{{/g, "\\{{")
+    : Effect.runSync(
+        Template.make(params.prompt.content ?? "", options)
+          .setVar("inputs", params.env)
+          .render()
+      )
 
-  const resolvedInput = params.prompt.skipTemplate
-    ? (params.prompt.content ?? "")
-    : resolveTemplate(params.prompt.content ?? "", { inputs: params.env }, options)
+  const systemTemplateInst = Template.make(systemTemplate, options)
+    .setVar("instructions", resolvedAgentFileStr)
+    .setVar("persona", persona)
+    .setVar("context", renderedContextStr)
+
+  const taskTemplateInst = Template.make(taskContent, options)
 
   return {
-    systemPrompt: resolvedSystem.trim(),
-    taskPrompt: resolvedInput.trim(),
+    systemTemplate: systemTemplateInst,
+    taskTemplate: taskTemplateInst,
     guidelineFiles
   }
 }
