@@ -35,3 +35,11 @@ export function evaluateWhenCondition(
     return { _tag: "error", message: msg }
   }
 }
+
+export function handleWhenGuard(
+  task: WorkflowTask,
+  env: WorkflowEnv
+): "proceed" | "skip" | { _tag: "error"; message: string } {
+  if (!task.when) return "proceed"
+  return evaluateWhenCondition(task, env)
+}

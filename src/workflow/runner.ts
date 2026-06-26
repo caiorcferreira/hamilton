@@ -6,7 +6,7 @@ import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
 import type { TemplateOptions } from "../prompts/template.js"
 
-import { checkRecursionDepth, evaluateWhenCondition } from "../workflow/when-guard.js"
+import { checkRecursionDepth, handleWhenGuard } from "../workflow/when-guard.js"
 
 import { collectReachableTasks, topologicalSort } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
@@ -143,7 +143,7 @@ export function runWorkflow(
             break
           }
 
-          const whenResult = evaluateWhenCondition(task, workflowEnv)
+          const whenResult = handleWhenGuard(task, workflowEnv)
           if (whenResult === "skip") {
             yield* _(ctx.transitionTask(task.name, "complete"))
             continue

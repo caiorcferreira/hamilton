@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { handleWhenGuard } from "../../src/workflow/when-guard.js"
-import type { WorkflowTask, WorkflowEnv } from "../../src/types.js"
+import type { WorkflowTask } from "../../src/types.js"
+import type { WorkflowEnv } from "../../src/workflow/env.js"
 
 describe("handleWhenGuard", () => {
   it("returns proceed when task has no when condition", () => {

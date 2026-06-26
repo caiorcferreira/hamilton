@@ -7,7 +7,7 @@ import type { TemplateOptions } from "../prompts/template.js"
 import type { CompiledRule } from "../guidelines/types.js"
 import { resolveArguments } from "./arguments.js"
 import { buildTaskInstanceName, topologicalSort } from "./engine.js"
-import { checkRecursionDepth, evaluateWhenCondition } from "./when-guard.js"
+import { checkRecursionDepth, handleWhenGuard } from "./when-guard.js"
 import { dispatchTask, type TaskExecutionState } from "./task-executor.js"
 
 export function expandTemplate(
@@ -64,7 +64,7 @@ export function expandTemplate(
               break
             }
 
-            const whenResult = evaluateWhenCondition(subTask, state.workflowEnv)
+            const whenResult = handleWhenGuard(subTask, state.workflowEnv)
             if (whenResult === "skip") {
               yield* _(ctx.transitionTask(subInstanceName, "complete"))
               continue
