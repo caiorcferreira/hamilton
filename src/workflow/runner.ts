@@ -1,4 +1,4 @@
-import { Effect, Scope } from "effect"
+import { Effect, Ref, Scope } from "effect"
 
 import { WorkflowSpec } from "../types.js"
 
@@ -27,9 +27,9 @@ import { WorkflowLogger } from "../observability/workflow-logger.js"
 
 export interface WorkflowResult {
   runId: string
-  status: "completed" | "failed" | "paused"
+  status: "planned" | "in-progress" | "completed" | "failed" | "paused"
   taskResults: Record<string, string>
-  env: WorkflowEnv
+  env: Record<string, unknown>
   startedAt: string
   completedAt: string
 }
@@ -92,12 +92,15 @@ export function runWorkflow(
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0
     let totalTokensOut = 0
-    const workflowStatus = { value: "completed" as string }
+    const workflowStatus = yield* _(Ref.make<"planned" | "in-progress" | "completed" | "failed" | "paused">("planned"))
+
+    yield* _(bus.publish({ _tag: "WorkflowStatusChanged", runId: ctx.runId, status: "planned" }))
 
     const execState = {
       workflowStatus,
       taskResults,
-      workflowEnv
+      workflowEnv,
+      fileEnabled
     }
 
     const body = Effect.gen(function* () {
@@ -109,14 +112,18 @@ export function runWorkflow(
         })
       ))
 
+      yield* _(Ref.set(workflowStatus, "in-progress"))
+      yield* _(bus.publish({ _tag: "WorkflowStatusChanged", runId: ctx.runId, status: "in-progress" }))
+
       for (const task of sortedTasks) {
-        if (workflowStatus.value === "failed") break
+        const currentStatus = yield* _(Ref.get(workflowStatus))
+        if (currentStatus === "failed") break
 
         if (task.when) {
           const maxDepth = resolveMaxRecursionDepth()
           const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, task.name))
           if (depthResult === "fail") {
-            workflowStatus.value = "failed"
+            yield* _(Ref.set(workflowStatus, "failed"))
             break
           }
 
@@ -128,14 +135,14 @@ export function runWorkflow(
           if (typeof whenResult === "object" && whenResult._tag === "error") {
             yield* _(ctx.transitionTask(task.name, "fail"))
             yield* _(ctx.fail(whenResult.message))
-            workflowStatus.value = "failed"
+            yield* _(Ref.set(workflowStatus, "failed"))
             break
           }
         }
 
         if (task.template) {
           const maxDepth = resolveMaxRecursionDepth()
-          yield* _(expandTemplate(ctx, task, spec, workflowEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
+          yield* _(expandTemplate(ctx, task, spec, workflowEnv, maxDepth, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
           continue
         }
 
@@ -147,7 +154,7 @@ export function runWorkflow(
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
           yield* _(bus.publish({ _tag: "TaskPaused", runId: ctx.runId, taskId: task.name, taskName: task.name }))
-          workflowStatus.value = "paused"
+          yield* _(Ref.set(workflowStatus, "paused"))
           break
         }
 
@@ -156,23 +163,25 @@ export function runWorkflow(
           ...workflowEnv,
           parameters: resolvedArgs.parameters
         }
-        yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
+        yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
       }
 
       const completedAt = new Date().toISOString()
 
-      if (workflowStatus.value === "completed") {
+      const finalStatus = yield* _(Ref.get(workflowStatus))
+
+      if (finalStatus === "completed") {
         yield* _(ctx.complete().pipe(Effect.catchAll(() => Effect.void)))
-      } else if (workflowStatus.value === "failed") {
-        yield* _(ctx.fail(workflowStatus.value).pipe(Effect.catchAll(() => Effect.void)))
+      } else if (finalStatus === "failed") {
+        yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
       }
 
       const elapsedSeconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-      const summary = { runId: ctx.runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
+      const summary = { runId: ctx.runId, status: finalStatus, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
 
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId: ctx.runId, summary }))
 
-      return { runId: ctx.runId, status: workflowStatus.value as WorkflowResult["status"], taskResults, env: workflowEnv, startedAt, completedAt }
+      return { runId: ctx.runId, status: finalStatus, taskResults, env: workflowEnv as Record<string, unknown>, startedAt, completedAt }
     })
 
     return yield* _(body.pipe(
@@ -180,7 +189,7 @@ export function runWorkflow(
         Effect.gen(function* () {
           yield* _(bus.publish({ _tag: "WorkflowCompleted", runId: ctx.runId, message: String(error) }))
           yield* _(ctx.fail("failed").pipe(Effect.catchAll(() => Effect.void)))
-          return { runId: ctx.runId, status: "failed" as const, taskResults, env: workflowEnv, startedAt, completedAt: new Date().toISOString() }
+          return { runId: ctx.runId, status: "failed" as const, taskResults, env: workflowEnv as Record<string, unknown>, startedAt, completedAt: new Date().toISOString() }
         })
       ),
       Effect.ensuring(ctx.close())

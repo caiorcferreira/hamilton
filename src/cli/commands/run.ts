@@ -31,7 +31,7 @@ export interface RunParams {
 
 export interface RunResult {
   runId: string
-  status: "completed" | "failed" | "paused"
+  status: "planned" | "in-progress" | "completed" | "failed" | "paused"
   taskResults: Record<string, string>
 }
 
