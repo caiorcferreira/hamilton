@@ -1,7 +1,7 @@
 import { Effect, Schedule, Duration, Scope } from "effect"
 
 import { WorkflowSpec, WorkflowTask } from "../types.js"
-import { buildAgentPrompt } from "../prompts/builder.js"
+import { buildAgentsPrompts } from "../prompts/builder.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
@@ -9,7 +9,7 @@ import type { TemplateOptions } from "../prompts/template.js"
 import { resolveTemplate } from "../prompts/template.js"
 
 import { evaluateWhen, WhenError } from "../cel/evaluate.js"
-import { resolvePersona } from "../prompts/persona.js"
+import { resolveSystemPromptFragments } from "../prompts/persona.js"
 import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
 import { executeWithPi } from "../executors/pi/pi-executor.js"
 import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId } from "../workflow/engine.js"
@@ -138,17 +138,15 @@ export function runWorkflow(
         const agent = spec.agentRegistry.get(task.agent.executorRef)
         if (!agent) return
 
-        const persona = yield* _(
-          resolvePersona(agent.systemPrompt, agent.dirPath).pipe(
+        const fragments = yield* _(
+          resolveSystemPromptFragments(agent.systemPrompt, agent.dirPath).pipe(
             Effect.mapError((e) => new Error(e.agentPath))
           )
         )
 
-        const prompt = buildAgentPrompt({
-          agentFile: persona.agent,
-          soulFile: persona.soul,
-          contextTemplate: persona.context,
-          prompt: task.agent!.prompt,
+        const prompt = buildAgentsPrompts({
+          fragments,
+          taskPrompt: task.agent!.prompt,
           env: taskEnv,
           agentConfig: agent
         }, guidelineFiles, templateOptions)
