@@ -42,7 +42,11 @@ IMPORTANT:
 {{instructions}}
 </instructions>
 
+{{#if persona}}
+<persona>
 {{persona}}
+</persona>
+{{/if}}
 
 <context>
 {{context}}
@@ -74,8 +78,6 @@ export function buildAgentsPrompts(
   const resolvedSoul = soulTemplate ? Effect.runSync(soulTemplate.render()) : ""
 
   const persona = resolvedSoul
-    ? `<persona>\n${resolvedSoul}\n</persona>`
-    : ""
 
   const renderedAgentFile = Effect.runSync(resolvedAgentFile.render())
   const renderedContext = Effect.runSync(contextTemplate.render())

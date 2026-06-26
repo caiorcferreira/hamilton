@@ -1,28 +1,27 @@
 import { describe, it, expect } from "vitest"
 import {
-  buildAgentPrompt,
+  buildAgentsPrompts,
   PromptParams
 } from "../../src/prompts/builder.js"
 import type { WorkflowEnv } from "../../src/workflow/env.js"
 
-describe("buildAgentPrompt", () => {
+describe("buildAgentsPrompts", () => {
+  const baseFragments = { agent: { content: "" }, soul: { content: "" }, context: { content: "" } }
   const baseParams: PromptParams = {
-    agentFile: "You are a coder.",
-    soulFile: "",
-    prompt: { content: "Fix the bug" },
+    fragments: baseFragments,
+    taskPrompt: { content: "Fix the bug" },
     env: { tasks: {} },
     agentConfig: {}
   }
 
   it("returns systemPrompt and taskPrompt", () => {
     const params: PromptParams = {
-      agentFile: "You are a coder.",
-      soulFile: "Concise and direct",
-      prompt: { content: "Fix the bug" },
+      fragments: { agent: { content: "You are a coder." }, soul: { content: "Concise and direct" }, context: { content: "" } },
+      taskPrompt: { content: "Fix the bug" },
       env: { tasks: {} },
       agentConfig: { metadata: { name: "coder" }, dirPath: "", spec: { settings: {} } }
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result).toHaveProperty("systemPrompt")
     expect(result).toHaveProperty("taskPrompt")
     expect(result.systemPrompt).toContain("<platform>")
@@ -36,10 +35,10 @@ describe("buildAgentPrompt", () => {
     const env: WorkflowEnv = { tasks: { setup: { outputs: { repo: "hamilton" } } } }
     const params: PromptParams = {
       ...baseParams,
-      prompt: { content: "Fix bug in {{inputs.tasks.setup.outputs.repo}}" },
+      taskPrompt: { content: "Fix bug in {{inputs.tasks.setup.outputs.repo}}" },
       env
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.taskPrompt).toContain("Fix bug in hamilton")
   })
 
@@ -47,10 +46,10 @@ describe("buildAgentPrompt", () => {
     const env: WorkflowEnv = { tasks: {}, stories_json: [{ id: "US-001", title: "Add thing" }] }
     const params: PromptParams = {
       ...baseParams,
-      prompt: { content: "Stories: {{inputs.stories_json}}" },
+      taskPrompt: { content: "Stories: {{inputs.stories_json}}" },
       env
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.taskPrompt).toContain('Stories: [{"id":"US-001","title":"Add thing"}]')
   })
 
@@ -60,7 +59,7 @@ describe("buildAgentPrompt", () => {
       ...baseParams,
       env
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain("<context>")
     expect(result.systemPrompt).toContain('"branch":"main"')
     expect(result.systemPrompt).toContain('"status":"approved"')
@@ -72,114 +71,109 @@ describe("buildAgentPrompt", () => {
       ...baseParams,
       env
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain('"stories_json"')
     expect(result.systemPrompt).toContain('"Story"')
   })
 
   it("omits persona section when soulFile is empty", () => {
-    const result = buildAgentPrompt(baseParams)
+    const result = buildAgentsPrompts(baseParams)
     expect(result.systemPrompt).not.toContain("<persona>")
     expect(result.taskPrompt).toContain("Fix the bug")
   })
 
   it("includes Hamilton platform section", () => {
-    const result = buildAgentPrompt(baseParams)
+    const result = buildAgentsPrompts(baseParams)
     expect(result.systemPrompt).toContain("Hamilton Agentic Orchestration")
     expect(result.systemPrompt).toContain("write_task_output")
   })
 
-  it("passes guidelineFiles through to BuiltPrompt", () => {
+  it("passes guidelineFiles through to AgentPrompts", () => {
     const instructions = [{ name: "typescript", content: "Use strict mode" }]
-    const result = buildAgentPrompt(baseParams, instructions)
+    const result = buildAgentsPrompts(baseParams, instructions)
     expect(result.guidelineFiles).toEqual(instructions)
   })
 
   it("defaults guidelineFiles to empty array", () => {
-    const result = buildAgentPrompt(baseParams)
+    const result = buildAgentsPrompts(baseParams)
     expect(result.guidelineFiles).toEqual([])
   })
 
   it("uses default context template when env is provided without contextTemplate", () => {
     const params: PromptParams = {
-      agentFile: "agent",
-      soulFile: "",
-      prompt: { content: "do" },
+      fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "" } },
+      taskPrompt: { content: "do" },
       env: { tasks: {}, cwd: "/tmp/repo" },
       agentConfig: {}
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain("/tmp/repo")
-    expect(result.systemPrompt).toContain("## Inputs")
+    expect(result.systemPrompt).toContain("## Context")
   })
 
   it("uses custom context template when provided", () => {
     const params: PromptParams = {
-      agentFile: "agent",
-      soulFile: "",
-      prompt: { content: "do" },
+      fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "Working in {{inputs.cwd}}" } },
+      taskPrompt: { content: "do" },
       env: { tasks: {}, cwd: "/tmp/repo" },
-      contextTemplate: "Working in {{inputs.cwd}}",
       agentConfig: {}
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain("Working in /tmp/repo")
-    expect(result.systemPrompt).not.toContain("## Inputs")
+    expect(result.systemPrompt).not.toContain("## Context")
   })
 
   it("passes TemplateOptions through to resolution", () => {
     const params: PromptParams = {
       ...baseParams,
-      prompt: { content: "Hello {{inputs.name}}" },
+      taskPrompt: { content: "Hello {{inputs.name}}" },
       env: { tasks: {}, name: "world" }
     }
-    const result = buildAgentPrompt(params, [], { strict: false })
+    const result = buildAgentsPrompts(params, [], { strict: false })
     expect(result.taskPrompt).toBe("Hello world")
   })
 
   it("defaults TemplateOptions to lenient when not provided", () => {
     const params: PromptParams = {
       ...baseParams,
-      prompt: { content: "Hello {{inputs.missing}}" },
+      taskPrompt: { content: "Hello {{inputs.missing}}" },
       env: { tasks: {} }
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.taskPrompt).toBe("Hello")
   })
 
   it("skips template resolution when prompt has skipTemplate flag", () => {
     const params: PromptParams = {
       ...baseParams,
-      prompt: { content: "Keep {{this}} as-is", skipTemplate: true },
+      taskPrompt: { content: "Keep {{this}} as-is", skipTemplate: true },
       env: { tasks: {} }
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.taskPrompt).toBe("Keep {{this}} as-is")
   })
 
   it("resolves template expressions in agentFile via env", () => {
     const env: WorkflowEnv = { tasks: { setup: { outputs: { repo: "hamilton" } } } }
     const params: PromptParams = {
-      agentFile: "You are a coder for {{inputs.tasks.setup.outputs.repo}}.",
-      soulFile: "",
-      prompt: { content: "Fix the bug" },
+      fragments: { agent: { content: "You are a coder for {{inputs.tasks.setup.outputs.repo}}." }, soul: { content: "" }, context: { content: "" } },
+      taskPrompt: { content: "Fix the bug" },
       env,
       agentConfig: {}
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain("You are a coder for hamilton.")
   })
 
   it("resolves template expressions in soulFile via env", () => {
     const env: WorkflowEnv = { cwd: "/tmp/repo" }
     const params: PromptParams = {
-      agentFile: "You are a coder.",
-      soulFile: "Working from {{inputs.cwd}}",
-      prompt: { content: "Fix the bug" },
+      fragments: { agent: { content: "You are a coder." }, soul: { content: "Working from {{inputs.cwd}}" }, context: { content: "" } },
+      taskPrompt: { content: "Fix the bug" },
       env,
       agentConfig: {}
     }
-    const result = buildAgentPrompt(params)
+    const result = buildAgentsPrompts(params)
     expect(result.systemPrompt).toContain("<persona>")
     expect(result.systemPrompt).toContain("Working from /tmp/repo")
   })

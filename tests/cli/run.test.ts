@@ -23,7 +23,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
 vi.mock("../../src/prompts/persona.js", () => {
   const { Effect: E } = require("effect")
   return {
-    resolvePersona: vi.fn(() => E.succeed({ agent: "test-agent", soul: "test-soul" })),
+    resolveSystemPromptFragments: vi.fn(() => E.succeed({ agent: { content: "test-agent" }, soul: { content: "test-soul" }, context: { content: "" } })),
     PersonaNotFoundError: class PersonaNotFoundError extends Error { }
   }
 })
