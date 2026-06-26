@@ -26,6 +26,7 @@ import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import * as ChildProcess from "node:child_process"
 import { loadGuidelines } from "../guidelines/loader.js"
+import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
 import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
 import { skillsDir, guidelinesDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
@@ -91,22 +92,7 @@ export function runWorkflow(
     }
 
     const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
-
-    const guidelineFiles: Array<{ name: string; content: string }> = []
-    const allRules: import("../guidelines/types.js").CompiledRule[] = []
-
-    for (const g of loadedGuidelines) {
-      if (g.instructions) {
-        for (const inst of g.instructions) {
-          guidelineFiles.push(inst)
-        }
-      }
-      if (g.rules) {
-        for (const rule of g.rules) {
-          allRules.push(rule)
-        }
-      }
-    }
+    const { files: guidelineFiles, rules: allRules } = extractGuidelineArtifacts(loadedGuidelines)
 
     const skillRegistry = loadSkillRegistry(skillsDir())
 
