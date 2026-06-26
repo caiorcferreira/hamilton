@@ -69,14 +69,14 @@ describe("readExtensionSettings", () => {
 
 describe("buildExtensions", () => {
   it("returns empty array for empty settings", () => {
-    const result = buildExtensions({})
+    const result = buildExtensions({}, "/tmp")
     expect(result).toEqual([])
   })
 
   it("includes enabled extensions", () => {
     const result = buildExtensions({
       extensions: [{ name: "rtk", enabled: true }]
-    })
+    }, "/tmp")
     expect(result).toHaveLength(1)
     expect(typeof result[0]).toBe("function")
   })
@@ -84,7 +84,7 @@ describe("buildExtensions", () => {
   it("excludes disabled extensions", () => {
     const result = buildExtensions({
       extensions: [{ name: "rtk", enabled: false }]
-    })
+    }, "/tmp")
     expect(result).toHaveLength(0)
   })
 
@@ -94,7 +94,7 @@ describe("buildExtensions", () => {
         { name: "rtk", enabled: true },
         { name: "lsp", enabled: true }
       ]
-    })
+    }, "/tmp")
     expect(result).toHaveLength(2)
     expect(typeof result[0]).toBe("function")
     expect(typeof result[1]).toBe("function")
@@ -103,7 +103,15 @@ describe("buildExtensions", () => {
   it("skips unknown extension names", () => {
     const result = buildExtensions({
       extensions: [{ name: "unknown", enabled: true }]
-    })
+    }, "/tmp")
     expect(result).toHaveLength(0)
+  })
+
+  it("includes git when enabled", () => {
+    const result = buildExtensions({
+      extensions: [{ name: "git", enabled: true }]
+    }, "/tmp/repo")
+    expect(result).toHaveLength(1)
+    expect(typeof result[0]).toBe("function")
   })
 })

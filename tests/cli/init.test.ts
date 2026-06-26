@@ -191,6 +191,7 @@ describe("initHamilton", () => {
     const content = Fs.readFileSync(settingsPath, "utf-8")
     expect(content).toContain("name: rtk")
     expect(content).toContain("name: lsp")
+    expect(content).toContain("name: git")
   })
 
   it("does not overwrite existing settings.yaml on re-init", async () => {
@@ -264,14 +265,14 @@ describe("buildSettingsYaml", () => {
   it("produces valid YAML with extensions only", () => {
     const yaml = buildSettingsYaml()
     const parsed = Yaml.parse(yaml)
-    expect(parsed.extensions).toHaveLength(2)
+    expect(parsed.extensions).toHaveLength(3)
     expect(parsed.models).toBeUndefined()
   })
 
   it("produces valid YAML with extensions and model aliases", () => {
     const yaml = buildSettingsYaml({ cheap: "deepseek-v4" })
     const parsed = Yaml.parse(yaml)
-    expect(parsed.extensions).toHaveLength(2)
+    expect(parsed.extensions).toHaveLength(3)
     expect(parsed.models.aliases.cheap).toBe("deepseek-v4")
   })
 

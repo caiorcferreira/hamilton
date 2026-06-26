@@ -128,7 +128,7 @@ export function executeWithPi(
     }))
 
     const extSettings = readExtensionSettings()
-    const extensionFactories = buildExtensions(extSettings)
+    const extensionFactories = buildExtensions(extSettings, cwd)
 
     let sessionRef: typeof session | null = null
 

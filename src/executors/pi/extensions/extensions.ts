@@ -2,6 +2,7 @@ import * as Fs from "node:fs"
 import * as Yaml from "yaml"
 import { settingsPath } from "../../../paths.js"
 import { createRtkExtension } from "./rtk-extension.js"
+import { createGitExtension } from "./git-extension.js"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import lsp from "@narumitw/pi-lsp"
 
@@ -32,7 +33,8 @@ export type ExtensionFactory = (pi: ExtensionAPI) => void
 
 // todo: support other entry names
 export function buildExtensions(
-  settings: ExtensionSettings
+  settings: ExtensionSettings,
+  projectDir: string
 ): ExtensionFactory[] {
   const entries = settings.extensions ?? []
   const factories: ExtensionFactory[] = []
@@ -46,6 +48,9 @@ export function buildExtensions(
         break
       case "lsp":
         factories.push(lsp as ExtensionFactory)
+        break
+      case "git":
+        factories.push(createGitExtension(projectDir) as ExtensionFactory)
         break
     }
   }

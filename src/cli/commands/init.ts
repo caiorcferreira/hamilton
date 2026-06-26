@@ -144,7 +144,8 @@ export function buildSettingsYaml(modelAliases?: Record<string, string>): string
   doc.contents = {
     extensions: [
       { name: "rtk", enabled: true },
-      { name: "lsp", enabled: true }
+      { name: "lsp", enabled: true },
+      { name: "git", enabled: true }
     ],
     lsp: {
       servers: {
