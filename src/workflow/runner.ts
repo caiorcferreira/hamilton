@@ -1,7 +1,6 @@
 import { Effect, Scope } from "effect"
 
 import { WorkflowSpec, WorkflowTask } from "../types.js"
-import { buildAgentsPrompts } from "../prompts/builder.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
@@ -9,22 +8,19 @@ import type { TemplateOptions } from "../prompts/template.js"
 import { Template } from "../prompts/template.js"
 
 import { checkRecursionDepth, evaluateWhenCondition } from "../workflow/when-guard.js"
-import { resolveSystemPromptFragments } from "../prompts/system.js"
-import { resolveAgentDefaults, loadModelAliases, resolveModelAlias } from "../agent/config.js"
-import { executeWithPi } from "../executors/pi/pi-executor.js"
-import { collectReachableTasks, topologicalSort, resolveTaskTimeout, buildTaskId, buildTaskInstanceName } from "../workflow/engine.js"
+
+import { collectReachableTasks, topologicalSort, buildTaskInstanceName } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import {
   createRunDir,
   writeInput,
-  writeTaskOutput,
   writeSummary,
   appendEngineLog
 } from "../observability/run-dir.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
-import * as ChildProcess from "node:child_process"
+
 import { loadGuidelines } from "../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
 import { loadSkillRegistry } from "../skills/registry.js"
