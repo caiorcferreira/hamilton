@@ -57,22 +57,24 @@ describe("buildAgentsPrompts", () => {
   })
 
   it("includes context from env in the system prompt", () => {
-    const env: WorkflowEnv = { tasks: {}, branch: "main", status: "approved" }
+    const env: WorkflowEnv = { tasks: {}, parameters: { cwd: "/tmp/repo" } }
     const params: PromptParams = {
       ...baseParams,
       env
     }
     const result = buildAgentsPrompts(params)
     expect(render(result.systemTemplate)).toContain("<context>")
-    expect(render(result.systemTemplate)).toContain('"branch":"main"')
-    expect(render(result.systemTemplate)).toContain('"status":"approved"')
+    expect(render(result.systemTemplate)).toContain("Current directory:")
+    expect(render(result.systemTemplate)).toContain("/tmp/repo")
   })
 
   it("includes structured data from env as JSON in the system prompt", () => {
     const env: WorkflowEnv = { tasks: {}, stories_json: [{ id: "1", title: "Story" }] }
     const params: PromptParams = {
-      ...baseParams,
-      env
+      fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "Env: {{inputs}}" } },
+      taskPrompt: { content: "do" },
+      env,
+      agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
     expect(render(result.systemTemplate)).toContain('"stories_json"')
@@ -106,7 +108,7 @@ describe("buildAgentsPrompts", () => {
     const params: PromptParams = {
       fragments: { agent: { content: "agent" }, soul: { content: "" }, context: { content: "" } },
       taskPrompt: { content: "do" },
-      env: { tasks: {}, cwd: "/tmp/repo" },
+      env: { tasks: {}, parameters: { cwd: "/tmp/repo" } },
       agentConfig: {}
     }
     const result = buildAgentsPrompts(params)
