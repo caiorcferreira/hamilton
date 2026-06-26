@@ -9,8 +9,22 @@ import type { WorkflowSpec, AgentManifest } from "../../src/types.js"
 
 vi.mock("../../src/executors/pi/pi-executor.js", () => {
   const { Effect: E } = require("effect")
+  const { EventBus } = require("../../src/events/bus.js")
   return {
-    executeWithPi: vi.fn(() => E.succeed({ status: "done", result: "ok", feedback: "fix this" })),
+    executeWithPi: vi.fn((config: any) =>
+      E.gen(function* (_: any) {
+        const bus = yield* _(EventBus)
+        yield* _(bus.publish({
+          _tag: "PromptBuilt",
+          runId: config.runId,
+          taskId: config.taskId,
+          systemPrompt: "mock-system",
+          taskPrompt: "mock-task",
+          guidelineFiles: config.prompt?.guidelineFiles?.map((g: any) => g.name) ?? []
+        }))
+        return { status: "feedback", feedback: "fix this" }
+      })
+    ),
     PiExecutionError: class PiExecutionError extends Error {}
   }
 })

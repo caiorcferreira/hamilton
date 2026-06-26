@@ -7,6 +7,9 @@ import { Effect } from "effect"
 export interface PromptParams {
   fragments: SystemPromptFragments
   taskPrompt: Prompt
+  outputSchema?: Record<string, unknown>
+  userInput?: string
+  isEntrypoint?: boolean
 
   env: WorkflowEnv
   agentConfig: Partial<AgentManifest>
@@ -87,11 +90,25 @@ export function buildAgentsPrompts(
     .setVar("persona", persona)
     .setVar("context", renderedContext)
 
+  let taskTemplateContent = params.taskPrompt.skipTemplate
+    ? (params.taskPrompt.content ?? "")
+    : params.taskPrompt.content ?? ""
+
+  if (params.outputSchema) {
+    const schemaJson = JSON.stringify(params.outputSchema, null, 2)
+    taskTemplateContent = `<task>\n${taskTemplateContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
+  }
+  if (params.isEntrypoint && params.userInput) {
+    taskTemplateContent = `${taskTemplateContent}\n\n<user_prompt>\n\n${params.userInput}\n</user_prompt>`
+  }
+
   let taskTemplate: Template
-  if (params.taskPrompt.skipTemplate) {
-    taskTemplate = Template.make((params.taskPrompt.content ?? "").replace(/{{/g, "\\{{"), options)
+  if (params.taskPrompt.skipTemplate && !params.outputSchema && !(params.isEntrypoint && params.userInput)) {
+    taskTemplate = Template.make(params.taskPrompt.content ?? "", options)
+  } else if (params.taskPrompt.skipTemplate) {
+    taskTemplate = Template.make(taskTemplateContent, options)
   } else {
-    taskTemplate = Template.make(params.taskPrompt.content ?? "", options).setVar("inputs", params.env)
+    taskTemplate = Template.make(taskTemplateContent, options).setVar("inputs", params.env)
   }
 
   return {

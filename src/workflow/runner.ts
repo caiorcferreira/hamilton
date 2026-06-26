@@ -147,28 +147,12 @@ export function runWorkflow(
         const agentPrompts = buildAgentsPrompts({
           fragments,
           taskPrompt: task.agent!.prompt,
+          outputSchema: task.agent?.output?.schema?.content,
+          userInput: taskEnv.user_input ?? undefined,
+          isEntrypoint: task.name === spec.spec.run.entrypoint,
           env: taskEnv,
           agentConfig: agent
         }, guidelineFiles, templateOptions)
-
-        let taskPromptContent = Effect.runSync(agentPrompts.taskTemplate.render())
-        const systemPromptContent = Effect.runSync(agentPrompts.systemTemplate.render())
-        if (task.agent?.output?.schema?.content) {
-          const schemaJson = JSON.stringify(task.agent.output.schema.content, null, 2)
-          taskPromptContent = `<task>\n${taskPromptContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
-        }
-        if (task.name === spec.spec.run.entrypoint) {
-          taskPromptContent = `${taskPromptContent}\n\n<user_prompt>\n\n${taskEnv.user_input ?? ""}\n</user_prompt>`
-        }
-
-        yield* _(bus.publish({
-          _tag: "PromptBuilt",
-          runId,
-          taskId,
-          systemPrompt: systemPromptContent,
-          taskPrompt: taskPromptContent,
-          guidelineFiles: guidelineFiles.map(g => g.name)
-        }))
 
         const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
         const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
