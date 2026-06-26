@@ -306,16 +306,13 @@ export function runWorkflow(
         if (task.when) {
           const maxDepth = resolveMaxRecursionDepth()
           if (maxDepth !== null) {
-            const compoundId = ctx.compoundTaskIds.get(task.name)
-            if (compoundId) {
-              const depthRow = ctx.db.prepare("SELECT depth FROM tasks WHERE id = ?").get(compoundId) as { depth: number } | null
-              if (depthRow && depthRow.depth >= maxDepth) {
-                yield* _(ctx.transitionTask(task.name, "fail"))
-                const errorMsg = `max recursion depth (${maxDepth}) exceeded`
-                yield* _(ctx.fail(errorMsg))
-                workflowStatus = "failed"
-                break
-              }
+            const depth = yield* _(ctx.getTaskDepth(task.name))
+            if (depth !== null && depth >= maxDepth) {
+              yield* _(ctx.transitionTask(task.name, "fail"))
+              const errorMsg = `max recursion depth (${maxDepth}) exceeded`
+              yield* _(ctx.fail(errorMsg))
+              workflowStatus = "failed"
+              break
             }
           }
 
@@ -361,16 +358,13 @@ export function runWorkflow(
                 if (subTask.when) {
                   const maxDepth = resolveMaxRecursionDepth()
                   if (maxDepth !== null) {
-                    const compoundId = ctx.compoundTaskIds.get(subInstanceName)
-                    if (compoundId) {
-                      const depthRow = ctx.db.prepare("SELECT depth FROM tasks WHERE id = ?").get(compoundId) as { depth: number } | null
-                      if (depthRow && depthRow.depth >= maxDepth) {
-                        yield* _(ctx.transitionTask(subInstanceName, "fail"))
-                        const errorMsg = `max recursion depth (${maxDepth}) exceeded`
-                        yield* _(ctx.fail(errorMsg))
-                        workflowStatus = "failed"
-                        break
-                      }
+                    const depth = yield* _(ctx.getTaskDepth(subInstanceName))
+                    if (depth !== null && depth >= maxDepth) {
+                      yield* _(ctx.transitionTask(subInstanceName, "fail"))
+                      const errorMsg = `max recursion depth (${maxDepth}) exceeded`
+                      yield* _(ctx.fail(errorMsg))
+                      workflowStatus = "failed"
+                      break
                     }
                   }
 

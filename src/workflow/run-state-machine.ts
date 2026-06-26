@@ -62,6 +62,7 @@ export interface WorkflowRuntime {
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
   readonly transitionTask: (taskName: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
   readonly insertDynamicTask: (taskName: string, agentName: string, parentTaskId?: string) => Effect.Effect<void, EngineError>
+  readonly getTaskDepth: (taskName: string) => Effect.Effect<number | null, EngineError>
   readonly pause: () => Effect.Effect<void, EngineError>
   readonly complete: () => Effect.Effect<void, EngineError>
   readonly fail: (error: string) => Effect.Effect<void, EngineError>
@@ -152,6 +153,15 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
       insertTaskWithParent(this._db, this._runId, taskId, agentName, taskName, idx, parentTaskId ?? null, depth)
       this._taskStates.set(taskName, "pending")
       this._compoundTaskIds.set(taskName, taskId)
+    })
+  }
+
+  getTaskDepth(taskName: string): Effect.Effect<number | null, EngineError> {
+    return Effect.sync(() => {
+      const compoundId = this._compoundTaskIds.get(taskName)
+      if (!compoundId) return null
+      const depthRow = this._db.prepare("SELECT depth FROM tasks WHERE id = ?").get(compoundId) as { depth: number } | null
+      return depthRow?.depth ?? null
     })
   }
 
