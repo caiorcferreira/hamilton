@@ -218,16 +218,32 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
   }
 }
 
-function collectAllTaskNames(spec: WorkflowSpec): Array<{ taskName: string; agentName: string }> {
-  const result: Array<{ taskName: string; agentName: string }> = []
+function collectLeafTaskDefs(
+  spec: WorkflowSpec,
+  runId: string
+): Array<{ taskName: string; agentName: string; taskId: string; executionIndex: number; depth: number; dependencies: string[]; taskConfig: Record<string, unknown> }> {
+  const result: ReturnType<typeof collectLeafTaskDefs> = []
+  let idx = 0
 
   function walk(tasks: WorkflowSpec["spec"]["tasks"]): void {
     for (const t of tasks) {
-      if (t.agent) {
-        result.push({ taskName: t.name, agentName: t.agent.executorRef })
-      } else if (t.script) {
-        result.push({ taskName: t.name, agentName: "script" })
-      }
+      const agentName = t.agent?.executorRef ?? (t.script ? "script" : "unknown")
+      result.push({
+        taskName: t.name,
+        agentName,
+        taskId: buildTaskId(runId, t.name),
+        executionIndex: idx++,
+        depth: 0,
+        dependencies: t.dependencies ?? [],
+        taskConfig: {
+          agent: t.agent ?? undefined,
+          script: t.script ?? undefined,
+          template: t.template ?? undefined,
+          arguments: t.arguments ?? undefined,
+          when: t.when ?? undefined,
+          tasks: t.tasks ?? undefined
+        }
+      })
       if (t.tasks) {
         walk(t.tasks)
       }
@@ -307,8 +323,15 @@ export function createWorkflowRuntime(
 const runId = buildRunId(spec.metadata.name)
 
 insertRun(db, runId, spec.metadata.name, new Date().toISOString())
-    const taskEntries = collectAllTaskNames(spec)
-    insertTasks(db, runId, taskEntries.map((t, i) => ({ taskName: t.taskName, agentName: t.agentName, executionIndex: i, depth: 0, dependencies: [], taskConfig: {} })))
+    const taskEntries = collectLeafTaskDefs(spec, runId)
+    insertTasks(db, runId, taskEntries.map(t => ({
+      taskName: t.taskName,
+      agentName: t.agentName,
+      executionIndex: t.executionIndex,
+      depth: t.depth,
+      dependencies: t.dependencies,
+      taskConfig: t.taskConfig
+    })))
     updateRunEnv(db, runId, JSON.stringify(params))
 
     const taskRows = getTasksByRunId(db, runId)

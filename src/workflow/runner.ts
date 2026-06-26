@@ -1,6 +1,6 @@
 import { Effect, Ref, Scope } from "effect"
 
-import { WorkflowSpec } from "../types.js"
+import { WorkflowSpec, WorkflowTask } from "../types.js"
 
 import { resolveArguments } from "../workflow/arguments.js"
 import { type WorkflowEnv } from "../workflow/env.js"
@@ -13,6 +13,7 @@ import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
+import { getTasksByRunId } from "../db/queries.js"
 
 import { loadGuidelines } from "../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
@@ -32,6 +33,21 @@ export interface WorkflowResult {
   env: Record<string, unknown>
   startedAt: string
   completedAt: string
+}
+
+function collectAllTasksFromDb(ctx: WorkflowRuntime): WorkflowTask[] {
+  const rows = getTasksByRunId(ctx.db, ctx.runId)
+  return rows
+    .filter(r => r.status === "pending" || r.status === "running")
+    .map(r => {
+      const dependencies: string[] = r.dependencies ? JSON.parse(r.dependencies) : []
+      const config = r.task_def ? JSON.parse(r.task_def) : {}
+      return {
+        name: r.task_name,
+        dependencies,
+        ...config
+      }
+    })
 }
 
 export function runWorkflow(
