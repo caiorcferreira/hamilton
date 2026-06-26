@@ -1,4 +1,4 @@
-import { Effect, Schedule, Duration, Scope } from "effect"
+import { Effect, Ref, Schedule, Duration, Scope } from "effect"
 import { EventBus } from "../events/bus.js"
 import type { WorkflowSpec, WorkflowTask } from "../types.js"
 import type { WorkflowEnv } from "./env.js"
@@ -16,33 +16,80 @@ import type { CompiledRule } from "../guidelines/types.js"
 import { resolveSkills } from "../skills/registry.js"
 
 export interface TaskExecutionState {
-  workflowStatus: { value: string }
+  workflowStatus: Ref.Ref<"planned" | "in-progress" | "completed" | "failed" | "paused">
   taskResults: Record<string, string>
   workflowEnv: WorkflowEnv
+  fileEnabled: boolean
 }
 
-export function executeAgentTask(
-  task: WorkflowTask,
-  taskEnv: WorkflowEnv,
+function withTaskLifecycle(
   instanceName: string,
   taskId: string,
+  ctx: WorkflowRuntime,
+  state: TaskExecutionState,
+  maxRetries: number,
+  execute: Effect.Effect<any, unknown, EventBus | Scope.Scope>
+): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
+  return Effect.gen(function* (_) {
+    const bus = yield* _(EventBus)
+
+    yield* _(
+      execute.pipe(
+        Effect.retry(
+          Schedule.recurs(maxRetries - 1).pipe(
+            Schedule.tapInput(() =>
+              Effect.gen(function* (_) {
+                yield* _(bus.publish({ _tag: "TaskRetrying", runId: ctx.runId, taskId, taskName: instanceName }))
+              }).pipe(Effect.catchAll(() => Effect.void))
+            )
+          )
+        ),
+        Effect.matchEffect({
+          onSuccess: (result) => {
+            if (result === undefined || result === null) {
+              return Effect.gen(function* (_) {
+                yield* _(bus.publish({ _tag: "TaskTimedOut", runId: ctx.runId, taskId, taskName: instanceName }))
+                yield* _(ctx.transitionTask(instanceName, "fail"))
+                yield* _(Ref.set(state.workflowStatus, "failed"))
+              })
+            }
+            return Effect.gen(function* (_) {
+              state.taskResults[instanceName] = String(result.status ?? "done")
+              if (!state.workflowEnv.tasks) state.workflowEnv.tasks = {}
+              state.workflowEnv.tasks[instanceName] = { outputs: result as Record<string, unknown> }
+              yield* _(ctx.transitionTask(instanceName, "complete"))
+              if (state.fileEnabled) {
+                yield* _(writeTaskOutput(ctx.runId, taskId, result))
+              }
+              yield* _(bus.publish({ _tag: "TaskCompleted", runId: ctx.runId, taskId, taskName: instanceName }))
+            })
+          },
+          onFailure: (cause) => {
+            return Effect.gen(function* (_) {
+              yield* _(bus.publish({ _tag: "TaskFailed", runId: ctx.runId, taskId, taskName: instanceName, message: String(cause) }))
+              yield* _(ctx.transitionTask(instanceName, "fail"))
+              yield* _(Ref.set(state.workflowStatus, "failed"))
+            })
+          }
+        })
+      )
+    )
+  })
+}
+
+function buildAgentExecEffect(
+  task: WorkflowTask,
+  taskEnv: WorkflowEnv,
   spec: WorkflowSpec,
   ctx: WorkflowRuntime,
   guidelineFiles: Array<{ name: string; content: string }>,
   allRules: CompiledRule[],
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
-  fileEnabled: boolean,
-  state: TaskExecutionState
-): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
+  agent: NonNullable<ReturnType<WorkflowSpec["agentRegistry"]["get"]>>,
+  taskId: string
+): Effect.Effect<unknown, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
-    if (!task.agent) return
-
-    const agent = spec.agentRegistry.get(task.agent.executorRef)
-    if (!agent) return
-
-    const bus = yield* _(EventBus)
-
     const fragments = yield* _(
       resolveSystemPromptFragments(agent.systemPrompt, agent.dirPath).pipe(
         Effect.mapError((e) => new Error(e.agentPath))
@@ -65,7 +112,7 @@ export function executeAgentTask(
     const model = resolveModelAlias(resolved.model, aliases)
     const outputSchema = task.agent!.output?.schema
 
-    const output = yield* _(
+    return yield* _(
       executeWithPi({
         prompt: {
           systemTemplate: agentPrompts.systemTemplate,
@@ -87,65 +134,29 @@ export function executeAgentTask(
           compactionEnabled: undefined
         }
       }).pipe(
-        Effect.timeout(Duration.seconds(timeoutSeconds)),
-        Effect.retry(
-          Schedule.recurs((task.agent!.on_failure?.max_retries ?? 1) - 1).pipe(
-            Schedule.tapInput(() =>
-              Effect.gen(function* (_) {
-                yield* _(bus.publish({ _tag: "TaskRetrying", runId: ctx.runId, taskId, taskName: instanceName }))
-              }).pipe(Effect.catchAll(() => Effect.void))
-            )
-          )
-        )
+        Effect.timeout(Duration.seconds(timeoutSeconds))
       )
     )
-
-    if (output === undefined || output === null) {
-      yield* _(bus.publish({ _tag: "TaskTimedOut", runId: ctx.runId, taskId, taskName: instanceName }))
-      yield* _(ctx.transitionTask(instanceName, "fail"))
-      state.workflowStatus.value = "failed"
-      return
-    }
-
-    state.taskResults[instanceName] = String(output.status ?? "done")
-    if (!state.workflowEnv.tasks) state.workflowEnv.tasks = {}
-    state.workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
-
-    yield* _(ctx.transitionTask(instanceName, "complete"))
-    if (fileEnabled) {
-      yield* _(writeTaskOutput(ctx.runId, taskId, output))
-    }
-    yield* _(bus.publish({ _tag: "TaskCompleted", runId: ctx.runId, taskId, taskName: instanceName }))
   })
 }
 
-export function executeScriptTask(
+function buildScriptExecEffect(
   task: WorkflowTask,
   taskEnv: WorkflowEnv,
-  instanceName: string,
-  taskId: string,
   spec: WorkflowSpec,
-  ctx: WorkflowRuntime,
   templateOptions: TemplateOptions,
-  scriptConfig: { maxOutputBytes: number },
-  fileEnabled: boolean,
-  state: TaskExecutionState
-): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
+  scriptConfig: { maxOutputBytes: number }
+): Effect.Effect<{ stdout: string; stderr: string; exitCode: number; status: string }, { stdout: string; stderr: string; exitCode: number; status: string }> {
   return Effect.gen(function* (_) {
-    if (!task.script) return
-
-    const bus = yield* _(EventBus)
-
     const renderedCommand = Effect.runSync(
-      Template.make(task.script.command, templateOptions)
+      Template.make(task.script!.command, templateOptions)
         .setInputEnv(taskEnv as Record<string, unknown>)
         .render()
     )
-    const workdir = task.script.workdir ?? (taskEnv.project_dir as string | undefined) ?? process.cwd()
+    const workdir = task.script!.workdir ?? (taskEnv.project_dir as string | undefined) ?? process.cwd()
     const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
-    const maxRetries = task.script.on_failure?.max_retries ?? 1
 
-    const runScript = (): Effect.Effect<{ stdout: string; stderr: string; exitCode: number; status: string }, { stdout: string; stderr: string; exitCode: number; status: string }> =>
+    return yield* _(
       Effect.try({
         try: () => {
           const stdout = ChildProcess.execSync(renderedCommand, {
@@ -154,51 +165,20 @@ export function executeScriptTask(
             encoding: "utf-8",
             maxBuffer: scriptConfig.maxOutputBytes
           })
-          return { stdout: stdout.trim(), stderr: "", exitCode: 0, status: "done" }
+          return { stdout: stdout.trim(), stderr: "", exitCode: 0, status: "done" as const }
         },
         catch: (e: any) => {
           const stdout = (e.stdout as string | undefined) ?? ""
           const stderr = (e.stderr as string | undefined) ?? String(e)
           const exitCode = (e.status as number | undefined) ?? 1
-          return { stdout: String(stdout).trim(), stderr: String(stderr), exitCode, status: "failed" }
+          return { stdout: String(stdout).trim(), stderr: String(stderr), exitCode, status: "failed" as const }
         }
       }).pipe(
         Effect.flatMap((result) =>
           result.status === "done" ? Effect.succeed(result) : Effect.fail(result)
         )
       )
-
-    const output = yield* _(
-      runScript().pipe(
-        Effect.retry(
-          Schedule.recurs(maxRetries - 1).pipe(
-            Schedule.tapInput(() =>
-              Effect.gen(function* (_) {
-                yield* _(bus.publish({ _tag: "TaskRetrying", runId: ctx.runId, taskId, taskName: instanceName }))
-              }).pipe(Effect.catchAll(() => Effect.void))
-            )
-          )
-        ),
-        Effect.catchAll((failedResult) => Effect.succeed(failedResult))
-      )
     )
-
-    if (output.status === "failed") {
-      yield* _(ctx.transitionTask(instanceName, "fail"))
-      state.taskResults[instanceName] = "failed"
-      state.workflowStatus.value = "failed"
-      return
-    }
-
-    state.taskResults[instanceName] = "done"
-    if (!state.workflowEnv.tasks) state.workflowEnv.tasks = {}
-    state.workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
-
-    yield* _(ctx.transitionTask(instanceName, "complete"))
-    if (fileEnabled) {
-      yield* _(writeTaskOutput(ctx.runId, taskId, output))
-    }
-    yield* _(bus.publish({ _tag: "TaskCompleted", runId: ctx.runId, taskId, taskName: instanceName }))
   })
 }
 
@@ -213,7 +193,6 @@ export function dispatchTask(
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
   scriptConfig: { maxOutputBytes: number },
-  fileEnabled: boolean,
   state: TaskExecutionState
 ): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
@@ -224,9 +203,15 @@ export function dispatchTask(
     yield* _(bus.publish({ _tag: "TaskStarted", runId: ctx.runId, taskId, taskName: instanceName }))
 
     if (task.agent) {
-      yield* _(executeAgentTask(task, taskEnv, instanceName, taskId, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, fileEnabled, state))
+      const agent = spec.agentRegistry.get(task.agent.executorRef)
+      if (!agent) return
+      const maxRetries = task.agent!.on_failure?.max_retries ?? 1
+      const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, agent, taskId)
+      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, execEffect))
     } else if (task.script) {
-      yield* _(executeScriptTask(task, taskEnv, instanceName, taskId, spec, ctx, templateOptions, scriptConfig, fileEnabled, state))
+      const maxRetries = task.script.on_failure?.max_retries ?? 1
+      const execEffect = buildScriptExecEffect(task, taskEnv, spec, templateOptions, scriptConfig)
+      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, execEffect))
     }
   })
 }
