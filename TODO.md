@@ -9,6 +9,7 @@
 - [ ] Look for opencode system prompt as example to improve
 - [ ] Keep improving agents and workflow prompts
 - [ ] Refactor the write task output reminder into a hook system
+- [ ] Review how script tasks are implemented. Shouldn't we have a "local/shell" executor for it?
 
 ### Core Engine
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
