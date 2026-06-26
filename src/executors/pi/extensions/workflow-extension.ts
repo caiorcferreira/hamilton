@@ -3,6 +3,40 @@ import { Type } from "typebox"
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import { validateAndWrite } from "../../../agent/write-task-output.js"
 
+export function validateTodoList(input: unknown): { valid: true } | { valid: false; error: string } {
+  if (!Array.isArray(input)) {
+    return { valid: false, error: "Input must be an array of todo items" }
+  }
+  if (input.some((item: unknown) => typeof item !== "object" || item === null)) {
+    return { valid: false, error: "Each todo item must be an object with fields: content (string), status (pending|in_progress|completed|cancelled), priority (high|medium|low)" }
+  }
+  const STATUSES = new Set(["pending", "in_progress", "completed", "cancelled"])
+  const PRIORITIES = new Set(["high", "medium", "low"])
+  for (let i = 0; i < input.length; i++) {
+    const item = input[i] as Record<string, unknown>
+    if (typeof item.content !== "string" || item.content.trim().length === 0) {
+      return { valid: false, error: `Item ${i}: "content" must be a non-empty string` }
+    }
+    if (typeof item.status !== "string" || !STATUSES.has(item.status)) {
+      return { valid: false, error: `Item ${i}: "status" must be one of: pending, in_progress, completed, cancelled` }
+    }
+    if (typeof item.priority !== "string" || !PRIORITIES.has(item.priority)) {
+      return { valid: false, error: `Item ${i}: "priority" must be one of: high, medium, low` }
+    }
+  }
+  const inProgressCount = (input as Array<{ status: string }>).filter(item => item.status === "in_progress").length
+  if (inProgressCount > 1) {
+    return { valid: false, error: `Expected exactly 1 in_progress item, found ${inProgressCount}` }
+  }
+  if (inProgressCount === 0) {
+    const hasRemaining = (input as Array<{ status: string }>).some(item => item.status === "pending")
+    if (hasRemaining) {
+      return { valid: false, error: "Either set one item to in_progress or mark all items as completed/cancelled" }
+    }
+  }
+  return { valid: true }
+}
+
 const paramsSchema = Type.Object({
   input: Type.Object({
     status: Type.String({ description: "Completion state: 'done', 'retry', or 'failed'" })

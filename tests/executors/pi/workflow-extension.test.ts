@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { createWorkflowExtension } from "../../../src/executors/pi/extensions/workflow-extension.js"
+import { createWorkflowExtension, validateTodoList } from "../../../src/executors/pi/extensions/workflow-extension.js"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Os from "node:os"
@@ -229,5 +229,92 @@ describe("createWorkflowExtension", () => {
     const result = await toolDef.execute("call-1", { staged: true }, undefined, undefined, {} as any)
 
     expect(result.content[0].type).toBe("text")
+  })
+})
+
+describe("validateTodoList", () => {
+  it("accepts a valid list with one in_progress", () => {
+    const result = validateTodoList([
+      { content: "write tests", status: "completed", priority: "high" },
+      { content: "implement feature", status: "in_progress", priority: "high" },
+      { content: "run build", status: "pending", priority: "medium" }
+    ])
+    expect(result).toEqual({ valid: true })
+  })
+
+  it("accepts an empty array", () => {
+    const result = validateTodoList([])
+    expect(result).toEqual({ valid: true })
+  })
+
+  it("accepts all items completed", () => {
+    const result = validateTodoList([
+      { content: "write tests", status: "completed", priority: "high" },
+      { content: "implement feature", status: "completed", priority: "high" }
+    ])
+    expect(result).toEqual({ valid: true })
+  })
+
+  it("accepts all items cancelled", () => {
+    const result = validateTodoList([
+      { content: "write tests", status: "cancelled", priority: "low" }
+    ])
+    expect(result).toEqual({ valid: true })
+  })
+
+  it("rejects non-array input", () => {
+    expect(validateTodoList(null)).toEqual({ valid: false, error: "Input must be an array of todo items" })
+    expect(validateTodoList("string")).toEqual({ valid: false, error: "Input must be an array of todo items" })
+    expect(validateTodoList({})).toEqual({ valid: false, error: "Input must be an array of todo items" })
+  })
+
+  it("rejects items with null/primitive elements", () => {
+    const result = validateTodoList([null])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("ach todo item must be an object")
+  })
+
+  it("rejects items with missing fields", () => {
+    const result = validateTodoList([{ status: "pending" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("content")
+  })
+
+  it("rejects items with empty content", () => {
+    const result = validateTodoList([{ content: "", status: "pending", priority: "high" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("content")
+  })
+
+  it("rejects items with invalid status", () => {
+    const result = validateTodoList([{ content: "do thing", status: "started", priority: "high" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("status")
+    expect(result.error).toContain("pending, in_progress, completed, cancelled")
+  })
+
+  it("rejects items with invalid priority", () => {
+    const result = validateTodoList([{ content: "do thing", status: "pending", priority: "critical" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("priority")
+    expect(result.error).toContain("high, medium, low")
+  })
+
+  it("rejects more than one in_progress", () => {
+    const result = validateTodoList([
+      { content: "task a", status: "in_progress", priority: "high" },
+      { content: "task b", status: "in_progress", priority: "high" }
+    ])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("Expected exactly 1 in_progress item, found 2")
+  })
+
+  it("rejects zero in_progress when pending items exist", () => {
+    const result = validateTodoList([
+      { content: "task a", status: "pending", priority: "high" },
+      { content: "task b", status: "completed", priority: "high" }
+    ])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("Either set one item to in_progress or mark all items as completed/cancelled")
   })
 })
