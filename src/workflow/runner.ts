@@ -1,4 +1,4 @@
-import { Effect, Schedule, Duration, Scope } from "effect"
+import { Effect, Scope } from "effect"
 
 import { WorkflowSpec, WorkflowTask } from "../types.js"
 import { buildAgentsPrompts } from "../prompts/builder.js"
@@ -27,7 +27,8 @@ import { DbWriter } from "../db/subscribers.js"
 import * as ChildProcess from "node:child_process"
 import { loadGuidelines } from "../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
-import { loadSkillRegistry, resolveSkills } from "../skills/registry.js"
+import { loadSkillRegistry } from "../skills/registry.js"
+import { dispatchTask } from "./task-executor.js"
 import { skillsDir, guidelinesDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
@@ -110,186 +111,13 @@ export function runWorkflow(
     const taskResults: Record<string, string> = {}
     let totalTokensIn = 0
     let totalTokensOut = 0
-    let workflowStatus: string = "completed"
+    const workflowStatus = { value: "completed" as string }
 
-    const executeAgentTask = (
-      task: WorkflowTask,
-      taskEnv: WorkflowEnv,
-      instanceName: string,
-      taskId: string
-    ): Effect.Effect<void, unknown, EventBus | Scope.Scope> =>
-      Effect.gen(function* () {
-        if (!task.agent) return
-
-        const agent = spec.agentRegistry.get(task.agent.executorRef)
-        if (!agent) return
-
-        const fragments = yield* _(
-          resolveSystemPromptFragments(agent.systemPrompt, agent.dirPath).pipe(
-            Effect.mapError((e) => new Error(e.agentPath))
-          )
-        )
-
-        const agentPrompts = buildAgentsPrompts({
-          fragments,
-          taskPrompt: task.agent!.prompt,
-          outputSchema: task.agent?.output?.schema?.content,
-          userInput: taskEnv.user_input ?? undefined,
-          isEntrypoint: task.name === spec.spec.run.entrypoint,
-          env: taskEnv,
-          agentConfig: agent
-        }, guidelineFiles, templateOptions)
-
-        const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
-        const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
-        const aliases = loadModelAliases()
-        const model = resolveModelAlias(resolved.model, aliases)
-        const outputSchema = task.agent!.output?.schema
-
-        const output = yield* _(
-          executeWithPi({
-            prompt: {
-              systemTemplate: agentPrompts.systemTemplate,
-              taskTemplate: agentPrompts.taskTemplate,
-              guidelineFiles: agentPrompts.guidelineFiles
-            },
-            taskId,
-            agentId: agent.metadata.name,
-            runId,
-            timeoutSeconds,
-            model,
-            outputSchema: outputSchema?.content,
-            rules: allRules.length > 0 ? allRules : undefined,
-            settings: {
-              skills: resolveSkills(resolved.skills, skillRegistry),
-              thinking: undefined,
-              tools: undefined,
-              retryOnTransient: undefined,
-              compactionEnabled: undefined
-            }
-          }).pipe(
-            Effect.timeout(Duration.seconds(timeoutSeconds)),
-            Effect.retry(
-              Schedule.recurs((task.agent!.on_failure?.max_retries ?? 1) - 1).pipe(
-                Schedule.tapInput(() =>
-                  Effect.gen(function* () {
-                    yield* _(bus.publish({ _tag: "TaskRetrying", runId, taskId, taskName: instanceName }))
-                  }).pipe(Effect.catchAll(() => Effect.void))
-                )
-              )
-            )
-          )
-        )
-
-        if (output === undefined || output === null) {
-          yield* _(bus.publish({ _tag: "TaskTimedOut", runId, taskId, taskName: instanceName }))
-          yield* _(ctx.transitionTask(instanceName, "fail"))
-          workflowStatus = "failed"
-          return
-        }
-
-        taskResults[instanceName] = String(output.status ?? "done")
-        if (!workflowEnv.tasks) workflowEnv.tasks = {}
-        workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
-
-        yield* _(ctx.transitionTask(instanceName, "complete"))
-        if (fileEnabled) {
-          yield* _(writeTaskOutput(runId, taskId, output))
-        }
-        yield* _(bus.publish({ _tag: "TaskCompleted", runId, taskId, taskName: instanceName }))
-      })
-
-    const executeScriptTask = (
-      task: WorkflowTask,
-      taskEnv: WorkflowEnv,
-      instanceName: string,
-      taskId: string
-    ): Effect.Effect<void, unknown, EventBus | Scope.Scope> =>
-      Effect.gen(function* () {
-        if (!task.script) return
-
-        const renderedCommand = Effect.runSync(
-          Template.make(task.script.command, templateOptions)
-            .setInputEnv(taskEnv as Record<string, unknown>)
-            .render()
-        )
-        const workdir = task.script.workdir ?? (taskEnv.project_dir as string | undefined) ?? process.cwd()
-        const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
-        const maxRetries = task.script.on_failure?.max_retries ?? 1
-
-        const runScript = (): Effect.Effect<{ stdout: string; stderr: string; exitCode: number; status: string }, { stdout: string; stderr: string; exitCode: number; status: string }> =>
-          Effect.try({
-            try: () => {
-              const stdout = ChildProcess.execSync(renderedCommand, {
-                cwd: workdir,
-                timeout: timeoutSeconds * 1000,
-                encoding: "utf-8",
-                maxBuffer: scriptConfig.maxOutputBytes
-              })
-              return { stdout: stdout.trim(), stderr: "", exitCode: 0, status: "done" }
-            },
-            catch: (e: any) => {
-              const stdout = (e.stdout as string | undefined) ?? ""
-              const stderr = (e.stderr as string | undefined) ?? String(e)
-              const exitCode = (e.status as number | undefined) ?? 1
-              return { stdout: String(stdout).trim(), stderr: String(stderr), exitCode, status: "failed" }
-            }
-          }).pipe(
-            Effect.flatMap((result) =>
-              result.status === "done" ? Effect.succeed(result) : Effect.fail(result)
-            )
-          )
-
-        const output = yield* _(
-          runScript().pipe(
-            Effect.retry(
-              Schedule.recurs(maxRetries - 1).pipe(
-                Schedule.tapInput(() =>
-                  Effect.gen(function* () {
-                    yield* _(bus.publish({ _tag: "TaskRetrying", runId, taskId, taskName: instanceName }))
-                  }).pipe(Effect.catchAll(() => Effect.void))
-                )
-              )
-            ),
-            Effect.catchAll((failedResult) => Effect.succeed(failedResult))
-          )
-        )
-
-        if (output.status === "failed") {
-          yield* _(ctx.transitionTask(instanceName, "fail"))
-          taskResults[instanceName] = "failed"
-          workflowStatus = "failed"
-          return
-        }
-
-        taskResults[instanceName] = "done"
-        if (!workflowEnv.tasks) workflowEnv.tasks = {}
-        workflowEnv.tasks[instanceName] = { outputs: output as Record<string, unknown> }
-
-        yield* _(ctx.transitionTask(instanceName, "complete"))
-        if (fileEnabled) {
-          yield* _(writeTaskOutput(runId, taskId, output))
-        }
-        yield* _(bus.publish({ _tag: "TaskCompleted", runId, taskId, taskName: instanceName }))
-      })
-
-    const executeSingleTask = (
-      task: WorkflowTask,
-      taskEnv: WorkflowEnv,
-      instanceName: string
-    ): Effect.Effect<void, unknown, EventBus | Scope.Scope> =>
-      Effect.gen(function* () {
-        const taskId = ctx.compoundTaskIds.get(instanceName) ?? buildTaskId(runId, instanceName)
-
-        yield* _(ctx.transitionTask(instanceName, "start"))
-        yield* _(bus.publish({ _tag: "TaskStarted", runId, taskId, taskName: instanceName }))
-
-        if (task.agent) {
-          yield* _(executeAgentTask(task, taskEnv, instanceName, taskId))
-        } else if (task.script) {
-          yield* _(executeScriptTask(task, taskEnv, instanceName, taskId))
-        }
-      })
+    const execState = {
+      workflowStatus,
+      taskResults,
+      workflowEnv
+    }
 
     const body = Effect.gen(function* () {
       yield* _(createSubscriber(
@@ -301,13 +129,13 @@ export function runWorkflow(
       ))
 
       for (const task of sortedTasks) {
-        if (workflowStatus === "failed") break
+        if (workflowStatus.value === "failed") break
 
         if (task.when) {
           const maxDepth = resolveMaxRecursionDepth()
           const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, task.name))
           if (depthResult === "fail") {
-            workflowStatus = "failed"
+            workflowStatus.value = "failed"
             break
           }
 
@@ -319,7 +147,7 @@ export function runWorkflow(
           if (typeof whenResult === "object" && whenResult._tag === "error") {
             yield* _(ctx.transitionTask(task.name, "fail"))
             yield* _(ctx.fail(whenResult.message))
-            workflowStatus = "failed"
+            workflowStatus.value = "failed"
             break
           }
         }
@@ -333,7 +161,7 @@ export function runWorkflow(
           const compoundParentTaskId = ctx.compoundTaskIds.get(task.name) ?? undefined
 
           for (let i = 0; i < resolvedArgs.itemsCount; i++) {
-            if (workflowStatus === "failed") break
+            if (workflowStatus.value === "failed") break
 
             const instanceName = buildTaskInstanceName(task.name, i)
             const taskEnv: WorkflowEnv = {
@@ -345,14 +173,14 @@ export function runWorkflow(
               workflowEnv.currentIteration = { tasks: {} }
               const sub = topologicalSort(templateTask.tasks)
               for (const subTask of sub) {
-                if (workflowStatus === "failed") break
+                if (workflowStatus.value === "failed") break
                 const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
 
                 if (subTask.when) {
                   const maxDepth = resolveMaxRecursionDepth()
                   const depthResult = yield* _(checkRecursionDepth(ctx, maxDepth, subInstanceName))
                   if (depthResult === "fail") {
-                    workflowStatus = "failed"
+                    workflowStatus.value = "failed"
                     break
                   }
 
@@ -364,7 +192,7 @@ export function runWorkflow(
                   if (typeof whenResult === "object" && whenResult._tag === "error") {
                     yield* _(ctx.transitionTask(subInstanceName, "fail"))
                     yield* _(ctx.fail(whenResult.message))
-                    workflowStatus = "failed"
+                    workflowStatus.value = "failed"
                     break
                   }
                 }
@@ -384,11 +212,11 @@ export function runWorkflow(
                     workflowEnv.currentIteration = { tasks: {} }
                     const nestedSub = topologicalSort(nestedTemplate.tasks)
                     for (const nestedSubTask of nestedSub) {
-                      if (workflowStatus === "failed") break
+                      if (workflowStatus.value === "failed") break
                       const nestedInstanceName = buildTaskInstanceName(subInstanceName, nestedSubTask.name)
                       const nestedRef = nestedSubTask.agent?.executorRef ?? "script"
                       yield* _(ctx.insertDynamicTask(nestedInstanceName, nestedRef, compoundParentTaskId))
-                      yield* _(executeSingleTask(nestedSubTask, nestedEnv, nestedInstanceName))
+                      yield* _(dispatchTask(nestedSubTask, nestedEnv, nestedInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
                       const nestedOutput = workflowEnv.tasks?.[nestedInstanceName]
                       if (nestedOutput && workflowEnv.currentIteration?.tasks) {
                         workflowEnv.currentIteration.tasks[nestedSubTask.name] = nestedOutput
@@ -397,7 +225,7 @@ export function runWorkflow(
                     delete workflowEnv.currentIteration
                     workflowEnv.currentIteration = savedIteration
                   } else if (nestedTemplate.agent || nestedTemplate.script) {
-                    yield* _(executeSingleTask(nestedTemplate, nestedEnv, subInstanceName))
+                    yield* _(dispatchTask(nestedTemplate, nestedEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
                   }
                   const subOutput = workflowEnv.tasks?.[subInstanceName]
                   if (subOutput && workflowEnv.currentIteration?.tasks) {
@@ -408,7 +236,7 @@ export function runWorkflow(
 
                 const subRef = subTask.agent?.executorRef ?? "script"
                 yield* _(ctx.insertDynamicTask(subInstanceName, subRef, compoundParentTaskId))
-                yield* _(executeSingleTask(subTask, taskEnv, subInstanceName))
+                yield* _(dispatchTask(subTask, taskEnv, subInstanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
                 const subOutput = workflowEnv.tasks?.[subInstanceName]
                 if (subOutput && workflowEnv.currentIteration?.tasks) {
                   workflowEnv.currentIteration.tasks[subTask.name] = subOutput
@@ -418,7 +246,7 @@ export function runWorkflow(
             } else if (templateTask.agent || templateTask.script) {
               const ref = templateTask.agent?.executorRef ?? "script"
               yield* _(ctx.insertDynamicTask(instanceName, ref, compoundParentTaskId))
-              yield* _(executeSingleTask(templateTask, taskEnv, instanceName))
+              yield* _(dispatchTask(templateTask, taskEnv, instanceName, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
             }
           }
           continue
@@ -432,7 +260,7 @@ export function runWorkflow(
         const shouldPauseResult = yield* _(ctx.shouldPause())
         if (shouldPauseResult) {
           yield* _(bus.publish({ _tag: "TaskPaused", runId, taskId: task.name, taskName: task.name }))
-          workflowStatus = "paused"
+          workflowStatus.value = "paused"
           break
         }
 
@@ -441,28 +269,28 @@ export function runWorkflow(
           ...workflowEnv,
           parameters: resolvedArgs.parameters
         }
-        yield* _(executeSingleTask(task, taskEnv, task.name))
+        yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, fileEnabled, execState))
       }
 
       const completedAt = new Date().toISOString()
 
-      if (workflowStatus === "completed") {
+      if (workflowStatus.value === "completed") {
         yield* _(ctx.complete().pipe(Effect.catchAll(() => Effect.void)))
-      } else if (workflowStatus === "failed") {
-        yield* _(ctx.fail(workflowStatus).pipe(Effect.catchAll(() => Effect.void)))
+      } else if (workflowStatus.value === "failed") {
+        yield* _(ctx.fail(workflowStatus.value).pipe(Effect.catchAll(() => Effect.void)))
       }
 
       const elapsedSeconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-      const summary = { runId, status: workflowStatus, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
+      const summary = { runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
       if (fileEnabled) {
         yield* _(writeSummary(runId, summary))
       }
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId }))
       if (fileEnabled) {
-        yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus }))
+        yield* _(appendEngineLog(runId, { event: "workflow_completed", status: workflowStatus.value }))
       }
 
-      return { runId, status: workflowStatus, taskResults, env: workflowEnv, startedAt, completedAt } as WorkflowResult
+      return { runId, status: workflowStatus.value, taskResults, env: workflowEnv, startedAt, completedAt } as WorkflowResult
     })
 
     const completedAt = new Date().toISOString()
