@@ -36,6 +36,18 @@ export const WorkflowLogger = (
         }).pipe(Effect.catchAll(() => Effect.void))
       }
 
+      if (event._tag === "TaskInserted") {
+        return Effect.gen(function* (_) {
+          yield* _(appendEngineLog(event.runId, {
+            event: "task_inserted",
+            taskId: event.taskId,
+            taskName: event.taskName,
+            scopeKey: event.scopeKey,
+            depth: event.depth
+          }))
+        }).pipe(Effect.catchAll(() => Effect.void))
+      }
+
       return Effect.void
     }
   )
