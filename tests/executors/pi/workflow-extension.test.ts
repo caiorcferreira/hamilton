@@ -317,4 +317,24 @@ describe("validateTodoList", () => {
     expect(result.valid).toBe(false)
     expect(result.error).toContain("Either set one item to in_progress or mark all items as completed/cancelled")
   })
+
+  it("rejects whitespace-only content", () => {
+    const result = validateTodoList([{ content: "   ", status: "pending", priority: "high" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("content")
+  })
+
+  it("rejects non-object primitives", () => {
+    expect(validateTodoList([42]).valid).toBe(false)
+    expect(validateTodoList([true]).valid).toBe(false)
+    expect(validateTodoList(["string"]).valid).toBe(false)
+    expect(validateTodoList([undefined]).valid).toBe(false)
+  })
+
+  it("rejects single pending item with zero in_progress", () => {
+    const result = validateTodoList([{ content: "x", status: "pending", priority: "high" }])
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain("set one item to in_progress")
+  })
 })
+
