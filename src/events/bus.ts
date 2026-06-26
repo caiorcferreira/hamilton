@@ -28,6 +28,8 @@ export type Event =
   | { readonly _tag: "ProviderRequestStarted"; readonly runId: string; readonly taskId: string; readonly turnId: string; readonly requestId: string; readonly provider: string; readonly model: string; readonly payloadSummary: string; readonly timestamp: string }
   | { readonly _tag: "ModelSelected"; readonly runId: string; readonly taskId: string; readonly provider: string; readonly model: string; readonly timestamp: string }
   | { readonly _tag: "LspDiagnostic"; readonly runId: string; readonly taskId: string; readonly filePath: string; readonly text: string }
+  | { readonly _tag: "TodoListUpdated"; readonly runId: string; readonly taskId: string; readonly todos: ReadonlyArray<{ readonly content: string; readonly status: "pending" | "in_progress" | "completed" | "cancelled"; readonly priority: "high" | "medium" | "low" }> }
+  | { readonly _tag: "TodoConstraintError"; readonly runId: string; readonly taskId: string; readonly message: string }
 
 export type EventBusSubscriptionOperations = {
   readonly subscribeAll: Stream.Stream<Event>
