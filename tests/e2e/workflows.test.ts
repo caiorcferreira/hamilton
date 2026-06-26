@@ -94,6 +94,9 @@ describe("end-to-end workflow execution", () => {
     if (Exit.isSuccess(result)) {
       const r = result.value
       expect(r.status).toBe("completed")
+      expect(typeof r.env).toBe("object")
+      expect(r.env).toHaveProperty("run_id")
+      expect(r.env).toHaveProperty("tasks")
       expect(r.taskResults).toHaveProperty("triage")
       expect(r.taskResults).toHaveProperty("investigate")
       expect(r.taskResults).toHaveProperty("setup")

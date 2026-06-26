@@ -175,6 +175,30 @@ describe("runWorkflow DAG-aware executor", () => {
     expect(events[events.length - 1]._tag).toBe("WorkflowCompleted")
   })
 
+  it("publishes WorkflowStatusChanged events for planned, in-progress, and completed", async () => {
+    const events = await collectEvents(
+      runWorkflow(makeSpec(), { project_dir: tmpHome }, { strict: false })
+    )
+
+    const statusEvents = events.filter(e => e._tag === "WorkflowStatusChanged")
+    expect(statusEvents.length).toBeGreaterThanOrEqual(2)
+    if (statusEvents[0] && statusEvents[0]._tag === "WorkflowStatusChanged") expect(statusEvents[0].status).toBe("planned")
+    if (statusEvents[1] && statusEvents[1]._tag === "WorkflowStatusChanged") expect(statusEvents[1].status).toBe("in-progress")
+  })
+
+  it("returned env is Record<string, unknown> containing runtime keys", async () => {
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        runWorkflow(makeSpec(), { project_dir: tmpHome }, { strict: false })
+      ).pipe(Effect.provide(EventBusLive))
+    )
+
+    expect(typeof result.env).toBe("object")
+    expect(result.env).toHaveProperty("tasks")
+    expect(result.env).toHaveProperty("project_dir")
+    expect(result.env).toHaveProperty("run_id")
+  })
+
   it("handles linear chain with 3 tasks", async () => {
     const spec: WorkflowSpec = {
       ...makeSpec(),

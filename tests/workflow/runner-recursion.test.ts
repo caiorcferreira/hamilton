@@ -252,4 +252,31 @@ describe("workflow when and recursion", () => {
     const started = events.filter(e => e._tag === "TaskStarted")
     expect(started.length).toBe(1)
   })
+
+  it("has planned status in WorkflowCompleted summary under recursion", async () => {
+    const spec: WorkflowSpec = {
+      metadata: { version: 1, name: "recursion-status" },
+      spec: {
+        run: { entrypoint: "task1", timeout: "300s" },
+        tasks: [
+          { name: "task1", agent: { executorRef: "worker", prompt: { content: "Work" } } }
+        ]
+      },
+      agentRegistry: new Map([["worker", makeAgentManifest("worker")]])
+    }
+
+    const events = await collectEvents(
+      runWorkflow(spec, { project_dir: tmpHome }, { strict: false })
+    )
+
+    const completed = events.find(e => e._tag === "WorkflowCompleted")
+    expect(completed).toBeDefined()
+    if (completed && completed._tag === "WorkflowCompleted") {
+      expect(completed.summary).toBeDefined()
+      expect(completed.summary!.status).toBe("completed")
+    }
+
+    const statusChanges = events.filter(e => e._tag === "WorkflowStatusChanged")
+    expect(statusChanges.length).toBeGreaterThanOrEqual(2)
+  })
 })

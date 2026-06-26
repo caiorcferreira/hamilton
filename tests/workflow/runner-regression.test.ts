@@ -199,6 +199,11 @@ describe("runWorkflow regression tests", () => {
     )
 
     expect(events[0]._tag).toBe("WorkflowStarted")
+
+    const statusEvents = events.filter(e => e._tag === "WorkflowStatusChanged")
+    expect(statusEvents.length).toBeGreaterThanOrEqual(2)
+    const planned = statusEvents.find(e => e._tag === "WorkflowStatusChanged" && e.status === "planned")
+    expect(planned).toBeDefined()
   })
 
   it("records token events via EventBus TokenUsage subscriber", async () => {
