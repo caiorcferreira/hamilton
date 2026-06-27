@@ -217,16 +217,38 @@ Unlike other workflows, `scaffold` doesn't need an existing git repo.
 
 ## General-Purpose Tasks
 
-For ad-hoc tasks that don't need decomposition.
+Use the `do` workflow for one-off tasks where a single agent is sufficient.
+
+### Basic Do
 
 ```bash
-hamilton workflow run do "Refactor the UserService to use the repository pattern"
-hamilton workflow run do "Add JSDoc comments to all public API functions"
-hamilton workflow run do "Update all dependencies to their latest compatible versions"
+cd /path/to/repo
+hamilton workflow run do "Add JSDoc comments to all exported functions in src/utils/"
 ```
 
-Single agent, end-to-end. Use when the task fits in one context window and doesn't
-benefit from specialized agents.
+**Pipeline**: setup → do
+
+**What happens:**
+1. Setup discovers build and test commands
+2. The `do` agent understands the task, plans an approach, executes, verifies, and reports
+
+**Output**: A JSON object with `status`, `result` (what was done), and `changes` (list of changed files).
+
+### Do with Guidelines
+
+The `do` agent automatically picks up project guidelines based on file types. To add custom conventions:
+
+1. Create `~/.hamilton/guidelines/my-conventions/guideline.yml`
+2. The `do` agent will follow your conventions alongside the task prompt
+
+### When to Use Do vs. Bug-Fix
+
+| Use `do` when... | Use `bug-fix` when... |
+|------------------|-----------------------|
+| The task doesn't need separate triage/analysis phases | You need structured root cause analysis |
+| A single agent can complete the work | Multiple agents with different expertise are needed |
+| You want to add/refactor code (not fix a specific bug) | You're fixing a reported defect |
+| The outcome is additive (docs, features, refactors) | The outcome needs verification against acceptance criteria |
 
 ---
 
