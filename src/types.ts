@@ -133,6 +133,7 @@ export interface WorkflowSpec {
     }
     tasks: WorkflowTask[]
   }
+  hooks?: string[]
   agentRegistry: Map<string, AgentManifest>
 }
 

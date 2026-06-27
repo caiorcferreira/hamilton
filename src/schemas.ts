@@ -156,7 +156,8 @@ export const WorkflowSpecSchema = Schema.Struct({
   spec: Schema.Struct({
     run: RunConfigSchema,
     variants: Schema.optional(VariantsConfigSchema),
-    tasks: Schema.Array(WorkflowTaskSchema)
+    tasks: Schema.Array(WorkflowTaskSchema),
+    hooks: Schema.optional(Schema.Array(Schema.String))
   })
 }).pipe(
   Schema.filter(

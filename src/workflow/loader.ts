@@ -135,6 +135,6 @@ export function loadWorkflowSpec(
       }
     }
 
-    return { ...spec, agentRegistry } as unknown as WorkflowSpec
+    return { ...spec, hooks: (raw as any).spec?.hooks, agentRegistry } as unknown as WorkflowSpec
   })
 }
