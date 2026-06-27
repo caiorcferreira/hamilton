@@ -5,7 +5,7 @@ import { appendTaskLog } from "./run-dir.js"
 export const TaskLogger = createSubscriber(
   (bus) => bus.subscribeAll,
   (event: Event) => {
-    if ("taskId" in event && event.taskId) {
+    if ("taskId" in event && event.taskId && "runId" in event && event.runId) {
       return appendTaskLog(event.runId, event.taskId, formatForFile(event)).pipe(
         Effect.catchAll(() => Effect.void)
       )
@@ -27,7 +27,7 @@ export function formatForFile(event: Event): Record<string, unknown> {
     case "TurnEnd":
       return { event: "turn_end", tokens_in: event.tokensIn, tokens_out: event.tokensOut, task_id: event.taskId, stop_reason: event.stopReason, cache_read: event.cacheRead, cache_write: event.cacheWrite, model: event.model, provider: event.provider }
     case "TokenUsage":
-      return { event: "token_usage", tokens_in: event.tokensIn, tokens_out: event.tokensOut, task_id: event.taskId }
+      return { event: "token_usage", tokens_in: event.tokensIn, tokens_out: event.tokensOut, ...(event.taskId ? { task_id: event.taskId } : {}) }
     case "TaskStarted":
       return { event: "task_started", task_id: event.taskId }
     case "TaskCompleted":

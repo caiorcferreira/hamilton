@@ -76,6 +76,23 @@ describe("DbWriter", () => {
     expect(events[0].tokens_in).toBe(10)
   })
 
+  it("ignores TokenUsage events without runId", async () => {
+    const program = Effect.scoped(
+      Effect.gen(function* (_) {
+        yield* DbWriter(db)
+        yield* _(Effect.sleep("10 millis"))
+        const bus = yield* _(EventBus)
+        yield* _(bus.publish({ _tag: "TokenUsage", tokensIn: 100, tokensOut: 50 }))
+        yield* _(Effect.sleep("50 millis"))
+      })
+    )
+
+    await Effect.runPromise(program.pipe(Effect.provide(EventBusLive)))
+
+    const events = db.prepare("SELECT COUNT(*) as count FROM token_events").get() as any
+    expect(events.count).toBe(0)
+  })
+
   it("stores TodoListUpdated events in workflow_state", async () => {
     const program = Effect.scoped(
       Effect.gen(function* (_) {

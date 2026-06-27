@@ -61,6 +61,10 @@ describe("formatForFile", () => {
       expected: { event: "token_usage", tokens_in: 10, tokens_out: 20, task_id: "t1" },
     },
     {
+      input: { _tag: "TokenUsage", tokensIn: 10, tokensOut: 20 },
+      expected: { event: "token_usage", tokens_in: 10, tokens_out: 20 },
+    },
+    {
       input: { _tag: "TurnStarted", runId: "r1", taskId: "t1", turnId: "x1", turnIndex: 0, timestamp: "2025-01-01T00:00:00Z" },
       expected: { event: "turn_started", task_id: "t1", turn_id: "x1", turn_index: 0, timestamp: "2025-01-01T00:00:00Z" },
     },

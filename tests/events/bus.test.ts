@@ -65,6 +65,33 @@ describe("EventBus", () => {
       expect(collected.every((e) => e._tag === "TokenUsage")).toBe(true)
       expect(collected[0]).toEqual({ _tag: "TokenUsage", runId: "r1", taskId: "s1", tokensIn: 100, tokensOut: 50 })
     })
+
+    it("accepts TokenUsage without runId or taskId", async () => {
+      const collected: Event[] = []
+
+      const program = Effect.scoped(
+        Effect.gen(function* (_) {
+          const bus = yield* _(EventBus)
+
+          yield* _(Effect.forkScoped(
+            bus.subscribeTo("TokenUsage").pipe(
+              Stream.tap((e) => Effect.sync(() => collected.push(e))),
+              Stream.runDrain
+            )
+          ))
+
+          yield* _(Effect.sleep("10 millis"))
+
+          yield* _(bus.publish({ _tag: "TokenUsage", tokensIn: 50, tokensOut: 25 }))
+          yield* _(Effect.sleep("50 millis"))
+        })
+      )
+
+      await Effect.runPromise(program.pipe(Effect.provide(EventBusLive)))
+
+      expect(collected).toHaveLength(1)
+      expect(collected[0]).toEqual({ _tag: "TokenUsage", tokensIn: 50, tokensOut: 25 })
+    })
   })
 })
 

@@ -8,8 +8,11 @@ export const DbWriter = (db: Database): Effect.Effect<void, never, Scope.Scope |
     (bus) => bus.subscribeAll,
     (event: Event) => {
       if (event._tag === "TokenUsage") {
+        if (!event.runId) return Effect.void
+        const runId = event.runId
+        const taskId = event.taskId ?? ""
         return Effect.sync(() =>
-          insertTokenEvent(db, event.runId, event.taskId, "completion", event.tokensIn, event.tokensOut)
+          insertTokenEvent(db, runId, taskId, "completion", event.tokensIn, event.tokensOut)
         )
       }
       if (event._tag === "ModelSelected") {

@@ -40,10 +40,12 @@ export const CliRenderer = createSubscriber(
       }
 
       case "TokenUsage": {
-        const current = taskTokens.get(event.taskId) ?? { tokensIn: 0, tokensOut: 0 }
-        current.tokensIn += event.tokensIn
-        current.tokensOut += event.tokensOut
-        taskTokens.set(event.taskId, current)
+        if (event.taskId) {
+          const current = taskTokens.get(event.taskId) ?? { tokensIn: 0, tokensOut: 0 }
+          current.tokensIn += event.tokensIn
+          current.tokensOut += event.tokensOut
+          taskTokens.set(event.taskId, current)
+        }
         totalTokensIn += event.tokensIn
         totalTokensOut += event.tokensOut
         return Effect.void
