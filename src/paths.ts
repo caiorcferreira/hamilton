@@ -63,6 +63,18 @@ export function hooksDir(): string {
   return Path.join(hamiltonHome(), "hooks")
 }
 
+export function memoryDir(): string {
+  return Path.join(hamiltonHome(), "memory")
+}
+
+export function userMemoryDir(): string {
+  return Path.join(memoryDir(), "user")
+}
+
+export function userMemoryDBPath(): string {
+  return Path.join(userMemoryDir(), "qmd.db")
+}
+
 export function settingsPath(): string {
   return Path.join(hamiltonHome(), "settings.yaml")
 }
@@ -87,6 +99,7 @@ export function ensureHamiltonHome(): void {
     workflowsDir(),
     runsDir(),
     Path.join(hamiltonHome(), "executors", "pi", "agent"),
+    Path.join(memoryDir(), "user", "canonical"),
     guidelinesDir(),
     skillsDir(),
     hooksDir()
