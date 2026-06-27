@@ -4,6 +4,7 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import { Effect, Exit, Ref, Scope, Stream } from "effect"
 import { dispatchTask, type TaskExecutionState } from "../../src/workflow/task-executor.js"
+import { makeHookRuntime } from "../../src/hook/integration.js"
 import { createWorkflowRuntime } from "../../src/workflow/run-state-machine.js"
 import { EventBus, EventBusLive, type Event } from "../../src/events/bus.js"
 import type { WorkflowSpec, AgentManifest, WorkflowTask } from "../../src/types.js"
@@ -101,6 +102,7 @@ const collectEvents = (
 }
 
 describe("dispatchTask / withTaskLifecycle", () => {
+  const stubHookRuntime = makeHookRuntime([])
   let tmpHome: string
   const origHome = process.env.HOME
 
@@ -149,7 +151,8 @@ describe("dispatchTask / withTaskLifecycle", () => {
       new Map(),
       { strict: false },
       { maxOutputBytes: 1024 * 1024 },
-      state
+      state,
+      stubHookRuntime
     )
 
     const events = await collectEvents(effect)

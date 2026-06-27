@@ -14,6 +14,7 @@ import { writeTaskOutput } from "../observability/run-dir.js"
 import * as ChildProcess from "node:child_process"
 import type { CompiledRule } from "../guidelines/types.js"
 import { resolveSkills } from "../skills/registry.js"
+import type { HookRuntime } from "../hook/integration.js"
 
 export interface TaskExecutionState {
   workflowStatus: Ref.Ref<"planned" | "in-progress" | "completed" | "failed" | "paused">
@@ -28,6 +29,7 @@ function withTaskLifecycle(
   ctx: WorkflowRuntime,
   state: TaskExecutionState,
   maxRetries: number,
+  hookRuntime: HookRuntime,
   execute: Effect.Effect<any, unknown, EventBus | Scope.Scope>
 ): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
@@ -62,6 +64,12 @@ function withTaskLifecycle(
                 yield* _(writeTaskOutput(ctx.runId, taskId, result))
               }
               yield* _(bus.publish({ _tag: "TaskCompleted", runId: ctx.runId, taskId, taskName: instanceName }))
+              yield* _(hookRuntime.run("on_task_completed", {
+                runId: ctx.runId,
+                taskId,
+                result,
+                env: state.workflowEnv as Record<string, unknown>
+              }).pipe(Effect.catchAll(() => Effect.void)))
             })
           },
           onFailure: (cause) => {
@@ -193,7 +201,8 @@ export function dispatchTask(
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
   scriptConfig: { maxOutputBytes: number },
-  state: TaskExecutionState
+  state: TaskExecutionState,
+  hookRuntime: HookRuntime
 ): Effect.Effect<void, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
@@ -202,16 +211,33 @@ export function dispatchTask(
     yield* _(ctx.transitionTask(instanceName, "start"))
     yield* _(bus.publish({ _tag: "TaskStarted", runId: ctx.runId, taskId, taskName: instanceName }))
 
+    const taskStartResult = yield* _(hookRuntime.run("on_task_start", {
+      runId: ctx.runId,
+      taskId,
+      instanceName,
+      task,
+      env: taskEnv as Record<string, unknown>
+    }))
+    if (taskStartResult.action === "cancel") {
+      yield* _(ctx.transitionTask(instanceName, "complete"))
+      return
+    }
+    if (taskStartResult.action === "fail") {
+      yield* _(ctx.transitionTask(instanceName, "fail"))
+      yield* _(Ref.set(state.workflowStatus, "failed"))
+      return
+    }
+
     if (task.agent) {
       const agent = spec.agentRegistry.get(task.agent.executorRef)
       if (!agent) return
       const maxRetries = task.agent!.on_failure?.max_retries ?? 1
       const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, agent, taskId)
-      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, execEffect))
+      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, hookRuntime, execEffect))
     } else if (task.script) {
       const maxRetries = task.script.on_failure?.max_retries ?? 1
       const execEffect = buildScriptExecEffect(task, taskEnv, spec, templateOptions, scriptConfig)
-      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, execEffect))
+      yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, hookRuntime, execEffect))
     }
   })
 }
