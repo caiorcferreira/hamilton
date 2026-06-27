@@ -96,6 +96,7 @@ Extracted from `src/executors/pi/pi-executor.ts`. A single-flight prompt→compl
 ```typescript
 function createLLMClient(config?: {
   modelsJsonPath?: string
+  bus?: EventBusService
 }): {
   complete(provider: string, modelId: string, context: Context): Promise<Completion>
 }
@@ -103,7 +104,7 @@ function createLLMClient(config?: {
 
 Uses `AuthStorage`, `ModelRegistry`, and `getModel` from `@earendil-works/pi-ai`. No agent loop. Called by the curator for structured JSON output.
 
-The client returns token usage on the `Completion` response object. Callers report usage through the existing observability layer — inside the runner via the EventBus (`TokenUsage` events persisted by `TaskLogger`), and pre-runner via the same pattern applied at the caller level. No hardcoded file paths in `LLMClient`.
+When an `EventBusService` is provided, the client publishes `TokenUsage` events on every completion. The existing observability layer (`TaskLogger`, `DbWriter` subscribers) handles persistence — no additional wiring needed. When no bus is provided (pre-runner phase), token usage is silently skipped.
 
 ### 4.2 Curator
 
