@@ -59,6 +59,10 @@ export function skillsDir(): string {
   return Path.join(hamiltonHome(), "skills")
 }
 
+export function hooksDir(): string {
+  return Path.join(hamiltonHome(), "hooks")
+}
+
 export function settingsPath(): string {
   return Path.join(hamiltonHome(), "settings.yaml")
 }
@@ -84,7 +88,8 @@ export function ensureHamiltonHome(): void {
     runsDir(),
     Path.join(hamiltonHome(), "executors", "pi", "agent"),
     guidelinesDir(),
-    skillsDir()
+    skillsDir(),
+    hooksDir()
   ]
   for (const dir of dirs) {
     if (!Fs.existsSync(dir)) {
