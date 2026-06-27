@@ -25,6 +25,8 @@ import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
 import { createRunDir, writeInput } from "../observability/run-dir.js"
 import { WorkflowLogger } from "../observability/workflow-logger.js"
+import { loadHooks } from "../hook/loader.js"
+import { makeHookRuntime, mergeHookData } from "../hook/integration.js"
 
 export interface WorkflowResult {
   runId: string
@@ -60,6 +62,8 @@ export function runWorkflow(
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
     const startedAt = new Date().toISOString()
+    const hooks = yield* _(loadHooks)
+    const hookRuntime = makeHookRuntime(hooks)
 
     const ctx: WorkflowRuntime = yield* _(
       createWorkflowRuntime(spec, initialParameters, existingRunId).pipe(
@@ -85,6 +89,23 @@ export function runWorkflow(
     yield* _(WorkflowLogger(telemetryConfig, spec, initialParameters, startedAt))
 
     yield* _(bus.publish({ _tag: "WorkflowStarted", runId: ctx.runId }))
+
+    const wfStartResult = yield* _(hookRuntime.run("on_workflow_start", {
+      runId: ctx.runId,
+      spec,
+      parameters: initialParameters as Record<string, unknown>
+    }))
+    if (wfStartResult.action === "cancel" || wfStartResult.action === "fail") {
+      yield* _(ctx.fail("cancelled by on_workflow_start hook").pipe(Effect.catchAll(() => Effect.void)))
+      return {
+        runId: ctx.runId,
+        status: "failed" as const,
+        taskResults: {},
+        env: initialParameters as Record<string, unknown>,
+        startedAt,
+        completedAt: new Date().toISOString()
+      }
+    }
 
     const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
     const { files: guidelineFiles, rules: allRules } = extractGuidelineArtifacts(loadedGuidelines)
@@ -202,7 +223,7 @@ export function runWorkflow(
               }
             : { ...workflowEnv, parameters: resolvedArgs.parameters }
 
-          yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState))
+          yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState, hookRuntime))
 
           const originalName = originalNames[task.name]
           const output = workflowEnv.tasks?.[task.name]
@@ -231,6 +252,13 @@ export function runWorkflow(
       const summary = { runId: ctx.runId, status: finalStatus, taskResults, env: workflowEnv, startedAt, completedAt, totalTokensIn, totalTokensOut, elapsedSeconds }
 
       yield* _(bus.publish({ _tag: "WorkflowCompleted", runId: ctx.runId, summary }))
+
+      const wfCompleteResult = yield* _(hookRuntime.run("on_workflow_completed", {
+        runId: ctx.runId,
+        status: finalStatus,
+        taskResults,
+        summary
+      }))
 
       return { runId: ctx.runId, status: finalStatus, taskResults, env: workflowEnv as Record<string, unknown>, startedAt, completedAt }
     })
