@@ -64,22 +64,22 @@ Caller (run.ts / resume.ts)
   |      +-- hash check (memory_event_log) to skip unchanged files
   |      +-- tombstone old canonical atoms on change
   |      +-- write guideline to qmd + Hamilton DB
-  |
-  +-- 3. runWorkflow(spec, params, {
+      |
+      +-- 3. runWorkflow(spec, params, {
         guidelineRules,    (existing, extracted from loadedGuidelines)
-        memoryStore        (NEW)
+        memoryReader       (NEW — MemoryReader, read-only interface)
       })
          |
          +-- (inside runner, per task):
               +-- curator.suggestMemoryFilters(taskPrompt, files)
               |     -> { tags, languages, filePaths }
-              +-- atoms = store.retrieveRelevant(filters, limit)
+              +-- atoms = reader.retrieveRelevant(filters, limit)
               +-- context = buildMemoryContext(atoms)
               +-- inject context into DefaultResourceLoader
 ```
 
 Runner changes:
-- Removes internal `loadGuidelines()` call — receives `guidelineRules` and `memoryStore` from caller.
+- Removes internal `loadGuidelines()` call — receives `guidelineRules` and `memoryReader` from caller.
 - Raw guideline files no longer passed to `DefaultResourceLoader.agentsFilesOverride` — replaced by memory context string.
 - Per-task: curator → retrieve → inject.
 
@@ -96,7 +96,7 @@ Extracted from `src/executors/pi/pi-executor.ts`. A single-flight prompt→compl
 ```typescript
 function createLLMClient(config?: {
   modelsJsonPath?: string
-  onTokenUsage?: (usage: TokenUsage) => void
+  logTokenUsage?: boolean
 }): {
   complete(provider: string, modelId: string, context: Context): Promise<Completion>
 }
@@ -104,12 +104,14 @@ function createLLMClient(config?: {
 
 Uses `AuthStorage`, `ModelRegistry`, and `getModel` from `@earendil-works/pi-ai`. No agent loop. Called by the curator for structured JSON output.
 
+When `logTokenUsage` is enabled, the client writes token usage to `~/.hamilton/memory/llm-usage.jsonl` — a structured JSONL file on disk that integrates with the existing observability pattern (`src/observability/`). No raw callback — token usage flows through the same disk-based event stream as other runtime observations.
+
 ### 4.2 Curator
 
 ```typescript
 interface Curator {
   suggestMemoryFilters(taskPrompt: string, files: string[]): Promise<MemoryFilters>
-  findRelevantAtoms(store: MemoryStore, filePath: string, tags: string[]): Promise<MemoryAtom[]>
+  findRelevantAtoms(reader: MemoryReader, filePath: string, tags: string[]): Promise<MemoryAtom[]>
 }
 
 interface MemoryFilters {
@@ -121,19 +123,24 @@ interface MemoryFilters {
 
 `suggestMemoryFilters` calls the fast model via `LLMClient` with structured JSON output. Returns tags, languages, and file paths relevant to the task. These are passed as `intent` to qmd search.
 
-`findRelevantAtoms` delegates to `store.retrieveRelevant()` — thin method for now, gains logic later.
+`findRelevantAtoms` delegates to `reader.retrieveRelevant()` — thin method for now, gains logic later.
 
 ---
 
 ## 5. MemoryStore
 
+Consumers that need only read or only write see segregated interfaces. A single concrete implementation satisfies both.
+
 ```typescript
-interface MemoryStore {
+interface MemoryReader {
   retrieveRelevant(filters: MemoryFilters, limit: number): Promise<MemoryAtom[]>
-  writeAtom(atom: NewMemoryAtom): Promise<{ id: string; path: string }>
   getAtom(id: string): Promise<MemoryAtom | null>
+}
+
+interface MemoryWriter {
+  writeAtom(atom: NewMemoryAtom): Promise<{ id: string; path: string }>
   tombstone(id: string): Promise<void>
-  close(): Promise<void>
+  updateStatus(id: string, status: string): Promise<void>
 }
 
 interface MemoryAtom {
@@ -148,10 +155,10 @@ interface MemoryAtom {
 ```
 
 Two factory functions:
-- `createProjectMemoryStore(dbPath: string, storePath: string): Promise<MemoryStore>`
-- `createUserMemoryStore(hamiltonHome: string): Promise<MemoryStore>`
+- `createProjectMemoryStore(dbPath: string, storePath: string): Promise<{ reader: MemoryReader; writer: MemoryWriter; close(): Promise<void> }>`
+- `createUserMemoryStore(hamiltonHome: string): Promise<{ reader: MemoryReader; writer: MemoryWriter; close(): Promise<void> }>`
 
-In this phase only `createUserMemoryStore` is used — guidelines are user-scoped.
+In this phase only `createUserMemoryStore` is used — guidelines are user-scoped. The runner receives only the `MemoryReader`; `ingestGuidelines` receives only the `MemoryWriter`.
 
 `retrieveRelevant()` is a single abstract method encapsulating all retrieval logic. Currently searches the `canonical` collection via qmd with a default limit of 5 (`canonical_top_k` from settings). When more atom kinds arrive, the implementation grows internally — callers never change.
 
@@ -159,17 +166,72 @@ In this phase only `createUserMemoryStore` is used — guidelines are user-scope
 
 ## 6. Guideline Ingest Pipeline
 
-`ingestGuidelines(store: MemoryStore, db: Database, guidelines: LoadedGuideline[]): Promise<IngestResult>`
+The pipeline is composed of independently testable steps. The top-level function orchestrates them.
 
-For each guideline:
+### 6.1 Steps
 
-1. **Change detection** — compute SHA-256 of the guideline content. Query `memory_event_log` for the most recent `ingested` event with matching `source_path`. Hash matches → skip. Hash differs → proceed.
-2. **Tombstone old** — if a previous version exists, mark all canonical atoms with matching `source_path` as `status: tombstoned` in Hamilton DB and update their `.md` frontmatter.
-3. **Write** — copy the guideline file to `~/.hamilton/memory/user/canonical/<name>.md` with YAML frontmatter: `kind: canonical`, `source: guideline`, `scope: user`, `confidence: 1.0`, `source_path`. Single file per guideline — qmd handles chunking and embedding internally.
-4. **Index** — `store.update()` + `store.embed()` against the user store directory.
-5. **Register** — INSERT into `memory_atoms` in Hamilton DB. INSERT `ingested` event into `memory_event_log` with hash, source_path, and atom count.
+```
+detectChanges(guideline, db) → ChangeResult
+if changed:
+  tombstoneStale(writer, db, sourcePath)
+  writeToQmd(writer, guideline) → { id, path }
+  embed(writer, path)
+  finalizeAtom(writer, id)
+registerIngestedEvent(db, sourcePath, hash)
+```
 
-For the guideline system to work, the user must have run `hamilton setup` with qmd models downloaded. Without models, `store.embed()` fails and ingestion is skipped.
+### 6.2 Step Details
+
+**`detectChanges(guideline, db)`**
+
+Normalize line endings before hashing — `\r\n` and `\r` are replaced with `\n`. SHA-256 the normalized content. Query `memory_event_log` for the most recent `ingested` event with matching `source_path`. Return `{ changed: true/false, hash }`.
+
+**`tombstoneStale(writer, db, sourcePath)`**
+
+Mark all canonical atoms with matching `source_path` as `status: tombstoned` in Hamilton DB and update their `.md` frontmatter.
+
+**`writeToQmd(writer, guideline)`**
+
+Copy the guideline file to `~/.hamilton/memory/user/canonical/<name>.md` with YAML frontmatter: `kind: canonical`, `source: guideline`, `scope: user`, `confidence: 1.0`, `source_path`. Single file per guideline — qmd handles chunking internally. INSERT into `memory_atoms` with `status: pending`. Returns `{ id, path }`.
+
+**`embed(writer, path)`**
+
+Call `store.update()` + `store.embed()` against the user store directory to index the new file into qmd's hybrid search engine.
+
+**`finalizeAtom(writer, id)`**
+
+UPDATE `memory_atoms` SET `status = 'active'` WHERE `id = ?`. Only called after embed succeeds.
+
+**`registerIngestedEvent(db, sourcePath, hash)`**
+
+INSERT `ingested` event into `memory_event_log` with hash, source_path, and atom count.
+
+### 6.3 Transaction Safety
+
+Hamilton DB and qmd are separate SQLite files with no shared transaction scope. The `pending` status pattern provides a recovery boundary:
+
+```
+                                Hamilton DB              qmd (filesystem + embed)
+writeToQmd: INSERT pending  →  row: pending              .md file exists
+embed: fs already has file  →  row: pending              vector index built
+finalizeAtom: UPDATE active →  row: active               already indexed
+```
+
+If `embed` fails after `writeToQmd`: Hamilton DB has a `pending` row, no vector index. The next maintenance pass detects `pending` rows older than 5 minutes, re-triggers embed, and finalizes to `active`. If the `.md` file is missing → tombstone the row.
+
+If `finalizeAtom` fails after embed: qmd has indexed content, Hamilton DB shows `pending`. Same recovery as above — maintenance pass re-runs embed (idempotent) and finalizes.
+
+### 6.4 Orchestrator
+
+```typescript
+function ingestGuidelines(
+  writer: MemoryWriter,
+  db: Database,
+  guidelines: LoadedGuideline[]
+): Promise<IngestResult>
+```
+
+Loops over guidelines, calls the steps above, accumulates results. For the guideline system to work, the user must have run `hamilton setup` with qmd models downloaded. Without models, `embed()` fails and ingestion is skipped.
 
 ---
 
@@ -280,8 +342,11 @@ On-disk layout in this phase:
 | `createUserMemoryStore` fails (qmd unavailable) | Log warning. Skip memory entirely. Agent runs without memory context. |
 | Guideline ingest fails for one file | Log warning. Skip that file. Continue with remaining guidelines. |
 | `curator.suggestMemoryFilters` fails (LLM error) | Return empty filters. `retrieveRelevant` falls back to untargeted search (query-only, no intent). |
-| `store.retrieveRelevant` fails | `buildMemoryContext([])` → empty string. No memory injected. |
-| `qmd embed` fails during ingest | Skip the file. Leave no `pending` rows (write comes after embed). |
+| `reader.retrieveRelevant` fails | `buildMemoryContext([])` → empty string. No memory injected. |
+| `embed` fails after `writeToQmd` | Atom left as `pending` in Hamilton DB. Maintenance pass recovers: re-triggers embed → finalizes to `active`. |
+| `finalizeAtom` fails after `embed` | Atom stays `pending` in Hamilton DB. Maintenance pass re-runs embed (idempotent) → finalizes. |
+| `.md` file missing for `pending` row | Maintenance pass tombstones the row — file write failed, atom is unrecoverable. |
+| Hash match (no change) | Skip all steps for that guideline. No writes, no events. |
 
 ---
 
@@ -292,8 +357,8 @@ On-disk layout in this phase:
 | `src/curator/llm-client.ts` | LLMClient extracted from Pi executor auth/model resolution |
 | `src/curator/curator.ts` | suggestMemoryFilters, findRelevantAtoms |
 | `src/curator/index.ts` | Public exports |
-| `src/memory/store.ts` | MemoryStore with qmd + Hamilton DB, createProjectMemoryStore, createUserMemoryStore |
-| `src/memory/guidelines.ts` | ingestGuidelines — hash check, tombstone old, write, embed, register |
+| `src/memory/store.ts` | MemoryReader + MemoryWriter interfaces, MemoryStore concrete impl, createProjectMemoryStore, createUserMemoryStore |
+| `src/memory/guidelines.ts` | detectChanges, tombstoneStale, writeToQmd, embed, finalizeAtom, registerIngestedEvent + ingestGuidelines orchestrator |
 | `src/memory/queries.ts` | Hamilton DB queries for memory_atoms, memory_event_log |
 | `src/memory/context.ts` | buildMemoryContext — pure formatter |
 | `src/memory/index.ts` | Public exports |
