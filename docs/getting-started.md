@@ -257,9 +257,10 @@ The `summary.json` includes:
 
 ## Next Steps
 
+- [Philosophy](./philosophy.md) -- design rationale and principles behind Hamilton
 - [Workflow YAML Reference](./workflow-yaml.md) -- understand the workflow spec format
 - [CLI Reference](./cli-reference.md) -- every command and flag
 - [Agent System](./agents.md) -- how agents work and how to create them
 - [Workflows Catalog](./workflows-catalog.md) -- all built-in workflows
-- [Common Use Cases](./use-cases.md) -- practical patterns for software development
+- [Common Use Cases](./how-to/use-cases.md) -- practical patterns for software development
 - [Settings Reference](./settings.md) -- global configuration
