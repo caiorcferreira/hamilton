@@ -59,5 +59,34 @@ pid INTEGER,
       value TEXT,
       FOREIGN KEY (run_id) REFERENCES runs(id)
     );
+
+    CREATE TABLE IF NOT EXISTS memory_atoms (
+      id TEXT PRIMARY KEY,
+      path TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('correction','failure','preference','fact','procedure','canonical')),
+      scope TEXT NOT NULL CHECK (scope IN ('project','user')),
+      confidence REAL NOT NULL DEFAULT 0.5,
+      salience REAL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','demoted','tombstoned')),
+      project_id TEXT,
+      run_id TEXT,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      demoted_at TEXT,
+      tombstoned_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS memory_event_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      atom_id TEXT,
+      run_id TEXT,
+      event_type TEXT NOT NULL,
+      actor TEXT NOT NULL CHECK (actor IN ('agent','system','human')),
+      reason TEXT,
+      metadata TEXT NOT NULL DEFAULT '{}',
+      timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `)
 }
