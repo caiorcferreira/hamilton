@@ -8,7 +8,7 @@
 - [ ] Improve settings.yaml structure
 - [ ] Look for opencode system prompt as example to improve
 - [ ] Keep improving agents and workflow prompts
-- [ ] Refactor the write task output reminder into a hook system
+- [X] Refactor the write task output reminder into a hook system
 - [ ] Review how script tasks are implemented. Shouldn't we have a "local/shell" executor for it?
 
 ### Core Engine
