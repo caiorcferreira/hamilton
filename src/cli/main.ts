@@ -2,6 +2,7 @@
 import { Command } from "@effect/cli"
 import { BunContext, BunRuntime } from "@effect/platform-bun"
 import { Effect, Console } from "effect"
+import { EventBusLive } from "../events/bus.js"
 import { reconcileSettingsToPi } from "../executors/pi/reconcile.js"
 import { setupCommand } from "./commands/setup.js"
 import { doctorCommand } from "./commands/doctor.js"
@@ -52,5 +53,6 @@ const program = isSetupCommand
 
 program.pipe(
   Effect.provide(BunContext.layer),
+  Effect.provide(EventBusLive),
   BunRuntime.runMain
 )

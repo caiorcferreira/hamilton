@@ -9,7 +9,7 @@ import { loadWorkflowSpec } from "../../workflow/loader.js"
 import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
 import type { WorkflowSpec } from "../../types.js"
-import { EventBusLive } from "../../events/bus.js"
+import { EventBus } from "../../events/bus.js"
 import { TaskLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js"
@@ -19,7 +19,7 @@ export class ResumeError extends Data.TaggedError("ResumeError")<{
   message: string
 }> {}
 
-export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError> {
+export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError, EventBus> {
   return Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new ResumeError({
@@ -90,7 +90,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
             Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
           )
         })
-      ).pipe(Effect.provide(EventBusLive))
+      )
     )
 
     return `Resumed ${runId}. Status: ${result.status}`

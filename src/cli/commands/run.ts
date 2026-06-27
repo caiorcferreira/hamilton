@@ -7,7 +7,7 @@ import { resolveWorkflowSlug } from "../../workflow/resolver.js"
 import { loadWorkflowSpec } from "../../workflow/loader.js"
 import type { WorkflowDescriptor } from "../../workflow/agent-registry.js"
 import { runWorkflow } from "../../workflow/runner.js"
-import { EventBus, EventBusLive } from "../../events/bus.js"
+import { EventBus } from "../../events/bus.js"
 import { TaskLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { Database } from "bun:sqlite"
@@ -140,7 +140,7 @@ const db = new Database(dbPath())
           })
           return yield* executeRun({ workflowSlug: slug, prompt: promptText, variants: variants._tag === "Some" ? variants.value : undefined, externalRunId })
         })
-      ).pipe(Effect.provide(EventBusLive))
+      )
     )
     if (Exit.isFailure(result)) {
       const cause = result.cause

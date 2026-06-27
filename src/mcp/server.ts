@@ -81,7 +81,7 @@ export function createMcpServer(): McpServer {
     run_id: z.string().describe("Run ID to resume")
   }, async ({ run_id }) => {
     try {
-      const result = await effectToPromise(resumeWorkflow(run_id as string))
+      const result = await effectToPromise(resumeWorkflow(run_id as string).pipe(Effect.provide(EventBusLive)))
       return textResult(result)
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e))
