@@ -19,6 +19,8 @@ Optional LSP servers for enhanced agent diagnostics:
 | `yaml-language-server` | npm | `.yaml`, `.yml` |
 | `ruff` | pip | `.py`, `.pyi` |
 
+See [LSP Autocheck](./features/lsp-autocheck.md) for how Hamilton uses LSP to provide inline diagnostics to agents.
+
 ## Installation
 
 Clone the repository and install:

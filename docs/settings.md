@@ -98,6 +98,7 @@ Uses `@spences10/pi-lsp` with `@narumitw/pi-lsp` adapters.
 * The LSP autocheck only validates the edited file (not the full workspace) to avoid noise
   and latency.
 * Diagnostics are informational (not blocking). The edit proceeds regardless.
+* See [LSP Autocheck](./features/lsp-autocheck.md) for implementation details and design decisions.
 
 ### `lsp.servers`
 
