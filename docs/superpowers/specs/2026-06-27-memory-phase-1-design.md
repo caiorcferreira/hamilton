@@ -85,11 +85,53 @@ Runner changes:
 
 ---
 
-## 4. Curator Package
+## 4. EventBus Generalization (Prerequisite Refactor)
+
+The EventBus is currently scoped per-workflow-run: `EventBusLive` is provided via `Effect.provide(EventBusLive)` inside `runWorkflow`. This means no code outside the runner body can publish or subscribe to events — the guideline ingest pipeline and curator LLM calls operate without observability.
+
+### 4.1 Target State
+
+The EventBus must be lifted to **application scope** — a single bus that lives as long as the Hamilton CLI process. `EventBusLive` is provided at the CLI entry point (`src/cli/main.ts`) instead of inside `runWorkflow`. All downstream code (CLI commands, runWorkflow, guideline ingest, curator) resolves `EventBus` from the ambient context.
+
+### 4.2 Changes
+
+**`src/events/bus.ts`:**
+
+- `runId` and `taskId` become optional on all event types. Events that fire outside a run (e.g. `TokenUsage` from the curator during guideline ingest) set them to `undefined`.
+- Event type union updated to mark `runId?: string; taskId?: string` on every variant.
+- `EventBusLive` layer definition unchanged — only the provision site moves.
+
+**`src/cli/main.ts`:**
+
+- Provides `EventBusLive` in the root Effect layer alongside other application-scoped services.
+- `runWorkflow` and all CLI commands inherit the bus from the outer scope.
+
+**`src/workflow/runner.ts`:**
+
+- Removes `EventBus` from the `runWorkflow` Effect signature (`EventBus | Scope.Scope` → `Scope.Scope`).
+- No longer provides `EventBusLive` — it is already in scope.
+
+**`src/observability/subscribers.ts` / `src/db/subscribers.ts`:**
+
+- Subscribers that reference `runId` or `taskId` handle `undefined` gracefully (skip or log `null`).
+
+**`src/cli/commands/run.ts` / `src/cli/commands/resume.ts`:**
+
+- Guideine ingest and curator calls now run within the same EventBus scope as the workflow, so `TokenUsage` events from `LLMClient` are captured.
+
+### 4.3 Impact on Phase 1
+
+- `LLMClient` receives the EventBus at construction time and publishes `TokenUsage` events on every completion — both during guideline ingest (pre-runner) and curator calls (inside runner).
+- `DbWriter` subscriber persists `TokenUsage` to `token_events` table regardless of origin.
+- `TaskLogger` subscriber skips events with no `taskId`.
+
+---
+
+## 5. Curator Package
 
 The curator is a standalone package (`src/curator/`) that owns LLM operations. Memory is just one of its future responsibilities.
 
-### 4.1 LLMClient
+### 5.1 LLMClient
 
 Extracted from `src/executors/pi/pi-executor.ts`. A single-flight prompt→completion wrapper around `@earendil-works/pi-ai`.
 
@@ -106,7 +148,7 @@ Uses `AuthStorage`, `ModelRegistry`, and `getModel` from `@earendil-works/pi-ai`
 
 When an `EventBusService` is provided, the client publishes `TokenUsage` events on every completion. The existing observability layer (`TaskLogger`, `DbWriter` subscribers) handles persistence — no additional wiring needed. When no bus is provided (pre-runner phase), token usage is silently skipped.
 
-### 4.2 Curator
+### 5.2 Curator
 
 ```typescript
 interface Curator {
@@ -127,7 +169,7 @@ interface MemoryFilters {
 
 ---
 
-## 5. MemoryStore
+## 6. MemoryStore
 
 Consumers that need only read or only write see segregated interfaces. A single concrete implementation satisfies both.
 
@@ -164,11 +206,11 @@ In this phase only `createUserMemoryStore` is used — guidelines are user-scope
 
 ---
 
-## 6. Guideline Ingest Pipeline
+## 7. Guideline Ingest Pipeline
 
 The pipeline is composed of independently testable steps. The top-level function orchestrates them.
 
-### 6.1 Steps
+### 7.1 Steps
 
 ```
 detectChanges(guideline, db) → ChangeResult
@@ -180,7 +222,7 @@ if changed:
 registerIngestedEvent(db, sourcePath, hash)
 ```
 
-### 6.2 Step Details
+### 7.2 Step Details
 
 **`detectChanges(guideline, db)`**
 
@@ -206,7 +248,7 @@ UPDATE `memory_atoms` SET `status = 'active'` WHERE `id = ?`. Only called after 
 
 INSERT `ingested` event into `memory_event_log` with hash, source_path, and atom count.
 
-### 6.3 Transaction Safety
+### 7.3 Transaction Safety
 
 Hamilton DB and qmd are separate SQLite files with no shared transaction scope. The `pending` status pattern provides a recovery boundary:
 
@@ -221,7 +263,7 @@ If `embed` fails after `writeToQmd`: Hamilton DB has a `pending` row, no vector 
 
 If `finalizeAtom` fails after embed: qmd has indexed content, Hamilton DB shows `pending`. Same recovery as above — maintenance pass re-runs embed (idempotent) and finalizes.
 
-### 6.4 Orchestrator
+### 7.4 Orchestrator
 
 ```typescript
 function ingestGuidelines(
@@ -235,7 +277,7 @@ Loops over guidelines, calls the steps above, accumulates results. For the guide
 
 ---
 
-## 7. Context Injection
+## 8. Context Injection
 
 `buildMemoryContext(atoms: MemoryAtom[]): string`
 
@@ -267,7 +309,7 @@ The context string is appended to the system prompt via `DefaultResourceLoader.a
 
 ---
 
-## 8. DB Changes — Migration v8
+## 9. DB Changes — Migration v8
 
 ```sql
 CREATE TABLE memory_atoms (
@@ -304,7 +346,7 @@ CREATE TABLE memory_event_log (
 
 ---
 
-## 9. Paths
+## 10. Paths
 
 `src/paths.ts` additions:
 
@@ -335,7 +377,7 @@ On-disk layout in this phase:
 
 ---
 
-## 10. Error Handling
+## 11. Error Handling
 
 | Failure | Behaviour |
 |---------|-----------|
@@ -350,11 +392,12 @@ On-disk layout in this phase:
 
 ---
 
-## 11. Implementation Files
+## 12. Implementation Files
 
 | File | Purpose |
 |------|---------|
-| `src/curator/llm-client.ts` | LLMClient extracted from Pi executor auth/model resolution |
+| `src/events/bus.ts` | Make runId/taskId optional, generalize event types for application scope |
+| `src/curator/llm-client.ts` | LLMClient extracted from Pi executor auth/model resolution, publishes TokenUsage via EventBus |
 | `src/curator/curator.ts` | suggestMemoryFilters, findRelevantAtoms |
 | `src/curator/index.ts` | Public exports |
 | `src/memory/store.ts` | MemoryReader + MemoryWriter interfaces, MemoryStore concrete impl, createProjectMemoryStore, createUserMemoryStore |
@@ -366,6 +409,7 @@ On-disk layout in this phase:
 | `src/db/migrations.ts` | Add migration v8 |
 | `src/db/subscribers.ts` | Extend DbWriter for memory events |
 | `src/paths.ts` | Add memoryDir, userMemoryDir, userMemoryDBPath |
+| `src/cli/main.ts` | Provide EventBusLive at application scope |
 | `src/cli/commands/run.ts` | Call ingestGuidelines before runWorkflow |
 | `src/cli/commands/resume.ts` | Call ingestGuidelines before runWorkflow |
 | `src/workflow/runner.ts` | Remove internal loadGuidelines, accept memoryStore, per-task curator + context injection |
