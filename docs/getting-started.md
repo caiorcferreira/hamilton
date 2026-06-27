@@ -262,6 +262,8 @@ The `summary.json` includes:
 - [Philosophy](./philosophy.md) -- design rationale and principles behind Hamilton
 - [How Workflows Run](./how-workflows-run.md) -- understand what just happened
 - [Variants](./variants.md) -- what variants are and how to combine them
+- [Model Aliases](./model-aliases.md) -- map short names to model IDs
+- [Template Expansion](./template-expansion.md) -- how template variables and forEach work
 - [Workflow YAML Reference](./workflow-yaml.md) -- understand the workflow spec format
 - [CLI Reference](./cli-reference.md) -- every command and flag
 - [Agent System](./agents.md) -- how agents work and how to create them
@@ -269,4 +271,11 @@ The `summary.json` includes:
 - [Common Use Cases](./how-to/use-cases.md) -- practical patterns for software development
 - [Troubleshooting](./how-to/troubleshooting.md) -- resolve common failures
 - [Debugging Runs](./how-to/debugging-runs.md) -- inspect and diagnose runs
+- [Custom Workflows](./how-to/custom-workflows.md) -- author your own workflows
+- [Custom Guidelines](./tutorials/custom-guidelines.md) -- create project-specific coding rules
+- [Creating Custom Workflows](./tutorials/custom-workflow.md) -- step-by-step tutorial
+- [CI/CD Integration](./how-to/ci-cd-integration.md) -- run workflows in automation
+- [Telemetry](./telemetry.md) -- metrics and monitoring
+- [MCP Server](./mcp.md) -- Model Context Protocol integration
+- [Operations](./how-to/operations.md) -- state machine, backup, performance
 - [Settings Reference](./settings.md) -- global configuration
