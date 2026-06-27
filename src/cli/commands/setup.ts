@@ -4,7 +4,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Readline from "node:readline"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
@@ -110,6 +110,21 @@ function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<vo
       try: () => Fs.cpSync(manifestDir, destGuidelines, { recursive: true, force: true }),
       catch: (e) =>
         new SetupError({ message: `Failed to copy guideline manifests: ${String(e)}` })
+    })
+  })
+}
+
+function copyHooks(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+  return Effect.gen(function* () {
+    const srcDir = Path.join(PROJECT_ROOT, "bundle", "hooks")
+    if (!Fs.existsSync(srcDir)) return
+
+    const destHooks = hooksDir()
+
+    yield* Effect.try({
+      try: () => Fs.cpSync(srcDir, destHooks, { recursive: true, force: true }),
+      catch: (e) =>
+        new SetupError({ message: `Failed to copy hooks: ${String(e)}` })
     })
   })
 }
@@ -233,6 +248,7 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
     yield* copySharedAgents(options)
     yield* copySkillManifests(options)
     yield* copyGuidelineManifests(options)
+    yield* copyHooks(options)
 
     if (options?.copyPiConfigs) {
       yield* copyPiConfigsFromHome()
