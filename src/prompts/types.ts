@@ -4,4 +4,5 @@ export interface ResolvablePrompt {
   systemTemplate: Template
   taskTemplate: Template
   guidelineFiles: Array<{ name: string; content: string }>
+  memoryContext: string
 }

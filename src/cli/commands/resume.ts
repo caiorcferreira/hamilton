@@ -13,6 +13,10 @@ import { EventBus } from "../../events/bus.js"
 import { TaskLogger } from "../../observability/subscribers.js"
 import { CliRenderer } from "../subscribers.js"
 import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js"
+import { loadGuidelines } from "../../guidelines/loader.js"
+import { extractGuidelineArtifacts } from "../../guidelines/extractor.js"
+import { guidelinesDir } from "../../paths.js"
+import type { MemoryReader } from "../../memory/store.js"
 
 export class ResumeError extends Data.TaggedError("ResumeError")<{
   runId: string
@@ -81,12 +85,18 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
       Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
     ))
 
+    const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()).pipe(
+      Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
+    ))
+    const { rules: guidelineRules } = extractGuidelineArtifacts(loadedGuidelines)
+    const memoryReader: MemoryReader | null = null
+
     const result = yield* _(
       Effect.scoped(
         Effect.gen(function* () {
           yield* TaskLogger
           yield* CliRenderer
-          return yield* runWorkflow(spec as unknown as WorkflowSpec, context, templateOptions, runId, recursionConfig.maxDepth ?? undefined).pipe(
+          return yield* runWorkflow(spec as unknown as WorkflowSpec, context, templateOptions, guidelineRules, memoryReader, runId, recursionConfig.maxDepth ?? undefined).pipe(
             Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
           )
         })

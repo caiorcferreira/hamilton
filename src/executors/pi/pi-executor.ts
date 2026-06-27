@@ -113,9 +113,12 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
-    const { systemTemplate, taskTemplate, guidelineFiles } = config.prompt
+    const { systemTemplate, taskTemplate, guidelineFiles, memoryContext } = config.prompt
 
-    const systemPrompt = Effect.runSync(systemTemplate.render())
+    let systemPrompt = Effect.runSync(systemTemplate.render())
+    if (memoryContext) {
+      systemPrompt += "\n\n" + memoryContext
+    }
     const taskPrompt = Effect.runSync(taskTemplate.render())
 
     const bus = yield* _(EventBus)
@@ -156,10 +159,7 @@ export function executeWithPi(
       agentDir,
       appendSystemPrompt: () => systemPrompt,
       agentsFilesOverride: (current: any) => ({
-        agentsFiles: [
-          ...(current?.agentsFiles ?? []),
-          ...guidelineFiles.map((f: { name: string; content: string }) => ({ path: f.name, content: f.content }))
-        ]
+        agentsFiles: current?.agentsFiles ?? []
       }),
       extensionFactories,
       settingsManager

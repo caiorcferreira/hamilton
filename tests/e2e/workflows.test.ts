@@ -86,7 +86,7 @@ describe("end-to-end workflow execution", () => {
 
     const result = await Effect.runPromiseExit(
       Effect.scoped(
-        runWorkflow(spec, { task: "fix login bug", project_dir: testHome }, { strict: false })
+        runWorkflow(spec, { task: "fix login bug", project_dir: testHome }, { strict: false }, [], null)
       ).pipe(Effect.provide(EventBusLive))
     )
 

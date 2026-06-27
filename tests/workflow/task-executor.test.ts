@@ -146,7 +146,7 @@ describe("dispatchTask / withTaskLifecycle", () => {
       task.name,
       rt,
       spec,
-      [],
+      "",
       [],
       new Map(),
       { strict: false },

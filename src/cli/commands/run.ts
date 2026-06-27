@@ -21,6 +21,10 @@ import { makeProviderRequestRepository } from "../../telemetry/repositories/prov
 import { loadTelemetryConfig } from "../../telemetry/config.js"
 import { dbPath } from "../../paths.js"
 import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js"
+import { loadGuidelines } from "../../guidelines/loader.js"
+import { extractGuidelineArtifacts } from "../../guidelines/extractor.js"
+import { guidelinesDir } from "../../paths.js"
+import type { MemoryReader } from "../../memory/store.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -80,8 +84,12 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
     const templateOptions = yield* _(loadTemplateConfig())
     const recursionConfig = yield* _(loadRecursionConfig())
 
+    const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
+    const { rules: guidelineRules } = extractGuidelineArtifacts(loadedGuidelines)
+    const memoryReader: MemoryReader | null = null
+
     const result = yield* _(
-      runWorkflow(spec, { user_input: params.prompt, project_dir: process.cwd() }, templateOptions, params.externalRunId, recursionConfig.maxDepth ?? undefined).pipe(
+      runWorkflow(spec, { user_input: params.prompt, project_dir: process.cwd() }, templateOptions, guidelineRules, memoryReader, params.externalRunId, recursionConfig.maxDepth ?? undefined).pipe(
         Effect.tap((r) => Console.log(`\nRun folder: ${runDir(r.runId)}/`))
       )
     )

@@ -90,7 +90,7 @@ function buildAgentExecEffect(
   taskEnv: WorkflowEnv,
   spec: WorkflowSpec,
   ctx: WorkflowRuntime,
-  guidelineFiles: Array<{ name: string; content: string }>,
+  memoryContext: string,
   allRules: CompiledRule[],
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
@@ -113,7 +113,7 @@ function buildAgentExecEffect(
       isEntrypoint: task.name === spec.spec.run.entrypoint,
       env: taskEnv,
       agentConfig: agent
-    }, guidelineFiles, templateOptions)
+    }, memoryContext, templateOptions)
 
     const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
     const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
@@ -126,7 +126,8 @@ function buildAgentExecEffect(
         prompt: {
           systemTemplate: agentPrompts.systemTemplate,
           taskTemplate: agentPrompts.taskTemplate,
-          guidelineFiles: agentPrompts.guidelineFiles
+          guidelineFiles: agentPrompts.guidelineFiles,
+          memoryContext: agentPrompts.memoryContext
         },
         taskId,
         agentId: agent.metadata.name,
@@ -198,7 +199,7 @@ export function dispatchTask(
   instanceName: string,
   ctx: WorkflowRuntime,
   spec: WorkflowSpec,
-  guidelineFiles: Array<{ name: string; content: string }>,
+  memoryContext: string,
   allRules: CompiledRule[],
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
@@ -234,7 +235,7 @@ export function dispatchTask(
       const agent = spec.agentRegistry.get(task.agent.executorRef)
       if (!agent) return
       const maxRetries = task.agent!.on_failure?.max_retries ?? 1
-      const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, agent, taskId, hookRuntime)
+      const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, memoryContext, allRules, skillRegistry, templateOptions, agent, taskId, hookRuntime)
       yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, hookRuntime, execEffect))
     } else if (task.script) {
       const maxRetries = task.script.on_failure?.max_retries ?? 1

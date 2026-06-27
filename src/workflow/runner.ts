@@ -15,18 +15,21 @@ import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
 import { getTasksByRunId } from "../db/queries.js"
 
-import { loadGuidelines } from "../guidelines/loader.js"
-import { extractGuidelineArtifacts } from "../guidelines/extractor.js"
 import { loadSkillRegistry } from "../skills/registry.js"
 import { dispatchTask } from "./task-executor.js"
 import { expandTemplate } from "../workflow/template-expander.js"
-import { skillsDir, guidelinesDir } from "../paths.js"
+import { skillsDir } from "../paths.js"
 import { loadTelemetryConfig } from "../telemetry/config.js"
 import { loadScriptConfig } from "../workflow/script-config.js"
 import { createRunDir, writeInput } from "../observability/run-dir.js"
 import { WorkflowLogger } from "../observability/workflow-logger.js"
 import { loadHooks } from "../hook/loader.js"
 import { makeHookRuntime, mergeHookData } from "../hook/integration.js"
+import type { MemoryReader } from "../memory/store.js"
+import type { CompiledRule } from "../guidelines/types.js"
+import { createCurator } from "../curator/curator.js"
+import { createLLMClient } from "../curator/llm-client.js"
+import { buildMemoryContext } from "../memory/context.js"
 
 export interface WorkflowResult {
   runId: string
@@ -56,6 +59,8 @@ export function runWorkflow(
   spec: WorkflowSpec,
   initialParameters: WorkflowEnv,
   templateOptions: TemplateOptions,
+  guidelineRules: CompiledRule[],
+  memoryReader: MemoryReader | null,
   existingRunId?: string,
   maxRecursionDepth?: number
 ): Effect.Effect<WorkflowResult, Error, EventBus | Scope.Scope> {
@@ -106,9 +111,6 @@ export function runWorkflow(
         completedAt: new Date().toISOString()
       }
     }
-
-    const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
-    const { files: guidelineFiles, rules: allRules } = extractGuidelineArtifacts(loadedGuidelines)
 
     const skillRegistry = loadSkillRegistry(skillsDir())
 
@@ -223,7 +225,16 @@ export function runWorkflow(
               }
             : { ...workflowEnv, parameters: resolvedArgs.parameters }
 
-          yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, guidelineFiles, allRules, skillRegistry, templateOptions, scriptConfig, execState, hookRuntime))
+          let memoryContext = ""
+          if (memoryReader) {
+            const llmClient = createLLMClient()
+            const curator = createCurator(llmClient)
+            const memoryFilters = yield* _(Effect.promise(() => curator.suggestMemoryFilters(task.name, [])))
+            const memoryAtoms = yield* _(Effect.promise(() => memoryReader.retrieveRelevant(memoryFilters, 5)))
+            memoryContext = buildMemoryContext(memoryAtoms)
+          }
+
+          yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, memoryContext, guidelineRules, skillRegistry, templateOptions, scriptConfig, execState, hookRuntime))
 
           const originalName = originalNames[task.name]
           const output = workflowEnv.tasks?.[task.name]
