@@ -7,7 +7,7 @@ Workflow-based agentic execution engine (TypeScript, bun, Effect-TS, Pi SDK, SQL
 ```bash
 bun install          # install deps
 bun run build        # tsc -p tsconfig.json
-bun run test         # bun --bun vitest run (155 tests)
+bun run test         # bun --bun vitest run (631 tests)
 ```
 
 **Do NOT use `bun test`.** The native bun test runner lacks `vi.mocked()`. Always use `bun --bun vitest run`. Use `bun --bun vitest run tests/db/queries.test.ts` for a single file.
@@ -15,6 +15,21 @@ bun run test         # bun --bun vitest run (155 tests)
 No lint or typecheck scripts — `bun run build` is the only gate.
 
 To install the CLI locally after changes: `bun run install-local` (builds + symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`). Purge with `bun run purge`.
+
+## Memory System (Phase 1)
+
+Guideline files are ingested as canonical atoms into a dual-layer memory store:
+
+- **qmd** (`@tobilu/qmd`): Manages markdown files with YAML frontmatter + hybrid full-text/vector search at `~/.hamilton/memory/user/`.
+- **Hamilton DB** (`bun:sqlite`): Manages atom metadata (lifecycle, use tracking) in the existing `~/.hamilton/hamilton.db`.
+
+Failure is graceful — agents run without memory context if the memory store is unavailable.
+
+**New directories:** `~/.hamilton/memory/user/qmd.db`, `~/.hamilton/memory/user/canonical/`
+
+**Pipeline:** Guidelines are ingested before `runWorkflow`. Inside the runner, a curator determines task context filters, the memory store retrieves relevant canonical atoms via qmd hybrid search, and the assembled context string is injected into the Pi session system prompt.
+
+**EventBus** is now application-scoped (provided in `main.ts`, not per-run). `TokenUsage` events have optional `runId`/`taskId` for out-of-workflow usage (e.g., curator LLM calls).
 
 ## Architecture
 
@@ -25,6 +40,8 @@ src/cli/              # @effect/cli Commands (was manual argv, now migrated)
 src/agent/            # Pi SDK integration, persona resolution, prompt building
 src/workflow/         # Runner, state machine, engine, loader, context merging
 src/db/               # bun:sqlite queries + schema
+src/curator/          # LLMClient + Curator (memory filter suggestions)
+src/memory/           # MemoryStore, guideline ingestion, context injection
 src/observability/    # Run dirs, streaming, JSONL logs
 tests/                # vitest, mirrors src/ structure
 manifest/workflows/   # Bundled workflow YAML specs + agent personas
