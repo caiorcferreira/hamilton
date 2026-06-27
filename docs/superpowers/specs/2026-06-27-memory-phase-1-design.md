@@ -414,3 +414,17 @@ On-disk layout in this phase:
 | `src/cli/commands/resume.ts` | Call ingestGuidelines before runWorkflow |
 | `src/workflow/runner.ts` | Remove internal loadGuidelines, accept memoryStore, per-task curator + context injection |
 | `package.json` | Add @tobilu/qmd dependency |
+
+---
+
+## 13. Documentation Updates
+
+**`AGENTS.md`:**
+
+| Update | Detail |
+|--------|--------|
+| Add `@tobilu/qmd` to essential commands | `bun install` already covers it; note that `hamilton setup` must download embedding models |
+| Add `~/.hamilton/memory/` to directory structure | New runtime directory: `memory/user/qmd.db`, `memory/user/canonical/` |
+| Add `hamilton setup` model download note | Required for memory to function; failure is graceful (skip, no crash) |
+| Add `src/curator/`, `src/memory/` to source tree | New top-level modules |
+| EventBus note | EventBus is now application-scoped (provided at `main.ts`), not per-run |
