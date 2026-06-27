@@ -13,7 +13,7 @@
 
 ### Core Engine
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
-- [ ] Refactor runner.ts to improve code quality
+- [X] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
 
 ### Extensions & Integrations
