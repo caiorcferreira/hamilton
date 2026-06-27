@@ -25,6 +25,7 @@ import { createGuidelineExtension } from "./extensions/guideline-extension.js"
 import { createRedactExtension } from "./extensions/redact-extension.js"
 import { createLspAutocheckExtension } from "./extensions/lsp-autocheck-extension.js"
 import type { CompiledRule } from "../../guidelines/types.js"
+import type { HookRuntime } from "../../hook/integration.js"
 
 export interface PiExecutorConfig {
   prompt: ResolvablePrompt
@@ -44,6 +45,7 @@ export interface PiExecutorConfig {
   }
   outputSchema?: Record<string, unknown>
   rules?: CompiledRule[]
+  hookRuntime?: HookRuntime
 }
 
 export class PiExecutionError extends Data.TaggedError("PiExecutionError")<{
@@ -208,6 +210,19 @@ export function executeWithPi(
 
     sessionRef = session
 
+    if (config.hookRuntime) {
+      const enterResult = yield* _(config.hookRuntime.run("on_agent_enter", {
+        runId: config.runId,
+        taskId: config.taskId,
+        agentId: config.agentId,
+        session,
+        prompt: taskPrompt
+      }))
+      if (enterResult.action === "cancel" || enterResult.action === "fail") {
+        return {}
+      }
+    }
+
     if (config.settings?.compactionEnabled) {
       (session as any).setAutoCompactionEnabled?.(true)
     }
@@ -238,23 +253,21 @@ export function executeWithPi(
     try {
       yield* _(Effect.promise(() => session.prompt(taskPrompt)))
 
-      const outputPath = taskOutputFile(config.runId, config.taskId)
-      const MAX_REMINDERS = 2
-      let reminders = 0
-      while (!Fs.existsSync(outputPath) && reminders < MAX_REMINDERS) {
-        reminders++
-        yield* _(
-          Effect.promise(() =>
-            session.prompt("REMINDER: You must call write_task_output to save your work. Call write_task_output now with the JSON task output.")
-          )
-        )
+      if (config.hookRuntime) {
+        yield* _(config.hookRuntime.run("on_agent_exit", {
+          runId: config.runId,
+          taskId: config.taskId,
+          session
+        }))
       }
+
+      const outputPath = taskOutputFile(config.runId, config.taskId)
       if (!Fs.existsSync(outputPath)) {
         return yield* _(
           Effect.fail(
             new PiExecutionError({
               taskId: config.taskId,
-              message: `Task did not call write_task_output after ${reminders} reminders`
+              message: "Task did not call write_task_output"
             })
           )
         )

@@ -95,7 +95,8 @@ function buildAgentExecEffect(
   skillRegistry: ReturnType<typeof import("../skills/registry.js").loadSkillRegistry>,
   templateOptions: TemplateOptions,
   agent: NonNullable<ReturnType<WorkflowSpec["agentRegistry"]["get"]>>,
-  taskId: string
+  taskId: string,
+  hookRuntime: HookRuntime
 ): Effect.Effect<unknown, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     const fragments = yield* _(
@@ -134,6 +135,7 @@ function buildAgentExecEffect(
         model,
         outputSchema: outputSchema?.content,
         rules: allRules.length > 0 ? allRules : undefined,
+        hookRuntime,
         settings: {
           skills: resolveSkills(resolved.skills, skillRegistry),
           thinking: undefined,
@@ -232,7 +234,7 @@ export function dispatchTask(
       const agent = spec.agentRegistry.get(task.agent.executorRef)
       if (!agent) return
       const maxRetries = task.agent!.on_failure?.max_retries ?? 1
-      const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, agent, taskId)
+      const execEffect = buildAgentExecEffect(task, taskEnv, spec, ctx, guidelineFiles, allRules, skillRegistry, templateOptions, agent, taskId, hookRuntime)
       yield* _(withTaskLifecycle(instanceName, taskId, ctx, state, maxRetries, hookRuntime, execEffect))
     } else if (task.script) {
       const maxRetries = task.script.on_failure?.max_retries ?? 1
