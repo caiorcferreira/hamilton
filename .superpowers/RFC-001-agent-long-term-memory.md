@@ -1,13 +1,13 @@
-# RFC-001: Coding Agent Long-Term Memory
+# RFC-001: Hamilton Agent Long-Term Memory
 
-| Field        | Value                                  |
-|-------------|----------------------------------------|
-| RFC Number  | 001                                    |
-| Title       | Coding Agent Long-Term Memory          |
-| Status      | Draft                                  |
-| Created     | 2026-06-26                             |
-| Authors     | Agent Memory Working Group             |
-| Storage     | `@tobilu/qmd` (SQLite + hybrid search) |
+| Field        | Value                                                              |
+|-------------|--------------------------------------------------------------------|
+| RFC Number  | 001                                                                |
+| Title       | Hamilton Agent Long-Term Memory                                    |
+| Status      | Draft                                                              |
+| Created     | 2026-06-26                                                         |
+| Authors     | Agent Memory Working Group                                         |
+| Storage     | `@tobilu/qmd` (content + hybrid search) + Hamilton `bun:sqlite` DB (metadata) |
 
 ---
 
@@ -17,24 +17,30 @@
 2. [Motivation](#2-motivation)
 3. [Memory Taxonomy](#3-memory-taxonomy)
 4. [Autonomous Memory Pipeline](#4-autonomous-memory-pipeline)
-5. [Canonical Ingest Pipeline](#5-canonical-ingest-pipeline)
+5. [Content Ingest Pipeline](#5-content-ingest-pipeline)
 6. [Context Injection](#6-context-injection)
 7. [Salience Model & Demotion Protocol](#7-salience-model--demotion-protocol)
 8. [Corrections & Failures as First-Class Memory](#8-corrections--failures-as-first-class-memory)
 9. [Human Override & Editing](#9-human-override--editing)
-10. [qmd Integration Details](#10-qmd-integration-details)
-11. [Open Questions](#11-open-questions)
-12. [Appendix](#12-appendix)
+10. [qmd + Hamilton DB Integration](#10-qmd--hamilton-db-integration)
+11. [Observation Collection — Dual Source](#11-observation-collection--dual-source)
+12. [The Memory Daemon](#12-the-memory-daemon)
+13. [LLM Client & The Curator](#13-llm-client--the-curator)
+14. [CLI Commands](#14-cli-commands)
+15. [Open Questions](#15-open-questions)
+16. [Appendix](#16-appendix)
 
 ---
 
 ## 1. Abstract
 
-Coding agents operating across multiple sessions suffer from a fundamental amnesia problem: each session begins with zero durable knowledge of past failures, established conventions, or user preferences. This RFC proposes a structured long-term memory system for coding agents that persists knowledge across sessions, surfaces the right facts at the right time, and gives corrections and failures privileged treatment.
+Hamilton workflows execute across multiple runs, but each run begins with zero durable knowledge of past failures, established conventions, or user preferences. This RFC proposes a structured long-term memory system that persists knowledge across runs, surfaces the right facts at the right time, and gives corrections and failures privileged treatment.
 
-The system is organised around **atoms** — typed, versioned, confidence-scored memory units — stored in a hybrid full-text and vector search backend (`@tobilu/qmd`, hereafter "qmd"). An autonomous multi-phase pipeline extracts, validates, and indexes atoms from session observations. A separate canonical ingest pipeline ingests human-authored reference material. At session start, a ranked subset of atoms is injected into the agent's context window; the remainder is queryable on demand via a `memory_search` tool.
+The system is organised around **atoms** — typed, versioned, confidence-scored memory units — stored in two layers: **qmd** (`@tobilu/qmd`) manages markdown files with YAML frontmatter and provides hybrid full-text + vector search; **Hamilton's existing `bun:sqlite` database** (`~/.hamilton/hamilton.db`) manages atom metadata (salience, use counts, status). Atom content lives in qmd; administrative state lives in Hamilton's DB.
 
-The design is deliberately conservative: it prefers fewer high-confidence atoms over many low-quality ones, treats corrections and failures as ground truth, and gives humans unconditional last-resort control over the store.
+Observations are collected from two sources: Hamilton's own runs (via the EventBus and `on_workflow_completed` hook) and external coding agents (via a shared inbox at `~/.hamilton/memory/inbox/`). A **memory daemon** watches the inbox and runs the autonomous extraction pipeline — Phases 2 through 5 — independently of any active run.
+
+Context injection uses Hamilton's Pi SDK `DefaultResourceLoader` to feed memory atoms into the agent's system prompt at the start of each task. Memory tools (`hmemory_query`, `hmemory_get`, `hmemory_record`, `hmemory_relevant`) are exposed both as MCP tools in Hamilton's MCP server and as Pi SDK extensions for Hamilton's own agents.
 
 ---
 
@@ -47,30 +53,30 @@ Coding agent failures manifest at three distinct time-scales, each requiring a d
 **Time-scale 1 — Single Tool Call (microseconds to seconds)**
 A single tool call fails or returns unexpected output. The agent SHOULD retry with adjusted parameters, read the error message, and adapt within the same context window. This is the easiest failure mode to handle because all relevant context is immediately visible.
 
-**Time-scale 2 — Intra-Session Drift (minutes to hours)**
-Over the course of a long session, the agent loses track of earlier decisions, starts contradicting its own work, or forgets user corrections given thirty messages ago. Context-window management — summarisation, attention sinks, truncation — partially addresses this, but none of these mechanisms are perfect. The agent SHOULD maintain a running structured observation log within the session to anchor state.
+**Time-scale 2 — Intra-Run Drift (minutes to hours)**
+Over the course of a long run, the agent loses track of earlier decisions, starts contradicting its own work, or forgets user corrections given thirty messages ago. Hamilton's per-task `TodoListUpdated` events and structured task outputs partially address this, but no mechanism prevents cross-task amnesia within a run.
 
-**Time-scale 3 — Cross-Session Amnesia (hours to days to forever)**
-The agent completes a session, the context window is cleared, and all learned knowledge vanishes. In the next session the agent repeats the same mistakes, asks the same questions, violates the same conventions, and ignores the same user preferences. **This is the hardest failure mode** because there is no in-context signal that anything was ever known. The agent does not know what it does not remember.
+**Time-scale 3 — Cross-Run Amnesia (hours to days to forever)**
+The agent completes a run, the Pi session is disposed, and all learned knowledge vanishes. In the next run the agent repeats the same mistakes, asks the same questions, violates the same conventions, and ignores the same user preferences. **This is the hardest failure mode** because there is no in-context signal that anything was ever known. The agent does not know what it does not remember.
 
-Cross-session amnesia is particularly damaging in coding contexts because:
+Cross-run amnesia is particularly damaging in Hamilton's workflow context because:
 
-- Architectural decisions accrue over months, not hours.
-- Code style preferences are enforced across every file touched.
+- Multi-step workflows (plan → implement → review) accrue knowledge across tasks that is lost between runs.
+- Code style preferences are enforced across every file touched, in every task.
 - Repeated mistakes waste user trust at a compounding rate.
 - Failure patterns from tool calls (e.g. a specific API always requires a header the agent keeps forgetting) never improve without memory.
 
 ### 2.2 Why Flat MEMORY.md Files Do Not Scale
 
-A naive solution is to maintain a single `MEMORY.md` file that the agent appends to at session end and reads at session start. This approach fails at scale for several reasons:
+A naive solution is to maintain a single `MEMORY.md` file that the agent appends to at run end and reads at run start. This approach fails at scale for several reasons:
 
-1. **Context consumption.** A `MEMORY.md` file injected wholesale into the system prompt grows linearly with agent age. After dozens of sessions it consumes a significant fraction of the context budget, leaving less room for the actual task.
+1. **Context consumption.** A `MEMORY.md` file injected wholesale into the system prompt grows linearly with agent age. After dozens of runs it consumes a significant fraction of the context budget, leaving less room for the actual task.
 
 2. **No retrieval selectivity.** All remembered facts are equally visible regardless of relevance. A fact about project A's database schema should not consume context tokens during project B's frontend work.
 
 3. **No confidence or quality tracking.** There is no mechanism to distinguish a well-validated fact from a speculative hypothesis the agent once wrote down. Over time, low-quality entries pollute the store.
 
-4. **No deduplication.** The same fact gets appended multiple times across sessions, inflating the file without adding information.
+4. **No deduplication.** The same fact gets appended multiple times across runs, inflating the file without adding information.
 
 5. **Brittle to corruption.** A single malformed append can corrupt the entire file's utility.
 
@@ -82,6 +88,12 @@ When a user corrects the agent — "you used the wrong config file format; we al
 
 Failures — failed tool call patterns, incorrect assumption sequences, loops the agent fell into — are the negative complement of corrections. Recording why an approach failed, not just what the correct answer is, gives the agent the ability to reason about its own error modes rather than simply substituting one rote answer for another.
 
+### 2.4 Why Both Hamilton and Non-Hamilton Agents Need Memory
+
+Hamilton is one agent among several that a developer might use. A developer may run Hamilton workflows but also use Claude Code, Copilot, or Cursor. Corrections learned in one agent (e.g. "this project uses TOML, not JSON" learned in Cursor) should benefit all agents, including Hamilton. Conversely, facts learned during a Hamilton run should be available when the developer switches to Claude Code.
+
+The memory system MUST accept observations from any coding agent that writes to a shared inbox (`~/.hamilton/memory/inbox/`). Hamilton's own runs are one source among many. The daemon that processes observations is agent-agnostic — it does not care which tool produced the observations, only that they conform to the observation schema.
+
 ---
 
 ## 3. Memory Taxonomy
@@ -91,10 +103,15 @@ Failures — failed tool call patterns, incorrect assumption sequences, loops th
 Every atom belongs to exactly one of two scopes:
 
 **Project-level scope (`project`)**
-Facts tied to a specific codebase or project: patterns used in that codebase, known bugs in that system, architectural decisions, corrections made during work on that project, project-specific conventions. Project-scope atoms are stored in a per-project qmd store keyed by `project_id`. They are irrelevant to other projects and MUST NOT be injected in sessions for different projects.
+Facts tied to a specific codebase: patterns used in that codebase, known bugs in that system, architectural decisions, corrections made during work on that project, project-specific conventions. Project-scope atoms are stored in a per-project qmd store keyed by `project_id`. They are irrelevant to other projects and MUST NOT be injected in sessions for different projects.
+
+In Hamilton, `project_id` is resolved at run start:
+1. If a git repository is detected, `project_id` = the repository root path (from `git rev-parse --show-toplevel`).
+2. If no git repository, `project_id` = the current working directory.
+3. For external agents, `project_id` is specified in the observation log metadata by the agent that produced it.
 
 **User-level scope (`user`)**
-Facts that travel across projects: the user's style preferences, preferred tooling, interaction patterns, general recurring mistakes the agent makes with this user, cross-project skills the agent has mastered. User-scope atoms are stored in a single shared qmd store. They SHOULD be injected in all sessions regardless of project.
+Facts that travel across projects: the user's style preferences, preferred tooling, interaction patterns, general recurring mistakes the agent makes with this user, cross-project procedures the agent has mastered. User-scope atoms are stored in a single shared qmd store at `~/.hamilton/memory/user/`. They SHOULD be injected in all sessions regardless of project.
 
 ### 3.2 Memory Kinds
 
@@ -104,87 +121,114 @@ The following kinds are defined. Each is a first-class type with distinct inject
 |--------------|--------------------------------------------------------------------------------------|----------------|-------------|-------------------|
 | `correction` | A mistake the agent made plus the correct answer. Ground-truth signal.               | project / user | No          | 1 (highest)       |
 | `failure`    | A failed approach, tool call pattern, or reasoning loop. Companion to correction.    | project / user | No          | 2                 |
-| `canonical`  | Ground-truth ingested from a human-authored file. Never auto-modified. Can be project-scope or user-scope. | project / user | No          | 3 (search-ranked) |
-| `skill`      | A repeatable procedure or multi-step workflow the agent has mastered.                | project / user | Yes         | 4                 |
+| `canonical`  | Ground-truth ingested from a human-authored file. Never auto-modified.               | project / user | No          | 3 (search-ranked) |
+| `procedure`  | A repeatable procedure or multi-step workflow the agent has mastered.                | project / user | Yes         | 4                 |
 | `fact`       | A project architectural or domain fact (schema shape, API endpoint, env var name).   | project        | Yes         | 5                 |
 | `preference` | User style or tooling preference (indentation, commit message format, tool choice).  | user           | Yes         | 6                 |
 
-> **Note:** `canonical` is a **kind**, not a scope. Canonical atoms can have `scope: project` or `scope: user`. A user-scope canonical atom (e.g. from a personal coding style guide) is stored in the user-scope qmd store. A project-scope canonical atom (e.g. from a repo's CONTRIBUTING.md) is stored in the project-scope store.
+### 3.3 Atom Schema — Dual Layer
 
-### 3.3 Atom Schema
+Each memory atom exists in two storage layers simultaneously:
 
-Each memory item — called an **atom** — is stored as a markdown file with YAML frontmatter. The schema is split into three parts: frontmatter (stored in the file), database (stored in Hamiltons's database), and the markdown body.
+**qmd Layer (content — source of truth for search)**
+Atoms are stored as markdown files with YAML frontmatter, queried by qmd. The frontmatter contains all fields visible to qmd's hybrid search. Atom files follow the directory structure:
 
-### Frontmatter
+```
+~/.hamilton/memory/projects/<project_id>/<kind>/<slugified-title>-<id>.md
+~/.hamilton/memory/user/<kind>/<slugified-title>-<id>.md
+```
+
+**Frontmatter:**
 
 ```
 id          : string   — nanoid (21-character URL-safe string). Immutable after creation.
-title       : string   — Short human-readable title for the atom. Generated by the Phase 3
-                         strong model as part of its output. Required.
-kind        : enum     — One of: correction, failure, preference, fact, skill, canonical
+title       : string   — Short human-readable title. Generated by Phase 3 strong model.
+kind        : enum     — One of: correction, failure, preference, fact, procedure, canonical
 scope       : enum     — One of: project | user
 source      : enum     — How this atom was created:
-                           autonomous       — created by the extraction pipeline
-                           canonical-ingest — created by the canonical ingest pipeline
-                           human            — created or last-edited by a human
+                           autonomous — created by the daemon extraction pipeline (Phase 2-5)
+                           human      — created via `hmemory_record`, `hamilton memory ingest <path>`, or human edit
+                           guideline  — ingested by the guideline pipeline (automatic at workflow start or via `hamilton memory ingest --guidelines`)
 confidence  : float    — [0.0, 1.0]. Estimate of atom accuracy.
-                         canonical: always 1.0.
-                         correction/failure: can only be lowered by human action or
-                           a contradicting correction atom (see §8).
-status      : enum     — One of: active | demoted | tombstoned
-created_at  : datetime — ISO 8601 with timezone. Set at creation; immutable.
-updated_at  : datetime — ISO 8601 with timezone. Updated on every write.
-project_id  : string   — The project this atom belongs to.
-                         NULL for user-scope atoms.
-session_id  : string   — ID of the session that created this atom.
-tags        : string[] — Free-form tags for filtering and grouping.
-demoted_at     : datetime — Timestamp when status was set to demoted. NULL if never demoted.
-tombstoned_at  : datetime — Timestamp when status was set to tombstoned. NULL if never.
-contradicts    : string[] — List of atom IDs this atom contradicts or supersedes.
-```
-
-### Hamilton Database
-
-```
-id          : string   — nanoid (21-character URL-safe string). Immutable after creation.
-path        : string   — Absolute path to file.
-kind        : enum     — One of: correction, failure, preference, fact, skill, canonical
-scope       : enum     — One of: project | user
-salience    : float    — [0.0, 1.0]. Computed score (see §7). Not stored in
-                         frontmatter; recomputed at maintenance time.
+                          canonical: always 1.0.
+                          correction/failure: only lowered by human action or
+                            a contradicting correction atom (see §8).
 status      : enum     — One of: active | demoted | tombstoned
 created_at  : datetime — ISO 8601 with timezone. Set at creation; immutable.
 updated_at  : datetime — ISO 8601 with timezone. Updated on every write.
 project_id  : string   — The project this atom belongs to. NULL for user-scope atoms.
-use_count      : integer  — Number of times this atom was retrieved and injected. Defaults to 0.
-last_used_at   : datetime — Timestamp of most recent retrieval. NULL until first use.
+tags        : string[] — Free-form tags for filtering and grouping.
+demoted_at     : datetime — Timestamp when status was set to demoted. NULL if never.
+tombstoned_at  : datetime — Timestamp when status was set to tombstoned. NULL if never.
+contradicts    : string[] — List of atom IDs this atom contradicts or supersedes.
 ```
 
-### Markdown body
+**Hamilton Database Layer (metadata — administrative state)**
+
+Hamilton's `bun:sqlite` database (`~/.hamilton/hamilton.db`) tracks a `memory_atoms` table for lifecycle management, use tracking, and salience computation. This table does NOT store atom content — content lives exclusively in qmd's markdown files. The `path` column links to the qmd-managed .md file.
+
+```sql
+CREATE TABLE memory_atoms (
+  id TEXT PRIMARY KEY,
+  path TEXT NOT NULL,                    -- qmd:// URI to the .md file (e.g. qmd://projects/<id>/corrections/<slug>-<id>.md)
+  kind TEXT NOT NULL CHECK (kind IN ('correction','failure','preference','fact','procedure','canonical')),
+  scope TEXT NOT NULL CHECK (scope IN ('project','user')),
+  confidence REAL NOT NULL DEFAULT 0.5,
+  salience REAL,                         -- computed by daemon; NULL until first maintenance pass
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','demoted','tombstoned')),
+  project_id TEXT,
+  run_id TEXT,
+  use_count INTEGER NOT NULL DEFAULT 0,
+  last_used_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  demoted_at TEXT,
+  tombstoned_at TEXT
+);
+
+CREATE TABLE memory_event_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  atom_id TEXT,
+  run_id TEXT,
+  event_type TEXT NOT NULL,
+  actor TEXT NOT NULL CHECK (actor IN ('agent','system','human')),
+  reason TEXT,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```
+
+The `memory_atoms` and `memory_event_log` tables are added via Hamilton's existing migration system (`src/db/migrations.ts`) as migration v8.
+
+**Rationale for dual-layer storage:** qmd provides hybrid search (BM25 + vector + RRF fusion) and LLM reranking — a query engine Hamilton should not rebuild. Hamilton's DB provides lifecycle management (use tracking, salience, status transitions) that integrates naturally with the existing subscriber pattern (`src/db/subscribers.ts`). Queries that need both search and metadata join across layers: search in qmd, enrich from Hamilton DB by atom ID.
+
+### 3.4 Markdown Body
 
 Content: The memory's substance, written in markdown. For `correction`: includes both the mistake and the fix. For `failure`: includes the failed pattern and (if known) the cause.
+
 ---
 
 ## 4. Autonomous Memory Pipeline
 
-The autonomous pipeline is triggered at session end. It MAY also be triggered at mid-session checkpoints (e.g. after every N tool calls, or on explicit user request). The pipeline is fully asynchronous relative to the session; the session MUST NOT block waiting for memory writes to complete.
+The autonomous pipeline processes observations and produces atoms. It is triggered when the memory daemon detects new observation files in the inbox (`~/.hamilton/memory/inbox/`). The daemon runs asynchronously — Hamilton runs MUST NOT block waiting for memory writes to complete.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                       AUTONOMOUS MEMORY PIPELINE                               │
 │                                                                                │
-│  Session Observations                                                          │
+│  Inbox observation files                                                       │
 │         │                                                                      │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
-│  │  Phase 1    │  Observation Collection                                       │
-│  │  Harness    │  Structured event log from the session                        │
+│  │  Phase 1    │  Observation files written by agents                         │
+│  │  (external) │  Hamilton: on_workflow_completed hook → inbox/<runId>.jsonl  │
+│  │             │  External agents: any tool → inbox/<agent>/<timestamp>.jsonl │
 │  └──────┬──────┘                                                               │
-│         │ structured events (JSON)                                             │
+│         │ daemon detects new file in inbox                                    │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
 │  │  Phase 2    │  Candidate Extraction (Fast Model)                            │
-│  │  Fast LLM   │  Proposes draft atoms from events                           │
+│  │  Fast LLM   │  Proposes draft atoms from observation log                   │
 │  └──────┬──────┘                                                               │
 │         │ draft atoms (JSON array)                                           │
 │         ▼                                                                      │
@@ -195,67 +239,76 @@ The autonomous pipeline is triggered at session end. It MAY also be triggered at
 │         │ validated atoms + rejected list                                    │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
-│  │  Phase 4    │  Store Write & Embed                                          │
-│  │  qmd writes │  Markdown files + qmd index update                            │
+│  │  Phase 4    │  Hamilton DB insert (pending) → file writes → batch qmd embed → active │
+│  │  Dual write │  Markdown file (Hamilton writes) → qmd embed → memory_atoms row│
 │  └──────┬──────┘                                                               │
 │         │ accepted atoms                                                     │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
 │  │  Phase 5    │  Session Summary Fold                                         │
-│  │  Audit      │  Append to sessions/<project_id>/YYYY-MM.md                  │
+│  │  Audit      │  Append to ~/.hamilton/memory/sessions/<project_id>/YYYY-MM.md│
 │  └─────────────┘                                                               │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.1 Phase 1 — Observation Collection
+### 4.1 Phase 1 — Observation Writing (External to Pipeline)
 
-The harness (the runtime wrapping the agent) MUST record structured observations throughout the session. Each observation is a JSON event appended to a session-scoped event log. The log is flushed to disk at the end of the session.
+Observations are written to `~/.hamilton/memory/inbox/` by agents. The daemon does not produce observations — it consumes them.
 
-Observation kinds:
+**For Hamilton runs:**
 
-```
-tool_call         — A tool was invoked. Fields: tool_name, arguments, result, success (bool),
-                    duration_ms, error_message (if failed).
+Hamilton is an autonomous agent — it starts with a goal and runs independently. It does not receive user corrections or feedback mid-run. Hamilton produces observations from two sources:
 
-user_correction   — The user explicitly corrected the agent. Fields: agent_statement,
-                    correction_text, turn_index.
+*Guideline ingestion (canonical memory):*
 
-user_feedback     — Positive or negative feedback from the user. Fields: sentiment
-                    (positive|negative|neutral), text, turn_index.
+Hamilton's guideline system (`src/guidelines/`) loads project-specific instruction files at workflow start. These files are authoritative reference material. A dedicated **guideline pipeline** — built on top of the curator (§13) and the content ingest pipeline (§5) — runs as a step before the workflow runner. It handles change detection, re-ingestion, and canonical atom lifecycle:
 
-error_encountered — An exception, assertion failure, or unexpected API response occurred.
-                    Fields: error_type, error_message, context, stack_trace.
+1. Load guideline files via `src/guidelines/loader.ts`.
+2. For each file, compute the SHA-256 hash and query `memory_event_log` for the most recent `ingested` event: `SELECT metadata FROM memory_event_log WHERE event_type = 'ingested' AND json_extract(metadata, '$.source') = 'guideline' AND json_extract(metadata, '$.source_path') = ? ORDER BY timestamp DESC LIMIT 1`.
+3. If absent → new file, run content ingest (§5) with `source: guideline`.
+4. If hash differs → file changed, tombstone old canonical atoms for this source_path, re-ingest.
+5. If hash matches → skip.
+6. After ingestion: INSERT an `ingested` event into `memory_event_log` with metadata: `{"source": "guideline", "source_path": "<path>", "file_hash": "<sha256>", "scope": "project"}`.
 
-pattern_repeated  — The same tool call or assertion was repeated N or more times within
-                    the session (threshold: N=3). Fields: tool_name, pattern_description,
-                    repeat_count.
+This ensures guideline files are always present as canonical memory atoms without manual `hamilton memory ingest` commands. The guideline pipeline is implemented at `src/memory/guidelines.ts` — the workflow runner calls into it, it does not own the logic.
 
-decision_made     — The agent made a significant architectural or implementation decision.
-                    Fields: decision_text, rationale, alternatives_considered.
+*Run-time observations (EventBus):*
+During a workflow run, a new `ObservationCollector` subscriber on Hamilton's EventBus (`src/events/bus.ts`) buffers observations in memory. On `on_workflow_completed`, the subscriber serializes the buffer to `~/.hamilton/memory/inbox/hamilton/<runId>.jsonl` using the standard observation schema below.
 
-```
+Observation mapping from Hamilton events:
 
-The observation log MUST include session metadata:
+| Observation kind    | Collected from Hamilton event(s)                                                   |
+|---------------------|------------------------------------------------------------------------------------|
+| `tool_call`         | `ToolCall` + `ToolResult` events — tool_name, arguments (summary), result (summary, truncated), success (ToolResult.isError inverted), duration_ms. |
+| `error_encountered` | `TaskFailed` events and `ToolResult` with `isError: true` — error_type, error_message, context. |
+| `pattern_repeated`  | Count repeated `ToolCall` events with same tool_name + similar arguments within a single task. Threshold: N=3. |
+| `decision_made`     | `LlmMessage` content analysis for architectural or implementation decisions containing rationale or trade-off discussion. Detected via keyword patterns (e.g. "I'll use", "the approach is", "we should"). |
 
-```json
-{
-  "session_id": "<uuid>",
-  "project_id": "<project-id or null>",
-  "started_at": "<ISO 8601>",
-  "ended_at": "<ISO 8601>",
-  "task_description": "<user's initial task prompt>",
-  "observations": [ ... ]
-}
+**For external agents:**
+Any coding agent writes a JSONL file to `~/.hamilton/memory/inbox/<agent-name>/<timestamp>.jsonl` using the same observation schema. External agents MAY also include `user_correction` and `user_feedback` observations (which Hamilton does not produce).
+
+**Observation log format (standard JSONL):**
+
+Each observation is a JSON object on its own line. The file begins with a header object containing session metadata.
+
+```jsonl
+{"type":"header","session_id":"<uuid or hamilton-run-id>","project_id":"<path or slug>","agent_name":"hamilton|claude|copilot|...","started_at":"<ISO 8601>","ended_at":"<ISO 8601>","task_description":"<initial task prompt>"}
+{"type":"tool_call","tool_name":"bash","arguments":"npm test","result":"Tests passed...","success":true,"duration_ms":3420}
+{"type":"tool_call","tool_name":"write","arguments":"src/app.ts (content omitted)","result":"File written","success":true,"duration_ms":12}
+{"type":"user_correction","agent_statement":"I'll write the config as JSON.","correction_text":"No, we use TOML for all config files.","turn_index":4}
+{"type":"error_encountered","error_type":"ToolResultError","error_message":"ENOENT: no such file or directory","context":"Reading output.json after write_task_output"}
+{"type":"pattern_repeated","tool_name":"bash","pattern_description":"npm test without npm install","repeat_count":3}
+{"type":"decision_made","decision_text":"Using Effect-TS for error handling across the codebase.","rationale":"Already used in the project; provides typed errors and retry.","alternatives_considered":"try/catch, neverthrow"}
 ```
 
 ### 4.2 Phase 2 — Candidate Extraction (Fast Model)
 
-A lightweight language model (e.g. a smaller/faster model appropriate for structured extraction) receives the session observation log and MUST produce a JSON array of draft atoms. The fast model has NO access to the existing memory store — it only sees the session observations. This isolation prevents the fast model from producing biased candidates that simply echo what is already stored.
+A lightweight language model receives the observation log and MUST produce a JSON array of draft atoms. The fast model has NO access to the existing memory store — it only sees the observations. This isolation prevents the fast model from producing biased candidates that simply echo what is already stored.
 
 **Fast model prompt contract:**
 
 The prompt MUST include:
-- The session observation log (as JSON or formatted text)
+- The observation log (as formatted text)
 - The task description
 - The atom schema definition
 - Instructions to propose candidates only for observations that represent durable, reusable knowledge
@@ -264,7 +317,7 @@ The fast model MUST output a JSON array. Each element MUST conform to:
 
 ```json
 {
-  "kind": "<correction|failure|preference|fact|skill>",
+  "kind": "<correction|failure|preference|fact|procedure>",
   "scope": "<project|user>",
   "content": "<markdown text>",
   "confidence": <float 0.0–1.0>,
@@ -274,7 +327,7 @@ The fast model MUST output a JSON array. Each element MUST conform to:
 ```
 
 Notes:
-- `canonical` kind MUST NOT be proposed by the fast model (canonical atoms come only from the canonical ingest pipeline).
+- `canonical` kind MUST NOT be proposed by the fast model (canonical atoms come only from the guideline pipeline).
 - The fast model SHOULD be instructed to prefer fewer high-confidence candidates over many low-confidence ones.
 - `confidence` at this stage is a coarse estimate; Phase 3 adjusts it.
 - `source_observation_indices` links each candidate back to the observation(s) that motivated it, for audit purposes.
@@ -307,7 +360,7 @@ For each candidate the strong model MUST make one of the following decisions:
 | `correction` | MUST be accepted unless the strong model can provide explicit written justification for rejection. Candidate must reference a specific agent mistake. |
 | `failure`    | Same as correction. High bar for rejection. Failure pattern must be specific and reproducible. |
 | `fact`       | Must be verifiably derivable from the session observations. Vague or speculative facts MUST be rejected. |
-| `skill`      | Must describe a complete, repeatable procedure. Partial workflows MUST be rejected.       |
+| `procedure`  | Must describe a complete, repeatable procedure. Partial workflows MUST be rejected.       |
 | `preference` | Must be grounded in an explicit user statement or repeated demonstrated behaviour.        |
 
 **Confidence adjustment:**
@@ -346,54 +399,66 @@ The strong model MUST adjust confidence based on:
 }
 ```
 
-### 4.4 Phase 4 — Store Write & Embed
+### 4.4 Phase 4 — Dual Write (Hamilton writes + batch qmd embed)
 
-After Phase 3 produces the validated list, the pipeline writes each accepted atom to disk and indexes it into qmd.
+After Phase 3 produces the validated list, the pipeline writes all accepted atoms to both stores. The order is transactional with Hamilton DB as the commit point:
 
-**For `accept` decisions:**
-1. Generate a nanoid as `id` (21-character URL-safe string, collision-resistant).
-2. Use the `title` generated by Phase 3 for this atom. Slugify the title (lowercase, spaces replaced with hyphens, special characters stripped) to form the filename slug.
-3. Populate all required atom fields with `source: autonomous`, `status: active`, `created_at: now`, `updated_at: now`.
-4. Write the atom as a markdown file at `<kind>/<slugified-title>-<id>.md` with YAML frontmatter (see §12 for format).
-5. Call `store.addContext()` to register the collection description if this is the first atom of this kind in this store.
-6. Index the file into the appropriate qmd collection by calling `store.addCollection()` if the collection does not yet exist, then the store's index update path.
-7. Emit an `atom.created` audit event (see §7.4).
+**Step A — Hamilton DB insert (commit point):**
+1. BEGIN TRANSACTION in Hamilton DB.
+2. For each accepted atom: generate a nanoid as `id` (21-character URL-safe string), use the `title` from Phase 3 (slugify for filename), determine the absolute `path` (`<kind>/<slugified-title>-<id>.md`). INSERT into `memory_atoms` with `status = 'pending'`, all metadata columns (`kind`, `scope`, `confidence = NULL`, `project_id`, `run_id`, `created_at`, `updated_at`). `salience` is set to NULL initially.
+3. COMMIT. If this fails, abort the entire Phase 4 — nothing is on disk yet.
+
+**Step B — Hamilton writes all .md files:**
+4. Populate all required frontmatter fields for each atom. Set `source: autonomous`, `status: active`, `created_at: now`, `updated_at: now`.
+5. Hamilton writes each atom markdown file to its `path` within the appropriate qmd store directory. If any individual file write fails, skip that atom (the DB row stays `pending` for recovery).
+
+**Step C — Batch qmd embed:**
+6. After all files are written, trigger `qmd embed` once against the store directory to index all new files into the hybrid search engine (BM25 + vectors). A single embed pass is faster than per-file invocations.
+
+**Step D — Finalize:**
+7. UPDATE `memory_atoms` SET `status = 'active'` WHERE `status = 'pending'` AND `run_id = ?` for the current run.
+8. Emit `MemoryAtomCreated` audit events for each atom via the EventBus. The `DbWriter` subscriber persists them to `memory_event_log`.
 
 **For `merge` decisions:**
-
-When the strong model decides to MERGE a candidate with an existing atom, a new merged atom is created rather than updating in place:
-1. Generate a new `title` for the merged atom (reflecting the combined knowledge), as provided by Phase 3 output.
-2. Generate a new nanoid as `id` for the merged atom.
-3. Slugify the new title to form the filename slug.
-4. Create the new merged atom file at `<kind>/<slugified-new-title>-<new-id>.md` with `source: autonomous`, `status: active`, `created_at: now`, `updated_at: now`, and the merged `content`, `confidence`, and `tags` from Phase 3 output.
-5. Tombstone the old atom: load the old atom file at its existing path, set `status: tombstoned`, `tombstoned_at: now`.
-6. Re-index the new atom in qmd.
-7. Re-index the tombstoned old atom in qmd (excluded from future retrieval by status filter).
-8. Emit an `atom.merged` audit event referencing both the old atom id (`metadata.old_atom_id`) and the new atom id (`metadata.new_atom_id`).
-
-The old atom file is NOT renamed — it is tombstoned in place. A new file is created with the new `<slugified-title>-<id>.md` name.
+1. Generate new `title`, `id`, and `path` for the merged atom.
+2. INSERT new row in `memory_atoms` with `status = 'pending'` (Step A).
+3. Tombstone the old atom: UPDATE old row to `status = 'tombstoned'`, `tombstoned_at = now`. Load the old .md file, update frontmatter with `status: tombstoned`, `tombstoned_at`.
+4. Hamilton writes the new .md file; updates the old .md file (Step B).
+5. Batch `qmd embed` picks up both files (new = active, old = tombstoned/excluded) (Step C).
+6. Finalize: UPDATE new row to `active` (Step D).
+7. Emit `MemoryAtomMerged` audit event referencing both IDs.
 
 **For `supersede` decisions:**
-1. Accept the new candidate as per the `accept` path above, including populating `contradicts` with the old atom's ID.
-2. Load the old atom, set its `status: tombstoned`, `tombstoned_at: now`. The system MUST emit an `atom.tombstoned` audit event.
-3. Re-index the tombstoned atom (it will be excluded from future retrieval by status filter).
-4. Emit both `atom.created` (for the new atom) and `atom.tombstoned` (for the old one) audit events.
+1. Accept the new candidate as per Steps A-D above, populating `contradicts` with the old atom's ID.
+2. Tombstone the old atom: UPDATE old row to `status = 'tombstoned'`, update old .md frontmatter, batch `qmd embed`.
+3. Emit `MemoryAtomCreated` (new) and `MemoryAtomTombstoned` (old) audit events.
 
 **For `reject` decisions:**
-1. No file is written.
-2. The system MUST emit an `atom.rejected` audit event including the rejection reason from Phase 3.
+1. No file is written. No DB row is inserted.
+2. Emit a `MemoryAtomRejected` audit event including the rejection reason from Phase 3.
 
-The system MUST emit an audit event for each of the above operations. How audit events are persisted is out of scope for this RFC and left to the implementation.
+**Recovery from `pending` rows:**
+During the daemon's maintenance cycle, detect stuck `pending` rows:
+
+```sql
+SELECT id, path FROM memory_atoms
+WHERE status = 'pending'
+  AND created_at < datetime('now', '-5 minutes')
+```
+
+For each row:
+- If the .md file **exists at `path`**: write succeeded but embed or finalize didn't — re-trigger `qmd embed`, then UPDATE to `status = 'active'`.
+- If the .md file is **missing**: file write failed, the atom is lost — tombstone the row: UPDATE `status = 'tombstoned'`, `tombstoned_at = now`, `reason = 'recovery: file missing after crash'`.
 
 ### 4.5 Phase 5 — Session Summary Fold
 
-After all writes are complete, the pipeline appends a compact structured markdown block to the rolling session fold file at:
+After all writes are complete, the daemon appends a compact structured markdown block to the rolling session fold file at:
 
 ```
-sessions/<project_id>/YYYY-MM.md
+~/.hamilton/memory/sessions/<project_id>/YYYY-MM.md
 ```
 
-For user-scope sessions (no project_id), the path is `sessions/user/YYYY-MM.md`.
+For user-scope sessions (no project_id), the path is `~/.hamilton/memory/sessions/user/YYYY-MM.md`.
 
 The fold block has the following structure:
 
@@ -401,6 +466,7 @@ The fold block has the following structure:
 ## <session_id> — <YYYY-MM-DD HH:MM UTC>
 
 **Task:** <task_description, first 200 chars>
+**Agent:** <agent_name (hamilton | claude | copilot | ...)>
 **Duration:** <session duration>
 **Atoms created:** <count>
 **Atoms updated:** <count>
@@ -410,40 +476,43 @@ The fold block has the following structure:
 - [correction] <brief summary of each accepted correction>
 - [failure]    <brief summary of each accepted failure>
 - [fact]       <brief summary of each accepted fact>
-- [skill]      <brief summary of each accepted skill>
+- [procedure] <brief summary of each accepted procedure>
 - [preference] <brief summary of each accepted preference>
 
 ### Rejections
 - <brief reason for each rejected candidate>
 ```
 
-The session fold file is NOT a memory store. It MUST NOT be injected into the context window and MUST NOT be searched by the retrieval pipeline. It is a human-readable audit trail of what was learned and when. Its only operational use is as input to the `atom.rejected` audit event reconstruction if needed.
+The session fold file is NOT a memory store. It MUST NOT be injected into the context window and MUST NOT be searched by the retrieval pipeline. It is a human-readable audit trail of what was learned and when.
 
 ---
 
-## 5. Canonical Ingest Pipeline
+## 5. Content Ingest Pipeline
 
-The canonical ingest pipeline is triggered explicitly by the user with a command such as:
+The content ingest pipeline ingests external material into the memory store. It is triggered via CLI or by the guideline pipeline:
 
 ```
-memorize file: docs/code-style-guide.md           # scope defaults to project
-memorize file: ~/my-coding-style.md scope:user    # user-scope canonical atom
-memorize file: docs/architecture.md               # scope defaults to project
-memorize url: https://internal.wiki/api-conventions
+hamilton memory ingest <path> [--scope project|user]   # file or URL
+hamilton memory ingest --guidelines                     # all guideline files
 ```
 
-This pipeline ingests authoritative human-authored content and MUST NOT be triggered autonomously.
+Two ingestion paths share the same chunking and deduplication logic but produce different atom kinds:
+
+- **Manual ingest** (`hamilton memory ingest <path>`): produces atoms with `source: human`. The atom `kind` (fact, procedure, preference, etc.) is set by the fast model, not `canonical`. These are regular atoms — they decay with salience and may be demoted.
+- **Guideline ingest** (`hamilton memory ingest --guidelines` or automatic at workflow start): produces atoms with `source: guideline`, `kind: canonical`, `confidence: 1.0`. Canonical atoms are exempt from salience decay and demotion (§7). The `canonical` kind is only produced by the guideline pipeline.
+
+The chunking, deduplication, and dual-write phases are identical for both paths — only the frontmatter fields differ.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│                       CANONICAL INGEST PIPELINE                                │
+│                       CONTENT INGEST PIPELINE                                   │
 │                                                                                │
 │  Input: file path / URL / raw text                                             │
 │         │                                                                      │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
 │  │  Phase 1    │  Parse & Chunk                                                │
-│  │             │  ~900 tokens, smart breakpoints                               │
+│  │             │  ~900 tokens, AST-aware breakpoints                           │
 │  └──────┬──────┘                                                               │
 │         │ chunk list                                                           │
 │         ▼                                                                      │
@@ -454,8 +523,8 @@ This pipeline ingests authoritative human-authored content and MUST NOT be trigg
 │         │ deduplicated chunks                                                  │
 │         ▼                                                                      │
 │  ┌─────────────┐                                                               │
-│  │  Phase 3    │  Store & Index                                                │
-│  │  qmd writes │  canonical atoms written and indexed                        │
+│  │  Phase 3    │  Dual Write (Hamilton writes + qmd embed + Hamilton DB)         │
+│  │             │  atoms written and indexed                                     │
 │  └──────┬──────┘                                                               │
 │         │                                                                      │
 │         ▼                                                                      │
@@ -467,146 +536,101 @@ This pipeline ingests authoritative human-authored content and MUST NOT be trigg
 
 ### 5.1 Phase 1 — Parse & Chunk
 
-The input source is loaded and chunked using qmd's native chunking strategy:
+The input source is loaded and chunked:
 
 - Target chunk size: ~900 tokens.
-- Overlap: ~15% (approximately 135 tokens of shared content between adjacent chunks).
-- Smart breakpoints: chunks MUST be split at markdown structural boundaries where possible — headings (`#`, `##`, `###`), paragraph boundaries, list item boundaries, fenced code block boundaries. The chunker MUST NOT split inside a code fence.
-- AST-aware splitting: the chunker parses the markdown AST and prefers cuts at the same heading level or above, descending to paragraph level only when necessary to meet the token budget.
+- Overlap: ~15%.
+- Smart breakpoints: split at markdown structural boundaries — headings, paragraph boundaries, list item boundaries, fenced code block boundaries. MUST NOT split inside a code fence.
+- AST-aware splitting: parse the markdown AST, prefer cuts at heading boundaries.
 
-Each chunk is assigned a zero-indexed `chunk_offset` (ordinal within the source file) and a `chunk_hash` (SHA-256 of the chunk content) for deduplication.
-
-**Supported input formats:**
-
-| Format       | Handling                                              |
-|--------------|-------------------------------------------------------|
-| Markdown     | Direct AST-aware chunking as described above.         |
-| Plain text   | Split by paragraph boundaries (double newline).       |
-| PDF          | Text extracted; chunked by paragraph.                 |
-
-Each chunk yields a candidate with:
-
-```json
-{
-  "kind": "canonical",
-  "source_file": "<path or URL>",
-  "chunk_offset": <int>,
-  "chunk_hash": "<sha256>",
-  "content": "<chunk text>",
-  "token_estimate": <int>
-}
-```
+Each chunk is assigned a zero-indexed `chunk_offset` and a `chunk_hash` (SHA-256 of chunk content).
 
 ### 5.2 Phase 2 — Semantic Deduplication
 
-Before writing, each candidate chunk MUST be compared against the existing qmd store using vector similarity search (`store.searchVector()`). The purpose is to avoid re-ingesting content that is already present, either from a previous ingest of the same file or from another source covering the same material.
+Before writing, each candidate chunk MUST be compared against the existing qmd store using vector similarity search (`store.searchVector()`). qmd handles deduplication internally — Hamilton does not store chunk hashes.
 
-**Deduplication rule:** If any existing canonical atom has a cosine similarity ≥ **0.92** with the candidate chunk, the candidate is classified as a near-duplicate and MUST be skipped. The 0.92 threshold is set deliberately high to avoid false positives — only near-identical content should be suppressed. Paraphrased or summarised versions of existing content MUST proceed to Phase 3.
+**Deduplication rule:** If any existing canonical atom has cosine similarity ≥ 0.92 with the candidate chunk, the candidate is skipped.
 
-The skipped candidate SHOULD be logged with the ID of the most similar existing atom for the Phase 4 report.
+Additionally, before any chunking begins, the ingest pipeline queries `memory_event_log` for the most recent `ingested` event matching the source and source_path and compares the stored `file_hash`. If the hash matches, the file is unchanged and all chunks are skipped.
 
-Additionally, the `chunk_hash` MUST be checked against a hash index of existing canonical atoms in the store. An exact hash match is always a skip regardless of the similarity threshold.
+### 5.3 Phase 3 — Dual Write
 
-### 5.3 Phase 3 — Store & Index
+Each non-duplicate candidate is written to both stores. Same `pending` → `active` pattern as §4.4. The frontmatter `source` is set to `human` for manual ingest calls, or `guideline` for the guideline pipeline. The atom `kind` follows the path: manual ingest uses the kind determined by the fast model; guideline pipeline always uses `kind: canonical`.
 
-Each non-duplicate candidate is written as a canonical atom:
+**Hamilton DB insert (commit point):**
+1. BEGIN TRANSACTION. INSERT into `memory_atoms` with `status = 'pending'` for all chunks. COMMIT.
 
-1. Generate a nanoid as `id` (21-character URL-safe string, collision-resistant).
-2. Set fields:
-   - `kind: canonical`
-   - `source: canonical-ingest`
-   - `confidence: 1.0` (canonical atoms are treated as ground truth; this field MUST NOT be modified by any automated process)
-   - `status: active`
-   - `scope`: the scope specified by the user at ingest time (`project` or `user`). A user-scope canonical atom (e.g. from a personal coding style guide) is stored in the user-scope qmd store; a project-scope canonical atom (e.g. from a repo's CONTRIBUTING.md) is stored in the project-scope store. Defaults to `project` if a project context is active; `user` if not.
-   - `tags`: automatically derived from the source file name and any explicit tags provided by the user
-   - `created_at`, `updated_at`: now
-   - `session_id`: the session in which the ingest was triggered
-3. Slugify the title (derived from the source file name and chunk heading, or generated by the ingest pipeline) to form the filename slug. Write to `canonical/<slugified-title>-<id>.md` with YAML frontmatter.
-4. Index into the `canonical` collection of the appropriate qmd store.
-5. Emit a `canonical.ingested` audit event including: `source_file`, `chunk_offset`, `chunk_hash`, `token_estimate`.
+**File write + batch qmd embed:**
+2. Hamilton writes each chunk as a .md file to `<kind>/<slugified-title>-<id>.md` within the appropriate qmd store directory (e.g. `facts/` for manual ingest, `canonical/` for guidelines).
+3. Trigger `qmd embed` once against the store directory to index all new atoms.
 
-The `canonical` collection MUST be registered with `store.addCollection()` if it does not exist. A context description SHOULD be registered via `store.addContext()`:
+**Finalize:**
+4. UPDATE `memory_atoms` SET `status = 'active'` WHERE `status = 'pending'`.
+5. INSERT an `ingested` event into `memory_event_log` for the ingestion session with metadata: `{"source": "file|url|guideline", "source_path": "<path or URL>", "file_hash": "<sha256>", "scope": "project|user"}`. This serves as the change detection key for future ingestions of the same source.
 
-```
-"canonical" collection context: "Ground-truth reference material ingested from
-human-authored files. Treat these as authoritative specifications, style guides,
-architectural documents, and API references."
-```
+Recovery for stuck `pending` rows follows the same pattern as §4.4.
 
 ### 5.4 Phase 4 — Confirmation
 
-After all writes are complete, the agent MUST report to the user:
-
 ```
-Canonical ingest complete.
+Ingest complete.
   Source: docs/code-style-guide.md
   Chunks ingested:  14
   Chunks skipped (near-duplicate): 2
-  Collection: project/<project_id>/canonical
   Atom IDs: [list of created IDs, or first 5 + "... and N more"]
 ```
-
-If any chunks were skipped, the agent SHOULD briefly explain why (e.g. "2 chunks were near-identical to content ingested on 2026-05-10").
 
 ---
 
 ## 6. Context Injection
 
-At the start of each session, the harness MUST retrieve a curated set of atoms and write them to context files that are registered with the agent at session start. This primes the agent with the most relevant durable knowledge for the current task.
+At the start of each Hamilton task, the engine MUST retrieve a curated set of atoms and inject them into the agent's context via Pi SDK's `DefaultResourceLoader`. This primes the agent with the most relevant durable knowledge for the current task.
+
+For external agents (via MCP), the same retrieval logic serves `hmemory_relevant` and `hmemory_query` tools.
 
 ### 6.1 Retrieval Strategy
 
 The retrieval strategy is applied in order. Steps are not mutually exclusive; the same atom MUST NOT be injected twice.
 
 **Step 1 — Mandatory correction and failure injection**
-Retrieve ALL `active` atoms with `kind IN (correction, failure)` for the current `project_id`. This uses `store.multiGet()` with the full list of correction/failure atom IDs (obtained from an index or by querying the corrections/failures collections by status). There is NO cap on this set — every active correction and failure for the project MUST be injected. This is a hard rule.
+Query Hamilton DB:
+```sql
+SELECT id FROM memory_atoms
+WHERE kind IN ('correction', 'failure')
+  AND status = 'active'
+  AND project_id = ?
+```
+Then call `store.multiGet(ids)` on qmd with the resulting ID list to retrieve full content. There is NO cap on this set — every active correction and failure for the project MUST be injected.
 
-For user-scope, retrieve ALL `active` `correction` and `failure` atoms from the user store as well (these are typically user-wide recurring mistakes).
+For user-scope, query `WHERE scope = 'user' AND kind IN ('correction', 'failure') AND status = 'active'`.
 
 **Step 2 — Canonical retrieval**
-Use `store.search()` on the `canonical` collection with the current task prompt as the query. Retrieve the top **K=5** results by hybrid score (BM25 + vector + RRF fusion). Only `active` atoms are considered.
+Use `store.search()` on the `canonical` collection with the current task prompt as the query. Retrieve top **K=5** results by hybrid score. Only `active` atoms are considered.
 
-**Step 3 — Fact and skill retrieval**
-Use `store.search()` on the `facts` collection with the current task prompt. Retrieve top **K=3** by hybrid score.
-Use `store.search()` on the `skills` collection with the current task prompt. Retrieve top **K=3** by hybrid score.
+**Step 3 — Fact and procedure retrieval**
+Use `store.search()` on the `facts` collection with the current task prompt. Retrieve top **K=3**.
+Use `store.search()` on the `procedures` collection with the current task prompt. Retrieve top **K=3**.
 
 **Step 4 — Preference retrieval**
-Query the user-scope qmd store. Use `store.search()` on the `preferences` collection. Retrieve top **K=3** by hybrid score. Preferences are always user-scoped; the query MAY use the task prompt or simply retrieve the top-3 by salience if no good semantic match exists.
+Query the user-scope qmd store. Use `store.search()` on the `preferences` collection. Retrieve top **K=3**.
 
 **Step 5 — Soft cap enforcement**
 After steps 1–4, count the total atoms assembled. If the count exceeds **20**, apply the following priority order to trim to 20:
-- All `correction` and `failure` atoms are kept unconditionally (they are never trimmed).
+- All `correction` and `failure` atoms are kept unconditionally.
 - `canonical` atoms are kept next.
-- `skill`, `fact`, `preference` atoms are trimmed from the lowest-score end first.
+- `procedure`, `fact`, `preference` atoms are trimmed from the lowest-score end first.
 
-Atoms trimmed by the soft cap are NOT lost — they remain queryable via `memory_search` and `memory_context` tools (see §6.4 — MCP Tool Surface).
+Atoms trimmed by the soft cap remain queryable via `hmemory_query` and `hmemory_relevant`.
 
-### 6.2 Context File Delivery
+### 6.2 Context Delivery — Pi SDK ResourceLoader
 
-The harness materializes the selected atoms into context files on disk. Context files are NOT injected into the system prompt; they are written to a well-known path and registered with the agent runtime using whatever context-file mechanism that runtime supports (e.g. `--context-file`, MCP resource, or a runtime-specific include directive such as `AGENTS.md`-style inclusion).
+For Hamilton runs, the engine queries the memory store (qmd + Hamilton DB) using the retrieval strategy in §6.1, constructs a memory context string from the retrieved atoms, and registers it with Pi SDK's `DefaultResourceLoader`. No file is written to disk — the content flows directly from qmd/Hamilton DB into the Pi session.
 
-**Primary context file path:**
+Guideline files are no longer passed directly to agents. Instead, the guideline pipeline ingests them as canonical memory atoms (§5), and those atoms are injected here. The `src/prompts/system.ts` prompt assembler receives memory context alongside the task prompt — guidelines only reach the agent through memory.
 
-```
-.agent/context/memory.md
-```
+For external agents connecting through Hamilton's MCP server, the `hmemory_relevant` tool returns atom file paths. The calling agent loads those files as context using its own mechanism.
 
-This file contains the combined memory context for the session, rendered in the format described in §6.2.1. When atom counts justify separation, the harness MAY additionally write per-kind context files:
-
-```
-.agent/context/corrections.md
-.agent/context/canonical.md
-```
-
-**Lifecycle requirements:**
-
-- Context files MUST be regenerated at each session start. They are ephemeral — they MUST NOT be committed to version control.
-- The harness registers the context file(s) with the agent by pointing the agent runtime to `.agent/context/memory.md` (and any per-kind files) at startup.
-- The `.agent/context/` directory MUST be listed in `.gitignore` or equivalent.
-
-#### 6.2.1 Context File Format
-
-The atoms are rendered as a structured markdown block written to `.agent/context/memory.md`. The block uses the following format:
+**Context format:**
 
 ```markdown
 ---
@@ -618,7 +642,7 @@ The atoms are rendered as a structured markdown block written to `.agent/context
 
 ### CORRECTIONS (must not repeat these mistakes)
 
-#### [correction] <atom title or first 80 chars of content>
+#### [correction] <atom title>
 *Confidence: 0.95 | Project: <project_id> | ID: <id>*
 
 <atom content>
@@ -627,7 +651,7 @@ The atoms are rendered as a structured markdown block written to `.agent/context
 
 ### FAILURES (avoid these patterns)
 
-#### [failure] <atom title or first 80 chars of content>
+#### [failure] <atom title>
 *Confidence: 0.87 | Project: <project_id> | ID: <id>*
 
 <atom content>
@@ -652,9 +676,9 @@ The atoms are rendered as a structured markdown block written to `.agent/context
 
 ---
 
-### SKILLS
+### PROCEDURES
 
-#### [skill] <atom title>
+#### [procedure] <atom title>
 *Confidence: 0.78 | ID: <id>*
 
 <atom content>
@@ -670,23 +694,17 @@ The atoms are rendered as a structured markdown block written to `.agent/context
 
 ---
 
-*N atoms injected inline. Additional memories available via `memory_search(query)` and `memory_context(query)`.*
+*N atoms injected inline. Additional memories available via `hmemory_query(query)` and `hmemory_relevant(query)`.*
 ---
 ```
 
-Sections with zero atoms MUST be omitted entirely (do not render an empty section header).
+Sections with zero atoms MUST be omitted.
 
 ### 6.3 Conditional Injection Rules
 
-Before writing the context file, the harness evaluates the following conditional injection rules to determine which atoms are eligible for materialization. These rules filter the candidate pool assembled by §6.1.
-
 #### Rule A — Language-Based Injection
 
-The harness MUST detect the primary programming language(s) of the project at session start by scanning file extensions or reading a manifest file. Supported manifests include: `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`.
-
-Atoms tagged with a language tag are injected only when that language is detected in the repository. Atoms with no language tag are always eligible.
-
-The harness MUST support at minimum the following language tags:
+The engine detects the primary programming language(s) of the project at run start by scanning file extensions or reading a manifest file (`package.json`, `go.mod`, etc.). Atoms tagged with a language tag are injected only when that language is detected.
 
 | Tag               | Language   |
 |-------------------|------------|
@@ -697,89 +715,68 @@ The harness MUST support at minimum the following language tags:
 | `lang:go`         | Go         |
 | `lang:java`       | Java       |
 
-Language detection MUST run once per session start and the result cached for the session lifetime.
-
 #### Rule B — Tag-Based Injection
 
-The harness accepts a **session context descriptor** at startup — a set of tags describing the current task context (e.g. `unit-tests`, `e2e-tests`, `ci`, `migration`, `refactor`, `debugging`). These tags MAY be provided by the user explicitly, inferred from the current working directory, or derived from the task description passed to the agent.
+The engine accepts a **session context descriptor** at run start — a set of tags describing the current task context (e.g. `unit-tests`, `e2e-tests`, `ci`, `migration`, `refactor`, `debugging`). Atoms with matching tags (OR semantics) are eligible. Atoms with no tags are always eligible.
 
-Atoms are eligible for injection if:
-- They have no tags (always eligible), OR
-- At least one of their tags matches a tag in the session context descriptor (**OR semantics** — an atom qualifies if it matches any one session tag)
+#### Rule C — Context-Relevant Loading
 
-Tag-filtered injection applies on top of language filtering: an atom must pass both Rule A and Rule B to be included.
-
-The session context descriptor MUST be recorded in the session's observation log (Phase 1 of the autonomous pipeline) so that extracted atoms can be tagged appropriately.
-
-#### Rule C — Query-Driven Context Loading
-
-This rule operates differently from Rules A and B: rather than filtering atoms at session start, it gives the agent an **on-demand mechanism** to expand its context mid-session based on an arbitrary natural-language query.
-
-The agent calls the `memory_context` MCP tool (defined in §6.4) with a query string. The tool returns a list of `{ id, title, path, kind, score }` results. The agent then loads the atom files at those paths as additional context — either by reading the file content directly or by registering the paths with the harness context loader.
+The agent calls the `hmemory_relevant` Pi extension tool (or MCP tool for external agents) with the current file path and relevant tags. The tool returns `{ id, title, path, kind, score }` results for atoms most relevant to the current context. The agent loads the atoms at those paths as additional context.
 
 This mechanism enables scenarios such as:
-- "Load all atoms related to our database migration patterns"
-- "Get context about how we handle authentication errors in this project"
-- "What do I know about this user's preferences for error handling?"
+- Before editing `database.py`, calling `hmemory_relevant(file_path="src/database.py", tags=["python", "database"])` to get schema facts and past failures.
+- Before working on auth, calling `hmemory_relevant(file_path="src/auth.ts", tags=["typescript", "auth"])`.
+- Before running tests, calling `hmemory_relevant(file_path="tests/", tags=["testing"])`.
 
-Specification requirements for Rule C:
+### 6.4 Tool Surface
 
-- The agent SHOULD call `memory_context` at the start of any subtask that has a well-defined domain (e.g. before editing auth code, query `"authentication error handling"`).
-- The returned `path` values point to atom `.md` files that are self-contained and human-readable — the agent can read them with standard file tools or pass them to a context loader.
-- Query-driven loading is **additive**: it does not replace the base context file written at session start; it supplements it.
-- The `memory_context` tool uses qmd's hybrid search (BM25 + vector + optional LLM rerank) and SHOULD use `rerank: true` for query-driven loading, since precision matters more than latency in this context.
+The memory system exposes tools through two surfaces: Hamilton's MCP server (`src/mcp/server.ts`) and a Pi SDK extension (`src/executors/pi/extensions/memory-extension.ts`). Both call the same underlying qmd + Hamilton DB logic.
 
-### 6.4 MCP Tool Surface
+**qmd relationship:** Hamilton owns atom file writing. When a tool needs to persist an atom, Hamilton writes the markdown file to the qmd store directory, then triggers `qmd embed` to index it into the hybrid search engine. qmd is strictly a query + embed engine — it never writes markdown files directly.
 
-The memory system MUST expose the following MCP-compatible tools. These tools are available to the agent throughout the session for on-demand memory access and mid-session recording.
+#### `hmemory_query` (MCP + Pi Extension)
 
-#### `memory_search`
-
-- **Purpose:** Query the atom store with a natural-language or keyword query. Returns ranked atom content suitable for use as context.
-- **Inputs:**
-  - `query: string` — the search query
-  - `scope?: "project" | "user" | "all"` — defaults to `"all"`
-  - `kind?: enum` — filter by atom kind (`correction`, `failure`, `preference`, `fact`, `skill`, `canonical`)
-  - `tags?: string[]` — filter by tags (AND semantics — atom must have all specified tags)
-  - `limit?: integer` — max results, defaults to `MEMORY_SEARCH_DEFAULT_LIMIT`, capped at `MEMORY_SEARCH_MAX_LIMIT`
-  - `include_demoted?: boolean` — defaults to `false`
-- **Returns:** Array of atom results: `{ id, title, kind, scope, confidence, content, tags, score }`
-- **Backed by:** `store.search()` with RRF fusion (lexical + vector)
-
-**Use tracking:** When the agent retrieves atoms via `memory_search`, the harness MUST increment `use_count` and update `last_used_at` for each returned atom. This data feeds the salience model (§7).
-
-#### `memory_get`
-
-- **Purpose:** Retrieve the full content of a specific atom by ID.
-- **Inputs:**
-  - `id: string` — the atom nanoid
-- **Returns:** Full atom: `{ id, title, kind, scope, confidence, status, content, tags, created_at, updated_at }`
-- **Backed by:** `store.get(id)`
-
-#### `memory_record`
-
-- **Purpose:** Allow the agent to record a new atom mid-session without waiting for the end-of-session pipeline. Used for high-confidence, time-sensitive observations (e.g., discovering a critical fact mid-task).
-- **Inputs:**
-  - `kind: enum` — must be one of: `fact`, `preference`, `skill`. **`correction` and `failure` kinds MUST go through the autonomous pipeline, not direct record.**
-  - `content: string` — the atom content in markdown
-  - `scope?: "project" | "user"` — defaults to `"project"`
-  - `tags?: string[]`
-  - `confidence?: float` — defaults to `0.6` for mid-session records
-- **Behavior:** Generates a nanoid and title (using a fast model), writes the atom file, indexes it in qmd. Sets `source: autonomous`. Emits `atom.created` audit event.
-- **Returns:** `{ id, title, path }`
-- **Note:** Mid-session records bypass Phase 2 and Phase 3 validation. They SHOULD be reviewed by the end-of-session pipeline (Phase 3 MAY merge or reject them on the next run).
-
-#### `memory_context`
-
-- **Purpose:** Return a set of atom file paths relevant to a query, for the agent to load as additional context. This is the primary tool for **query-driven conditional context loading** (see §6.3, Rule C).
+- **Purpose:** Query the atom store with a natural-language or keyword query.
 - **Inputs:**
   - `query: string`
-  - `scope?: "project" | "user" | "all"`
+  - `scope?: "project" | "user" | "all"` — defaults to `"all"`
   - `kind?: enum` — filter by atom kind
+  - `limit?: integer` — defaults to 5, capped at 20
+  - `include_demoted?: boolean` — defaults to `false`
+- **Returns:** Array of `{ id, title, kind, scope, confidence, content, tags, score }`
+- **Backed by:** qmd `store.query()` with typed sub-queries (lex/vec/hyde), combined via RRF + reranking. Adds Hamilton DB enrichment (use_count, last_used_at).
+- **Use tracking:** Increments `use_count` and updates `last_used_at` in Hamilton DB for each returned atom.
+
+#### `hmemory_get` (MCP + Pi Extension)
+
+- **Purpose:** Retrieve full content of a specific atom by ID.
+- **Inputs:** `id: string` — the atom nanoid
+- **Returns:** Full atom `{ id, title, kind, scope, confidence, status, content, tags, created_at, updated_at }`
+- **Backed by:** qmd `store.get(id)` for content + Hamilton DB `SELECT * FROM memory_atoms WHERE id = ?` for metadata
+
+#### `hmemory_record` (MCP + Pi Extension)
+
+- **Purpose:** Record a new atom mid-session without waiting for the daemon pipeline. Used for high-confidence, time-sensitive observations.
+- **Inputs:**
+  - `kind: enum` — `fact`, `preference`, `correction`, `failure`, or `procedure`.
+  - `content: string` — markdown content
+  - `scope?: "project" | "user"` — defaults to `"project"`
   - `tags?: string[]`
-  - `limit?: integer` — defaults to `MEMORY_CONTEXT_DEFAULT_LIMIT` (default: 5)
-- **Returns:** Array of `{ id, title, path, kind, score }` — the `path` field is the absolute path to the atom's `.md` file on disk, which the agent can load as a context file
-- **Backed by:** `store.search()` returning the `path` database field
+  - `confidence?: float` — defaults to `0.6`
+- **Behavior:** Generates nanoid and title (fast model), writes atom .md file to the qmd store directory, triggers `qmd embed` to index, INSERTs into Hamilton DB. Emits `MemoryAtomCreated` audit event.
+- **Returns:** `{ id, title, path }`
+- **Note:** Mid-session records bypass Phase 2/3 validation. They SHOULD be reviewed by the next daemon pipeline run.
+
+#### `hmemory_relevant` (MCP + Pi Extension)
+
+- **Purpose:** Find atoms relevant to the current context (file being edited, tool being used). Returns atom file paths for the agent to load as additional context.
+- **Inputs:**
+  - `file_path: string` — the file or directory being worked on
+  - `scope?: "project" | "user" | "all"` — defaults to `"all"`
+  - `tags?: string[]` — explicit tags like `python`, `react`, `testing`, etc.
+  - `limit?: integer` — defaults to 5
+- **Returns:** Array of `{ id, title, path, kind, score }` — the `path` field points to the atom's .md file
+- **Backed by:** qmd `store.search()` using `file_path` as the query and `tags` as `intent` for additional context hints
 
 ---
 
@@ -787,7 +784,7 @@ The memory system MUST expose the following MCP-compatible tools. These tools ar
 
 ### 7.1 Salience Formula
 
-Salience is a scalar value in [0.0, 1.0] computed for each non-`canonical`, non-`correction`, non-`failure` atom. `canonical` atoms are exempt from salience-based demotion. `correction` and `failure` atoms have special protection rules (see §8).
+Salience is a scalar value in [0.0, 1.0] computed for each non-`canonical`, non-`correction`, non-`failure` atom. `canonical` atoms are exempt. `correction` and `failure` atoms have special protection rules (see §8).
 
 ```
 salience = w_conf   * confidence
@@ -805,22 +802,19 @@ salience = w_conf   * confidence
 | `w_use`      | use        | 0.25  |
 | `w_kind`     | kind       | 0.15  |
 
-**`recency_score(updated_at)`** — exponential decay from most recent update:
+**`recency_score(updated_at)`** — exponential decay, half-life 30 days:
 
 ```
 recency_score(t) = exp(−λ_r * age_days(t))
-where λ_r = ln(2) / 30   (half-life: 30 days)
+where λ_r = ln(2) / 30
 ```
 
-An atom updated today has `recency_score = 1.0`. An atom last updated 30 days ago has `recency_score ≈ 0.5`. An atom last updated 90 days ago has `recency_score ≈ 0.125`.
-
-**`use_score(use_count, last_used_at)`** — log-scaled use count weighted by recency of last use:
+**`use_score(use_count, last_used_at)`** — log-scaled use count weighted by recency:
 
 ```
 use_score = log(1 + use_count) / log(1 + USE_SCALE)
           * exp(−λ_u * age_days(last_used_at))
-where USE_SCALE = 20   (tunable; score saturates at ~20 uses)
-      λ_u = ln(2) / 14 (half-life: 14 days)
+where USE_SCALE = 20, λ_u = ln(2) / 14
 ```
 
 If `last_used_at` is NULL (never used), `use_score = 0`. If `use_count = 0`, `use_score = 0`.
@@ -831,131 +825,96 @@ If `last_used_at` is NULL (never used), `use_score = 0`. If `use_count = 0`, `us
 |--------------|--------|
 | `correction` | 1.0    |
 | `failure`    | 0.9    |
-| `skill`      | 0.8    |
+| `procedure`  | 0.8    |
 | `fact`       | 0.7    |
 | `preference` | 0.6    |
 | `canonical`  | exempt |
 
 ### 7.2 Salience Computation Schedule
 
-Salience is NOT stored persistently in the atom frontmatter (it would become stale). It is:
-1. Recomputed for all active non-exempt atoms during each nightly maintenance run.
-2. Recomputed on-demand for an individual atom when it is retrieved (for ranking purposes).
-3. The most recently computed value MAY be cached in a separate index table within qmd's SQLite database, tagged with the computation timestamp.
+Salience is stored in `memory_atoms.salience` in Hamilton's DB (not in the atom frontmatter — it would become stale). It is:
+1. Recomputed for all active non-exempt atoms during each daemon maintenance cycle.
+2. Recomputed on-demand for individual atoms when retrieved (for ranking).
+3. Triggered manually via `hamilton memory maintain`.
+
+The daemon runs maintenance at startup and periodically (default: every 6 hours, configurable in `settings.yaml`).
 
 ### 7.3 Demotion Protocol
 
-The demotion protocol runs nightly (or on explicit store maintenance invocation). It MUST be applied in the following order:
+The demotion protocol runs as part of the daemon's maintenance cycle. It MUST be applied in the following order:
 
 **Step 1 — Compute salience for all active non-exempt atoms**
-For every atom with `status == active` AND `kind NOT IN (correction, failure, canonical)` : compute salience using the formula in §7.1.
+For every row in `memory_atoms` with `status = 'active'` AND `kind NOT IN ('correction', 'failure', 'canonical')`: compute salience using the formula in §7.1. UPDATE the `salience` column in Hamilton DB.
 
 **Step 2 — Active → Demoted transition**
-For each atom where:
-- `salience < 0.25` AND
-- `confidence < 0.4`
-
-Set `status = demoted`, `demoted_at = now`. The system MUST emit an `atom.demoted` audit event. The audit event's `metadata` MUST include the computed salience value and each component score.
-
-Demoted atoms are excluded from context injection (§6) and from `memory_search` results by default. They remain on disk and in the qmd index but are filtered by status.
+For each atom where `salience < 0.25` AND `confidence < 0.4`:
+- Set `status = 'demoted'`, `demoted_at = now` in Hamilton DB.
+- Update the atom's frontmatter in the .md file (qmd) to match.
+- Re-index in qmd with demoted status.
+- Emit `MemoryAtomDemoted` audit event.
 
 **Step 3 — Demoted → Tombstoned transition**
-For each atom where:
-- `status == demoted` AND
-- `now - demoted_at > 90 days` AND
-- `confidence < 0.2`
+For each atom where `status = 'demoted'` AND `now - demoted_at > 90 days` AND `confidence < 0.2`:
+- Set `status = 'tombstoned'`, `tombstoned_at = now` in Hamilton DB.
+- Update the atom's frontmatter in the .md file.
+- Re-index in qmd.
+- Emit `MemoryAtomTombstoned` audit event.
 
-Set `status = tombstoned`, `tombstoned_at = now`. The system MUST emit an `atom.tombstoned` audit event. Tombstoned atoms remain on disk and in the qmd index (for resurrection purposes) but MUST be excluded from all retrieval and injection.
-
-**Step 4 — Correction and failure protection (enforced)**
-The demotion protocol MUST NEVER demote or tombstone an atom with `kind IN (correction, failure)` via the salience pathway. These atoms are only ever demoted or tombstoned by explicit human action (§9) or by a superseding `correction` atom (§4.4, supersede decision). If the protocol encounters a correction or failure atom with low salience, it MUST skip it with no state change.
+**Step 4 — Correction and failure protection**
+The demotion protocol MUST NEVER demote or tombstone an atom with `kind IN ('correction', 'failure')` via the salience pathway. These atoms are only ever demoted or tombstoned by explicit human action (§9) or by a superseding `correction` atom (§4.4, supersede decision).
 
 ### 7.4 Audit Event Schema
 
-Every state transition in the system MUST be recorded as an audit event. The audit log is append-only and MUST NOT be modified after writing.
+Every state transition is recorded as an audit event. Audit events are emitted through two paths:
 
-Each audit event is a JSON object with the following fields:
+**Path A — In-process (daemon running within Hamilton context):**
+Publish to Hamilton's EventBus (`src/events/bus.ts`) using new tagged event types. The `DbWriter` subscriber (`src/db/subscribers.ts`) persists them to `memory_event_log`.
+
+**Path B — Standalone (daemon running independently):**
+INSERT directly into `memory_event_log` in Hamilton's database.
+
+**New EventBus event types to add to `src/events/bus.ts`:**
+
+```typescript
+MemoryAtomCreated     = { _tag: "MemoryAtomCreated";     atomId: string; kind: string; scope: string; confidence: number; sourceObservationIndices: number[]; phase3Justification?: string; runId?: string }
+MemoryAtomUpdated     = { _tag: "MemoryAtomUpdated";     atomId: string; reason: string; runId?: string }
+MemoryAtomRejected    = { _tag: "MemoryAtomRejected";    draftKind: string; draftContentPreview: string; rejectionReason: string; runId?: string }
+MemoryAtomDemoted     = { _tag: "MemoryAtomDemoted";     atomId: string; computedSalience: number; salienceComponents: Record<string, number>; confidenceAtDemotion: number }
+MemoryAtomTombstoned  = { _tag: "MemoryAtomTombstoned";  atomId: string; daysSinceDemotion?: number; confidenceAtTombstone?: number }
+MemoryAtomResurrected = { _tag: "MemoryAtomResurrected"; atomId: string; reason: string }
+MemoryAtomMerged      = { _tag: "MemoryAtomMerged";      oldAtomId: string; newAtomId: string; runId?: string }
+MemoryAtomForgotten   = { _tag: "MemoryAtomForgotten";   atomId: string }
+```
+
+The `ingested` event (for canonical source ingestion tracking) is written directly to `memory_event_log`, not through the EventBus:
+
+```json
+{
+  "event_type": "ingested",
+  "run_id": "<runId or null>",
+  "timestamp": "<ISO 8601>",
+  "actor": "system",
+  "metadata": {
+    "source": "file|url|guideline",
+    "source_path": "<path or URL>",
+    "file_hash": "<sha256>",
+    "scope": "project|user",
+    "chunk_count": 14
+  }
+}
+```
+
+**`memory_event_log` row format:**
 
 ```json
 {
   "event_type": "<string>",
-  "atom_id": "<nanoid>",
-
-  "timestamp": "<ISO 8601 with timezone>",
-  "session_id": "<uuid or null>",
+  "atom_id": "<nanoid or null>",
+  "run_id": "<runId or null>",
+  "timestamp": "<ISO 8601>",
   "actor": "<agent|system|human>",
   "reason": "<human-readable explanation>",
   "metadata": { }
-}
-```
-
-Defined `event_type` values:
-
-| Event Type           | Trigger                                                         | Actor   |
-|----------------------|-----------------------------------------------------------------|---------|
-| `atom.created`     | New atom accepted in Phase 4                                  | agent   |
-| `atom.updated`     | Existing atom content or confidence modified                  | agent / human |
-| `atom.rejected`    | Candidate rejected in Phase 3 (emitted as an audit event only (no atom file))       | agent   |
-| `atom.demoted`     | Atom transitioned to demoted status by demotion protocol      | system  |
-| `atom.tombstoned`  | Atom transitioned to tombstoned status                        | system / human |
-| `atom.resurrected` | Tombstoned atom restored to active status                     | human   |
-| `atom.merged`      | Two atoms merged into a new atom; old atom tombstoned         | agent   |
-| `canonical.ingested` | Canonical atom created by canonical ingest pipeline           | agent   |
-| `atom.forgotten`   | Human directly tombstoned an atom                             | human   |
-
-**Required `metadata` fields by event type:**
-
-`atom.created`:
-```json
-{
-  "kind": "...", "scope": "...", "confidence": 0.0,
-  "source_observation_indices": [],
-  "phase3_justification": "..."
-}
-```
-
-`atom.rejected`:
-```json
-{
-  "draft_kind": "...", "draft_content_preview": "...",
-  "rejection_reason": "..."
-}
-```
-
-`atom.demoted`:
-```json
-{
-  "computed_salience": 0.0,
-  "salience_components": {
-    "confidence_term": 0.0, "recency_term": 0.0,
-    "use_term": 0.0, "kind_term": 0.0
-  },
-  "confidence_at_demotion": 0.0,
-  "demoted_at": "<ISO 8601>"
-}
-```
-
-`atom.tombstoned`:
-```json
-{
-  "days_since_demotion": 0,
-  "confidence_at_tombstone": 0.0
-}
-```
-
-`atom.resurrected`:
-```json
-{
-  "resurrected_by": "<user identifier or human>",
-  "reason": "..."
-}
-```
-
-`canonical.ingested`:
-```json
-{
-  "source_file": "...", "chunk_offset": 0,
-  "chunk_hash": "...", "token_estimate": 0
 }
 ```
 
@@ -969,7 +928,7 @@ Corrections and failures represent the most reliable signal available about the 
 
 Failures are the negative-space companion: they record what does not work and why, giving the agent something no amount of in-context reasoning can substitute for — a concrete record of its own blind spots.
 
-The cost of losing a correction is higher than the cost of retaining a low-quality `fact`. An agent that forgets a correction will repeat the same mistake in the next session, degrading user trust linearly with time. An agent that retains an outdated `fact` might simply retrieve slightly stale information. The asymmetry is significant.
+The cost of losing a correction is higher than the cost of retaining a low-quality `fact`. An agent that forgets a correction will repeat the same mistake in the next run, degrading user trust linearly with time. An agent that retains an outdated `fact` might simply retrieve slightly stale information. The asymmetry is significant.
 
 ### 8.2 Confidence Immutability for Corrections
 
@@ -989,225 +948,281 @@ confidence(correction) MUST NOT be decreased by:
   - Any automated process other than (b) above
 ```
 
-This invariant ensures that a correction the agent received in session 1 is just as authoritatively held in session 100 as it was when it was created.
-
 The same invariant applies to `failure` atoms.
 
 ### 8.3 Failure Atom Structure
 
-A `failure` atom MUST document the following three aspects in its `content` field:
+A `failure` atom MUST document three aspects in its `content` field:
 
-1. **The failed action or pattern** — What did the agent do? Be specific. E.g. "Called `npm test` without first running `npm install`, causing module-not-found errors on every attempt in a fresh environment."
+1. **The failed action or pattern** — What did the agent do? Be specific.
+2. **The context in which it failed** — When does this failure occur? What preconditions trigger it?
+3. **Why it failed (if known)** — The root cause.
 
-2. **The context in which it failed** — When does this failure occur? What preconditions trigger it? E.g. "Occurs in any project where the agent starts a session in a directory that has been cloned but not yet had dependencies installed."
+If the root cause is not known at creation time, mark it as unknown: "Root cause: not yet determined."
 
-3. **Why it failed (if known)** — The root cause. E.g. "The agent assumed a globally-available `node_modules` from a previous session, but the sandbox resets between sessions."
+### 8.4 Guaranteed Run-Start Injection
 
-If the root cause is not known at ingest time, the `content` MUST still include the first two items, and the third SHOULD be marked as unknown: "Root cause: not yet determined."
-
-A failure atom that lacks any of these elements MUST be rejected by Phase 3. The rejection reason MUST reference which element is missing.
-
-### 8.4 Guaranteed Session-Start Injection
-
-At session start (§6.1, Step 1), ALL active `correction` and `failure` atoms for the current project MUST be injected. This is a hard rule with no cap. The rationale:
-
-- A soft cap that could silently exclude corrections would create a category of mistakes the agent is programmed to repeat. This is worse than no memory at all because it creates false confidence.
-- The number of active corrections and failures for a given project is bounded in practice (projects with hundreds of corrections indicate a deeper training or calibration problem, not a context budget problem).
-- If the total correction/failure set exceeds 20 atoms for a single project, that is a signal for human review and potential consolidation, not a signal to cap injection.
+At run start (§6.1, Step 1), ALL active `correction` and `failure` atoms for the current project MUST be injected into the agent's context via Pi SDK's `DefaultResourceLoader`. This is a hard rule with no cap.
 
 ### 8.5 Strict Validation Bar in Phase 3
 
 The Phase 3 strong model applies a higher bar for rejecting `correction` and `failure` candidates:
 
-- The strong model MUST accept any `correction` candidate that references a specific agent mistake and a specific correction, unless it can provide written justification (minimum 2 sentences) explaining why the candidate is invalid or already covered by an existing atom.
-- The strong model MUST accept any `failure` candidate that describes a specific, non-trivial failure pattern with at least the first two elements (failed action + context), unless it provides written justification for rejection.
-- "Too similar to an existing atom" is a valid reason for rejection only if the existing atom covers the same specific failure mode. Approximate or general similarity is NOT sufficient to reject a `correction` or `failure` candidate.
-- A `merge` decision for a correction/failure requires that the merge target be of the same kind and describes the same specific failure. A more general existing atom MUST NOT absorb a specific new correction via merge.
+- MUST accept any `correction` candidate that references a specific agent mistake and a specific correction, unless it can provide written justification (minimum 2 sentences) for rejection.
+- MUST accept any `failure` candidate that describes a specific, non-trivial failure pattern with at least the first two elements (failed action + context), unless it provides written justification.
+- "Too similar to an existing atom" is a valid rejection reason only if the existing atom covers the same specific failure mode. Approximate similarity is NOT sufficient.
 
 ---
 
 ## 9. Human Override & Editing
 
-The memory store is primarily agent-managed, but humans retain unconditional last-resort control over all atoms. The following operations are available to humans at any time.
+The memory store is primarily agent-managed, but humans retain unconditional last-resort control over all atoms via CLI commands. The following operations are available:
 
-The permanent escape hatch from salience decay is promoting an atom to `canonical` kind. A human may change any atom's `kind` to `canonical` (via the Edit action in §9.1), which exempts it permanently from salience-based demotion. `canonical` kind atoms are never auto-modified by the autonomous pipeline and are treated as ground truth.
+### 9.1 Edit (`hamilton memory edit`)
 
-### 9.1 Edit
+```
+hamilton memory edit <atom-id> [--content "<text>"] [--confidence <0.0-1.0>] [--tags "tag1,tag2"]
+```
 
-A human may edit any atom's `content`, `confidence`, `tags`, or `kind` field directly. Editing through any interface MUST:
-1. Update the atom's `updated_at` to now.
-2. Set `source: human` on the modified atom.
-3. Append an `atom.updated` audit event with `actor: human`.
-4. Re-index the updated atom in qmd.
+1. Updates the atom's frontmatter in the .md file (qmd).
+2. Updates `memory_atoms.updated_at` in Hamilton DB.
+3. Sets `source: human` on the modified atom.
+4. Emits `MemoryAtomUpdated` audit event with `actor: human`.
+5. Re-indexes the updated atom in qmd.
 
-Humans MAY lower the `confidence` of a `correction` or `failure` atom. This is the only automated-pipeline-equivalent action available to humans that can reduce correction confidence (the autonomous pipeline cannot).
+Humans MAY lower the `confidence` of a `correction` or `failure` atom.
 
-### 9.2 Forget (Immediate Tombstone)
+### 9.2 Forget (`hamilton memory forget`)
 
-A human may immediately tombstone any atom, regardless of kind, status, or confidence. This is the "forget this" command:
-1. Sets `status: tombstoned`, `tombstoned_at: now`.
-2. Emits an `atom.forgotten` audit event with `actor: human`.
-3. The atom is immediately excluded from all retrieval and injection.
-4. The atom file and qmd index entry are retained (to preserve the audit trail).
+```
+hamilton memory forget <atom-id>
+```
 
-Tombstoned atoms can be resurrected (§9.3) or permanently deleted. **Permanent deletion** removes the file, removes it from the qmd index, and emits a final audit event. After permanent deletion the atom cannot be resurrected.
+Immediately tombstones any atom, regardless of kind, status, or confidence:
+1. Sets `status: tombstoned`, `tombstoned_at: now` in both stores.
+2. Emits `MemoryAtomForgotten` audit event with `actor: human`.
+3. Atom is immediately excluded from all retrieval and injection.
 
-### 9.3 Resurrect
+### 9.3 Resurrect (`hamilton memory resurrect`)
 
-A human may resurrect any tombstoned atom (regardless of whether it was tombstoned by the system or by a human forget action):
-1. Sets `status: active`, clears `tombstoned_at` and `demoted_at`.
-2. Resets `confidence` to a human-specified value (defaults to 0.5 if not specified).
+```
+hamilton memory resurrect <atom-id> [--confidence <0.0-1.0>]
+```
+
+1. Sets `status: active`, clears `tombstoned_at` and `demoted_at` in both stores.
+2. Resets `confidence` to specified value (defaults to 0.5).
 3. Sets `source: human`.
-4. Emits an `atom.resurrected` audit event with `actor: human`, including `reason`.
-5. Re-indexes the atom in qmd.
+4. Emits `MemoryAtomResurrected` audit event.
+5. Re-indexes in qmd.
 
-### 9.4 Canonical Atom Special Rules
+### 9.4 Promote to Canonical (`hamilton memory promote`)
 
-`canonical` atoms MAY NOT be modified, demoted, tombstoned, or deleted by the autonomous pipeline under any circumstances. All changes to canonical atoms MUST be initiated by a human action. The pipeline treats them as read-only inputs.
+```
+hamilton memory promote <atom-id>
+```
 
-A `canonical` atom that has been superseded by a newer version of the source document SHOULD be tombstoned by the human before re-ingesting the updated file. The canonical ingest pipeline's deduplication step (§5.2) will then treat the new content as novel.
+Changes any atom's `kind` to `canonical`, permanently exempting it from salience-based demotion:
+1. Sets `kind: canonical`, `source: human`, `confidence: 1.0`.
+2. Moves atom file to `canonical/` directory in qmd store.
+3. Updates Hamilton DB row.
+4. Emits `MemoryAtomUpdated` audit event.
 
-### 9.5 Audit Completeness
+### 9.5 Canonical Atom Special Rules
 
-Every human action described in §9.1–9.4 MUST emit a corresponding audit event with `actor: human`. How audit events are persisted is out of scope for this RFC and left to the implementation. Human-initiated actions SHOULD include a `reason` field. The audit log MUST be treated as immutable — entries cannot be edited or deleted. If a human action needs to be reversed, a subsequent action (e.g. resurrect after forget) creates a new event; it does not modify the original.
+`canonical` atoms MAY NOT be modified, demoted, tombstoned, or deleted by the autonomous pipeline under any circumstances. All changes to canonical atoms MUST be initiated by a human action.
+
+### 9.6 Listing and Inspection (`hamilton memory list` / `hamilton memory show`)
+
+```
+hamilton memory list [--kind correction|failure|fact|procedure|preference|canonical]
+                     [--scope project|user]
+                     [--status active|demoted|tombstoned]
+                     [--project <id>]
+                     [--limit <n>]
+
+hamilton memory show <atom-id>
+```
+
+`list` queries Hamilton DB for metadata. `show` retrieves full content from qmd and displays it.
+
+### 9.7 Audit Completeness
+
+Every human action MUST emit a corresponding audit event. The `memory_event_log` table is append-only and immutable — entries cannot be edited or deleted.
 
 ---
 
-## 10. qmd Integration Details
+## 10. qmd + Hamilton DB Integration
 
-### 10.1 Store Layout
+### 10.1 Architecture
 
-Two qmd stores are maintained per agent installation:
-
-**Project store** (one per project):
 ```
-~/.agent/memory/projects/<project_id>/
-  qmd.db                     ← SQLite database (BM25 FTS5 + vector embeddings)
-  corrections/               ← Atom markdown files, kind=correction
-  failures/                  ← Atom markdown files, kind=failure
-  facts/                     ← Atom markdown files, kind=fact
-  skills/                    ← Atom markdown files, kind=skill
-  canonical/                 ← Atom markdown files, kind=canonical
-  sessions/<project_id>/     ← Session fold files (YYYY-MM.md)
-  audit/                     ← Audit event logs (implementation-defined format)
+┌─────────────────────────────────────────────────────┐
+│  qmd (@tobilu/qmd)                                  │
+│  ─────────────────                                  │
+│  ~/.hamilton/memory/projects/<id>/qmd.db (SQLite)   │
+│    - FTS5 index (BM25 lexical search)               │
+│    - sqlite-vec (vector embeddings)                 │
+│    - RRF fusion                                     │
+│    - LLM reranking                                  │
+│                                                     │
+│  ~/.hamilton/memory/projects/<id>/corrections/*.md  │
+│  ~/.hamilton/memory/projects/<id>/failures/*.md     │
+│  ~/.hamilton/memory/projects/<id>/facts/*.md        │
+│  ~/.hamilton/memory/projects/<id>/procedures/*.md    │
+│  ~/.hamilton/memory/projects/<id>/canonical/*.md    │
+│                                                     │
+│  ~/.hamilton/memory/user/qmd.db                     │
+│  ~/.hamilton/memory/user/corrections/*.md           │
+│  ~/.hamilton/memory/user/failures/*.md              │
+│  ~/.hamilton/memory/user/preferences/*.md           │
+│  ~/.hamilton/memory/user/procedures/*.md             │
+│  ~/.hamilton/memory/user/canonical/*.md             │
+└─────────────────────────────────────────────────────┘
+                         ↕  (linked by atom id + path)
+┌─────────────────────────────────────────────────────┐
+│  Hamilton DB (bun:sqlite)                           │
+│  ───────────────────────                            │
+│  ~/.hamilton/hamilton.db                            │
+│    - memory_atoms (metadata, salience, use tracking)│
+│    - memory_event_log (audit trail)                 │
+│    - runs, tasks, turns, tool_calls, ... (existing) │
+└─────────────────────────────────────────────────────┘
 ```
 
-**User store** (one per user, shared across projects):
-```
-~/.agent/memory/user/
-  qmd.db                     ← SQLite database
-  corrections/               ← User-scope corrections
-  failures/                  ← User-scope failures
-  preferences/               ← Atom markdown files, kind=preference
-  skills/                    ← User-scope skills
-  canonical/                 ← User-scope canonical atoms
-  sessions/user/             ← Session fold files
-  audit/                     ← Audit event logs
+The qmd layer and Hamilton DB layer are linked by the atom's nanoid `id` and the `qmd://` URI stored in Hamilton's `memory_atoms.path` column (e.g. `qmd://projects/<id>/corrections/<slug>-<id>.md`). qmd's SQLite database and Hamilton's SQLite database are separate files with separate connections (qmd uses `better-sqlite3` native addon; Hamilton uses `bun:sqlite`). They do not share a connection or transaction scope.
+
+### 10.2 Installation & Model Download
+
+qmd is installed as a dependency via `bun install` (`@tobilu/qmd` in `package.json`). However, qmd requires embedding models for vector search. These models must be downloaded before the memory system can function.
+
+`hamilton setup` triggers model download:
+
+```ts
+pullModels(models, options) // qmd/src/llm.ts
 ```
 
-`preferences` collection exists only in the user store. Project-scope atoms MUST NOT be written to the user store.
+qmd stores models in its own cache directory (managed by qmd, not Hamilton). This step is idempotent — subsequent `setup` runs skip already-cached models.
 
-### 10.2 Store Initialisation
+**TLS inspection environments:** Some corporate networks intercept TLS connections, causing model downloads to fail with certificate errors. Hamilton supports disabling TLS verification during model download via the `NODE_TLS_REJECT_UNAUTHORIZED` environment variable:
+
+```bash
+NODE_TLS_REJECT_UNAUTHORIZED=0 hamilton setup
+```
+
+This variable is forwarded to qmd's download process. It MUST be set explicitly by the user — Hamilton does not disable TLS by default. The `setup` command logs a warning when TLS verification is disabled.
+
+### 10.3 Store Layout
+
+**Project store** (`~/.hamilton/memory/projects/<project_id>/`):
+```
+  qmd.db                     ← qmd SQLite (FTS5 + vectors)
+  corrections/               ← .md files (kind=correction)
+  failures/                  ← .md files (kind=failure)
+  facts/                     ← .md files (kind=fact)
+  procedures/               ← .md files (kind=procedure)
+  canonical/                 ← .md files (kind=canonical)
+```
+
+**User store** (`~/.hamilton/memory/user/`):
+```
+  qmd.db
+  corrections/
+  failures/
+  preferences/
+  procedures/
+  canonical/
+```
+
+### 10.4 Store Initialisation
 
 ```typescript
 import { createStore } from '@tobilu/qmd';
 
-// Project store
 const projectStore = await createStore({
-  dbPath: `~/.agent/memory/projects/${projectId}/qmd.db`
+  dbPath: `${hamiltonHome}/memory/projects/${projectId}/qmd.db`
 });
 
-// User store
 const userStore = await createStore({
-  dbPath: `~/.agent/memory/user/qmd.db`
+  dbPath: `${hamiltonHome}/memory/user/qmd.db`
 });
 ```
 
-`createStore` initialises the SQLite database if it does not exist, creates the FTS5 virtual tables, and prepares the embedding index. It is idempotent.
-
-### 10.3 Collections
-
-Each kind maps to a named qmd collection. Collections MUST be registered before first use:
+Collections are registered on first use via `store.addCollection()`:
 
 ```typescript
 await store.addCollection({
   name: 'corrections',
-  description: 'Mistakes the agent made and their corrections. '
-    + 'Highest-priority memory. Always injected at session start. '
-    + 'Treat as ground truth.',
-  basePath: `~/.agent/memory/projects/${projectId}/corrections`
+  description: 'Mistakes the agent made and their corrections. Highest-priority memory. Always injected at run start. Treat as ground truth.',
+  basePath: `${hamiltonHome}/memory/projects/${projectId}/corrections`
 });
-
-await store.addCollection({
-  name: 'failures',
-  description: 'Failed approaches, tool call patterns, and reasoning loops '
-    + 'that the agent fell into. Companion to corrections.',
-  basePath: `~/.agent/memory/projects/${projectId}/failures`
-});
-
-await store.addCollection({
-  name: 'facts',
-  description: 'Project architectural and domain facts: schema shapes, '
-    + 'API endpoints, environment variable names, infrastructure details.',
-  basePath: `~/.agent/memory/projects/${projectId}/facts`
-});
-
-await store.addCollection({
-  name: 'skills',
-  description: 'Repeatable multi-step procedures and workflows the agent '
-    + 'has learned for this project.',
-  basePath: `~/.agent/memory/projects/${projectId}/skills`
-});
-
-await store.addCollection({
-  name: 'canonical',
-  description: 'Ground-truth reference material ingested from human-authored '
-    + 'files. Treat as authoritative specifications and style guides. '
-    + 'Both the project store and user store have a canonical collection; '
-    + 'scope (project or user) is determined at ingest time.',
-  basePath: `~/.agent/memory/projects/${projectId}/canonical`  // or userStore canonical
-});
+// ... repeat for failures, facts, procedures, canonical, preferences (user scope only)
 ```
 
-Context descriptions are registered via `store.addContext()` to provide LLM-aware retrieval hints:
+### 10.5 Core Operations
+
+**`qmd embed` — Batch indexing after file writes:**
+After Hamilton writes all markdown files for a pipeline run, `qmd embed` indexes them all in a single pass. Called once per Phase 4 batch, not per-file.
+
+```ts
+// Re-index collections by scanning the filesystem
+const result = await store.update({
+  collections: ["canonical"],  // optional — defaults to all
+  onProgress: ({ collection, file, current, total }) => {
+    console.log(`[${collection}] ${current}/${total} ${file}`)
+  },
+})
+// => { collections, indexed, updated, unchanged, removed, needsEmbedding }
+
+// Generate vector embeddings
+const embedResult = await store.embed({
+  force: false,           // true to re-embed everything
+  chunkStrategy: "auto",  // "regex" (default) or "auto" (AST for code files)
+  onProgress: ({ current, total, collection }) => {
+    console.log(`Embedding ${current}/${total}`)
+  },
+})
+```
+
+**Query with typed sub-queries** — used by `hmemory_query` and context injection:
 
 ```typescript
-await store.addContext({
-  key: 'memory-system',
-  value: 'This store contains long-term memory for a coding agent. '
-    + 'Collections: corrections (agent mistakes + fixes), '
-    + 'failures (failed patterns), facts (project knowledge), '
-    + 'skills (workflows), canonical (reference docs). '
-    + 'Prioritise corrections and failures in retrieval.'
+const results = await store.query({
+  query: taskPrompt,
+  collections: ['facts', 'procedures'],
+  subQueries: ['lex', 'vec', 'hyde'],  // typed: lexical, vector, HyDE
+  status: 'active',
+  limit: 5,
+  rerank: true
 });
 ```
 
-### 10.4 Core Operations
-
-**Hybrid search (primary retrieval path):**
+**Search (for context-relevant lookup)** — used by `hmemory_relevant`:
 
 ```typescript
 const results = await store.search({
-  query: taskPrompt,
-  collections: ['facts', 'skills'],    // optional collection filter
-  status: 'active',                    // filter by atom status
-  limit: 5,
-  rerank: true                         // enable LLM reranking if available
+  query: filePath,
+  intent: tags?.join(', '),
+  collections: ['facts', 'corrections', 'failures', 'procedures'],
+  limit,
+  minScore: 0.3,
 });
-// results: Array<{ docid, title, displayPath, context, score, snippet }>
 ```
 
-**Lexical search (BM25/FTS5 only):**
+**Bulk fetch by ID** — used for mandatory correction/failure injection:
 
 ```typescript
-const results = await store.searchLex({
-  query: 'npm install dependencies',
-  collections: ['failures'],
-  limit: 10
-});
+const ids = db.query("SELECT id FROM memory_atoms WHERE kind IN ('correction','failure') AND status = 'active' AND project_id = ?").all(projectId);
+const atoms = await store.multiGet({ ids: ids.map(r => r.id) });
 ```
 
-**Vector search (embeddings only):**
+**Single fetch** — used by `hmemory_get`:
+
+```typescript
+const atom = await store.get({ id: atomId });
+const metadata = db.query("SELECT * FROM memory_atoms WHERE id = ?").get(atomId);
+```
+
+**Vector search** — used in content ingest deduplication:
 
 ```typescript
 const results = await store.searchVector({
@@ -1215,103 +1230,421 @@ const results = await store.searchVector({
   collections: ['canonical'],
   limit: 5
 });
-// Used in canonical ingest deduplication (§5.2)
 ```
 
-**Bulk fetch by ID (used for correction/failure injection):**
+### 10.6 Dual-Write Consistency
 
-```typescript
-const atoms = await store.multiGet({
-  ids: correctionAndFailureIds,  // pre-indexed list of active correction/failure IDs
-  collections: ['corrections', 'failures']
-});
-```
-
-**Single fetch:**
-
-```typescript
-const atom = await store.get({ id: atom_id });
-```
-
-### 10.5 Scoring and Ranking
-
-qmd's hybrid search pipeline:
-
-1. **BM25 (FTS5)** — lexical retrieval from SQLite's full-text search index. Fast, keyword-sensitive.
-2. **Vector embeddings** — semantic retrieval using dense embedding vectors stored in the SQLite database.
-3. **RRF fusion** — Reciprocal Rank Fusion merges the BM25 and vector ranked lists into a single score: `RRF_score(d) = 1/(k + rank_bm25(d)) + 1/(k + rank_vector(d))` where `k=60` is the standard constant.
-4. **LLM reranking (optional)** — When `rerank: true`, a language model re-scores the top-N candidates for relevance to the query. Used for context injection where precision matters more than latency.
-
-Result fields returned by `store.search()`: `docid`, `title`, `displayPath`, `context`, `score`, `snippet`.
-
-### 10.6 Atom File and Index Lifecycle
-
-**On create (Phase 4, §4.4):**
-```
-write: <kind>/<slugified-title>-<id>.md
-index: store adds to collection, generates embeddings, updates FTS5
-```
-
-**On update (merge, human edit, demotion):**
-```
-write: <kind>/<slugified-title>-<id>.md  (update frontmatter and content)
-index: store.update() re-embeds and re-indexes the file
-```
-
-**On tombstone:**
-```
-write: <kind>/<slugified-title>-<id>.md  (update status field in frontmatter)
-index: re-index with status=tombstoned (excluded from searches by default)
-```
-
-**On resurrect:**
-```
-write: <kind>/<slugified-title>-<id>.md  (update status, clear tombstoned_at)
-index: re-index with status=active
-```
-
-### 10.7 ID Index for Corrections and Failures
-
-Because corrections and failures must be bulk-fetched at every session start (§6.1 Step 1), maintaining a separate index of their IDs is more efficient than a full-collection scan. The harness MUST maintain a lightweight index:
+Hamilton DB is the commit point. The `.md` files and qmd index are derived artifacts that can be reconstructed or cleaned up on recovery. Write order:
 
 ```
-~/.agent/memory/projects/<project_id>/correction-index.json
-~/.agent/memory/projects/<project_id>/failure-index.json
+ ┌─ Hamilton DB transaction ──────────────────────┐
+ │  INSERT memory_atoms (status = 'pending')       │
+ │  for all accepted atoms in the pipeline batch.  │
+ └─ COMMIT ───────────────────────────────────────┘
+         │
+         ▼
+ Hamilton writes all .md files to disk
+ (individual failures → skip, leave row 'pending')
+         │
+         ▼
+ qmd embed (single batch invocation against store dir)
+         │
+         ▼
+ UPDATE memory_atoms SET status = 'active'
+ WHERE status = 'pending' AND run_id = ?
 ```
 
-Each file is a JSON array of `{ id, status, updated_at }` records. The index is updated atomically whenever a correction or failure atom is created, updated, tombstoned, or resurrected. The harness reads this index at session start to determine which IDs to pass to `store.multiGet()`.
+**Recovery** (daemon maintenance pass, runs at startup and every 6 hours):
+```sql
+SELECT id, path FROM memory_atoms
+WHERE status = 'pending'
+  AND created_at < datetime('now', '-5 minutes')
+```
+
+For each stuck `pending` row:
+- **File exists at `path`**: write + embed succeeded but finalize didn't. Re-trigger `qmd embed`, UPDATE to `status = 'active'`.
+- **File missing at `path`**: file write failed, atom content is lost. Tombstone: UPDATE `status = 'tombstoned'`, `tombstoned_at = now`. Emit `MemoryAtomTombstoned` with reason `'recovery: file missing after crash'`.
+- **Orphan files** (on disk, no DB row): qmd embed already indexes based on filesystem content, so these would appear in search results with unknown metadata. The maintenance pass detects them by comparing qmd index entries against `memory_atoms` rows and deletes orphaned files + re-runs `qmd embed`.
+
+### 10.6 ID Index for Corrections and Failures
+
+Because corrections and failures must be bulk-fetched at every run start (§6.1, Step 1), the Hamilton DB query `SELECT id FROM memory_atoms WHERE kind IN ('correction','failure') AND status = 'active' AND project_id = ?` serves as the index. With proper indexing on `(project_id, kind, status)`, this query is efficient for the expected number of corrections/failures per project (typically < 100). No separate JSON index file is needed.
 
 ---
 
-## 11. Open Questions
+## 11. Observation Collection — Dual Source
 
-The following questions are raised by this RFC but are not resolved within it. They are marked for future RFCs or implementation decisions.
+### 11.1 Architecture
+
+```
+┌──────────────────────┐       ┌──────────────────────┐
+│  Hamilton Run        │       │  External Agent      │
+│  ────────────        │       │  ──────────────      │
+│  EventBus subscriber │       │  Claude Code         │
+│  buffers events      │       │  Copilot             │
+│       │              │       │  Cursor              │
+│  on_workflow_        │       │       │              │
+│  completed hook      │       │  writes JSONL        │
+│       │              │       │       │              │
+│       ▼              │       │       ▼              │
+│  ~/.hamilton/memory/ │       │  ~/.hamilton/memory/ │
+│  inbox/hamilton/     │       │  inbox/<agent-name>/ │
+│  <runId>.jsonl       │       │  <timestamp>.jsonl   │
+└──────────┬───────────┘       └──────────┬───────────┘
+           │                              │
+           └──────────┬───────────────────┘
+                      │
+                      ▼
+           ┌─────────────────────┐
+           │  Memory Daemon      │
+           │  ─────────────      │
+           │  Watches inbox/     │
+           │  Runs Phases 2-5    │
+           └─────────────────────┘
+```
+
+### 11.2 Hamilton Integration — Guideline Pipeline + EventBus Subscriber
+
+Hamilton integrates with the memory system through two mechanisms: a dedicated guideline pipeline that manages canonical memory, and run-time observation collection via the EventBus.
+
+**Guideline pipeline:**
+The guideline pipeline (`src/memory/guidelines.ts`) wraps Hamilton's guideline loader (`src/guidelines/loader.ts`) with the content ingest pipeline (§5) and curator (§13). It runs as a step before the workflow runner.
+
+At workflow start, the guideline pipeline:
+
+1. Loads guideline files via `src/guidelines/loader.ts`.
+2. For each file, computes SHA-256 and queries `memory_event_log` for the most recent `ingested` event with `metadata.source = 'guideline'` matching this source_path.
+3. If absent or hash differs: runs content ingest (§5) with `source: guideline`. Tombs old atoms if content changed. If hash matches: skips.
+4. After ingestion: INSERTs an `ingested` event with `metadata: {"source": "guideline", "source_path": "...", "file_hash": "...", "scope": "project"}`.
+5. Returns the guideline rules (tool-call blocking patterns from `src/guidelines/rule-engine.ts`) for the runner to install as extensions. Guideline instructions no longer pass directly to agents — they reach the agent exclusively through memory injection (§6.2).
+
+The user can also trigger re-ingestion manually:
+```
+hamilton memory ingest --guidelines   # Re-ingest all active guideline files
+```
+
+**Run-time observation collection:**
+A new `ObservationCollector` class subscribes to Hamilton's EventBus during workflow execution (`src/workflow/runner.ts`). It buffers observations in memory throughout the run. On `on_workflow_completed`, it serializes the buffer to `~/.hamilton/memory/inbox/hamilton/<runId>.jsonl`.
+
+The collector maps Hamilton events to the standard observation schema:
+
+| Hamilton Event              | Observation Type    | Fields Populated                                        |
+|-----------------------------|---------------------|--------------------------------------------------------|
+| `ToolCall` + `ToolResult`   | `tool_call`         | tool_name, arguments (from ToolCall.input summary), result (from ToolResult summary), success, duration_ms |
+| `TaskFailed`                | `error_encountered` | error_type, error_message, context                    |
+| Repeated ToolCall detection | `pattern_repeated`  | tool_name, pattern_description, repeat_count          |
+| `LlmMessage` analysis       | `decision_made`     | decision_text, rationale, alternatives_considered     |
+
+Hamilton does NOT produce `user_correction` or `user_feedback` observations — it runs autonomously after receiving the initial task prompt.
+
+The collector is registered as part of the run setup in `src/workflow/runner.ts:runWorkflow` and disposed at run end.
+
+### 11.3 External Agent Integration — Inbox Contract
+
+Any coding agent can write observations to `~/.hamilton/memory/inbox/<agent-name>/<timestamp>.jsonl` using the standard JSONL format defined in §4.1. The filename convention is:
+- `<agent-name>` — identifies the source tool (e.g. `claude`, `copilot`, `cursor`, `aider`).
+- `<timestamp>` — ISO 8601 compact format (e.g. `2026-06-27T14-30-00Z`).
+
+The daemon watches `~/.hamilton/memory/inbox/` (recursively) and processes any new `.jsonl` file. After successful processing, the file is moved to `~/.hamilton/memory/inbox/processed/`.
+
+### 11.4 Observation Schema (Standard JSONL Contract)
+
+```jsonl
+{"type":"header","session_id":"<string>","project_id":"<string>","agent_name":"<string>","started_at":"<ISO 8601>","ended_at":"<ISO 8601>","task_description":"<string>"}
+{"type":"tool_call","tool_name":"<string>","arguments":"<summary>","result":"<summary>","success":<bool>,"duration_ms":<int>,"error_message":"<string|null>"}
+{"type":"user_correction","agent_statement":"<string>","correction_text":"<string>","turn_index":<int>}
+{"type":"user_feedback","sentiment":"positive|negative|neutral","text":"<string>","turn_index":<int>}
+{"type":"error_encountered","error_type":"<string>","error_message":"<string>","context":"<string>","stack_trace":"<string|null>"}
+{"type":"pattern_repeated","tool_name":"<string>","pattern_description":"<string>","repeat_count":<int>}
+{"type":"decision_made","decision_text":"<string>","rationale":"<string>","alternatives_considered":"<string>"}
+```
+
+### 11.5 `project_id` Resolution
+
+For Hamilton runs, `project_id` is resolved at run start in this priority order:
+1. If a git repository is detected, `project_id` = the absolute path of the repository root (from `git rev-parse --show-toplevel`).
+2. If no git repository, `project_id` = the current working directory.
+
+For external agents, the agent specifies `project_id` in the observation header. Recommended: use the git repository root path when available.
+
+This value is stored in both the observation header and in `memory_atoms.project_id`. It is used to partition the qmd project stores and to filter retrieval to the correct project.
+
+---
+
+## 12. The Memory Daemon
+
+The memory daemon is a long-running process that consumes observation files and maintains the atom store. It runs independently of any active Hamilton workflow.
+
+### 12.1 Lifecycle
+
+```
+hamilton memory daemon start     # Start as background process
+hamilton memory daemon stop      # Gracefully shut down
+hamilton memory daemon status    # Check if running (pid, uptime, last processed)
+hamilton memory daemon restart   # Stop + start
+```
+
+The daemon is started by `hamilton setup` and managed as a launchd service on macOS (or systemd on Linux). It writes a PID file to `~/.hamilton/memory/daemon.pid`.
+
+### 12.2 Main Loop
+
+```
+1. Compute salience for all active atoms (maintenance pass).
+2. Apply demotion protocol.
+3. Watch ~/.hamilton/memory/inbox/ for new .jsonl files.
+4. For each new file:
+   a. Read and parse the observation log.
+   b. Run Phase 2 (fast model — candidate extraction).
+   c. Run Phase 3 (strong model — validation & deduplication).
+   d. Run Phase 4 (dual write — qmd + Hamilton DB).
+   e. Run Phase 5 (session fold).
+   f. Move file to inbox/processed/.
+5. Sleep. Check again.
+6. Periodic maintenance: every 6 hours, recompute salience + apply demotion.
+```
+
+### 12.3 LLM Provider Configuration
+
+The daemon uses the same LLM provider configuration as Hamilton's Pi executor — model aliases are resolved from `~/.hamilton/executors/pi/agent/settings.json` (or Hamilton's `settings.yaml`). The daemon requires two models:
+
+- **Fast model** (Phase 2): A smaller, cheaper model optimized for structured JSON extraction. Maps to `memory.fast_model` in `settings.yaml`, falls back to the default model.
+- **Strong model** (Phase 3): A more capable model for validation and deduplication. Maps to `memory.strong_model` in `settings.yaml`, falls back to the default model.
+
+### 12.4 Graceful Degradation
+
+The daemon MUST degrade gracefully when components fail:
+
+| Failure                                    | Degraded behaviour                                                                                    |
+|--------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| qmd store unavailable at daemon start      | Log error. Retry at next maintenance interval.                                                        |
+| Phase 2 (fast model) fails                 | Skip extraction for this file. Move file to `inbox/failed/`. Log warning.                             |
+| Phase 3 (strong model) fails               | Fall back to accepting all Phase 2 candidates with confidence capped at 0.5. Log warning.             |
+| Phase 4 (qmd write) fails                  | Retry with backoff. If all retries fail, save candidates to a pending queue.                          |
+| Phase 4 (Hamilton DB write) fails          | Log error. Retry. If qmd write succeeded but DB write failed, detect orphan in maintenance.           |
+| Hamilton DB unavailable                    | Queue writes. All memory tools return empty results (graceful).                                       |
+| Salience computation fails                 | Skip demotion for affected atoms. Do not demote based on partial data.                                |
+
+### 12.5 Implementation
+
+The daemon is implemented as a TypeScript module at `src/memory/daemon.ts`. It uses the same `bun:sqlite` connection to Hamilton's DB (for `memory_atoms` queries) and creates qmd store instances for content operations. It publishes audit events to the EventBus when available (post-refactoring); until the EventBus is lifted to application scope, it writes directly to `memory_event_log`.
+
+When started via `hamilton memory daemon start`, Hamilton spawns the daemon using `Bun.spawn` with `detached: true` and writes the PID. The daemon's stdout/stderr are logged to `~/.hamilton/memory/daemon.log`.
+
+---
+
+## 13. LLM Client & The Curator
+
+The memory system requires LLM calls in multiple contexts: the daemon's autonomous pipeline (Phases 2 and 3), content ingest chunking, title generation for `hmemory_record`, and context-relevant atom retrieval for `hmemory_relevant`. These are NOT full agent sessions — they are single-flight prompt → completion calls with no tool loop.
+
+To support this uniformly, Hamilton extracts a shared `LLMClient` from the model resolution logic currently embedded in `src/executors/pi/pi-executor.ts`. The curator is a thin orchestration layer built on top of this client.
+
+### 13.1 LLMClient
+
+A lightweight wrapper around `@earendil-works/pi-ai` that handles auth loading, model resolution, and token tracking. All memory-related LLM calls flow through this client.
+
+```typescript
+import { complete, type Context } from "@earendil-works/pi-ai";
+import { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
+
+const authStorage = AuthStorage.create();
+const modelRegistry = ModelRegistry.create(authStorage);
+
+interface TokenUsage {
+  provider: string;
+  modelId: string;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+}
+
+function createLLMClient(config?: {
+  modelsJsonPath?: string;
+  onTokenUsage?: (usage: TokenUsage) => void;
+}) {
+  const registry = config?.modelsJsonPath
+    ? ModelRegistry.create(authStorage, config.modelsJsonPath)
+    : modelRegistry;
+
+  return {
+    complete: async (
+      provider: string,
+      modelId: string,
+      context: Context,
+    ) => {
+      const model = registry.find(provider, modelId);
+      if (!model) throw new Error(`Model not found: ${provider}/${modelId}`);
+
+      const auth = await registry.getApiKeyAndHeaders(model);
+      if (!auth.ok) throw new Error(auth.error);
+
+      const startedAt = performance.now();
+      const response = await complete(model, context, {
+        apiKey: auth.apiKey,
+        headers: auth.headers,
+      });
+      const latencyMs = performance.now() - startedAt;
+
+      config?.onTokenUsage?.({
+        provider,
+        modelId,
+        tokensIn: response.usage?.input_tokens ?? 0,
+        tokensOut: response.usage?.output_tokens ?? 0,
+        latencyMs: Math.round(latencyMs),
+      });
+
+      return response;
+    },
+  };
+}
+```
+
+The `onTokenUsage` callback publishes `TokenUsage` events to Hamilton's EventBus. The `DbWriter` subscriber persists them alongside agent token usage. Curator and daemon events carry `runId: null` — subscribers handle null gracefully.
+
+**EventBus refactoring dependency:** Hamilton's EventBus is currently scoped to individual workflow runs (`src/events/bus.ts` provides `EventBus` via `Effect.provide(EventBusLive)` inside `runWorkflow`). The memory system requires the EventBus to be lifted to **application scope** — a single bus that lives as long as the Hamilton CLI process, not per-workflow. This makes `runId` and `taskId` optional on all event types. Until this refactoring is complete, the daemon and curator write directly to `memory_event_log` as a fallback path.
+
+The `LLMClient` resolves models using the same `models.json` and `auth.json` as Hamilton's Pi executor — no separate credential store. It supports both built-in Pi models and custom models defined in the user's configuration.
+
+### 13.2 The Curator
+
+The curator is not a full agent. It is a stateless function that executes targeted LLM calls for specific memory operations. It holds an `LLMClient` instance and exposes methods for each use case.
+
+**Interface:**
+
+```typescript
+interface Curator {
+  extractCandidates(observationLog: ObservationLog): Promise<DraftCandidate[]>;
+  validateCandidates(candidates: DraftCandidate[], existingAtoms: Atom[]): Promise<ValidationResult>;
+  generateTitle(content: string): Promise<string>;
+  findRelevantAtoms(filePath: string, tags: string[]): Promise<RelevantAtom[]>;
+  suggestTags(taskPrompt: string, filePaths: string[]): Promise<string[]>;
+}
+```
+
+**Callers:**
+
+| Method | Called by | When |
+|---|---|---|
+| `extractCandidates` | Daemon pipeline Phase 2 | After observations land in the inbox |
+| `validateCandidates` | Daemon pipeline Phase 3 | After candidate extraction |
+| `generateTitle` | `hmemory_record` tool | Mid-session atom recording |
+| `findRelevantAtoms` | `hmemory_relevant` tool | Context-relevant atom lookup |
+| `suggestTags` | Workflow runner | At task start — determines tags for conditional injection (Rule B in §6.3) |
+
+### 13.3 suggestTags — Task-Aware Injection
+
+When a Hamilton workflow task starts, the curator's `suggestTags` method receives the task prompt and the list of files the task is expected to touch (from workflow input). It returns a set of tags like `["lang:typescript", "testing", "database"]` that feed into the conditional injection rules in §6.3. The task does NOT need to know what memory exists — the curator determines relevance and the injection engine fetches matching atoms.
+
+This replaces the manual tag specification described in Rule B of §6.3. Tags are derived automatically by the curator unless the user overrides them.
+
+### 13.4 Model Selection
+
+The curator uses two model tiers matching the daemon's requirements:
+
+- **Fast model** (Phase 2, `generateTitle`, `suggestTags`): Lower cost, optimized for structured JSON output. Configured via `memory.models.fast_model` in `settings.yaml`.
+- **Strong model** (Phase 3, `findRelevantAtoms`): Higher capability for validation, deduplication, and relevance ranking. Configured via `memory.models.strong_model` in `settings.yaml`.
+
+Both resolve through the same `LLMClient` — the separation is configuration, not code.
+
+---
+
+## 14. CLI Commands
+
+### 14.1 Command Tree
+
+```
+hamilton memory
+├── daemon
+│   ├── start       — Start the memory daemon
+│   ├── stop        — Stop the memory daemon
+│   ├── status      — Check daemon status
+│   └── restart     — Restart the daemon
+├── ingest          — Ingest content as canonical atoms
+│   <path> [--scope project|user]    # file or URL
+│   --guidelines                     # all active guideline files
+├── list            — List atoms
+│   [--kind correction|failure|fact|procedure|preference|canonical]
+│   [--scope project|user]
+│   [--status active|demoted|tombstoned]
+│   [--project <id>]
+│   [--limit <n>]
+├── show            — Show full atom content
+│   <atom-id>
+├── edit            — Edit an atom
+│   <atom-id> [--content "<text>"] [--confidence <0.0-1.0>]
+│   [--tags "tag1,tag2"]
+├── forget          — Tombstone an atom
+│   <atom-id>
+├── resurrect       — Restore a tombstoned atom
+│   <atom-id> [--confidence <0.0-1.0>]
+├── promote         — Promote an atom to canonical
+│   <atom-id>
+├── maintain        — Trigger salience computation + demotion pass
+└── status          — Show memory store statistics
+    [--project <id>]
+```
+
+### 13.2 Command Implementation
+
+Each command is a Hamilton `@effect/cli` Command in `src/cli/commands/` — following the same pattern as existing commands (export the Command + the underlying Effect function for testability). A new `src/cli/commands/memory.ts` uses `Command.withSubcommands([])` to compose the subcommands.
+
+Commands that modify atoms (`ingest`, `edit`, `forget`, `resurrect`, `promote`) emit audit events. Commands that read atoms (`list`, `show`, `status`) query Hamilton DB and qmd.
+
+### 13.3 `hamilton memory status` Output
+
+```
+Memory Store Status
+───────────────────
+Project: /Users/caio/my-project
+
+  Corrections:  3 active, 0 demoted, 0 tombstoned
+  Failures:     2 active, 0 demoted, 0 tombstoned
+  Facts:        12 active, 1 demoted, 0 tombstoned
+  Procedures:   2 active, 0 demoted, 0 tombstoned
+  Canonical:    45 active (from 3 source files)
+
+User Scope:
+  Preferences:  4 active, 0 demoted, 0 tombstoned
+  Corrections:  1 active
+  Failures:     0
+  Procedures:   1 active
+  Canonical:    0
+
+Total: 71 atoms (68 active, 1 demoted, 0 tombstoned)
+Daemon: running (pid 84321, uptime 3h 22m, last processed 2m ago)
+```
+
+---
+
+## 14. Open Questions
 
 **Q1: Multi-agent conflict resolution**
-When multiple agent instances operate on the same project simultaneously (e.g. parallel agents in a CI pipeline), how are concurrent writes to the memory store serialised? SQLite's WAL mode handles single-process concurrency, but multi-process concurrent writes to the same qmd.db require coordination. An advisory lock file or write queue MAY suffice, but the semantics of conflicting Phase 3 decisions (two agents independently concluding contradictory things in the same session window) have not been defined.
+When multiple agent instances operate on the same project simultaneously (e.g. parallel Hamilton runs + Claude Code session), concurrent writes to the qmd database may conflict. SQLite's WAL mode handles single-process concurrency, but multi-process writes to the qmd.db require coordination. An advisory lock file or write queue MAY suffice.
 
-**Q2: Memory migration across project renames and merges**
-When a project is renamed, the `project_id` embedded in atom metadata and store paths becomes stale. When two projects are merged (e.g. a monorepo consolidation), their memory stores may contain overlapping or conflicting facts. No migration tooling or resolution strategy is defined in this RFC. A `memory migrate` command with conflict detection is anticipated but not specified.
+**Q2: Memory migration across project renames and moves**
+When a project directory is renamed or moved, the `project_id` (based on git root path) changes. All project-scope atoms now reference a stale `project_id`. A `hamilton memory migrate <old-id> <new-id>` command is anticipated but not specified.
 
 **Q3: Privacy and PII in user-scope memories**
-User-scope atoms may capture personally identifying information if the user's corrections or preferences reference names, email addresses, or other PII. The current design has no PII-scrubbing step in the extraction pipeline. A redaction pass in Phase 2 or Phase 3 could be added, but the definition of PII in a coding context (is a developer's GitHub username PII?) is not obvious. This RFC does not define a privacy model.
+User-scope atoms may capture personally identifying information. The current design has no PII-scrubbing step in the extraction pipeline.
 
-**Q4: Cross-project skill promotion**
-A `skill` atom learned in project A (e.g. "how to profile memory usage with valgrind in this codebase") may be generally applicable and worth promoting to user-scope. No mechanism for cross-project skill promotion is defined. A periodic review job that identifies high-confidence, high-use project-scope skills as candidates for user-scope promotion is anticipated but not specified. The promotion threshold and process need to be defined.
+**Q4: Cross-project procedure promotion**
+A `procedure` atom learned in project A may be generally applicable and worth promoting to user-scope. A `hamilton memory promote-scope <atom-id>` command is anticipated but not specified.
 
 **Q5: Embedding model versioning and re-indexing**
-The vector index in qmd is dependent on the embedding model used at ingest time. If the embedding model is upgraded, existing embeddings become incompatible with new query vectors. No re-indexing or embedding migration strategy is defined in this RFC. A full re-embed pass is the obvious solution, but for large stores with thousands of atoms this is expensive and must be coordinated with store availability.
+The vector index in qmd depends on the embedding model used at ingest time. If the embedding model is upgraded, existing embeddings become incompatible. A `hamilton memory reindex` command is anticipated.
 
 **Q6: Adversarial memory injection**
-If an agent can be prompted to create atoms autonomously, a malicious or poorly-crafted prompt could cause the agent to write false corrections or facts that persist across sessions (prompt injection attacks against long-term memory). The current Phase 3 validation model provides some defence, but it is not a security boundary. Hardened environments MAY wish to require human approval for all new `correction` and `fact` atoms. No threat model or approval workflow is defined in this RFC.
+If an agent can be prompted to create atoms autonomously, a malicious prompt could cause the agent to write false corrections or facts that persist across runs. The Phase 3 validation provides some defence, but it is not a security boundary. Hardened environments MAY require human approval for all new `correction` and `fact` atoms.
+
+**Q7: Observation format versioning**
+The observation JSONL schema (§11.4) is a contract between agents and the daemon. Version changes to this schema need a migration path so the daemon can continue processing older observation files.
 
 ---
 
-## 12. Appendix
+## 15. Appendix
 
-### A. Atom Markdown File Format
+### A. Atom File Format
 
-All atom files are stored as markdown with YAML frontmatter. The frontmatter contains all structured metadata; the markdown body contains the human-readable `content` field. 
+All atom files are stored as markdown with YAML frontmatter in the appropriate qmd store directory. The frontmatter contains all structured metadata visible to qmd search; the markdown body contains the human-readable `content`.
 
 ```markdown
 ---
@@ -1324,10 +1657,9 @@ confidence: 0.92
 status: active
 created_at: "2026-06-15T14:23:11Z"
 updated_at: "2026-06-15T14:23:11Z"
-project_id: "acme-api"
-session_id: "sess_9d8e7f6a5b4c3d2e"
+project_id: "/Users/caio/acme-api"
 tags:
-  - typescript
+  - lang:typescript
   - config
   - toml
 demoted_at: null
@@ -1340,12 +1672,12 @@ contradicts: []
 ## Mistake
 
 The agent wrote project configuration files as JSON (e.g. `project.config.json`)
-using the standard Node.js `JSON.parse` / `JSON.stringify` pattern.
+using the standard `JSON.parse` / `JSON.stringify` pattern.
 
 ## Correction
 
-All configuration files in the `acme-api` project MUST use TOML format.
-The configuration loader is `@acme/config-loader` which only accepts `.toml` files.
+All configuration files in this project MUST use TOML format.
+The configuration loader only accepts `.toml` files.
 JSON configuration files will be silently ignored by the loader.
 
 ## Correct approach
@@ -1355,585 +1687,80 @@ JSON configuration files will be silently ignored by the loader.
 [server]
 port = 3000
 host = "localhost"
-
-[database]
-url = "postgres://localhost:5432/acme"
-pool_size = 10
 ```
 
-Use the `@iarna/toml` library to read and write TOML programmatically:
-```typescript
-import * as TOML from '@iarna/toml';
-const config = TOML.parse(fs.readFileSync('project.config.toml', 'utf8'));
-```
+Use `@iarna/toml` to read and write TOML.
 ```
 
----
-
-### B. Audit Event JSON Example
-
-The following shows a sequence of audit events as they would appear in `audit/2026-06.jsonl` (one JSON object per line):
+### B. Audit Event JSONL Example (from `memory_event_log`)
 
 ```jsonl
-{"event_type":"atom.created","atom_id":"7f3a2b1c-8e4d-4f5a-9b6c-0d1e2f3a4b5c","timestamp":"2026-06-15T14:23:11Z","session_id":"sess_9d8e7f6a5b4c3d2e","actor":"agent","reason":"Accepted by Phase 3 validation. Correction references specific user statement at turn 12.","metadata":{"kind":"correction","scope":"project","confidence":0.92,"source_observation_indices":[4,7],"phase3_justification":"User explicitly corrected agent's use of JSON config files. Correction is specific and actionable."}}
-{"event_type":"atom.created","atom_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","timestamp":"2026-06-15T14:23:12Z","session_id":"sess_9d8e7f6a5b4c3d2e","actor":"agent","reason":"Accepted failure atom. Pattern repeated 4 times within session.","metadata":{"kind":"failure","scope":"project","confidence":0.87,"source_observation_indices":[2,5,8,11],"phase3_justification":"Agent called npm test before npm install on 4 separate occasions. Clear repeating failure pattern."}}
-{"event_type":"atom.rejected","atom_id":null,"timestamp":"2026-06-15T14:23:13Z","session_id":"sess_9d8e7f6a5b4c3d2e","actor":"agent","reason":"Candidate fact too vague to be actionable.","metadata":{"draft_kind":"fact","draft_content_preview":"The project uses a database.","rejection_reason":"Content is too generic to constitute useful project knowledge. All projects use databases. No specific schema, ORM, or connection detail provided."}}
-{"event_type":"canonical.ingested","atom_id":"c0ffee00-1234-5678-9abc-def012345678","timestamp":"2026-06-18T10:05:33Z","session_id":"sess_aaabbbccc111222","actor":"agent","reason":"Chunk 3 of 14 from docs/code-style-guide.md ingested successfully.","metadata":{"source_file":"docs/code-style-guide.md","chunk_offset":2,"chunk_hash":"sha256:8f4e2a1b9c3d5e7f0a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d2e4f","token_estimate":847}}
-{"event_type":"atom.demoted","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","timestamp":"2026-09-14T02:00:00Z","session_id":null,"actor":"system","reason":"Salience below threshold (0.17 < 0.25) and confidence below threshold (0.31 < 0.40) after nightly maintenance run.","metadata":{"computed_salience":0.17,"salience_components":{"confidence_term":0.109,"recency_term":0.044,"use_term":0.000,"kind_term":0.105},"confidence_at_demotion":0.31,"demoted_at":"2026-09-14T02:00:00Z"}}
-{"event_type":"atom.tombstoned","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","timestamp":"2026-12-14T02:00:00Z","session_id":null,"actor":"system","reason":"Atom demoted for more than 90 days with confidence below 0.20.","metadata":{"days_since_demotion":91,"confidence_at_tombstone":0.18}}
-{"event_type":"atom.resurrected","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","timestamp":"2026-12-15T11:30:00Z","session_id":"sess_xyz123","actor":"human","reason":"User confirmed this fact is still accurate after reviewing the tombstoned atom.","metadata":{"resurrected_by":"user","reason":"Reviewed content; still accurate. Tombstone was premature due to project being paused for 3 months, not because the fact became stale."}
+{"event_type":"atom.created","atom_id":"7f3a2b1c-8e4d-4f5a-9b6c-0d1e2f3a4b5c","run_id":"feature-dev-x7k2m","timestamp":"2026-06-15T14:23:11Z","actor":"agent","reason":"Accepted by Phase 3 validation. Correction references specific user statement.","metadata":{"kind":"correction","scope":"project","confidence":0.92,"source_observation_indices":[4,7],"phase3_justification":"User explicitly corrected agent's use of JSON config files."}}
+{"event_type":"atom.created","atom_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","run_id":"feature-dev-x7k2m","timestamp":"2026-06-15T14:23:12Z","actor":"agent","reason":"Accepted failure atom. Pattern repeated 4 times within run.","metadata":{"kind":"failure","scope":"project","confidence":0.87,"source_observation_indices":[2,5,8,11]}}
+{"event_type":"atom.rejected","atom_id":null,"run_id":"feature-dev-x7k2m","timestamp":"2026-06-15T14:23:13Z","actor":"agent","reason":"Candidate fact too vague to be actionable.","metadata":{"draft_kind":"fact","draft_content_preview":"The project uses a database.","rejection_reason":"Content is too generic."}}
+{"event_type":"atom.demoted","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","run_id":null,"timestamp":"2026-09-14T02:00:00Z","actor":"system","reason":"Salience below threshold (0.17 < 0.25) and confidence below threshold (0.31 < 0.40).","metadata":{"computed_salience":0.17,"salience_components":{"confidence_term":0.109,"recency_term":0.044,"use_term":0.000,"kind_term":0.105},"confidence_at_demotion":0.31}}
+{"event_type":"atom.tombstoned","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","run_id":null,"timestamp":"2026-12-14T02:00:00Z","actor":"system","reason":"Atom demoted for more than 90 days with confidence below 0.20.","metadata":{"days_since_demotion":91,"confidence_at_tombstone":0.18}}
+{"event_type":"atom.resurrected","atom_id":"deadbeef-dead-beef-dead-beefdeadbeef","run_id":null,"timestamp":"2026-12-15T11:30:00Z","actor":"human","reason":"User confirmed this fact is still accurate.","metadata":{"reason":"Reviewed content; still accurate."}}
 ```
 
----
+### C. Settings Configuration (`settings.yaml` additions)
 
-### C. Session-Start Context File Example
+```yaml
+# Memory system configuration (added to ~/.hamilton/settings.yaml)
+memory:
+  enabled: true
 
-The following shows the memory block as it would be written to `.agent/context/memory.md` at the start of a session for project `acme-api`. Two corrections exist for this project, one canonical chunk was retrieved as relevant, two facts, one skill, and two user preferences.
+  daemon:
+    auto_start: true                   # Start daemon with hamilton setup
+    maintenance_interval_hours: 6      # Salience recomputation interval
 
-```markdown
----
-## Agent Memory — Session Context
+  models:
+    fast_model:                        # Phase 2 — candidate extraction
+      provider: default
+      model_id: default
+    strong_model:                      # Phase 3 — validation
+      provider: default
+      model_id: default
 
-> The following memories were retrieved from your long-term store for project `acme-api`.
-> CORRECTIONS and FAILURES must be treated as ground truth — do not repeat these mistakes.
-> Canonical reference material reflects the authoritative specification for this project.
-> Other items are retrieved as relevant to the current task.
+  injection:
+    canonical_top_k: 5
+    fact_top_k: 3
+    procedure_top_k: 3
+    preference_top_k: 3
+    soft_cap: 20
 
-### CORRECTIONS (must not repeat these mistakes)
+  search:
+    default_limit: 5
+    max_limit: 20
+    context_default_limit: 5
+    context_rerank: true
 
-#### [correction] Config file format must be TOML, not JSON
-*Confidence: 0.92 | Project: acme-api | Last used: 2026-06-20 | ID: 7f3a2b1c*
+  salience:
+    w_conf: 0.35
+    w_recency: 0.25
+    w_use: 0.25
+    w_kind: 0.15
+    half_life_recency_days: 30
+    half_life_use_days: 14
+    use_scale: 20
+    demotion_salience_threshold: 0.25
+    demotion_confidence_threshold: 0.40
+    tombstone_days_threshold: 90
+    tombstone_confidence_threshold: 0.20
 
-All configuration files in the `acme-api` project MUST use TOML format.
-The configuration loader is `@acme/config-loader` which only accepts `.toml` files.
-JSON configuration files will be silently ignored by the loader.
+  pipeline:
+    max_candidates_per_session: 20
+    phase2_retry_max: 3
+    phase3_retry_max: 2
+    phase2_retry_backoff_seconds: [5, 15, 45]
 
-Use `@iarna/toml` for programmatic read/write. Config file naming convention: `<name>.config.toml`.
+  language_detection:
+    enabled: true
 
----
-
-#### [correction] Do not modify files in the `dist/` directory directly
-*Confidence: 0.96 | Project: acme-api | Last used: 2026-06-18 | ID: 2a3b4c5d*
-
-The `dist/` directory is generated by the build process (`npm run build`). Any direct
-edits to files in `dist/` are overwritten on the next build. Always edit source files
-in `src/` and rebuild.
-
----
-
-### FAILURES (avoid these patterns)
-
-#### [failure] Running npm test before npm install in a fresh environment
-*Confidence: 0.87 | Project: acme-api | Last used: 2026-06-15 | ID: a1b2c3d4*
-
-**Failed pattern:** Calling `npm test` immediately after cloning or checking out
-the repository, before running `npm install`.
-
-**Context:** Occurs in any fresh sandbox or CI environment where `node_modules` is not present.
-
-**Why it fails:** The agent assumes `node_modules` from a previous session, but the
-sandbox resets between sessions. Every fresh environment requires `npm install` first.
-
-**Correct sequence:**
-1. `npm install`
-2. `npm run build` (if required)
-3. `npm test`
-
----
-
-### REFERENCE (canonical knowledge)
-
-#### [canonical] Code Style Guide — TypeScript Naming Conventions
-*Confidence: 1.0 | Source: docs/code-style-guide.md (chunk 3) | ID: c0ffee00*
-
-**Interfaces:** PascalCase, no `I` prefix. Example: `UserRepository`, not `IUserRepository`.
-**Types:** PascalCase. Example: `ApiResponse<T>`.
-**Enums:** PascalCase for the enum name; SCREAMING_SNAKE_CASE for values.
-  Example: `enum HttpStatus { OK = 200, NOT_FOUND = 404 }`
-**Functions:** camelCase. Example: `getUserById`.
-**Constants:** SCREAMING_SNAKE_CASE for module-level constants.
-**Private class members:** no underscore prefix; use `private` keyword only.
-
----
-
-### FACTS
-
-#### [fact] Database ORM: Prisma with PostgreSQL
-*Confidence: 0.89 | Project: acme-api | ID: f1e2d3c4*
-
-The project uses Prisma as its ORM. The schema file is `prisma/schema.prisma`.
-Database: PostgreSQL 15. Connection string env var: `DATABASE_URL`.
-Run `npx prisma generate` after schema changes. Run `npx prisma db push` for dev migrations.
-
----
-
-#### [fact] Authentication: JWT with RS256, keys in environment
-*Confidence: 0.85 | Project: acme-api | ID: e5f6a7b8*
-
-JWT tokens use RS256 (asymmetric). Public key: `JWT_PUBLIC_KEY` env var (PEM format).
-Private key: `JWT_PRIVATE_KEY` env var (PEM format). Token expiry: 1 hour access,
-7 days refresh. Tokens are verified in `src/middleware/auth.middleware.ts`.
-
----
-
-### SKILLS
-
-#### [skill] Running the full test suite with coverage report
-*Confidence: 0.82 | Project: acme-api | ID: b9c0d1e2*
-
-```bash
-npm install                    # ensure dependencies are present
-npm run build                  # compile TypeScript
-npm test -- --coverage         # run Jest with coverage
-# Coverage report output: coverage/lcov-report/index.html
-# Minimum coverage threshold: 80% (configured in jest.config.ts)
+  tag_filter_mode: or
 ```
 
-If tests fail with "Cannot find module", run `npm run build` first — some tests import
-from compiled output.
-
----
-
-### PREFERENCES (user preferences)
-
-#### [preference] Commit message style: Conventional Commits
-*Confidence: 0.94 | Scope: user | ID: d3e4f5a6*
-
-Always use Conventional Commits format: `type(scope): description`.
-Types: feat, fix, refactor, docs, chore, test, perf.
-Example: `feat(auth): add refresh token rotation`.
-Do not use past tense ("added X") — use imperative ("add X").
-
----
-
-#### [preference] Prefer explicit error types over generic Error
-*Confidence: 0.88 | Scope: user | ID: f7a8b9c0*
-
-When throwing or returning errors, use specific typed error classes rather than
-`new Error("message")`. The project has `src/errors/` with `AppError`, `NotFoundError`,
-`ValidationError`, `UnauthorizedError`. Always use the most specific type.
-
----
-
-*9 atoms injected inline. Additional memories available via `memory_search(query)`.*
----
-```
-
----
-
-*End of RFC-001*
-
----
-
-## 13. Implementation Reference
-
-This section provides additional implementation guidance for engineers building the system described in this RFC.
-
-### 13.1 Pipeline Orchestration
-
-The autonomous memory pipeline (§4) MUST be orchestrated as an independent, fault-tolerant background process. The session MUST NOT block on pipeline completion. The recommended model is:
-
-1. At session end, the harness serialises the observation log to a staging file: `sessions/<project_id>/pending/<session_id>.jsonl`.
-2. A pipeline worker process (daemon or cron) picks up pending session files, runs Phases 2–5, and moves processed files to `sessions/<project_id>/processed/<session_id>.jsonl`.
-3. If the pipeline fails at any phase, the staging file is moved to `sessions/<project_id>/failed/<session_id>.jsonl` along with an error log. A human or a retry mechanism can re-trigger the pipeline.
-
-This model ensures:
-- Session files are never lost even if the pipeline crashes mid-execution.
-- Idempotent retry: re-running the pipeline on the same session file MUST produce the same result (Phase 3 deduplication prevents double-writes).
-- The agent's session latency is not affected by memory pipeline performance.
-
-**Retry policy:**
-- Phase 2 (fast model) failures: retry up to 3 times with exponential backoff (5s, 15s, 45s). After 3 failures, skip Phase 2 and move to failed.
-- Phase 3 (strong model) failures: retry up to 2 times. After 2 failures, write all Phase 2 candidates with a `pending_validation` status and flag for human review.
-- Phase 4 (store write) failures: individual atom write failures MUST be logged and retried independently. A failure to write one atom MUST NOT prevent others from being written.
-- Phase 5 (fold) failures: non-fatal. Log the error and continue. The fold file is audit-only.
-
-### 13.2 Observation Log Implementation Notes
-
-The harness MUST hook into the following agent lifecycle events to populate the observation log:
-
-```typescript
-interface HarnessHooks {
-  // Called before every tool execution
-  onBeforeToolCall(tool: string, args: Record<string, unknown>): void;
-
-  // Called after every tool execution (success or failure)
-  onAfterToolCall(
-    tool: string,
-    args: Record<string, unknown>,
-    result: unknown,
-    success: boolean,
-    durationMs: number,
-    error?: Error
-  ): void;
-
-  // Called when the user sends a message that follows an agent message
-  // containing a specific assertion or claim (for correction detection)
-  onUserMessage(
-    content: string,
-    turnIndex: number,
-    precedingAgentContent: string
-  ): void;
-
-  // Called when an unhandled exception propagates to the harness
-  onError(error: Error, context: string): void;
-
-  // Called when the same tool+args pattern repeats N times
-  onPatternRepeat(tool: string, pattern: string, count: number): void;
-
-  // Called at session end
-  onSessionEnd(summary: SessionSummary): void;
-}
-```
-
-The harness is responsible for detecting `user_correction` observations. A heuristic approach:
-- If the user's message begins with a negation word ("no", "actually", "that's wrong", "incorrect", "not") or contains an explicit correction phrase ("you should", "you need to", "the correct way is", "don't do that"), flag the observation as a potential correction.
-- Pass the flagged observation and the immediately preceding agent message to Phase 2 as a `user_correction` event for the fast model to evaluate.
-
-The harness MUST NOT make a definitive determination of whether something is a correction — that is the job of the Phase 2 and Phase 3 models. The harness only provides raw signal.
-
-### 13.3 Phase 2 Prompt Template
-
-The following is the normative prompt template for the Phase 2 fast model. Implementors MUST preserve the structural requirements; the exact wording MAY be adjusted.
-
-```
-You are a memory extraction agent for a coding assistant. Your job is to review
-a coding session's observation log and identify facts worth remembering long-term.
-
-## Session Metadata
-Session ID: {session_id}
-Project ID: {project_id}
-Task: {task_description}
-Duration: {duration}
-
-## Observation Log
-{observation_log_as_formatted_text}
-
-## Instructions
-Review the observations above and propose memory items (atoms) to store for future sessions.
-
-Rules:
-1. Only propose items that are DURABLE and REUSABLE — useful in future sessions, not just in this one.
-2. You MUST propose all corrections and failures you find. Do not skip these.
-3. For facts, skills, and preferences: only propose if you are reasonably confident (>0.6) they are accurate.
-4. Do not propose trivially obvious items ("use npm to install packages").
-5. Maximum 20 candidates total. Prioritise corrections and failures over other kinds.
-6. For corrections: include both the mistake AND the correct approach in the content.
-7. For failures: include the failed pattern, the context, and the cause if known.
-8. Write content in clear, imperative markdown suitable for injection into a future system prompt.
-
-## Output Format
-Respond with ONLY a JSON array (no prose, no markdown fencing). Each element:
-{
-  "kind": "correction" | "failure" | "preference" | "fact" | "skill",
-  "scope": "project" | "user",
-  "content": "<markdown>",
-  "confidence": <0.0-1.0>,
-  "tags": ["<tag>"],
-  "source_observation_indices": [<int>]
-}
-```
-
-### 13.4 Phase 3 Prompt Template
-
-```
-You are a memory validation agent for a coding assistant. Your job is to validate,
-deduplicate, and finalise proposed memory items against the existing memory store.
-
-## Session Metadata
-Session ID: {session_id}
-Project ID: {project_id}
-Task: {task_description}
-
-## Proposed Candidates
-{candidates_as_json}
-
-## Existing Relevant Atoms (retrieved per candidate)
-{existing_atoms_per_candidate}
-
-## Instructions
-For each candidate, make one of these decisions: accept, reject, merge, or supersede.
-
-Decision criteria:
-- accept:    Valid, novel, and not already covered by existing atoms.
-- reject:    Invalid, too vague, trivially obvious, or already well-covered.
-- merge:     Near-duplicate of an existing atom. Refine the existing one.
-- supersede: Directly contradicts an existing atom. Replace the old one.
-
-STRICT RULES for corrections and failures:
-- You MUST accept a correction candidate unless you write at least 2 sentences
-  of explicit justification explaining why it is invalid or already covered.
-  "Similar to existing" is not sufficient — the existing atom must cover the
-  EXACT SAME mistake in the EXACT SAME context.
-- You MUST accept a failure candidate that documents a specific repeating pattern
-  with at least: (1) the failed action, (2) the context. Missing cause is okay.
-- A merge of a correction/failure requires the merge target to be the SAME specific
-  failure mode, not a more general one.
-
-Confidence adjustment:
-- Increase confidence if multiple observations support the candidate.
-- Decrease confidence if the evidence is ambiguous or indirect.
-- Corrections and failures: minimum confidence 0.75 if evidence is strong.
-- Never set confidence above 1.0 or below 0.0.
-
-## Output Format
-Respond with ONLY a JSON object (no prose, no markdown fencing):
-{
-  "validated": [
-    {
-      "decision": "accept" | "merge" | "supersede",
-      "draft_index": <int>,
-      "title": "<short human-readable title for this atom>",
-      "kind": "...",
-      "scope": "...",
-      "content": "<revised markdown>",
-      "confidence": <float>,
-      "tags": [...],
-      "merge_target_id": "<nanoid or null>",
-      "contradicts": ["<nanoid>"],
-      "justification": "<required for correction/failure rejections; optional otherwise>"
-    }
-  ],
-  "rejected": [
-    {
-      "draft_index": <int>,
-      "reason": "<why rejected>"
-    }
-  ]
-}
-```
-
-### 13.5 qmd Store Maintenance Script
-
-The following pseudocode describes the nightly maintenance job (§7.3):
-
-```python
-#!/usr/bin/env python3
-"""
-Nightly memory store maintenance.
-Runs salience computation and demotion protocol.
-"""
-import math
-import json
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-
-W_CONF    = 0.35
-W_RECENCY = 0.25
-W_USE     = 0.25
-W_KIND    = 0.15
-
-HALF_LIFE_RECENCY_DAYS = 30
-HALF_LIFE_USE_DAYS     = 14
-USE_SCALE              = 20
-
-LAMBDA_R = math.log(2) / HALF_LIFE_RECENCY_DAYS
-LAMBDA_U = math.log(2) / HALF_LIFE_USE_DAYS
-
-KIND_WEIGHTS = {
-    'correction': 1.0,
-    'failure':    0.9,
-    'skill':      0.8,
-    'fact':       0.7,
-    'preference': 0.6,
-    'canonical':  None,  # exempt
-}
-
-DEMOTION_SALIENCE_THRESHOLD   = 0.25
-DEMOTION_CONFIDENCE_THRESHOLD = 0.40
-TOMBSTONE_DAYS_THRESHOLD      = 90
-TOMBSTONE_CONFIDENCE_THRESHOLD = 0.20
-
-def recency_score(updated_at: datetime) -> float:
-    age_days = (datetime.now(timezone.utc) - updated_at).days
-    return math.exp(-LAMBDA_R * age_days)
-
-def use_score(use_count: int, last_used_at: datetime | None) -> float:
-    if use_count == 0 or last_used_at is None:
-        return 0.0
-    log_uses = math.log(1 + use_count) / math.log(1 + USE_SCALE)
-    age_days = (datetime.now(timezone.utc) - last_used_at).days
-    recency_factor = math.exp(-LAMBDA_U * age_days)
-    return log_uses * recency_factor
-
-def compute_salience(atom: dict) -> dict:
-    kind = atom['kind']
-    kw = KIND_WEIGHTS.get(kind, 0.6)
-    conf = atom['confidence']
-    r_score = recency_score(atom['updated_at'])
-    u_score = use_score(atom.get('use_count', 0), atom.get('last_used_at'))
-
-    conf_term    = W_CONF    * conf
-    recency_term = W_RECENCY * r_score
-    use_term     = W_USE     * u_score
-    kind_term    = W_KIND    * kw
-    total        = conf_term + recency_term + use_term + kind_term
-
-    return {
-        'salience': total,
-        'components': {
-            'confidence_term': round(conf_term, 4),
-            'recency_term':    round(recency_term, 4),
-            'use_term':        round(use_term, 4),
-            'kind_term':       round(kind_term, 4),
-        }
-    }
-
-def run_demotion(store_path: Path, project_id: str, session_id: str = None):
-    """
-    Step through all active non-exempt atoms and apply demotion rules.
-    """
-    now = datetime.now(timezone.utc)
-    audit_path = store_path / 'audit' / f"{now.strftime('%Y-%m')}.jsonl"
-
-    for kind_dir in ['facts', 'skills', 'preferences']:
-        for atom_file in (store_path / kind_dir).glob('*.md'):
-            atom = load_atom(atom_file)
-
-            # Skip exempt kinds and protected atoms
-            if atom['kind'] in ('correction', 'failure', 'canonical'):
-                continue
-            # Exempt: kind == canonical (already handled above)
-            if atom['status'] != 'active':
-                # Check tombstone transition for demoted atoms
-                if atom['status'] == 'demoted' and atom.get('demoted_at'):
-                    days_demoted = (now - atom['demoted_at']).days
-                    if (days_demoted > TOMBSTONE_DAYS_THRESHOLD
-                            and atom['confidence'] < TOMBSTONE_CONFIDENCE_THRESHOLD):
-                        atom['status'] = 'tombstoned'
-                        atom['tombstoned_at'] = now.isoformat()
-                        save_atom(atom_file, atom)
-                        reindex(store_path, atom)
-                        emit_audit(audit_path, {
-                            'event_type': 'atom.tombstoned',
-                            'atom_id': atom['id'],
-                            'timestamp': now.isoformat(),
-                            'session_id': session_id,
-                            'actor': 'system',
-                            'reason': f'Demoted for {days_demoted} days with confidence < {TOMBSTONE_CONFIDENCE_THRESHOLD}',
-                            'metadata': {
-                                'days_since_demotion': days_demoted,
-                                'confidence_at_tombstone': atom['confidence']
-                            }
-                        })
-                continue
-
-            result = compute_salience(atom)
-            salience = result['salience']
-
-            if salience < DEMOTION_SALIENCE_THRESHOLD and atom['confidence'] < DEMOTION_CONFIDENCE_THRESHOLD:
-                atom['status'] = 'demoted'
-                atom['demoted_at'] = now.isoformat()
-                atom['updated_at'] = now.isoformat()
-                save_atom(atom_file, atom)
-                reindex(store_path, atom)
-                emit_audit(audit_path, {
-                    'event_type': 'atom.demoted',
-                    'atom_id': atom['id'],
-                    'timestamp': now.isoformat(),
-                    'session_id': session_id,
-                    'actor': 'system',
-                    'reason': f'salience={salience:.3f} < {DEMOTION_SALIENCE_THRESHOLD} and confidence={atom["confidence"]:.3f} < {DEMOTION_CONFIDENCE_THRESHOLD}',
-                    'metadata': {
-                        'computed_salience': round(salience, 4),
-                        'salience_components': result['components'],
-                        'confidence_at_demotion': atom['confidence'],
-                        'demoted_at': now.isoformat()
-                    }
-                })
-```
-
-### 13.6 Atom File Naming and Directory Layout
-
-Atom files follow a strict naming convention to allow directory-based enumeration without qmd queries:
-
-```
-<store_root>/<kind>/<atom_id>.md
-```
-
-Examples:
-```
-~/.agent/memory/projects/acme-api/corrections/7f3a2b1c-8e4d-4f5a-9b6c-0d1e2f3a4b5c.md
-~/.agent/memory/projects/acme-api/failures/a1b2c3d4-e5f6-7890-abcd-ef1234567890.md
-~/.agent/memory/projects/acme-api/facts/deadbeef-dead-beef-dead-beefdeadbeef.md
-~/.agent/memory/user/preferences/d3e4f5a6-b7c8-9012-def0-123456789abc.md
-~/.agent/memory/user/corrections/f9e8d7c6-b5a4-3210-fedc-ba9876543210.md
-```
-
-The nanoid in the filename is the canonical identifier. The kind is encoded in the directory name (redundant with the frontmatter, but useful for filesystem operations).
-
-The ID index files (§10.7) MUST be updated atomically using a write-to-temp-then-rename pattern to prevent corruption on partial writes:
-
-```bash
-# Atomic index update
-tmp=$(mktemp ~/.agent/memory/projects/${PROJECT_ID}/correction-index.json.XXXXXX)
-jq '. += [{"id": "'$NEW_ID'", "status": "active", "updated_at": "'$NOW'"}]' \
-  correction-index.json > "$tmp"
-mv "$tmp" correction-index.json
-```
-
-### 13.7 Error Handling and Graceful Degradation
-
-The memory system MUST degrade gracefully when components fail. The agent MUST remain functional even if the memory system is unavailable.
-
-**Degradation ladder:**
-
-| Failure                                    | Degraded behaviour                                                                                    |
-|--------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| qmd store unavailable at start             | Agent starts without memory injection. Logs warning. Disables `memory_search`, `memory_get`, `memory_record`, and `memory_context` tools. Context file is not written. |
-| Phase 2 (fast model) fails                | Skip extraction. Log warning. Session observations archived for manual review.                        |
-| Phase 3 (strong model) fails              | Fall back to accepting all Phase 2 candidates with confidence capped at 0.5. Log warning.             |
-| Phase 4 (store write) fails               | Retry with backoff. If all retries fail, save candidates to a pending queue.                          |
-| Correction index corrupted                | Rebuild from filesystem scan of corrections/ directory. Log warning.                                  |
-| Salience computation fails                | Skip demotion for affected atoms. Do not demote based on partial data.                                |
-| Language detection failure                | Fall back to no language filtering — all language-tagged atoms are treated as eligible for injection. Log warning. |
-| No session context tags provided          | Skip tag filtering (Rule B) — all tag-eligible atoms are injected regardless of tags.                 |
-| `memory_context` query returns no results | Agent continues without additional context; no error is raised.                                       |
-
-The harness MUST emit a system alert when:
-- The qmd store is unavailable at session start (memory-blind session)
-- Phase 3 falls back to unchecked acceptance for more than 2 consecutive sessions
-- The audit log fails to write (data loss risk)
-
-### 13.8 Configuration Reference
-
-All tunable parameters in this RFC are summarised here for implementor convenience. These defaults MAY be overridden via environment variables or a configuration file.
-
-| Parameter                          | Default | Section | Description                                        |
-|------------------------------------|---------|---------|---------------------------------------------------|
-| `MAX_CANDIDATES_PER_SESSION`       | 20      | §4.2    | Maximum candidates the fast model may propose     |
-| `INJECTION_CANONICAL_TOP_K`        | 5       | §6.1    | Canonical atoms retrieved per session           |
-| `INJECTION_FACT_TOP_K`             | 3       | §6.1    | Fact atoms retrieved per session                |
-| `INJECTION_SKILL_TOP_K`            | 3       | §6.1    | Skill atoms retrieved per session               |
-| `INJECTION_PREFERENCE_TOP_K`       | 3       | §6.1    | Preference atoms retrieved per session          |
-| `INJECTION_SOFT_CAP`               | 20      | §6.1    | Total inline injection cap                        |
-| `MEMORY_SEARCH_DEFAULT_LIMIT`      | 5       | §6.3    | Default results for `memory_search` tool          |
-| `MEMORY_SEARCH_MAX_LIMIT`          | 20      | §6.3    | Maximum results for `memory_search` tool          |
-| `W_CONF`                           | 0.35    | §7.1    | Salience weight for confidence                    |
-| `W_RECENCY`                        | 0.25    | §7.1    | Salience weight for recency                       |
-| `W_USE`                            | 0.25    | §7.1    | Salience weight for use                           |
-| `W_KIND`                           | 0.15    | §7.1    | Salience weight for kind                          |
-| `HALF_LIFE_RECENCY_DAYS`           | 30      | §7.1    | Recency decay half-life in days                   |
-| `HALF_LIFE_USE_DAYS`               | 14      | §7.1    | Use recency decay half-life in days               |
-| `USE_SCALE`                        | 20      | §7.1    | Use count at which use_score saturates            |
-| `DEMOTION_SALIENCE_THRESHOLD`      | 0.25    | §7.3    | Salience below which demotion is considered       |
-| `DEMOTION_CONFIDENCE_THRESHOLD`    | 0.40    | §7.3    | Confidence below which demotion may occur         |
-| `TOMBSTONE_DAYS_THRESHOLD`         | 90      | §7.3    | Days demoted before tombstone considered          |
-| `TOMBSTONE_CONFIDENCE_THRESHOLD`   | 0.20    | §7.3    | Confidence below which tombstone is applied       |
-| `CANONICAL_CHUNK_TOKENS`           | 900     | §5.1    | Target chunk size for canonical ingest            |
-| `CANONICAL_CHUNK_OVERLAP`          | 0.15    | §5.1    | Chunk overlap as fraction of chunk size           |
-| `CANONICAL_DEDUP_THRESHOLD`        | 0.92    | §5.2    | Cosine similarity threshold for near-duplicate    |
-| `PHASE2_RETRY_MAX`                 | 3       | §13.1   | Maximum Phase 2 retry attempts                    |
-| `PHASE3_RETRY_MAX`                 | 2       | §13.1   | Maximum Phase 3 retry attempts                    |
-| `PHASE2_RETRY_BACKOFF_SECONDS`     | 5,15,45 | §13.1   | Exponential backoff intervals for Phase 2 retries |
-| `MEMORY_LANGUAGE_DETECTION`        | `true`  | §6.3    | Whether to run language detection at session start |
-| `MEMORY_TAG_FILTER_MODE`           | `or`    | §6.3    | Tag matching semantics for Rule B (`or` \| `and`)  |
-| `MEMORY_CONTEXT_RERANK`            | `true`  | §6.3    | Whether to use LLM reranking for `memory_context` queries |
-| `MEMORY_CONTEXT_DEFAULT_LIMIT`     | `5`     | §6.4    | Default limit for `memory_context` tool            |
-
-### 13.9 Atom Lifecycle State Machine
-
-The following state machine defines all valid status transitions for an atom:
+### D. Atom Lifecycle State Machine
 
 ```
                      ┌─────────────────────────────┐
@@ -1945,8 +1772,8 @@ The following state machine defines all valid status transitions for an atom:
               ┌──────┼──│     ACTIVE       │       │
               │      │  └──────────────────┘       │
               │      │    │             │           │
-              │      │    │ demotion    │ human     │
-              │      │    │ protocol    │ forget    │
+              │      │    │ daemon      │ human     │
+              │      │    │ maintenance │ forget    │
               │      │    ▼             │           │
               │      │  ┌──────────────┐│           │
               │      │  │   DEMOTED    ││           │
@@ -1962,35 +1789,53 @@ The following state machine defines all valid status transitions for an atom:
   supersede   │      │            │ human          │
   (new        │      │            │ resurrect      │
   correction) │      │            └────────────────┘
-              │      │                  (back to ACTIVE)
-              │      │
-              │      │  [permanent delete — removes file + index]
+              │      │              (back to ACTIVE)
               │      │
               └──────┘
                 (old atom tombstoned when new superseding atom is created)
 
 Legend:
-  ACTIVE     — Retrieved in searches and injected at session start
+  ACTIVE     — Retrieved in searches and injected at run start
   DEMOTED    — Excluded from injection and default search; retained on disk
   TOMBSTONED — Excluded from all retrieval; retained on disk for audit/resurrection
 ```
 
-Valid transitions summary:
+| From         | To           | Triggered by                                                          |
+|--------------|--------------|-----------------------------------------------------------------------|
+| (created)    | ACTIVE       | Phase 4 dual write (autonomous or content ingest)                   |
+| ACTIVE       | DEMOTED      | Daemon maintenance (salience + confidence thresholds)                 |
+| ACTIVE       | TOMBSTONED   | Human `forget` or Phase 4 supersede decision                          |
+| DEMOTED      | TOMBSTONED   | Daemon maintenance (>90 days demoted + confidence < 0.20)             |
+| DEMOTED      | ACTIVE       | Human `resurrect`                                                     |
+| TOMBSTONED   | ACTIVE       | Human `resurrect`                                                     |
+| ACTIVE       | ACTIVE       | Phase 4 merge (content/confidence update), human edit, use tracking   |
 
-| From         | To           | Triggered by                                                  |
-|--------------|--------------|---------------------------------------------------------------|
-| (created)    | ACTIVE       | Phase 4 write (autonomous or canonical ingest)                |
-| ACTIVE       | DEMOTED      | Nightly demotion protocol (salience + confidence thresholds)  |
-| ACTIVE       | TOMBSTONED   | Human `forget`, or Phase 4 supersede decision                 |
-| DEMOTED      | TOMBSTONED   | Nightly protocol (>90 days demoted + confidence < 0.20)       |
-| DEMOTED      | ACTIVE       | Human `resurrect`                                             |
-| TOMBSTONED   | ACTIVE       | Human `resurrect`                                             |
-| ACTIVE       | ACTIVE       | Phase 4 merge (content/confidence update), human edit, use tracking |
+### E. Implementation Files
 
-No other transitions are valid. An implementation MUST validate that only the above transitions are applied and MUST log a warning (and no-op the write) if an invalid transition is attempted.
+| File | Purpose |
+|------|---------|
+| `src/memory/daemon.ts` | Memory daemon — watches inbox, runs pipeline, computes salience |
+| `src/memory/collector.ts` | ObservationCollector — EventBus subscriber for Hamilton runs |
+| `src/memory/tools.ts` | Shared tool logic — `hmemory_query`, `hmemory_get`, `hmemory_record`, `hmemory_relevant` |
+| `src/memory/pipeline.ts` | Phases 2-5 of the autonomous pipeline |
+| `src/memory/canonical.ts` | Canonical ingest pipeline (chunk, dedup, write) |
+| `src/memory/queries.ts` | Hamilton DB queries for `memory_atoms` and `memory_event_log` |
+| `src/memory/salience.ts` | Salience formula and demotion protocol |
+| `src/events/bus.ts` | Lift EventBus to application scope (runId/taskId become optional); add MemoryAtomCreated, MemoryAtomDemoted, etc. event types |
+| `src/db/schema.ts` | Add `memory_atoms`, `memory_event_log` DDL |
+| `src/db/migrations.ts` | Add migration v8 for memory tables |
+| `src/db/subscribers.ts` | Extend DbWriter to persist memory events to `memory_event_log` |
+| `src/executors/pi/extensions/memory-extension.ts` | Pi SDK extension registering memory tools |
+| `src/mcp/server.ts` | Add `hmemory_query`, `hmemory_get`, `hmemory_record`, `hmemory_relevant` MCP tools |
+| `src/cli/commands/memory.ts` | CLI commands for memory management |
+| `src/cli/main.ts` | Register `memory` as a subcommand of root |
+| `src/memory/guidelines.ts` | Guideline pipeline — wraps guideline loader with canonical ingest, uses curator and memory abstractions |
+| `src/workflow/runner.ts` | Call guideline pipeline before execution (returns rules, not instructions); register ObservationCollector subscriber |
+| `src/prompts/system.ts` | Inject memory context via Pi SDK DefaultResourceLoader; guidelines reach agents through memory, not directly |
+| `settings.yaml` | Add `memory:` configuration block |
 
 ---
 
-*End of RFC-001 — Coding Agent Long-Term Memory*
+*End of RFC-001 — Hamilton Agent Long-Term Memory*
 
 *This document is a living draft. Major revisions will increment the RFC number. Minor revisions will be tracked in the audit log of the document itself.*
