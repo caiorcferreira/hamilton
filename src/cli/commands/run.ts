@@ -1,5 +1,5 @@
 import { Args, Command, Options } from "@effect/cli"
-import { Console, Effect, Exit, Scope } from "effect"
+import { Console, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { workflowsDir, hamiltonHome, runDir } from "../../paths.js"
@@ -24,7 +24,8 @@ import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js
 import { loadGuidelines } from "../../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../../guidelines/extractor.js"
 import { guidelinesDir } from "../../paths.js"
-import type { MemoryReader } from "../../memory/store.js"
+import { createUserMemoryStore, type MemoryReader } from "../../memory/store.js"
+import { detectChanges, tombstoneStale, writeToQmd, registerIngestedEvent, getLastIngestedHash } from "../../memory/guidelines.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -46,8 +47,8 @@ function discoverWorkflows(dir: string): WorkflowDescriptor[] {
     .map((e) => ({ name: e.name, dir: Path.join(dir, e.name) }))
 }
 
-export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, EventBus | Scope.Scope> {
-  return Effect.gen(function* (_) {
+export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, EventBus> {
+  return Effect.scoped(Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new Error('Hamilton is not initialized. Run "hamilton setup" first.')))
     }
@@ -86,7 +87,34 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
 
     const loadedGuidelines = yield* _(loadGuidelines(guidelinesDir(), process.cwd()))
     const { rules: guidelineRules } = extractGuidelineArtifacts(loadedGuidelines)
-    const memoryReader: MemoryReader | null = null
+
+    let memoryReader: MemoryReader | null = null
+
+    const store = yield* _(Effect.tryPromise(() => createUserMemoryStore(hamiltonHome())).pipe(
+      Effect.orElseSucceed(() => null)
+    ))
+    if (store) {
+      memoryReader = store.reader
+      yield* _(Effect.addFinalizer(() => Effect.promise(() => store.close())))
+      const ingestDb = new Database(dbPath())
+      migrate(ingestDb)
+      yield* _(Effect.promise(async () => {
+        for (const guideline of loadedGuidelines) {
+          const sourcePath = `/guidelines/${guideline.name}.md`
+          const change = detectChanges(guideline, ingestDb, sourcePath)
+          if (change.changed) {
+            if (getLastIngestedHash(ingestDb, sourcePath)) {
+              await tombstoneStale(store.writer, ingestDb, sourcePath)
+            }
+            await writeToQmd(store.writer, guideline, ingestDb, "guideline", sourcePath)
+            registerIngestedEvent(ingestDb, sourcePath, change.hash, 1)
+          }
+        }
+      }).pipe(
+        Effect.orElseSucceed(() => undefined)
+      ))
+      ingestDb.close()
+    }
 
     const result = yield* _(
       runWorkflow(spec, { user_input: params.prompt, project_dir: process.cwd() }, templateOptions, guidelineRules, memoryReader, params.externalRunId, recursionConfig.maxDepth ?? undefined).pipe(
@@ -99,7 +127,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       status: result.status,
       taskResults: result.taskResults
     }
-  })
+  }))
 }
 
 const slug = Args.text({ name: "slug" })

@@ -16,7 +16,11 @@ import { loadTemplateConfig, loadRecursionConfig } from "../../prompts/config.js
 import { loadGuidelines } from "../../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../../guidelines/extractor.js"
 import { guidelinesDir } from "../../paths.js"
-import type { MemoryReader } from "../../memory/store.js"
+import { createUserMemoryStore, type MemoryReader } from "../../memory/store.js"
+import { detectChanges, tombstoneStale, writeToQmd, registerIngestedEvent, getLastIngestedHash } from "../../memory/guidelines.js"
+import { migrate } from "../../db/migrations.js"
+import { Database } from "bun:sqlite"
+import { dbPath } from "../../paths.js"
 
 export class ResumeError extends Data.TaggedError("ResumeError")<{
   runId: string
@@ -24,7 +28,7 @@ export class ResumeError extends Data.TaggedError("ResumeError")<{
 }> {}
 
 export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError, EventBus> {
-  return Effect.gen(function* (_) {
+  return Effect.scoped(Effect.gen(function* (_) {
     if (!Fs.existsSync(hamiltonHome())) {
       return yield* _(Effect.fail(new ResumeError({
         runId,
@@ -89,7 +93,36 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
       Effect.mapError((e) => new ResumeError({ runId, message: String(e) }))
     ))
     const { rules: guidelineRules } = extractGuidelineArtifacts(loadedGuidelines)
-    const memoryReader: MemoryReader | null = null
+
+    let memoryReader: MemoryReader | null = null
+
+    const store = yield* _(Effect.tryPromise(() => createUserMemoryStore(hamiltonHome())).pipe(
+      Effect.mapError((e) => new ResumeError({ runId, message: String(e) })),
+      Effect.orElseSucceed(() => null)
+    ))
+    if (store) {
+      memoryReader = store.reader
+      yield* _(Effect.addFinalizer(() => Effect.promise(() => store.close())))
+      const ingestDb = new Database(dbPath())
+      migrate(ingestDb)
+      yield* _(Effect.promise(async () => {
+        for (const guideline of loadedGuidelines) {
+          const sourcePath = `/guidelines/${guideline.name}.md`
+          const change = detectChanges(guideline, ingestDb, sourcePath)
+          if (change.changed) {
+            if (getLastIngestedHash(ingestDb, sourcePath)) {
+              await tombstoneStale(store.writer, ingestDb, sourcePath)
+            }
+            await writeToQmd(store.writer, guideline, ingestDb, "guideline", sourcePath)
+            registerIngestedEvent(ingestDb, sourcePath, change.hash, 1)
+          }
+        }
+      }).pipe(
+        Effect.mapError((e) => new ResumeError({ runId, message: String(e) })),
+        Effect.orElseSucceed(() => undefined)
+      ))
+      ingestDb.close()
+    }
 
     const result = yield* _(
       Effect.scoped(
@@ -104,7 +137,7 @@ export function resumeWorkflow(runId: string): Effect.Effect<string, ResumeError
     )
 
     return `Resumed ${runId}. Status: ${result.status}`
-  })
+  }))
 }
 
 const runIdArg = Args.text({ name: "id" })
