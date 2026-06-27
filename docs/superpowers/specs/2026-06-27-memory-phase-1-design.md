@@ -96,7 +96,6 @@ Extracted from `src/executors/pi/pi-executor.ts`. A single-flight prompt→compl
 ```typescript
 function createLLMClient(config?: {
   modelsJsonPath?: string
-  logTokenUsage?: boolean
 }): {
   complete(provider: string, modelId: string, context: Context): Promise<Completion>
 }
@@ -104,7 +103,7 @@ function createLLMClient(config?: {
 
 Uses `AuthStorage`, `ModelRegistry`, and `getModel` from `@earendil-works/pi-ai`. No agent loop. Called by the curator for structured JSON output.
 
-When `logTokenUsage` is enabled, the client writes token usage to `~/.hamilton/memory/llm-usage.jsonl` — a structured JSONL file on disk that integrates with the existing observability pattern (`src/observability/`). No raw callback — token usage flows through the same disk-based event stream as other runtime observations.
+The client returns token usage on the `Completion` response object. Callers report usage through the existing observability layer — inside the runner via the EventBus (`TokenUsage` events persisted by `TaskLogger`), and pre-runner via the same pattern applied at the caller level. No hardcoded file paths in `LLMClient`.
 
 ### 4.2 Curator
 
