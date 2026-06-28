@@ -12,7 +12,7 @@ import { installAllWorkflows } from "./install-logic.js"
 import { runDoctorChecks } from "./doctor.js"
 import { green, red } from "../formatting/colors.js"
 import { createUserMemoryStore } from "../../memory/store.js"
-import { ingestGuidelines, type IngestSummary } from "../../memory/guidelines.js"
+import { ingestGuidelines } from "../../memory/guidelines.js"
 import { loadAllGuidelines } from "../../guidelines/loader.js"
 import { migrate } from "../../db/migrations.js"
 
@@ -284,8 +284,19 @@ export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
 
     const loadedGuidelines = yield* _(loadAllGuidelines(guidelinesDir()))
 
-    const db = new Database(dbPath())
-    migrate(db)
+    const db = yield* _(
+      Effect.sync(() => {
+        const database = new Database(dbPath())
+        migrate(database)
+        return database
+      }).pipe(
+        Effect.orElseSucceed(() => null)
+      )
+    )
+    if (!db) {
+      yield* _(Console.log("Guideline ingestion failed \u2014 will retry on next workflow run."))
+      return
+    }
     yield* _(Effect.addFinalizer(() => Effect.sync(() => db.close())))
 
     const summary = yield* _(
@@ -297,7 +308,7 @@ export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
     )
 
     if (summary) {
-      yield* _(Console.log(`Guideline memory primed: ${(summary as IngestSummary).ingested} ingested, ${(summary as IngestSummary).skipped} unchanged`))
+      yield* _(Console.log(`Guideline memory primed: ${summary.ingested} ingested, ${summary.skipped} unchanged`))
     } else {
       yield* _(Console.log("Guideline ingestion failed \u2014 will retry on next workflow run."))
     }
