@@ -227,7 +227,7 @@ export function runWorkflow(
 
           let memoryContext = ""
           if (memoryReader) {
-            const llmClient = createLLMClient()
+            const llmClient = createLLMClient({ bus: yield* _(EventBus) })
             const curator = createCurator(llmClient)
             const memoryFilters = yield* _(Effect.promise(() => curator.suggestMemoryFilters(task.name, [])))
             const memoryAtoms = yield* _(Effect.promise(() => memoryReader.retrieveRelevant(memoryFilters, 5)))
