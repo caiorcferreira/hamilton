@@ -126,7 +126,6 @@ function buildAgentExecEffect(
         prompt: {
           systemTemplate: agentPrompts.systemTemplate,
           taskTemplate: agentPrompts.taskTemplate,
-          guidelineFiles: agentPrompts.guidelineFiles,
           memoryContext: agentPrompts.memoryContext
         },
         taskId,

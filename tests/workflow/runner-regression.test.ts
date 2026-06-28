@@ -21,7 +21,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system-prompt",
           taskPrompt: `mock-task: ${config.prompt?.taskTemplate?.template ?? ""}`,
-          guidelineFiles: config.prompt?.guidelineFiles?.map((g: any) => g.name) ?? []
+          memoryContext: config.prompt?.memoryContext ?? ""
         }))
         return { status: "done" }
       })
@@ -110,7 +110,7 @@ describe("runWorkflow regression tests", () => {
       expect(typeof promptBuilt.systemPrompt).toBe("string")
       expect(typeof promptBuilt.taskPrompt).toBe("string")
       expect(promptBuilt.systemPrompt.length).toBeGreaterThan(0)
-      expect(Array.isArray(promptBuilt.guidelineFiles)).toBe(true)
+      expect(typeof promptBuilt.memoryContext).toBe("string")
     }
   })
 
@@ -171,8 +171,8 @@ describe("runWorkflow regression tests", () => {
         if (parsed.event === "prompt_built") {
           expect(parsed).toHaveProperty("system_prompt")
           expect(parsed).toHaveProperty("task_prompt")
-          expect(parsed).toHaveProperty("guideline_files")
-          expect(Array.isArray(parsed.guideline_files)).toBe(true)
+          expect(parsed).toHaveProperty("memory_context")
+          expect(typeof parsed.memory_context).toBe("string")
           return
         }
       }

@@ -18,7 +18,6 @@ export interface PromptParams {
 export interface AgentPrompts {
   systemTemplate: Template
   taskTemplate: Template
-  guidelineFiles: Array<{ name: string; content: string }>
   memoryContext: string
 }
 
@@ -63,7 +62,7 @@ const defaultContextTemplate = `## Context
 
 export function buildAgentsPrompts(
   params: PromptParams,
-  guidelineFiles: Array<{ name: string; content: string }> | string = [],
+  memoryContext: string = "",
   options: TemplateOptions = { strict: false }
 ): AgentPrompts {
   const resolvedAgentFile = Template.make(params.fragments.agent.content ?? "", options)
@@ -112,7 +111,6 @@ export function buildAgentsPrompts(
   return {
     systemTemplate,
     taskTemplate,
-    guidelineFiles: typeof guidelineFiles === "string" ? [] : guidelineFiles,
-    memoryContext: typeof guidelineFiles === "string" ? guidelineFiles : ""
+    memoryContext
   }
 }

@@ -24,7 +24,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system",
           taskPrompt: "mock-task",
-          guidelineFiles: []
+          memoryContext: ""
         }))
         return { status: "done" }
       })
@@ -193,7 +193,7 @@ describe("dispatchTask / withTaskLifecycle", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system",
           taskPrompt: "mock-task",
-          guidelineFiles: []
+          memoryContext: ""
         }))
         return yield* _(Effect.fail(new Error("execution failed")))
       })) as any)
@@ -228,7 +228,7 @@ describe("dispatchTask / withTaskLifecycle", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system",
           taskPrompt: "mock-task",
-          guidelineFiles: []
+          memoryContext: ""
         }))
         return undefined as any
       })) as any)
@@ -289,7 +289,7 @@ describe("dispatchTask / withTaskLifecycle", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system",
           taskPrompt: "mock-task",
-          guidelineFiles: []
+          memoryContext: ""
         }))
         if (callCount < 3) {
           return yield* _(Effect.fail(new Error("transient failure")))

@@ -33,8 +33,8 @@ describe("formatForFile", () => {
       expected: { event: "task_paused", task_id: "t1" },
     },
     {
-      input: { _tag: "PromptBuilt", runId: "r1", taskId: "t1", systemPrompt: "sys", taskPrompt: "tsk", guidelineFiles: ["g1.md", "g2.md"] },
-      expected: { event: "prompt_built", task_id: "t1", system_prompt: "sys", task_prompt: "tsk", guideline_files: ["g1.md", "g2.md"] },
+      input: { _tag: "PromptBuilt", runId: "r1", taskId: "t1", systemPrompt: "sys", taskPrompt: "tsk", memoryContext: "injected memory" },
+      expected: { event: "prompt_built", task_id: "t1", system_prompt: "sys", task_prompt: "tsk", memory_context: "injected memory" },
     },
     {
       input: { _tag: "LlmMessage", runId: "r1", taskId: "t1", text: "hi", model: "glm-5.1", provider: "openai" },

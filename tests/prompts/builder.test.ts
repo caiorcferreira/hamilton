@@ -93,15 +93,14 @@ describe("buildAgentsPrompts", () => {
     expect(render(result.systemTemplate)).toContain("write_task_output")
   })
 
-  it("passes guidelineFiles through to AgentPrompts", () => {
-    const instructions = [{ name: "typescript", content: "Use strict mode" }]
-    const result = buildAgentsPrompts(baseParams, instructions)
-    expect(result.guidelineFiles).toEqual(instructions)
+  it("passes memoryContext through to AgentPrompts", () => {
+    const result = buildAgentsPrompts(baseParams, "some memory context")
+    expect(result.memoryContext).toBe("some memory context")
   })
 
-  it("defaults guidelineFiles to empty array", () => {
+  it("defaults memoryContext to empty string", () => {
     const result = buildAgentsPrompts(baseParams)
-    expect(result.guidelineFiles).toEqual([])
+    expect(result.memoryContext).toBe("")
   })
 
   it("uses default context template when env is provided without contextTemplate", () => {
@@ -134,7 +133,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Hello {{inputs.name}}" },
       env: { tasks: {}, name: "world" }
     }
-    const result = buildAgentsPrompts(params, [], { strict: false })
+    const result = buildAgentsPrompts(params, "", { strict: false })
     expect(render(result.taskTemplate)).toBe("Hello world")
   })
 

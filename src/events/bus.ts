@@ -24,7 +24,7 @@ export type Event =
   | { readonly _tag: "ToolResult"; readonly runId: string; readonly taskId: string; readonly tool: string; readonly isError: boolean; readonly toolCallId: string }
   | { readonly _tag: "TurnEnd"; readonly runId: string; readonly taskId: string; readonly tokensIn: number; readonly tokensOut: number; readonly stopReason: string; readonly cacheRead: number; readonly cacheWrite: number; readonly model: string; readonly provider: string }
   | { readonly _tag: "TokenUsage"; readonly runId?: string; readonly taskId?: string; readonly tokensIn: number; readonly tokensOut: number }
-  | { readonly _tag: "PromptBuilt"; readonly runId: string; readonly taskId: string; readonly systemPrompt: string; readonly taskPrompt: string; readonly guidelineFiles: ReadonlyArray<string> }
+  | { readonly _tag: "PromptBuilt"; readonly runId: string; readonly taskId: string; readonly systemPrompt: string; readonly taskPrompt: string; readonly memoryContext: string }
   | { readonly _tag: "TurnStarted"; readonly runId: string; readonly taskId: string; readonly turnId: string; readonly turnIndex: number; readonly timestamp: string }
   | { readonly _tag: "ProviderRequestStarted"; readonly runId: string; readonly taskId: string; readonly turnId: string; readonly requestId: string; readonly provider: string; readonly model: string; readonly payloadSummary: string; readonly timestamp: string }
   | { readonly _tag: "ModelSelected"; readonly runId: string; readonly taskId: string; readonly provider: string; readonly model: string; readonly timestamp: string }

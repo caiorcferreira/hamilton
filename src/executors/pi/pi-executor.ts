@@ -113,7 +113,7 @@ export function executeWithPi(
     const model = getModel(provider as "openai", modelId as Parameters<typeof getModel>[1])
     const thinkingLevel = mapThinkingLevel(config.settings?.thinking)
 
-    const { systemTemplate, taskTemplate, guidelineFiles, memoryContext } = config.prompt
+    const { systemTemplate, taskTemplate, memoryContext } = config.prompt
 
     let systemPrompt = Effect.runSync(systemTemplate.render())
     if (memoryContext) {
@@ -129,7 +129,7 @@ export function executeWithPi(
       taskId: config.taskId,
       systemPrompt,
       taskPrompt,
-      guidelineFiles: guidelineFiles.map(g => g.name)
+      memoryContext
     }))
 
     const extSettings = readExtensionSettings()

@@ -21,7 +21,7 @@ vi.mock("../../src/executors/pi/pi-executor.js", () => {
           taskId: config.taskId,
           systemPrompt: "mock-system-prompt",
           taskPrompt: `mock-task: ${config.taskId}`,
-          guidelineFiles: config.prompt?.guidelineFiles?.map((g: any) => g.name) ?? []
+          memoryContext: config.prompt?.memoryContext ?? ""
         }))
         return { status: "done" }
       })
