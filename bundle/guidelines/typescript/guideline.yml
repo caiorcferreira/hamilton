@@ -1,0 +1,13 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Guideline
+metadata:
+  name: typescript
+spec:
+  instructions:
+    - matching: ["**/*.ts", "**/*.tsx", "tsconfig.json", "package.json"]
+      files:
+        - 01-setup.md
+        - 02-code-style.md
+        - 03-design-patterns.md
+        - 04-unit-testing.md
+        - 05-e2e-testing.md
