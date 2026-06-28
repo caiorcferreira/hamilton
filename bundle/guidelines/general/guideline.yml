@@ -1,0 +1,5 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Guideline
+metadata:
+  name: general
+spec: {}

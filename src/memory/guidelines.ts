@@ -20,7 +20,7 @@ export interface IngestSummary {
   ingested: number
   skipped: number
   tombstoned: number
-  atoms: Array<{ id: string; guidelineName: string; action: "created" }>
+  atoms: Array<{ id: string; guidelineName: string; fileName: string; action: "created" }>
 }
 
 function sha256(content: string): string {
@@ -131,30 +131,78 @@ export async function ingestGuidelines(
   const atoms: IngestSummary["atoms"] = []
 
   for (const guideline of filtered) {
-    const sourcePath = `/guidelines/${guideline.name}.md`
-    const change = detectChanges(guideline, db, sourcePath)
+    for (const instruction of guideline.instructions!) {
+      const rawName = instruction.name.split(/[/:]/).pop()!
+      const fileName = rawName.endsWith(".md") ? rawName.slice(0, -3) : rawName
+      const sourcePath = `/guidelines/${guideline.name}/${fileName}.md`
 
-    if (!change.changed) {
-      skipped++
-      continue
+      const normalized = instruction.content.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+      const hash = sha256(normalized)
+      const previousHash = getLastIngestedHash(db, sourcePath)
+
+      if (previousHash === hash) {
+        skipped++
+        continue
+      }
+
+      if (previousHash !== null) {
+        await tombstoneStale(writer, db, sourcePath)
+        tombstoned++
+      }
+
+      const result = await writeInstructionAtom(
+        writer, db, instruction, guideline.name, sourcePath, hash
+      )
+      ingested++
+      atoms.push({ id: result.id, guidelineName: guideline.name, fileName: fileName, action: "created" })
     }
-
-    const previousHash = getLastIngestedHash(db, sourcePath)
-    if (previousHash !== null) {
-      await tombstoneStale(writer, db, sourcePath)
-      tombstoned++
-    }
-
-    const result = await writeToQmd(writer, guideline, db, "guideline", sourcePath, change.hash)
-    ingested++
-    atoms.push({ id: result.id, guidelineName: guideline.name, action: "created" })
   }
 
   return {
-    processed: filtered.length,
+    processed: ingested + skipped,
     ingested,
     skipped,
     tombstoned,
     atoms,
   }
+}
+
+async function writeInstructionAtom(
+  writer: MemoryWriter,
+  db: Database,
+  instruction: { name: string; content: string },
+  guidelineName: string,
+  sourcePath: string,
+  hash: string
+): Promise<WriteResult> {
+  const id = nanoid(21)
+  const rawName = instruction.name.split(/[/:]/).pop()!
+  const fileName = rawName.endsWith(".md") ? rawName.slice(0, -3) : rawName
+  const title = `${guidelineName}/${fileName}`
+
+  const result = await writer.writeAtom({
+    id,
+    title,
+    kind: "canonical",
+    scope: "user",
+    content: instruction.content,
+    tags: [],
+    source_path: sourcePath,
+    source: "guideline",
+  }, db)
+
+  insertMemoryEvent(db, {
+    event_type: "ingested",
+    actor: "system",
+    atom_id: id,
+    metadata: JSON.stringify({
+      source: "guideline",
+      source_path: sourcePath,
+      file_hash: hash,
+      scope: "user",
+      chunk_count: 1,
+    }),
+  })
+
+  return { id: result.id, path: result.path }
 }

@@ -26,7 +26,8 @@ describe("detectChanges", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-"))
     process.env.HOME = tmpHome
-    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "memory", "user", "canonical"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, "memory", "user", "canonical"), { recursive: true })
     db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
     migrate(db)
   })
@@ -88,7 +89,8 @@ describe("tombstoneStale", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-ts-"))
     process.env.HOME = tmpHome
-    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "memory", "user", "canonical"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, "memory", "user", "canonical"), { recursive: true })
     db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
     migrate(db)
   })
@@ -122,7 +124,8 @@ describe("writeToQmd", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-write-"))
     process.env.HOME = tmpHome
-    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "memory", "user", "canonical"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, "memory", "user", "canonical"), { recursive: true })
     db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
     migrate(db)
   })
@@ -141,7 +144,7 @@ describe("writeToQmd", () => {
     expect(result.id).toBeTypeOf("string")
     expect(result.path).toContain("canonical/")
 
-    const filePath = Path.join(tmpHome, ".hamilton", "memory", "user", result.path)
+    const filePath = Path.join(tmpHome, "memory", "user", result.path)
     expect(Fs.existsSync(filePath)).toBe(true)
     const content = Fs.readFileSync(filePath, "utf-8")
     expect(content).toContain("This is guideline content.")
@@ -160,7 +163,8 @@ describe("ingestGuidelines", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-ingest-"))
     process.env.HOME = tmpHome
-    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "memory", "user", "canonical"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    Fs.mkdirSync(Path.join(tmpHome, "memory", "user", "canonical"), { recursive: true })
     db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
     migrate(db)
   })

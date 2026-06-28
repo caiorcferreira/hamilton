@@ -1,6 +1,6 @@
 # TypeScript Guidelines — 02: Code Style
 
-This document defines the code-style rules for all TypeScript projects in this organisation.
+This document defines the code-style rules for all TypeScript projects.
 Every rule includes a ✅ correct example and a ❌ incorrect example so the intent is unambiguous.
 Where a rule is enforced automatically (ESLint, Prettier, TypeScript compiler option), the relevant
 configuration is noted.

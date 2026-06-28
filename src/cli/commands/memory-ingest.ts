@@ -1,7 +1,7 @@
 import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit, Option } from "effect"
 import { Database } from "bun:sqlite"
-import { loadGuidelines } from "../../guidelines/loader.js"
+import { loadAllGuidelines } from "../../guidelines/loader.js"
 import { guidelinesDir, hamiltonHome, dbPath } from "../../paths.js"
 import { createUserMemoryStore } from "../../memory/store.js"
 import { ingestGuidelines, type IngestSummary } from "../../memory/guidelines.js"
@@ -24,7 +24,7 @@ export function formatSummary(summary: IngestSummary): string {
   if (summary.atoms.length > 0) {
     lines.push("", "New atoms:")
     for (const atom of summary.atoms) {
-      lines.push(`  ${atom.guidelineName} → ${atom.id.slice(0, 7)}... (canonical)`)
+      lines.push(`  ${atom.guidelineName}/${atom.fileName} → ${atom.id.slice(0, 7)}... (canonical)`)
     }
   }
 
@@ -39,7 +39,7 @@ export function formatSummary(summary: IngestSummary): string {
 export function executeMemoryIngest(projectDir: string): Effect.Effect<string, IngestError> {
   return Effect.scoped(Effect.gen(function* (_) {
     const loadedGuidelines = yield* _(
-      loadGuidelines(guidelinesDir(), projectDir).pipe(
+      loadAllGuidelines(guidelinesDir()).pipe(
         Effect.mapError((e) => new IngestError({ message: String(e) }))
       )
     )

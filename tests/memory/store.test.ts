@@ -13,7 +13,8 @@ describe("createUserMemoryStore", () => {
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-memstore-"))
     process.env.HOME = tmpHome
-    const homeDir = Path.join(tmpHome, ".hamilton", "memory", "user")
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
+    const homeDir = Path.join(tmpHome, "memory", "user")
     Fs.mkdirSync(homeDir, { recursive: true })
     Fs.mkdirSync(Path.join(homeDir, "canonical"), { recursive: true })
   })
@@ -51,7 +52,7 @@ describe("createUserMemoryStore", () => {
 
     expect(id).toBe("test-a1")
     expect(path).toContain("canonical/")
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "memory", "user", path))).toBe(true)
+    expect(Fs.existsSync(Path.join(tmpHome, "memory", "user", path))).toBe(true)
 
     const atom = await reader.getAtom(id)
     expect(atom).not.toBeNull()
@@ -90,7 +91,7 @@ describe("createUserMemoryStore", () => {
   it("close cleans up the store", async () => {
     const { close } = await createUserMemoryStore(tmpHome)
     await close()
-    const qmdDbPath = Path.join(tmpHome, ".hamilton", "memory", "user", "qmd.db")
+    const qmdDbPath = Path.join(tmpHome, "memory", "user", "qmd.db")
     expect(Fs.existsSync(qmdDbPath)).toBe(true)
   })
 })

@@ -90,7 +90,7 @@ export async function createUserMemoryStore(hamiltonHome: string): Promise<{
   writer: MemoryWriter
   close(): Promise<void>
 }> {
-  const dir = Path.join(hamiltonHome, ".hamilton", "memory", "user")
+  const dir = Path.join(hamiltonHome, "memory", "user")
   const dbPath = Path.join(dir, "qmd.db")
   const canonicalDir = Path.join(dir, "canonical")
 

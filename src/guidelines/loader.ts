@@ -71,7 +71,8 @@ function compileRules(rules: GuidelineRule[] | undefined, guidelineName: string)
 function loadSingleGuideline(
   baseDir: string,
   guidelineName: string,
-  projectFiles: string[]
+  projectFiles: string[],
+  filterByProject: boolean = true
 ): Effect.Effect<LoadedGuideline | null, GuidelineParseError | GuidelineMissingFileError | GuidelineInvalidRegexError> {
   return Effect.gen(function* (_) {
     const dirPath = Path.join(baseDir, guidelineName)
@@ -100,7 +101,7 @@ function loadSingleGuideline(
     if (manifest.spec.instructions) {
       const files: Array<{ name: string; content: string }> = []
       for (const entry of manifest.spec.instructions) {
-        if (!entryMatches(entry, projectFiles)) continue
+        if (filterByProject && !entryMatches(entry, projectFiles)) continue
         for (const file of entry.files) {
           const filePath = Path.join(dirPath, file)
           try {
@@ -120,9 +121,9 @@ function loadSingleGuideline(
   })
 }
 
-export function loadGuidelines(
+function loadFromDirectory(
   baseDir: string,
-  projectDir: string
+  loadEntry: (name: string) => Effect.Effect<LoadedGuideline | null, GuidelineParseError | GuidelineMissingFileError | GuidelineInvalidRegexError>
 ): Effect.Effect<Array<LoadedGuideline>, never> {
   return Effect.gen(function* (_) {
     if (!Fs.existsSync(baseDir)) return []
@@ -134,15 +135,13 @@ export function loadGuidelines(
       return []
     }
 
-    const projectFiles = scanFiles(projectDir)
-
     const results: LoadedGuideline[] = []
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue
 
       const loaded = yield* _(
-        loadSingleGuideline(baseDir, entry.name, projectFiles).pipe(
+        loadEntry(entry.name).pipe(
           Effect.catchAll((e) => {
             return Effect.gen(function* (_) {
               yield* _(Effect.logWarning(`Skipping guideline "${entry.name}": ${e.message ?? String(e)}`))
@@ -159,4 +158,22 @@ export function loadGuidelines(
 
     return results
   })
+}
+
+export function loadGuidelines(
+  baseDir: string,
+  projectDir: string
+): Effect.Effect<Array<LoadedGuideline>, never> {
+  const projectFiles = scanFiles(projectDir)
+  return loadFromDirectory(baseDir, (name) =>
+    loadSingleGuideline(baseDir, name, projectFiles)
+  )
+}
+
+export function loadAllGuidelines(
+  baseDir: string
+): Effect.Effect<Array<LoadedGuideline>, never> {
+  return loadFromDirectory(baseDir, (name) =>
+    loadSingleGuideline(baseDir, name, [], false)
+  )
 }
