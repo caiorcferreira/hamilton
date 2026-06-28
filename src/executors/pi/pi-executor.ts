@@ -136,6 +136,7 @@ export function executeWithPi(
     const extensionFactories = buildExtensions(extSettings, cwd)
 
     let sessionRef: typeof session | null = null
+    let sessionAborted = false
 
     if (config.rules && config.rules.length > 0) {
       extensionFactories.push(createGuidelineExtension(config.rules) as ExtensionFactory)
@@ -146,7 +147,7 @@ export function executeWithPi(
         config.runId,
         config.taskId,
         config.outputSchema,
-        () => { sessionRef?.abort().catch(() => { }) },
+        () => { sessionAborted = true; sessionRef?.abort().catch(() => { }) },
         bus
       )
     )
@@ -210,12 +211,17 @@ export function executeWithPi(
 
     sessionRef = session
 
+    const hookSession = {
+      isActive: () => !sessionAborted,
+      prompt: (msg: string) => session.prompt(msg)
+    }
+
     if (config.hookRuntime) {
       const enterResult = yield* _(config.hookRuntime.run("on_agent_enter", {
         runId: config.runId,
         taskId: config.taskId,
         agentId: config.agentId,
-        session,
+        session: hookSession,
         prompt: taskPrompt
       }))
       if (enterResult.action === "cancel" || enterResult.action === "fail") {
@@ -257,7 +263,7 @@ export function executeWithPi(
         yield* _(config.hookRuntime.run("on_agent_exit", {
           runId: config.runId,
           taskId: config.taskId,
-          session
+          session: hookSession
         }))
       }
 
