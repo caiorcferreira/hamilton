@@ -4,7 +4,7 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import * as Yaml from "yaml"
 import { Effect, Exit } from "effect"
-import { setupHamilton, parseModelAliasArgs, buildSettingsYaml } from "../../src/cli/commands/setup.js"
+import { setupHamilton, parseModelAliasArgs, buildSettingsYaml, ingestSetupGuidelines } from "../../src/cli/commands/setup.js"
 
 describe("setupHamilton", () => {
   let tmpHome: string
@@ -280,5 +280,39 @@ describe("buildSettingsYaml", () => {
     const yaml = buildSettingsYaml({})
     const parsed = Yaml.parse(yaml)
     expect(parsed.models).toBeUndefined()
+  })
+})
+
+describe("ingestSetupGuidelines", () => {
+  let tmpHome: string
+  const originalHome = process.env.HOME
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-ingest-"))
+    process.env.HOME = tmpHome
+  })
+
+  afterEach(() => {
+    process.env.HOME = originalHome
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  it("ingests guidelines into qmd.db after setupHamilton", { timeout: 30000 }, async () => {
+    await Effect.runPromiseExit(setupHamilton())
+
+    const exit = await Effect.runPromiseExit(ingestSetupGuidelines())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const qmdDbPath = Path.join(tmpHome, ".hamilton", "memory", "user", "qmd.db")
+    expect(Fs.existsSync(qmdDbPath)).toBe(true)
+
+    const canonicalDir = Path.join(tmpHome, ".hamilton", "memory", "user", "canonical")
+    const files = Fs.readdirSync(canonicalDir)
+    expect(files.length).toBeGreaterThan(0)
+  })
+
+  it("succeeds gracefully when guidelines directory is empty", async () => {
+    const exit = await Effect.runPromiseExit(ingestSetupGuidelines())
+    expect(Exit.isSuccess(exit)).toBe(true)
   })
 })

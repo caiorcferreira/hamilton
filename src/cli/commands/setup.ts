@@ -1,15 +1,20 @@
 import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
+import { Database } from "bun:sqlite"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Readline from "node:readline"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir, hamiltonHome, dbPath } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
 import { runDoctorChecks } from "./doctor.js"
 import { green, red } from "../formatting/colors.js"
+import { createUserMemoryStore } from "../../memory/store.js"
+import { ingestGuidelines, type IngestSummary } from "../../memory/guidelines.js"
+import { loadAllGuidelines } from "../../guidelines/loader.js"
+import { migrate } from "../../db/migrations.js"
 
 const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
 
@@ -262,6 +267,41 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
 
     return workflowSlugs
   })
+}
+
+export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
+  return Effect.scoped(Effect.gen(function* (_) {
+    const store = yield* _(
+      Effect.tryPromise(() => createUserMemoryStore(hamiltonHome())).pipe(
+        Effect.orElseSucceed(() => null)
+      )
+    )
+    if (!store) {
+      yield* _(Console.log("Skipping guideline ingestion \u2014 memory store unavailable. Ingestion will run on first workflow execution."))
+      return
+    }
+    yield* _(Effect.addFinalizer(() => Effect.promise(() => store.close())))
+
+    const loadedGuidelines = yield* _(loadAllGuidelines(guidelinesDir()))
+
+    const db = new Database(dbPath())
+    migrate(db)
+    yield* _(Effect.addFinalizer(() => Effect.sync(() => db.close())))
+
+    const summary = yield* _(
+      Effect.promise(async () => {
+        return ingestGuidelines(store.writer, db, loadedGuidelines)
+      }).pipe(
+        Effect.orElseSucceed(() => undefined)
+      )
+    )
+
+    if (summary) {
+      yield* _(Console.log(`Guideline memory primed: ${(summary as IngestSummary).ingested} ingested, ${(summary as IngestSummary).skipped} unchanged`))
+    } else {
+      yield* _(Console.log("Guideline ingestion failed \u2014 will retry on next workflow run."))
+    }
+  }))
 }
 
 const force = Options.boolean("force")
