@@ -25,7 +25,7 @@ import { loadGuidelines } from "../../guidelines/loader.js"
 import { extractGuidelineArtifacts } from "../../guidelines/extractor.js"
 import { guidelinesDir } from "../../paths.js"
 import { createUserMemoryStore, type MemoryReader } from "../../memory/store.js"
-import { detectChanges, tombstoneStale, writeToQmd, getLastIngestedHash } from "../../memory/guidelines.js"
+import { ingestGuidelines } from "../../memory/guidelines.js"
 
 export interface RunParams {
   workflowSlug: string
@@ -99,16 +99,7 @@ export function executeRun(params: RunParams): Effect.Effect<RunResult, Error, E
       const ingestDb = new Database(dbPath())
       migrate(ingestDb)
       yield* _(Effect.promise(async () => {
-        for (const guideline of loadedGuidelines) {
-          const sourcePath = `/guidelines/${guideline.name}.md`
-          const change = detectChanges(guideline, ingestDb, sourcePath)
-          if (change.changed) {
-            if (getLastIngestedHash(ingestDb, sourcePath)) {
-              await tombstoneStale(store.writer, ingestDb, sourcePath)
-            }
-            await writeToQmd(store.writer, guideline, ingestDb, "guideline", sourcePath, change.hash)
-          }
-        }
+        await ingestGuidelines(store.writer, ingestDb, loadedGuidelines)
       }).pipe(
         Effect.orElseSucceed(() => undefined)
       ))
