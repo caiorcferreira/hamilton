@@ -15,6 +15,14 @@ export interface WriteResult {
   path: string
 }
 
+export interface IngestSummary {
+  processed: number
+  ingested: number
+  skipped: number
+  tombstoned: number
+  atoms: Array<{ id: string; guidelineName: string; action: "created" | "skipped" }>
+}
+
 function sha256(content: string): string {
   return crypto.createHash("sha256").update(content, "utf-8").digest("hex")
 }
@@ -31,7 +39,7 @@ export function getLastIngestedHash(db: Database, sourcePath: string): string | 
     SELECT metadata FROM memory_event_log
     WHERE event_type = 'ingested'
       AND json_extract(metadata, '$.source_path') = ?
-    ORDER BY timestamp DESC LIMIT 1
+    ORDER BY id DESC LIMIT 1
   `).get(sourcePath) as { metadata: string } | null
   if (!row) return null
   try {
@@ -76,7 +84,8 @@ export async function writeToQmd(
   guideline: LoadedGuideline,
   db: Database,
   source: string,
-  sourcePath: string
+  sourcePath: string,
+  hash?: string,
 ): Promise<WriteResult> {
   const content = getInstructionContent(guideline)
   const title = guideline.name
@@ -93,16 +102,21 @@ export async function writeToQmd(
     source,
   }, db)
 
+  const metaObj: Record<string, unknown> = {
+    source,
+    source_path: sourcePath,
+    scope: "user",
+    chunk_count: 1,
+  }
+  if (hash) {
+    metaObj.file_hash = hash
+  }
+
   insertMemoryEvent(db, {
     event_type: "ingested",
     actor: "system",
     atom_id: id,
-    metadata: JSON.stringify({
-      source,
-      source_path: sourcePath,
-      scope: "user",
-      chunk_count: 1,
-    }),
+    metadata: JSON.stringify(metaObj),
   })
 
   return { id: result.id, path: result.path }
@@ -125,4 +139,48 @@ export function registerIngestedEvent(
       chunk_count: chunkCount,
     }),
   })
+}
+
+export async function ingestGuidelines(
+  writer: MemoryWriter,
+  db: Database,
+  guidelines: LoadedGuideline[]
+): Promise<IngestSummary> {
+  const filtered = guidelines.filter(
+    (g) => g.instructions !== null && g.instructions.length > 0
+  )
+
+  let ingested = 0
+  let skipped = 0
+  let tombstoned = 0
+  const atoms: IngestSummary["atoms"] = []
+
+  for (const guideline of filtered) {
+    const sourcePath = `/guidelines/${guideline.name}.md`
+    const change = detectChanges(guideline, db, sourcePath)
+
+    if (!change.changed) {
+      skipped++
+      atoms.push({ id: "", guidelineName: guideline.name, action: "skipped" })
+      continue
+    }
+
+    const previousHash = getLastIngestedHash(db, sourcePath)
+    if (previousHash !== null) {
+      await tombstoneStale(writer, db, sourcePath)
+      tombstoned++
+    }
+
+    const result = await writeToQmd(writer, guideline, db, "guideline", sourcePath, change.hash)
+    ingested++
+    atoms.push({ id: result.id, guidelineName: guideline.name, action: "created" })
+  }
+
+  return {
+    processed: filtered.length,
+    ingested,
+    skipped,
+    tombstoned,
+    atoms,
+  }
 }

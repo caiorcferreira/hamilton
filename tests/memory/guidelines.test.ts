@@ -10,6 +10,7 @@ import {
   tombstoneStale,
   writeToQmd,
   registerIngestedEvent,
+  ingestGuidelines,
 } from "../../src/memory/guidelines.js"
 import type { MemoryWriter } from "../../src/memory/store.js"
 import type { LoadedGuideline } from "../../src/guidelines/types.js"
@@ -181,5 +182,110 @@ describe("registerIngestedEvent", () => {
     expect(metadata.source_path).toBe("/guidelines/my-guideline.md")
     expect(metadata.file_hash).toBe("abc123")
     expect(metadata.chunk_count).toBe(5)
+  })
+})
+
+describe("ingestGuidelines", () => {
+  let tmpHome: string
+  let db: Database
+  const originalHome = process.env.HOME
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-ingest-"))
+    process.env.HOME = tmpHome
+    Fs.mkdirSync(Path.join(tmpHome, ".hamilton", "memory", "user", "canonical"), { recursive: true })
+    db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
+    migrate(db)
+  })
+
+  afterEach(() => {
+    process.env.HOME = originalHome
+    db.close()
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  it("ingests new guidelines and returns summary", async () => {
+    const { writer, close } = await createUserMemoryStore(tmpHome)
+    const g1 = makeGuideline("guideline-a", "Content for A")
+    const g2 = makeGuideline("guideline-b", "Content for B")
+
+    const summary = await ingestGuidelines(writer, db, [g1, g2])
+
+    expect(summary.processed).toBe(2)
+    expect(summary.ingested).toBe(2)
+    expect(summary.skipped).toBe(0)
+    expect(summary.tombstoned).toBe(0)
+    expect(summary.atoms).toHaveLength(2)
+    expect(summary.atoms.every((a) => a.action === "created")).toBe(true)
+
+    const activeAtoms = db.prepare("SELECT * FROM memory_atoms WHERE status = 'active'").all() as any[]
+    expect(activeAtoms).toHaveLength(2)
+
+    const ingestedEvents = db.prepare("SELECT * FROM memory_event_log WHERE event_type = 'ingested'").all() as any[]
+    expect(ingestedEvents).toHaveLength(2)
+
+    await close()
+  })
+
+  it("skips unchanged guidelines", async () => {
+    const { writer, close } = await createUserMemoryStore(tmpHome)
+    const g1 = makeGuideline("guideline-a", "Content for A")
+
+    await ingestGuidelines(writer, db, [g1])
+    const summary2 = await ingestGuidelines(writer, db, [g1])
+
+    expect(summary2.ingested).toBe(0)
+    expect(summary2.skipped).toBe(1)
+
+    await close()
+  })
+
+  it("tombstones stale atoms when content changes", async () => {
+    const { writer, close } = await createUserMemoryStore(tmpHome)
+    const g1v1 = makeGuideline("guideline-a", "Content for A v1")
+
+    const summary1 = await ingestGuidelines(writer, db, [g1v1])
+    expect(summary1.ingested).toBe(1)
+
+    const g1v2 = makeGuideline("guideline-a", "Content for A v2 different")
+    const summary2 = await ingestGuidelines(writer, db, [g1v2])
+
+    expect(summary2.ingested).toBe(1)
+    expect(summary2.tombstoned).toBe(1)
+    expect(summary2.skipped).toBe(0)
+
+    const activeAtoms = db.prepare("SELECT * FROM memory_atoms WHERE status = 'active'").all() as any[]
+    const tombstonedAtoms = db.prepare("SELECT * FROM memory_atoms WHERE status = 'tombstoned'").all() as any[]
+    expect(activeAtoms).toHaveLength(1)
+    expect(tombstonedAtoms).toHaveLength(1)
+
+    await close()
+  })
+
+  it("skips guidelines with no instruction content", async () => {
+    const { writer, close } = await createUserMemoryStore(tmpHome)
+    const emptyGuideline: LoadedGuideline = { name: "empty", instructions: null, rules: null }
+    const g1 = makeGuideline("guideline-a", "Content for A")
+
+    const summary = await ingestGuidelines(writer, db, [emptyGuideline, g1])
+
+    expect(summary.processed).toBe(1)
+    expect(summary.ingested).toBe(1)
+
+    await close()
+  })
+
+  it("handles empty guidelines array", async () => {
+    const { writer, close } = await createUserMemoryStore(tmpHome)
+
+    const summary = await ingestGuidelines(writer, db, [])
+
+    expect(summary.processed).toBe(0)
+    expect(summary.ingested).toBe(0)
+    expect(summary.skipped).toBe(0)
+    expect(summary.tombstoned).toBe(0)
+    expect(summary.atoms).toHaveLength(0)
+
+    await close()
   })
 })
