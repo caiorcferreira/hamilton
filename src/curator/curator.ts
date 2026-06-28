@@ -1,4 +1,6 @@
 import type { LLMClient } from "./llm-client.js"
+import { readDefaults, parseModelString } from "../agent/model-resolution.js"
+import { piAgentDir } from "../executors/pi/paths.js"
 import type { MemoryReader, MemoryAtom, MemoryFilters } from "../memory/store.js"
 
 export interface Curator {
@@ -27,7 +29,9 @@ Return ONLY the JSON object, no other text.`
       const userPrompt = `Task prompt: ${taskPrompt}\n\nFiles: ${files.join(", ") || "none"}`
 
       try {
-        const response = await llmClient.complete("default", "default", [
+        const defaults = readDefaults(piAgentDir())
+        const [provider, modelId] = parseModelString("default", defaults)
+        const response = await llmClient.complete(provider, modelId, [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ] as any)
