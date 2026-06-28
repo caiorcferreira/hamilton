@@ -340,6 +340,10 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
     }
 
     yield* Console.log("")
+    yield* Console.log("Priming guideline memory...")
+    yield* ingestSetupGuidelines()
+
+    yield* Console.log("")
     yield* Console.log("Running prerequisite checks...")
     const checkResults = yield* runDoctorChecks()
     for (const r of checkResults) {
