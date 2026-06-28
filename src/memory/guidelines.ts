@@ -3,7 +3,7 @@ import * as crypto from "node:crypto"
 import { nanoid } from "nanoid"
 import type { LoadedGuideline } from "../guidelines/types.js"
 import type { MemoryWriter } from "./store.js"
-import { insertMemoryEvent } from "./queries.js"
+import { insertMemoryEvent, getMemoryAtomsBySourcePath } from "./queries.js"
 
 export interface ChangeResult {
   changed: boolean
@@ -20,7 +20,7 @@ export interface IngestSummary {
   ingested: number
   skipped: number
   tombstoned: number
-  atoms: Array<{ id: string; guidelineName: string; action: "created" | "skipped" }>
+  atoms: Array<{ id: string; guidelineName: string; action: "created" }>
 }
 
 function sha256(content: string): string {
@@ -67,13 +67,7 @@ export async function tombstoneStale(
   db: Database,
   sourcePath: string
 ): Promise<void> {
-  const rows = db.prepare(`
-    SELECT ma.id FROM memory_atoms ma
-    JOIN memory_event_log mel ON mel.atom_id = ma.id
-    WHERE mel.event_type = 'ingested'
-      AND json_extract(mel.metadata, '$.source_path') = ?
-      AND ma.status = 'active'
-  `).all(sourcePath) as { id: string }[]
+  const rows = getMemoryAtomsBySourcePath(db, sourcePath)
   for (const row of rows) {
     await writer.tombstone(row.id, db)
   }
@@ -122,25 +116,6 @@ export async function writeToQmd(
   return { id: result.id, path: result.path }
 }
 
-export function registerIngestedEvent(
-  db: Database,
-  sourcePath: string,
-  hash: string,
-  chunkCount: number
-): void {
-  insertMemoryEvent(db, {
-    event_type: "ingested",
-    actor: "system",
-    metadata: JSON.stringify({
-      source: "guideline",
-      source_path: sourcePath,
-      file_hash: hash,
-      scope: "user",
-      chunk_count: chunkCount,
-    }),
-  })
-}
-
 export async function ingestGuidelines(
   writer: MemoryWriter,
   db: Database,
@@ -161,7 +136,6 @@ export async function ingestGuidelines(
 
     if (!change.changed) {
       skipped++
-      atoms.push({ id: "", guidelineName: guideline.name, action: "skipped" })
       continue
     }
 

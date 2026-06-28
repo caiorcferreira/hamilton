@@ -9,7 +9,6 @@ import {
   detectChanges,
   tombstoneStale,
   writeToQmd,
-  registerIngestedEvent,
   ingestGuidelines,
 } from "../../src/memory/guidelines.js"
 import type { MemoryWriter } from "../../src/memory/store.js"
@@ -153,38 +152,6 @@ describe("writeToQmd", () => {
   })
 })
 
-describe("registerIngestedEvent", () => {
-  let tmpHome: string
-  let db: Database
-  const originalHome = process.env.HOME
-
-  beforeEach(() => {
-    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-guidelines-reg-"))
-    process.env.HOME = tmpHome
-    Fs.mkdirSync(Path.join(tmpHome, ".hamilton"), { recursive: true })
-    db = new Database(Path.join(tmpHome, ".hamilton", "hamilton.db"))
-    migrate(db)
-  })
-
-  afterEach(() => {
-    process.env.HOME = originalHome
-    db.close()
-    Fs.rmSync(tmpHome, { recursive: true, force: true })
-  })
-
-  it("inserts ingested event with correct metadata", () => {
-    registerIngestedEvent(db, "/guidelines/my-guideline.md", "abc123", 5)
-    const rows = db.prepare("SELECT * FROM memory_event_log WHERE event_type = 'ingested'").all() as any[]
-    expect(rows).toHaveLength(1)
-    expect(rows[0].actor).toBe("system")
-    const metadata = JSON.parse(rows[0].metadata)
-    expect(metadata.source).toBe("guideline")
-    expect(metadata.source_path).toBe("/guidelines/my-guideline.md")
-    expect(metadata.file_hash).toBe("abc123")
-    expect(metadata.chunk_count).toBe(5)
-  })
-})
-
 describe("ingestGuidelines", () => {
   let tmpHome: string
   let db: Database
@@ -236,6 +203,7 @@ describe("ingestGuidelines", () => {
 
     expect(summary2.ingested).toBe(0)
     expect(summary2.skipped).toBe(1)
+    expect(summary2.atoms).toHaveLength(0)
 
     await close()
   })
