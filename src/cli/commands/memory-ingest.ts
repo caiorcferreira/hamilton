@@ -1,11 +1,15 @@
 import { Command, Options } from "@effect/cli"
-import { Console, Effect, Exit } from "effect"
+import { Console, Data, Effect, Exit, Option } from "effect"
 import { Database } from "bun:sqlite"
 import { loadGuidelines } from "../../guidelines/loader.js"
 import { guidelinesDir, hamiltonHome, dbPath } from "../../paths.js"
 import { createUserMemoryStore } from "../../memory/store.js"
 import { ingestGuidelines, type IngestSummary } from "../../memory/guidelines.js"
 import { migrate } from "../../db/migrations.js"
+
+export class IngestError extends Data.TaggedError("IngestError")<{
+  message: string
+}> {}
 
 export function formatSummary(summary: IngestSummary): string {
   const lines: string[] = [
@@ -32,44 +36,47 @@ export function formatSummary(summary: IngestSummary): string {
   return lines.join("\n")
 }
 
-export function executeMemoryIngest(projectDir: string): Effect.Effect<string, Error> {
+export function executeMemoryIngest(projectDir: string): Effect.Effect<string, IngestError> {
   return Effect.scoped(Effect.gen(function* (_) {
     const loadedGuidelines = yield* _(
-      loadGuidelines(guidelinesDir(), projectDir)
+      loadGuidelines(guidelinesDir(), projectDir).pipe(
+        Effect.mapError((e) => new IngestError({ message: String(e) }))
+      )
     )
 
-    const guidelinesWithInstructions = loadedGuidelines.filter(
-      (g) => g.instructions !== null && g.instructions.length > 0
-    )
-
-    if (guidelinesWithInstructions.length === 0) {
+    if (loadedGuidelines.length === 0) {
       return "No matching guideline files found."
     }
 
-    const store = yield* _(Effect.tryPromise(() => createUserMemoryStore(hamiltonHome())))
+    const store = yield* _(
+      Effect.tryPromise({
+        try: () => createUserMemoryStore(hamiltonHome()),
+        catch: (e) => new IngestError({ message: String(e) })
+      })
+    )
     yield* _(Effect.addFinalizer(() => Effect.promise(() => store.close())))
 
     const db = new Database(dbPath())
     migrate(db)
+    yield* _(Effect.addFinalizer(() => Effect.sync(() => db.close())))
 
     const summary = yield* _(
-      Effect.tryPromise(async () =>
-        ingestGuidelines(store.writer, db, guidelinesWithInstructions)
-      )
+      Effect.tryPromise({
+        try: async () => ingestGuidelines(store.writer, db, loadedGuidelines),
+        catch: (e) => new IngestError({ message: String(e) })
+      })
     )
-
-    db.close()
 
     return formatSummary(summary)
   }))
 }
 
-const guidelinesFlag = Options.boolean("guidelines")
+const guidelinesFlag = Options.boolean("guidelines").pipe(Options.optional)
 
 export const ingestCommand = Command.make("ingest", { guidelines: guidelinesFlag }, ({ guidelines }) =>
   Effect.gen(function* () {
-    if (!guidelines) {
-      yield* Console.error("Specify what to ingest. Use --guidelines to ingest guideline files.")
+    if (guidelines._tag !== "Some" || !guidelines.value) {
+      yield* Console.error("No ingest mode specified. Use --guidelines.")
       return
     }
 
