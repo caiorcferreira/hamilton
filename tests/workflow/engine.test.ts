@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { parseDuration, topologicalSort, collectReachableTasks, buildRunId, buildTaskId, resolveTaskTimeout } from "../../src/workflow/engine.js"
+import { parseDuration, topologicalSort, collectReachableTasks, buildRunId, buildTaskId, resolveTaskTimeout, isTaskEligible } from "../../src/workflow/engine.js"
 import type { WorkflowTask } from "../../src/types.js"
 
 describe("parseDuration", () => {
@@ -120,5 +120,51 @@ describe("resolveTaskTimeout", () => {
       agent: { executorRef: "a", prompt: { content: "" } }
     }
     expect(resolveTaskTimeout(task, "invalid")).toBe(300)
+  })
+})
+
+describe("isTaskEligible", () => {
+  it("top-level task is always eligible", () => {
+    expect(isTaskEligible({ name: "plan" }, new Map())).toBe(true)
+  })
+
+  it("child of running composite is eligible", () => {
+    const states = new Map<string, string>()
+    states.set("applyPlan/0", "running")
+    expect(isTaskEligible({ name: "applyPlan/0-code" }, states, "applyPlan/0")).toBe(true)
+  })
+
+  it("child of pending composite is NOT eligible", () => {
+    const states = new Map<string, string>()
+    states.set("applyPlan/0", "pending")
+    expect(isTaskEligible({ name: "applyPlan/0-code" }, states, "applyPlan/0")).toBe(false)
+  })
+
+  it("child of completed composite is NOT eligible", () => {
+    const states = new Map<string, string>()
+    states.set("applyPlan/0", "completed")
+    expect(isTaskEligible({ name: "applyPlan/0-code" }, states, "applyPlan/0")).toBe(false)
+  })
+
+  it("composite itself is eligible when it has no parent", () => {
+    const states = new Map<string, string>()
+    expect(isTaskEligible({ name: "applyPlan/0", kind: "composite" }, states)).toBe(true)
+  })
+
+  it("composite with running parent is eligible", () => {
+    const states = new Map<string, string>()
+    states.set("applyPlan", "running")
+    expect(isTaskEligible({ name: "applyPlan/0", kind: "composite" }, states, "applyPlan")).toBe(true)
+  })
+
+  it("composite with pending parent is NOT eligible", () => {
+    const states = new Map<string, string>()
+    states.set("applyPlan", "pending")
+    expect(isTaskEligible({ name: "applyPlan/0", kind: "composite" }, states, "applyPlan")).toBe(false)
+  })
+
+  it("task with parent not in states map is eligible (unknown parent treated as top-level)", () => {
+    const states = new Map<string, string>()
+    expect(isTaskEligible({ name: "some-task" }, states, "unknown-parent")).toBe(true)
   })
 })

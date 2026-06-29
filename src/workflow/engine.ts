@@ -109,6 +109,19 @@ export function buildTaskInstanceName(parent: string, childOrIndex: string | num
   return `${parent}-${childOrIndex}`
 }
 
+export function isTaskEligible(
+  task: { name: string; kind?: string },
+  compositeStates: Map<string, string>,
+  parentTaskName?: string | null
+): boolean {
+  if (!parentTaskName) return true
+
+  const parentState = compositeStates.get(parentTaskName)
+  if (!parentState) return true
+
+  return parentState === "running"
+}
+
 export function resolveTaskTimeout(task: WorkflowTask, globalTimeout: string): number {
   if (task.agent?.timeout?.fixed) {
     return parseDuration(task.agent.timeout.fixed)
