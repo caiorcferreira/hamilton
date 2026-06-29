@@ -104,6 +104,7 @@ export interface WorkflowTask {
   arguments?: Arguments
   tasks?: WorkflowTask[]
   when?: string
+  kind?: "leaf" | "composite"
 }
 
 export type VariantPlacement = "start" | "end"
