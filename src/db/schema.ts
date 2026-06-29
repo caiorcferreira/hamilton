@@ -31,6 +31,8 @@ pid INTEGER,
       depth INTEGER NOT NULL DEFAULT 0,
       dependencies TEXT,
       task_def TEXT,
+      kind TEXT NOT NULL DEFAULT 'leaf',
+      parent_task_name TEXT,
       FOREIGN KEY (run_id) REFERENCES runs(id)
     );
 

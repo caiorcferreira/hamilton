@@ -26,7 +26,7 @@ describe("migrations", () => {
     if (db) cleanupDb(db)
   })
 
-  it("migrate creates all tables from scratch (v1 -> v8)", () => {
+  it("migrate creates all tables from scratch (v1 -> v9)", () => {
     db = tempDb()
     const v = db.prepare("PRAGMA user_version").get() as { user_version: number }
     expect(v.user_version).toBe(0)
@@ -34,7 +34,7 @@ describe("migrations", () => {
     migrate(db)
 
     const v2 = db.prepare("PRAGMA user_version").get() as { user_version: number }
-    expect(v2.user_version).toBe(8)
+    expect(v2.user_version).toBe(9)
 
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as Array<{ name: string }>
     const names = tables.map(t => t.name)
@@ -83,11 +83,11 @@ describe("migrations", () => {
     db = tempDb()
     migrate(db)
     const v1 = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v1).toBe(8)
+    expect(v1).toBe(9)
 
     migrate(db)
     const v2 = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v2).toBe(8)
+    expect(v2).toBe(9)
   })
 
   it("v2 recovers from partial migration (crash between ALTER TABLE and PRAGMA)", () => {
@@ -104,7 +104,7 @@ describe("migrations", () => {
     migrate(db)
 
     const v = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version
-    expect(v).toBe(8)
+    expect(v).toBe(9)
 
     const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
     const colNames = info.map(c => c.name)
@@ -127,11 +127,33 @@ describe("migrations", () => {
     migrate(db)
 
     const v = db.prepare("PRAGMA user_version").get() as { user_version: number }
-    expect(v.user_version).toBe(8)
+    expect(v.user_version).toBe(9)
 
     const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
     const colNames = info.map(c => c.name)
     expect(colNames).toContain("task_name")
     expect(colNames).toContain("execution_index")
+  })
+
+  it("v8 -> v9 adds kind and parent_task_name to tasks", () => {
+    db = tempDb()
+    db.prepare("PRAGMA user_version = 8").run()
+    db.exec("CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, workflow_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'running', started_at TEXT NOT NULL, completed_at TEXT, current_task TEXT, error_message TEXT, pid INTEGER, context_json TEXT DEFAULT '{}')")
+    db.exec("CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, run_id TEXT NOT NULL, agent_id TEXT NOT NULL, task_name TEXT NOT NULL DEFAULT '', execution_index INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending', started_at TEXT, completed_at TEXT, tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, retry_count INTEGER DEFAULT 0, error_message TEXT, output_json TEXT, depth INTEGER NOT NULL DEFAULT 0, dependencies TEXT, task_def TEXT, FOREIGN KEY (run_id) REFERENCES runs(id))")
+    db.exec("CREATE TABLE IF NOT EXISTS token_events (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, task_id TEXT NOT NULL, event_type TEXT NOT NULL, tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, timestamp TEXT NOT NULL DEFAULT (datetime('now')), FOREIGN KEY (run_id) REFERENCES runs(id))")
+    db.exec("CREATE TABLE IF NOT EXISTS workflow_state (run_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (run_id, key))")
+    db.exec("CREATE TABLE IF NOT EXISTS durable_deferred (id TEXT PRIMARY KEY, run_id TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'pending', value TEXT, FOREIGN KEY (run_id) REFERENCES runs(id))")
+    db.exec("CREATE TABLE IF NOT EXISTS memory_atoms (id TEXT PRIMARY KEY, path TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('correction','failure','preference','fact','procedure','canonical')), scope TEXT NOT NULL CHECK (scope IN ('project','user')), confidence REAL NOT NULL DEFAULT 0.5, salience REAL, status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','demoted','tombstoned')), project_id TEXT, run_id TEXT, use_count INTEGER NOT NULL DEFAULT 0, last_used_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, demoted_at TEXT, tombstoned_at TEXT)")
+    db.exec("CREATE TABLE IF NOT EXISTS memory_event_log (id INTEGER PRIMARY KEY AUTOINCREMENT, atom_id TEXT, run_id TEXT, event_type TEXT NOT NULL, actor TEXT NOT NULL CHECK (actor IN ('agent','system','human')), reason TEXT, metadata TEXT NOT NULL DEFAULT '{}', timestamp TEXT NOT NULL DEFAULT (datetime('now')))")
+
+    migrate(db)
+
+    const v = db.prepare("PRAGMA user_version").get() as { user_version: number }
+    expect(v.user_version).toBe(9)
+
+    const info = db.prepare("PRAGMA table_info('tasks')").all() as Array<{ name: string }>
+    const colNames = info.map(c => c.name)
+    expect(colNames).toContain("kind")
+    expect(colNames).toContain("parent_task_name")
   })
 })
