@@ -30,6 +30,8 @@ export interface TaskRow {
   depth: number
   dependencies: string | null
   task_def: string | null
+  kind: string
+  parent_task_name: string | null
 }
 
 export interface RunStatusRow {
@@ -311,4 +313,24 @@ export function listRuns(
      LIMIT ?`
   ).all(status, status, limit)
   return rows as RunSummary[]
+}
+
+export function getChildrenOfTask(db: Database, runId: string, parentTaskName: string): TaskRow[] {
+  return db.prepare(
+    `SELECT * FROM tasks WHERE run_id = ? AND parent_task_name = ?`
+  ).all(runId, parentTaskName) as TaskRow[]
+}
+
+export function hasPendingDescendants(db: Database, runId: string, taskName: string): boolean {
+  const row = db.prepare(`
+    WITH RECURSIVE subtree AS (
+      SELECT task_name, status FROM tasks WHERE run_id = ? AND task_name = ?
+      UNION ALL
+      SELECT t.task_name, t.status FROM tasks t
+      JOIN subtree s ON t.parent_task_name = s.task_name
+      WHERE t.run_id = ?
+    )
+    SELECT 1 FROM subtree WHERE task_name != ? AND status IN ('pending', 'running') LIMIT 1
+  `).get(runId, taskName, runId, taskName) as { "1": number } | null
+  return row !== null
 }

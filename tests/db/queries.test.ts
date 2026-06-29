@@ -23,8 +23,11 @@ import {
   getDurableDeferred,
   updateRunEnv,
   updateRunPid,
-  listRuns
+  listRuns,
+  getChildrenOfTask,
+  hasPendingDescendants
 } from "../../src/db/queries.js"
+import { buildTaskId } from "../../src/workflow/engine.js"
 
 function tempDb(): Database {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-test-"))
@@ -207,6 +210,69 @@ describe("queries", () => {
 
     const row = getRunById(db, "run-abc")
     expect(row?.pid).toBe(4242)
+  })
+
+  it("stores and retrieves kind and parent_task_name", () => {
+    insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
+    const parentId = buildTaskId("run-1", "composite-1")
+    insertTask(db, "run-1", parentId, "agent-1", "composite-1", 0, 0, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'composite' WHERE id = ?`).run(parentId)
+    const childId = buildTaskId("run-1", "child-1")
+    insertTask(db, "run-1", childId, "agent-1", "child-1", 1, 1, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'leaf', parent_task_name = 'composite-1' WHERE id = ?`).run(childId)
+
+    const parent = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(parentId) as any
+    expect(parent.kind).toBe("composite")
+    expect(parent.parent_task_name).toBeNull()
+
+    const children = getChildrenOfTask(db, "run-1", "composite-1")
+    expect(children).toHaveLength(1)
+    expect(children[0].task_name).toBe("child-1")
+    expect(children[0].kind).toBe("leaf")
+    expect(children[0].parent_task_name).toBe("composite-1")
+  })
+
+  it("hasPendingDescendants returns true when child is pending", () => {
+    insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
+    const parentId = buildTaskId("run-1", "composite-1")
+    insertTask(db, "run-1", parentId, "agent-1", "composite-1", 0, 0, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'composite' WHERE id = ?`).run(parentId)
+    const childId = buildTaskId("run-1", "child-1")
+    insertTask(db, "run-1", childId, "agent-1", "child-1", 1, 1, [], {})
+    db.prepare(`UPDATE tasks SET parent_task_name = 'composite-1' WHERE id = ?`).run(childId)
+
+    expect(hasPendingDescendants(db, "run-1", "composite-1")).toBe(true)
+  })
+
+  it("hasPendingDescendants returns false when all children completed", () => {
+    insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
+    const parentId = buildTaskId("run-1", "composite-1")
+    insertTask(db, "run-1", parentId, "agent-1", "composite-1", 0, 0, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'composite' WHERE id = ?`).run(parentId)
+    const childId = buildTaskId("run-1", "child-1")
+    insertTask(db, "run-1", childId, "agent-1", "child-1", 1, 1, [], {})
+    db.prepare(`UPDATE tasks SET parent_task_name = 'composite-1', status = 'completed' WHERE id = ?`).run(childId)
+
+    expect(hasPendingDescendants(db, "run-1", "composite-1")).toBe(false)
+  })
+
+  it("hasPendingDescendants works with nested composites", () => {
+    insertRun(db, "run-1", "wf-1", "2025-01-01T00:00:00Z")
+    const grandparentId = buildTaskId("run-1", "grandparent")
+    insertTask(db, "run-1", grandparentId, "agent-1", "grandparent", 0, 0, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'composite' WHERE id = ?`).run(grandparentId)
+    const parentId = buildTaskId("run-1", "parent")
+    insertTask(db, "run-1", parentId, "agent-1", "parent", 1, 1, [], {})
+    db.prepare(`UPDATE tasks SET kind = 'composite', parent_task_name = 'grandparent' WHERE id = ?`).run(parentId)
+    const childId = buildTaskId("run-1", "child")
+    insertTask(db, "run-1", childId, "agent-1", "child", 2, 2, [], {})
+    db.prepare(`UPDATE tasks SET parent_task_name = 'parent' WHERE id = ?`).run(childId)
+
+    expect(hasPendingDescendants(db, "run-1", "grandparent")).toBe(true)
+
+    db.prepare(`UPDATE tasks SET status = 'completed' WHERE id = ?`).run(childId)
+    db.prepare(`UPDATE tasks SET status = 'completed' WHERE id = ?`).run(parentId)
+    expect(hasPendingDescendants(db, "run-1", "grandparent")).toBe(false)
   })
 })
 
