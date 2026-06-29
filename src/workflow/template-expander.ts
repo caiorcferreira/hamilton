@@ -19,7 +19,8 @@ function taskConfigFrom(t: WorkflowTask): Record<string, unknown> {
     template: t.template ?? undefined,
     arguments: t.arguments ?? undefined,
     when: t.when ?? undefined,
-    tasks: t.tasks ?? undefined
+    tasks: t.tasks ?? undefined,
+    kind: t.kind ?? undefined
   }
 }
 
@@ -29,7 +30,8 @@ export function expandTemplate(
   spec: WorkflowSpec,
   env: WorkflowEnv,
   depth: number,
-  namePrefix?: string
+  namePrefix?: string,
+  parentTaskName?: string
 ): Effect.Effect<ExpansionResult, unknown, EventBus | Scope.Scope> {
   return Effect.gen(function* (_) {
     const bus = yield* _(EventBus)
@@ -42,6 +44,7 @@ export function expandTemplate(
     const inserted: string[] = []
     const taskScopes: Record<string, string> = {}
     const originalNames: Record<string, string> = {}
+    let previousCompositeName: string | null = null
 
     for (let i = 0; i < resolvedArgs.itemsCount; i++) {
       const instanceName = namePrefix
@@ -49,18 +52,28 @@ export function expandTemplate(
         : buildTaskInstanceName(task.name, i)
 
       if (templateTask.tasks && templateTask.tasks.length > 0) {
+        const crossIterationDeps: string[] = previousCompositeName ? [previousCompositeName] : []
+        const effectiveParent = parentTaskName ?? namePrefix ?? task.name
+        yield* _(ctx.insertDynamicTask(instanceName, "composite", depth + 1, crossIterationDeps, { kind: "composite" }, effectiveParent, "composite"))
+        yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(instanceName) ?? instanceName, taskName: instanceName, scopeKey: namePrefix ?? task.name, depth: depth + 1 }))
+        inserted.push(instanceName)
+        taskScopes[instanceName] = namePrefix ?? task.name
+
         const sub = topologicalSort(templateTask.tasks)
         for (const subTask of sub) {
           const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
           const subRef = subTask.agent?.executorRef ?? "script"
           const subResolvedDeps = (subTask.dependencies ?? []).map(dep => buildTaskInstanceName(instanceName, dep))
           const subConfig = taskConfigFrom(subTask)
-          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, depth + 1, subResolvedDeps, subConfig))
-          yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(subInstanceName) ?? subInstanceName, taskName: subInstanceName, scopeKey: instanceName, depth: depth + 1 }))
+          const subKind: "leaf" | "composite" = (subTask.template && subTask.arguments?.forEach) ? "composite" : "leaf"
+          yield* _(ctx.insertDynamicTask(subInstanceName, subRef, depth + 2, subResolvedDeps, subConfig, instanceName, subKind))
+          yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(subInstanceName) ?? subInstanceName, taskName: subInstanceName, scopeKey: instanceName, depth: depth + 2 }))
           inserted.push(subInstanceName)
           taskScopes[subInstanceName] = instanceName
           originalNames[subInstanceName] = subTask.name
         }
+
+        previousCompositeName = instanceName
       } else if (templateTask.agent || templateTask.script) {
         const ref = templateTask.agent?.executorRef ?? "script"
         const resolvedDeps = (templateTask.dependencies ?? [])
