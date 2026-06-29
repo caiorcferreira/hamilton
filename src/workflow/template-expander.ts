@@ -52,24 +52,6 @@ export function expandTemplate(
         const sub = topologicalSort(templateTask.tasks)
         for (const subTask of sub) {
           const subInstanceName = buildTaskInstanceName(instanceName, subTask.name)
-
-          if (subTask.template) {
-            const subRef = subTask.agent?.executorRef ?? subTask.tasks?.[0]?.agent?.executorRef ?? "script"
-            const subResolvedDeps = (subTask.dependencies ?? []).map(dep => buildTaskInstanceName(instanceName, dep))
-            const subConfig = taskConfigFrom(subTask)
-            yield* _(ctx.insertDynamicTask(subInstanceName, subRef, depth + 1, subResolvedDeps, subConfig))
-            yield* _(bus.publish({ _tag: "TaskInserted", runId: ctx.runId, taskId: ctx.compoundTaskIds.get(subInstanceName) ?? subInstanceName, taskName: subInstanceName, scopeKey: instanceName, depth: depth + 1 }))
-            inserted.push(subInstanceName)
-            taskScopes[subInstanceName] = instanceName
-            originalNames[subInstanceName] = subTask.name
-
-            const childResult = yield* _(expandTemplate(ctx, subTask, spec, env, depth + 1, subInstanceName))
-            inserted.push(...childResult.inserted)
-            Object.assign(taskScopes, childResult.taskScopes)
-            Object.assign(originalNames, childResult.originalNames)
-            continue
-          }
-
           const subRef = subTask.agent?.executorRef ?? "script"
           const subResolvedDeps = (subTask.dependencies ?? []).map(dep => buildTaskInstanceName(instanceName, dep))
           const subConfig = taskConfigFrom(subTask)
