@@ -60,7 +60,8 @@ export interface WorkflowRuntime {
   readonly shouldExecuteTask: (taskName: string) => Effect.Effect<boolean, EngineError>
   readonly shouldPause: () => Effect.Effect<boolean, EngineError>
   readonly transitionTask: (taskName: string, transition: "start" | "complete" | "fail") => Effect.Effect<void, EngineError>
-  readonly insertDynamicTask: (taskName: string, agentName: string, depth: number, dependencies?: string[], taskConfig?: Record<string, unknown>) => Effect.Effect<void, EngineError>
+  readonly insertDynamicTask: (taskName: string, agentName: string, depth: number, dependencies?: string[], taskConfig?: Record<string, unknown>, parentTaskName?: string, kind?: "leaf" | "composite") => Effect.Effect<void, EngineError>
+  readonly enterComposite: (taskName: string) => Effect.Effect<void, EngineError>
   readonly getTaskDepth: (taskName: string) => Effect.Effect<number | null, EngineError>
   readonly pause: () => Effect.Effect<void, EngineError>
   readonly complete: () => Effect.Effect<void, EngineError>
@@ -138,13 +139,38 @@ class WorkflowRuntimeImpl implements WorkflowRuntime {
     })
   }
 
-  insertDynamicTask(taskName: string, agentName: string, depth: number, dependencies: string[] = [], taskConfig: Record<string, unknown> = {}): Effect.Effect<void, EngineError> {
+  insertDynamicTask(taskName: string, agentName: string, depth: number, dependencies: string[] = [], taskConfig: Record<string, unknown> = {}, parentTaskName?: string, kind: "leaf" | "composite" = "leaf"): Effect.Effect<void, EngineError> {
     return Effect.sync(() => {
       const taskId = buildTaskId(this._runId, taskName)
       const idx = this._nextExecutionIndex++
       insertTask(this._db, this._runId, taskId, agentName, taskName, idx, depth, dependencies, taskConfig)
+      if (parentTaskName) {
+        this._db.prepare("UPDATE tasks SET parent_task_name = ? WHERE id = ?").run(parentTaskName, taskId)
+      }
+      if (kind === "composite") {
+        this._db.prepare("UPDATE tasks SET kind = 'composite' WHERE id = ?").run(taskId)
+      }
       this._taskStates.set(taskName, "pending")
       this._compoundTaskIds.set(taskName, taskId)
+    })
+  }
+
+  enterComposite(taskName: string): Effect.Effect<void, EngineError> {
+    return Effect.gen(this, function* (_) {
+      const currentTaskState = this._taskStates.get(taskName) ?? "pending"
+      if (currentTaskState !== "pending") {
+        return yield* Effect.fail(
+          new EngineError({
+            runId: this._runId,
+            message: `Cannot enter composite ${taskName}: current state is ${currentTaskState}`
+          })
+        )
+      }
+
+      const compoundId = this._compoundTaskIds.get(taskName) ?? taskName
+      const now = new Date().toISOString()
+      updateTaskStarted(this._db, this._runId, compoundId, now)
+      this._taskStates.set(taskName, "running")
     })
   }
 
@@ -241,7 +267,8 @@ function collectLeafTaskDefs(
           template: t.template ?? undefined,
           arguments: t.arguments ?? undefined,
           when: t.when ?? undefined,
-          tasks: t.tasks ?? undefined
+          tasks: t.tasks ?? undefined,
+          kind: (t.tasks && t.tasks.length > 0) || (t.template && t.arguments?.forEach) ? "composite" as const : "leaf" as const
         }
       })
       if (t.tasks) {
@@ -332,6 +359,11 @@ insertRun(db, runId, spec.metadata.name, new Date().toISOString())
       dependencies: t.dependencies,
       taskConfig: t.taskConfig
     })))
+    for (const entry of taskEntries) {
+      if (entry.taskConfig.kind === "composite") {
+        db.prepare("UPDATE tasks SET kind = 'composite' WHERE task_name = ? AND run_id = ?").run(entry.taskName, runId)
+      }
+    }
     updateRunEnv(db, runId, JSON.stringify(params))
 
     const taskRows = getTasksByRunId(db, runId)
