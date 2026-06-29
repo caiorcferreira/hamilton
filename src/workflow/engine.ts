@@ -59,6 +59,8 @@ export function topologicalSort(tasks: WorkflowTask[]): WorkflowTask[] {
   const taskMap = new Map<string, WorkflowTask>()
   for (const t of tasks) taskMap.set(t.name, t)
 
+  const taskNames = new Set(taskMap.keys())
+
   const indegree = new Map<string, number>()
   const adjacency = new Map<string, string[]>()
 
@@ -66,6 +68,7 @@ export function topologicalSort(tasks: WorkflowTask[]): WorkflowTask[] {
     if (!indegree.has(t.name)) indegree.set(t.name, 0)
     const deps = t.dependencies ?? []
     for (const dep of deps) {
+      if (!taskNames.has(dep)) continue
       if (!adjacency.has(dep)) adjacency.set(dep, [])
       adjacency.get(dep)!.push(t.name)
       indegree.set(t.name, (indegree.get(t.name) ?? 0) + 1)

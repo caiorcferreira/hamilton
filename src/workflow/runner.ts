@@ -235,16 +235,18 @@ export function runWorkflow(
           if ((task as any).kind === "composite" && compositeStates.get(task.name) === "pending") {
             yield* _(ctx.enterComposite(task.name))
             compositeStates.set(task.name, "running")
+            if (task.template) {
+              const parentName = (task as any).parentTaskName ?? undefined
+              yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0, undefined, parentName))
+            }
             hasWork = true
             break
           }
 
-          if (task.template) {
+          if (task.template && (task as any).kind !== "composite") {
             const parentName = (task as any).parentTaskName ?? undefined
             yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0, undefined, parentName))
-            if ((task as any).kind !== "composite") {
-              yield* _(ctx.transitionTask(task.name, "complete"))
-            }
+            yield* _(ctx.transitionTask(task.name, "complete"))
             hasWork = true
             break
           }
