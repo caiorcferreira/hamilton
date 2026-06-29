@@ -8,12 +8,12 @@ import type { TemplateOptions } from "../prompts/template.js"
 
 import { checkRecursionDepth, handleWhenGuard } from "../workflow/when-guard.js"
 
-import { collectReachableTasks, topologicalSort } from "../workflow/engine.js"
+import { collectReachableTasks, isTaskEligible, topologicalSort } from "../workflow/engine.js"
 import { createWorkflowRuntime } from "../workflow/run-state-machine.js"
 import type { WorkflowRuntime } from "../workflow/run-state-machine.js"
 import { EventBus, createSubscriber } from "../events/bus.js"
 import { DbWriter } from "../db/subscribers.js"
-import { getTasksByRunId } from "../db/queries.js"
+import { getTasksByRunId, hasPendingDescendants } from "../db/queries.js"
 
 import { loadSkillRegistry } from "../skills/registry.js"
 import { dispatchTask } from "./task-executor.js"
@@ -50,9 +50,37 @@ function collectAllTasksFromDb(ctx: WorkflowRuntime): WorkflowTask[] {
       return {
         name: r.task_name,
         dependencies,
+        parentTaskName: r.parent_task_name,
+        kind: r.kind,
         ...config
       }
     })
+}
+
+function checkDrainAfterLeaf(
+  ctx: WorkflowRuntime,
+  compositeStates: Map<string, string>,
+  parentTaskName: string | null
+): Effect.Effect<void, never> {
+  return Effect.gen(function* (_) {
+    if (!parentTaskName) return
+
+    let current: string | null = parentTaskName
+    while (current) {
+      const hasPending = hasPendingDescendants(ctx.db, ctx.runId, current)
+      if (!hasPending) {
+        yield* _(ctx.transitionTask(current, "complete").pipe(Effect.catchAll(() => Effect.void)))
+        compositeStates.set(current, "completed")
+
+        const parentRow = ctx.db.prepare(
+          "SELECT parent_task_name FROM tasks WHERE run_id = ? AND task_name = ?"
+        ).get(ctx.runId, current) as { parent_task_name: string | null } | null
+        current = parentRow?.parent_task_name ?? null
+      } else {
+        break
+      }
+    }
+  })
 }
 
 export function runWorkflow(
@@ -159,19 +187,28 @@ export function runWorkflow(
         }
       }
 
-      const taskScopes: Record<string, string> = {}
-      const originalNames: Record<string, string> = {}
-      const iterationOutputs: Record<string, Record<string, { outputs: Record<string, unknown> }>> = {}
-      let pending = true
+      let hasWork = true
 
-      while (pending) {
+      while (hasWork) {
+        hasWork = false
+        const allRows = getTasksByRunId(ctx.db, ctx.runId)
+
+        const compositeStates = new Map<string, string>()
+        for (const row of allRows) {
+          if (row.kind === "composite") {
+            compositeStates.set(row.task_name, row.status)
+          }
+        }
+
         const allTasks = collectAllTasksFromDb(ctx)
         const sorted = topologicalSort(allTasks)
-        pending = false
 
         for (const task of sorted) {
           const currentStatus = yield* _(Ref.get(workflowStatus))
           if (currentStatus === "failed") break
+
+          const parentTaskName = (task as any).parentTaskName ?? null
+          if (!isTaskEligible(task, compositeStates, parentTaskName)) continue
 
           if (task.when) {
             const maxDepth = resolveMaxRecursionDepth()
@@ -184,6 +221,7 @@ export function runWorkflow(
             const whenResult = handleWhenGuard(task, workflowEnv)
             if (whenResult === "skip") {
               yield* _(ctx.transitionTask(task.name, "complete"))
+              yield* _(checkDrainAfterLeaf(ctx, compositeStates, parentTaskName))
               continue
             }
             if (typeof whenResult === "object" && whenResult._tag === "error") {
@@ -194,12 +232,20 @@ export function runWorkflow(
             }
           }
 
+          if ((task as any).kind === "composite" && compositeStates.get(task.name) === "pending") {
+            yield* _(ctx.enterComposite(task.name))
+            compositeStates.set(task.name, "running")
+            hasWork = true
+            break
+          }
+
           if (task.template) {
-            const result = yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0))
-            Object.assign(taskScopes, result.taskScopes)
-            Object.assign(originalNames, result.originalNames)
-            yield* _(ctx.transitionTask(task.name, "complete"))
-            pending = true
+            const parentName = (task as any).parentTaskName ?? undefined
+            yield* _(expandTemplate(ctx, task, spec, workflowEnv, 0, undefined, parentName))
+            if ((task as any).kind !== "composite") {
+              yield* _(ctx.transitionTask(task.name, "complete"))
+            }
+            hasWork = true
             break
           }
 
@@ -215,15 +261,8 @@ export function runWorkflow(
             break
           }
 
-          const scopeKey = taskScopes[task.name]
           const resolvedArgs = resolveArguments(task, workflowEnv)
-          const taskEnv: WorkflowEnv = scopeKey
-            ? {
-                ...workflowEnv,
-                currentIteration: { tasks: iterationOutputs[scopeKey] ?? {} },
-                parameters: resolvedArgs.parameters
-              }
-            : { ...workflowEnv, parameters: resolvedArgs.parameters }
+          const taskEnv: WorkflowEnv = { ...workflowEnv, parameters: resolvedArgs.parameters }
 
           let memoryContext = ""
           if (memoryReader) {
@@ -236,11 +275,7 @@ export function runWorkflow(
 
           yield* _(dispatchTask(task, taskEnv, task.name, ctx, spec, memoryContext, guidelineRules, skillRegistry, templateOptions, scriptConfig, execState, hookRuntime))
 
-          const originalName = originalNames[task.name]
-          const output = workflowEnv.tasks?.[task.name]
-          if (scopeKey && originalName && output) {
-            (iterationOutputs[scopeKey] ??= {})[originalName] = output
-          }
+          yield* _(checkDrainAfterLeaf(ctx, compositeStates, parentTaskName))
         }
       }
 
