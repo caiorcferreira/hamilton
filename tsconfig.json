@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/@effect/language-service/schema.json",
   "compilerOptions": {
     "target": "ES2024",
     "module": "Node16",
@@ -14,6 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "exactOptionalPropertyTypes": false,
+    "plugins": [{ "name": "@effect/language-service" }],
     "baseUrl": ".",
     "paths": {
       "@narumitw/pi-lsp": ["./node_modules/@narumitw/pi-lsp/src/pi-lsp.ts"]

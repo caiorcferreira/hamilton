@@ -12,7 +12,8 @@
     "test:file": "bun --bun vitest run --reporter=verbose",
     "test:agent": "bun --bun vitest run 2>&1 | tail -8",
     "install-local": "bun run build && mkdir -p ~/.local/bin && ln -sf $(pwd)/dist/cli/main.js ~/.local/bin/hamilton && chmod +x dist/cli/main.js",
-    "purge": "rm -f ~/.local/bin/hamilton; rm -rf ~/.hamilton/"
+    "purge": "rm -f ~/.local/bin/hamilton; rm -rf ~/.hamilton/",
+    "prepare": "effect-language-service patch"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.78.1",
@@ -38,6 +39,7 @@
     "zod-to-json-schema": "3.24.1"
   },
   "devDependencies": {
+    "@effect/language-service": "^0.86.2",
     "@effect/vitest": "0.29.0",
     "@types/bun": "1.3.14",
     "@types/node": "22.16.0",
