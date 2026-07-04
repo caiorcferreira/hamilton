@@ -36,7 +36,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
    - Every task in `plan.md` is implemented (per `progress.md`).
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
 2. **Sync specs.** For each `requirements/<capability>.md` delta in the change, fold it into
-   the canonical `.hamilton/specs/<capability>.md` (canonical form — no delta markers):
+   the canonical `.hamilton/specs/<capability>.md` (the `~/.hamilton/templates/requirements-spec.md`
+   form — no delta markers):
    - **ADDED** → add the requirement block(s).
    - **MODIFIED** → replace the block whose `### Requirement:` name matches exactly.
    - **REMOVED** → delete the named block (drop its Reason/Migration — those stay in the
@@ -61,7 +62,7 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 
 ## Progress entry
 
-Append to `.hamilton/changes/<change>/progress.md`:
+Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/progress.md`):
 
 ```
 ## Finish — <YYYY-MM-DD>

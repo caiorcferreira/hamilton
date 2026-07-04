@@ -69,8 +69,8 @@ comes back to you — that loop is driven by whoever runs the pipeline, not by t
 
 ## Review file
 
-Write the verdict and feedback to `.hamilton/changes/<change>/review.md`, newest pass at
-the bottom:
+Write the verdict and feedback to `.hamilton/changes/<change>/review.md`, following the
+`~/.hamilton/templates/review.md` format, newest pass at the bottom:
 
 ```
 ## <scope reviewed> — <YYYY-MM-DD>
@@ -88,7 +88,8 @@ When approved, replace the lists with a short note of what you verified.
 
 ## Progress entry
 
-Append a one-line summary to `.hamilton/changes/<change>/progress.md`:
+Append a one-line summary to `.hamilton/changes/<change>/progress.md` (see
+`~/.hamilton/templates/progress.md`):
 
 ```
 ## Review: <scope reviewed> — <YYYY-MM-DD>

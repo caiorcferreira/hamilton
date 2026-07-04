@@ -63,7 +63,8 @@ This skill never edits `plan.md`.
 
 ## Progress entry
 
-Append to `.hamilton/changes/<change>/progress.md`:
+Append to `.hamilton/changes/<change>/progress.md`, following the
+`~/.hamilton/templates/progress.md` format:
 
 ```
 ## <Task id>: <title> — <YYYY-MM-DD>
