@@ -16,7 +16,10 @@ later step reads.
 ## What it produces
 
 - `AGENTS.md` at the project root — the project's standing standards.
-- `.hamilton/` workspace: `specs/`, `changes/`, `templates/`.
+- `.hamilton/` workspace: `specs/` and `changes/`.
+
+It does not create templates: the artifact templates are global, installed at
+`~/.hamilton/templates/` by the `hamilton setup` command, and shared across projects.
 
 ## Inputs
 
@@ -39,8 +42,6 @@ later step reads.
 3. **Scaffold `.hamilton/`.**
    - `specs/` — canonical capability truth (starts empty).
    - `changes/` — one directory per change (starts empty).
-   - `templates/` — install the artifact templates from this skill's `references/templates/`
-     so the later steps have local copies to read and authors have references.
 4. **Confirm or record.** Working with a person, show the drafted `AGENTS.md` for correction
    before finishing — these standards steer every later step, so accuracy matters. Running
    unattended, record any assumptions you made.
@@ -55,8 +56,8 @@ later step reads.
 
 ## Output
 
-`AGENTS.md` written or updated, and `.hamilton/{specs,changes,templates}/` in place. The
-project is ready for `hamilton-propose` (or `hamilton-plan` for tactical changes).
+`AGENTS.md` written or updated, and `.hamilton/{specs,changes}/` in place. The project is
+ready for `hamilton-propose` (or `hamilton-plan` for tactical changes).
 
 ## Process flow
 
@@ -64,15 +65,15 @@ project is ready for `hamilton-propose` (or `hamilton-plan` for tactical changes
 digraph hamilton_init {
     "Explore project (read-only)" [shape=box];
     "Write AGENTS.md\n(six standing areas)" [shape=box];
-    "Scaffold .hamilton/\n(specs, changes, templates)" [shape=box];
+    "Scaffold .hamilton/\n(specs, changes)" [shape=box];
     "Interactive?" [shape=diamond];
     "Confirm AGENTS.md with user" [shape=box];
     "Record assumptions" [shape=box];
     "Project ready for the pipeline" [shape=doublecircle];
 
     "Explore project (read-only)" -> "Write AGENTS.md\n(six standing areas)";
-    "Write AGENTS.md\n(six standing areas)" -> "Scaffold .hamilton/\n(specs, changes, templates)";
-    "Scaffold .hamilton/\n(specs, changes, templates)" -> "Interactive?";
+    "Write AGENTS.md\n(six standing areas)" -> "Scaffold .hamilton/\n(specs, changes)";
+    "Scaffold .hamilton/\n(specs, changes)" -> "Interactive?";
     "Interactive?" -> "Confirm AGENTS.md with user" [label="yes"];
     "Interactive?" -> "Record assumptions" [label="no"];
     "Confirm AGENTS.md with user" -> "Project ready for the pipeline";

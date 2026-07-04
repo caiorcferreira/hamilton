@@ -25,7 +25,15 @@ Every downstream skill therefore degrades gracefully — it consumes the richer
 upstream artifact when present, and otherwise works from the raw change
 description. This is what makes "start anywhere" real.
 
-## Where they live
+## Where these templates live
+
+These templates are global, not per-project. They are bundled here in `bundle/templates/`
+and copied to `~/.hamilton/templates/` by the `hamilton setup` command. The pipeline steps
+read the installed copy at `~/.hamilton/templates/<name>.md`.
+
+## Where the artifacts they produce live
+
+Per-project, under the project's `.hamilton/` directory (created by `hamilton-init`):
 
 ```
 .hamilton/
@@ -48,7 +56,3 @@ completion lives in `progress.md`, not as a status field on the plan.
 `requirements/*.md` inside a change use delta headers (ADDED / MODIFIED / REMOVED /
 RENAMED). `hamilton-finish-work` folds those deltas into the canonical
 `.hamilton/specs/<capability>.md`, which holds no delta markers.
-
-> Templates are bundled canonically in `skills/hamilton-init/references/templates/` and
-> installed here (`.hamilton/templates/`) by `hamilton-init`. The pipeline steps read this
-> installed copy.

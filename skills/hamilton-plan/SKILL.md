@@ -59,8 +59,8 @@ planning and coding. This skill produces it. **It never writes production code.*
 6. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
-7. **Write `plan.md`** from `.hamilton/templates/plan.md` (installed by hamilton-init) into
-   the change directory.
+7. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
+   into the change directory.
 
 ## Task-sizing heuristics
 
@@ -81,7 +81,7 @@ Before finishing, confirm:
 
 ## Output
 
-`.hamilton/changes/<change>/plan.md`, following `.hamilton/templates/plan.md`.
+`.hamilton/changes/<change>/plan.md`, following `~/.hamilton/templates/plan.md`.
 
 ## Process flow
 
