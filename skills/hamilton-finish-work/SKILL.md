@@ -1,0 +1,103 @@
+---
+name: hamilton-finish-work
+description: "Finish a change: verify the tree is clean, tests pass, and the review is approved; fold the change's requirement deltas into the canonical specs; then complete via local merge, a pull request, or no-op."
+---
+
+# Finishing a change
+
+Close out a change: confirm it is done and clean, update the canonical specs to reflect the
+new behavior, and complete it the way the project wants.
+
+The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
+review → finish-work. Each step is a skill a person or an agent can run. This skill is the
+**finish-work** step — the last one.
+
+## Inputs
+
+- The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
+  `review.md`, and `requirements/` if present.
+- The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
+  project's default or ask.
+- Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
+  pull-request conventions, and the base branch.
+
+## Principles
+
+- **Gate before finishing.** Never complete a change that is not clean, green, and approved.
+- **Specs are the truth.** Fold the change's requirement deltas into the canonical specs so
+  they always describe current behavior.
+- **Honest completion.** Never claim a merge or a pull request that did not happen.
+
+## Process
+
+1. **Check preconditions.** All must hold; if any fails, stop and report — finish nothing:
+   - The working tree is clean (no uncommitted changes).
+   - The full test suite and the build/typecheck pass.
+   - Every task in `plan.md` is implemented (per `progress.md`).
+   - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
+2. **Sync specs.** For each `requirements/<capability>.md` delta in the change, fold it into
+   the canonical `.hamilton/specs/<capability>.md` (canonical form — no delta markers):
+   - **ADDED** → add the requirement block(s).
+   - **MODIFIED** → replace the block whose `### Requirement:` name matches exactly.
+   - **REMOVED** → delete the named block (drop its Reason/Migration — those stay in the
+     change).
+   - **RENAMED** → rename the header.
+   Create the spec file from the ADDED requirements if the capability is new. Commit the
+   spec update following the git workflow.
+3. **Finish per strategy:**
+   - **local-merge:** merge the change into the base branch following the project's workflow
+     (e.g. squash), then clean up the branch if the workflow calls for it.
+   - **pull-request:** push the branch and open a pull/merge request; take the title and
+     body from `proposal.md` / `plan.md`.
+   - **no-op:** leave the work as committed; finish without merging or opening a request.
+4. **Record.** Append a finish entry to `progress.md` (format below).
+
+## Boundaries
+
+- Never finish with a dirty tree, failing tests, or an unapproved review — stop and report.
+- Never edit code, or delete or weaken tests, to pass the gate.
+- Never fabricate a merge or a pull request.
+- Ask first: if no finish strategy was given and the project has no default.
+
+## Progress entry
+
+Append to `.hamilton/changes/<change>/progress.md`:
+
+```
+## Finish — <YYYY-MM-DD>
+- Preconditions: tree clean, tests green, review approved
+- Specs synced: <capabilities created/updated>, or none
+- Finished: local-merge into <base> | pull request <url> | no-op
+```
+
+## Output
+
+Either a blocking report naming the precondition that failed (nothing finished), or:
+the specs synced, the finish strategy carried out, and a `progress.md` finish entry.
+
+## Process flow
+
+```dot
+digraph hamilton_finish_work {
+    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" [shape=box];
+    "Passed?" [shape=diamond];
+    "Stop and report blocker" [shape=box];
+    "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
+    "Finish per strategy" [shape=diamond];
+    "local-merge into base" [shape=box];
+    "open pull/merge request" [shape=box];
+    "no-op" [shape=box];
+    "Record finish entry in progress.md" [shape=doublecircle];
+
+    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" -> "Passed?";
+    "Passed?" -> "Stop and report blocker" [label="no"];
+    "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
+    "Sync requirement deltas\ninto .hamilton/specs/" -> "Finish per strategy";
+    "Finish per strategy" -> "local-merge into base";
+    "Finish per strategy" -> "open pull/merge request";
+    "Finish per strategy" -> "no-op";
+    "local-merge into base" -> "Record finish entry in progress.md";
+    "open pull/merge request" -> "Record finish entry in progress.md";
+    "no-op" -> "Record finish entry in progress.md";
+}
+```
