@@ -33,28 +33,15 @@ spec:
         executorRef: setup
         prompt:
           content: |
-            Prepare the environment for test quarantine.
+            Project directory: {{inputs.project_dir}}
 
-            REPO: {{inputs.tasks.setup.outputs.repo}}
-            BRANCH: {{inputs.tasks.setup.outputs.branch}}
-  
-            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            Record the starting point and baseline for test quarantine, following your
+            instructions, then set your task output. Note which tests fail in the baseline —
+            the quarantiner will handle them.
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
             {{retry_feedback}}
-  
-            Instructions:
-            1. cd into the repo
-            2. Read package.json, CI config, test config to understand the build/test setup
-            3. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-            4. Run the build to establish a baseline
-            5. Run the tests to establish a baseline (note which tests fail — the quarantiner will handle them)
-            6. Report what you found
-  
-            Reply with:
-            STATUS: done
-            BUILD_CMD: <build command>
-            TEST_CMD: <test command>
-            CI_NOTES: <brief CI notes>
-            BASELINE: <baseline status including test results>
       on_failure:
         max_retries: 4
         escalate_to: human
@@ -65,35 +52,17 @@ spec:
         executorRef: quarantiner
         prompt:
           content: |
-            Find and disable failing tests until the test suite passes.
+            Project directory: {{inputs.project_dir}}
+            Branch: {{inputs.tasks.setup.outputs.current_branch}}
+            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
 
-            REPO: {{inputs.tasks.setup.outputs.repo}}
-            BRANCH: {{inputs.tasks.setup.outputs.branch}}
-            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
-  
-            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            Find and disable failing tests until the suite passes, following your
+            instructions, then set your task output.
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
             {{retry_feedback}}
-  
-            Instructions:
-            1. cd into the repo and ensure you're on {{inputs.tasks.setup.outputs.branch}}
-            2. Run {{inputs.tasks.setup.outputs.build_cmd}} to confirm the project builds
-            3. Run {{inputs.tasks.setup.outputs.test_cmd}} and parse the output to find failing tests
-            4. If zero failures on first run, run one more time to catch flaky tests
-            5. For each failing test, disable it minimally (.skip, decorator, comment) — never modify or delete test logic
-            6. Run {{inputs.tasks.setup.outputs.test_cmd}} after each batch of changes
-            7. Iterate until all tests pass — then run one final time to confirm stability
-            8. Commit your changes: `chore: quarantine broken tests`. The commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@hamiltonai.dev>`
-  
-            Reply with:
-            STATUS: done
-            DISABLED: <count>
-            FILES_CHANGED: <count>
-            SUMMARY: <what was disabled and why>
-  
-            If unable to achieve clean suite after 5 iterations:
-            STATUS: failed
-            REASON: <why>
         output:
           schema:
             file: schemas/quarantine.json
@@ -107,33 +76,19 @@ spec:
         executorRef: qa-verifier
         prompt:
           content: |
-            Verify the quarantiner's work — confirm all tests pass and only test files were modified.
+            Project directory: {{inputs.project_dir}}
+            Branch: {{inputs.tasks.setup.outputs.current_branch}}
+            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+            Disabled: {{disabled}}
+            Summary: {{summary}}
 
-            REPO: {{inputs.tasks.setup.outputs.repo}}
-            BRANCH: {{inputs.tasks.setup.outputs.branch}}
-            BUILD_CMD: {{inputs.tasks.setup.outputs.build_cmd}}
-            TEST_CMD: {{inputs.tasks.setup.outputs.test_cmd}}
-            DISABLED: {{disabled}}
-            SUMMARY: {{summary}}
-  
-            RETRY FEEDBACK (only present if your previous attempt was rejected — read carefully and fix specifically what it complains about):
+            Verify the quarantiner's work — confirm the suite passes and only test files were
+            disabled — following your instructions, then set your task output.
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
             {{retry_feedback}}
-  
-            Check:
-            1. Run {{inputs.tasks.setup.outputs.build_cmd}} — build must pass
-            2. Run {{inputs.tasks.setup.outputs.test_cmd}} — all tests must pass (exit code 0)
-            3. Run {{inputs.tasks.setup.outputs.test_cmd}} a second time — confirm stability
-            4. Inspect git diff — only test files modified, only skip/disable changes, no application code touched
-            5. Verify each disabled test has an explanatory comment
-  
-            Reply with:
-            STATUS: done
-            VERIFIED: What you confirmed
-  
-            Or if issues found:
-            STATUS: retry
-            ISSUES:
-            - Specific issues
         output:
           schema:
             file: schemas/verify.json

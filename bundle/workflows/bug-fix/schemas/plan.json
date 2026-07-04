@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "required": ["status", "tasks"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "change_id": { "type": "string" },
+    "progress_file": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "title": { "type": "string" },
+          "files": {
+            "type": "object",
+            "properties": {
+              "create": { "type": "array", "items": { "type": "string" } },
+              "modify": { "type": "array", "items": { "type": "string" } },
+              "delete": { "type": "array", "items": { "type": "string" } },
+              "test": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["title", "description"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

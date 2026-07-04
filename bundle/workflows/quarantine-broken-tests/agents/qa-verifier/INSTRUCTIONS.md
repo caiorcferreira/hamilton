@@ -10,7 +10,7 @@ You are the **final quality gate** in an automated quarantine workflow for broke
 
 Your job is to **verify** the quarantiner's work before the workflow reports success. You are the last line of defense — if you approve something broken, the bad code ships. No one else will review these changes after you.
 
-The workspace is at `{{inputs.tasks.setup.outputs.repo}}`. The build command is `{{inputs.tasks.setup.outputs.build_cmd}}` and the test command is `{{inputs.tasks.setup.outputs.test_cmd}}`.
+The workspace is at `{{inputs.project_dir}}`. The build command is `{{inputs.tasks.setup.outputs.build_cmd}}` and the test command is `{{inputs.tasks.setup.outputs.test_cmd}}`.
 
 ## Task
 
@@ -29,7 +29,7 @@ Follow these steps in order. Do not skip any step.
 
 1. **Navigate to the repo**:
    ```
-   cd {{inputs.tasks.setup.outputs.repo}}
+   cd {{inputs.project_dir}}
    ```
 
 2. **Build the project** to confirm it still compiles:

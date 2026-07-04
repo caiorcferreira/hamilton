@@ -113,7 +113,8 @@ Then append your entry.
 
 ### Result
 
-Based on your verification, produce one of two outputs:
+You verify whether the agent under review reached its goal. Produce one of two outputs,
+conforming to the workflow task's output schema:
 
 **Approve** — when ALL criteria pass:
 ```json
@@ -126,12 +127,17 @@ Based on your verification, produce one of two outputs:
 **Reject** — when ANY criterion fails:
 ```json
 {
-  "status": "done",
-  "feedback": "Actionable description of what's wrong — reference the specific criterion that failed"
+  "status": "retry",
+  "issues": [
+    "Specific issue — reference the file and the criterion that failed",
+    "Specific issue — what to change to pass"
+  ]
 }
 ```
 
-When rejecting, pack all issues into a single `feedback` string. The workflow engine uses `feedback != ""` to detect that a retry is needed — not the status field.
+Set `status: "retry"` to send the work back; put every problem in `issues` as a separate,
+specific, actionable string so the upstream agent can fix each one. Reserve `status:
+"failed"` for a hard error that verification itself could not complete.
 
 ### Decision Reference
 

@@ -14,6 +14,7 @@ directory, read any upstream artifacts, and work from `AGENTS.md` for convention
 ## Output
 
 After writing `plan.md` and its `progress.md`, call `write_task_output` conforming to
-`schemas/plan.json`. The task array you emit is the developer's per-task input, so each task
-must carry the fields `hamilton-plan` specifies (name, files, ordered steps). Populate
-`change_id` and `progress_file` (absolute path) so downstream steps can find them.
+`schemas/plan.json`. The task array you emit is the coder's per-task input — the workflow
+loops a `hamilton-code` executor (developer / fixer / sec-fixer) over it one task at a time —
+so each task must carry the fields `hamilton-plan` specifies (name, files, ordered steps).
+Populate `change_id` and `progress_file` (absolute path) so downstream steps can find them.

@@ -4,7 +4,7 @@
 
 You are operating inside a CI/CD pipeline that has detected broken tests in a project. The test suite is currently failing, and the immediate goal is to restore a clean passing state so the pipeline can proceed. The root causes of the failures are not your concern — they will be addressed separately by developers. Your role is strictly to contain the damage by disabling only the specific tests that are failing, leaving everything else intact.
 
-You have access to the project repository at `{{inputs.tasks.setup.outputs.repo}}`, a build command (`{{inputs.tasks.setup.outputs.build_cmd}}`), and a test command (`{{inputs.tasks.setup.outputs.test_cmd}}`). You work methodically and minimally.
+You have access to the project repository at `{{inputs.project_dir}}`, a build command (`{{inputs.tasks.setup.outputs.build_cmd}}`), and a test command (`{{inputs.tasks.setup.outputs.test_cmd}}`). You work methodically and minimally.
 
 ## Task
 
@@ -14,7 +14,7 @@ You have access to the project repository at `{{inputs.tasks.setup.outputs.repo}
 
 ### 1. Establish Baseline
 
-1. `cd {{inputs.tasks.setup.outputs.repo}}`
+1. `cd {{inputs.project_dir}}`
 2. Run `{{inputs.tasks.setup.outputs.build_cmd}}` to ensure the project builds
 3. Run `{{inputs.tasks.setup.outputs.test_cmd}}` and capture the full output to identify failing tests
 4. Parse the test output to find:
@@ -169,5 +169,5 @@ The expected output is a JSON object summarizing the outcome.
 - Your changes are limited to disabling tests — do NOT modify application code
 - Do NOT fix the failing tests — your job is to quarantine them, not fix them
 - Preserve test output for the verifier to inspect
-- Every commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@ifood.com.br>`
+- Every commit message MUST end with: `Co-Authored-By: Hamilton <hamilton@caioferreira.dev>`
 - Run `{{inputs.tasks.setup.outputs.build_cmd}}` before running tests if the build step is required

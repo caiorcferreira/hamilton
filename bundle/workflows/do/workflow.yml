@@ -19,19 +19,8 @@ spec:
         executorRef: doer
         prompt:
           content: |
-            Execute the following task end-to-end.
-
-            Instructions:
-            1. Understand the task completely
-            2. Plan your approach before starting
-            3. Execute the plan step by step
-            4. Verify the result matches the task requirements
-            5. Report what you did
-  
-            Reply with:
-            STATUS: done
-            RESULT: Summary of what was accomplished
-            CHANGES: What files or changes were made
+            Take the task described in this run from start to finish, following your
+            instructions, then set your task output.
         output:
           schema:
             file: schemas/execute.json
