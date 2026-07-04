@@ -10,6 +10,7 @@ in spirit (right-sized), not by conformance.
 | `requirements-spec.md`   | SRS (canonical) | What  | ISO/IEC/IEEE 29148       | hamilton-finish-work |
 | `design.md`              | SDD             | How   | IEEE 1016                | hamilton-propose     |
 | `plan.md`                | Plan            | Steps | — (handoff contract)     | hamilton-plan        |
+| `progress.md`            | Progress        | Log   | — (execution ledger)     | hamilton-code        |
 
 The two SRS forms are the same content in two states: `requirements-change.md` is the
 delta a change proposes; `requirements-spec.md` is the consolidated truth it folds into.
@@ -36,7 +37,11 @@ description. This is what makes "start anywhere" real.
       requirements/                   # optional (SRS, delta form)
         <capability>.md               # requirements-change.md form
       plan.md                         # required
+      progress.md                     # execution ledger — what actually happened
 ```
+
+`plan.md` is authored up front; `progress.md` is written during implementation. Task
+completion lives in `progress.md`, not as a status field on the plan.
 
 `requirements/*.md` inside a change use delta headers (ADDED / MODIFIED / REMOVED /
 RENAMED). `hamilton-finish-work` folds those deltas into the canonical

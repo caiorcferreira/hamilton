@@ -38,7 +38,6 @@
 
 ### Task 1: <imperative title>
 
-- Status: pending            <!-- pending | in-progress | done -->
 - Depends on: none
 - Files:
   - Created: <paths, or none>
@@ -55,7 +54,6 @@
 
 ### Task 2: <imperative title>
 
-- Status: pending
 - Depends on: Task 1
 - Files:
   - Created:
@@ -70,8 +68,9 @@
 
 ## Done when
 
-<!-- Plan-level definition of done — checked by hamilton-finish-work. -->
+<!-- Plan-level definition of done — checked by hamilton-finish-work.
+     Task completion is tracked in progress.md, not on the tasks here. -->
 
-- All tasks are Status: done
+- All tasks implemented (recorded in progress.md)
 - `<test command>` passes; build / typecheck is clean
 - All review feedback has been addressed
