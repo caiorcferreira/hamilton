@@ -10,7 +10,8 @@ in spirit (right-sized), not by conformance.
 | `requirements-spec.md`   | SRS (canonical) | What  | ISO/IEC/IEEE 29148       | hamilton-finish-work |
 | `design.md`              | SDD             | How   | IEEE 1016                | hamilton-propose     |
 | `plan.md`                | Plan            | Steps | — (handoff contract)     | hamilton-plan        |
-| `progress.md`            | Progress        | Log   | — (execution ledger)     | hamilton-code        |
+| `progress.md`            | Progress        | Log      | — (execution ledger)  | hamilton-code        |
+| `review.md`              | Review          | Verdict  | — (review artifact)   | hamilton-review      |
 
 The two SRS forms are the same content in two states: `requirements-change.md` is the
 delta a change proposes; `requirements-spec.md` is the consolidated truth it folds into.
@@ -38,6 +39,7 @@ description. This is what makes "start anywhere" real.
         <capability>.md               # requirements-change.md form
       plan.md                         # required
       progress.md                     # execution ledger — what actually happened
+      review.md                       # review verdict + feedback (per pass)
 ```
 
 `plan.md` is authored up front; `progress.md` is written during implementation. Task
