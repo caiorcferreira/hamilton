@@ -5,3 +5,4 @@ metadata:
 spec:
   settings:
     model: thinking
+    skills: [hamilton-plan]

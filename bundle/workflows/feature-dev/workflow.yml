@@ -2,22 +2,22 @@ apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
   name: feature-dev
-  version: 6
+  version: 7
   description: |
-    Plan, implement, test, and verify features story-by-story in a local-only pipeline.
-    Story-based execution pipeline for local-only repos. Planner decomposes tasks
-    into user stories. Setup prepares the environment and establishes baseline.
-    Developer implements each story (with tests) in a fresh session. Verifier
-    checks each story. Then integration/E2E testing.
+    Plan, implement, test, and review a change task-by-task in a local-only pipeline.
+    The planner decomposes the change into TDD-sized tasks. Setup prepares the environment
+    and records a baseline. For each task the developer implements it (with tests) in a
+    fresh session and the tester validates integration. Once every task is done, the
+    reviewer judges the whole change as a single quality gate.
 spec:
   run:
     entrypoint: plan
     timeout: 300s
     max_recursion_depth: 3
-  
+
   variants:
     supported: [branchout, merge, worktree, github_pr]
-  
+
   tasks:
     - name: plan
       dependencies: []
@@ -25,54 +25,41 @@ spec:
         executorRef: planner
         prompt:
           content: |
-            ## Goal
-            Decompose the input specification into ordered tasks for autonomous execution.
-
-            ## Context
             Project directory: {{inputs.project_dir}}
 
-            ## Instructions
-            1. Explore the codebase to understand the stack, conventions, and patterns
-            2. Break the specification into tasks (maximun 20)
-            3. Order by dependency: schema/DB first, backend, frontend, integration
-            4. Each task must fit in one developer agent session (one context window)
-            5. Every acceptance criterion must be mechanically verifiable
-            6. Always include "typecheck passes"/"project compile" as the last criterion in every task
-            7. Every task MUST include test criteria — "Tests for [feature] pass"
-            8. The developer is expected to write tests as part of each task
-            9. Write the plan file, progress file, then set the task output
+            Decompose the change for this project into an ordered plan of TDD-sized tasks,
+            following your instructions and the `hamilton-plan` skill. Then set your task
+            output.
         output:
           schema:
             file: schemas/plan.json
       on_failure:
         max_retries: 4
         escalate_to: human
-  
+
     - name: setup
       dependencies: [plan]
       agent:
         executorRef: setup
         prompt:
           content: |
-            ## Goal
-            Prepare the development environment for this feature.
+            Project directory: {{inputs.project_dir}}
 
-            ## Instructions
-            1. Run the command: cd {{inputs.project_dir}}
-            2. Run the command to learn the current branch: git branch --show-current
-            3. Read package.json, CI config, test config, AGENTS.md to understand the build/test setup and commands
-            4. Ensure .gitignore exists — if missing, create one appropriate for the detected stack (must include .env, node_modules/, *.key, *.pem at minimum)
-            5. Run the build to establish a baseline
-            6. Run the tests to establish a baseline
-            7. Compile a baseline report
-  
+            Record the starting point and baseline, following your instructions. This is a
+            local-only pipeline: work on the current branch — the variant owns branching, so
+            do not create or switch branches. Capture `current_branch` and the
+            `baseline_sha` (`git rev-parse HEAD`) before any work happens — the reviewer
+            diffs against that SHA.
+
             ## Output
-            Set your output with:
-            `{"status": "done", "current_branch": "<current-branch>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
+            `{"status": "done", "current_branch": "<current-branch>", "baseline_sha": "<HEAD sha>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
+        output:
+          schema:
+            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
-   
+
     - name: applyPlan
       dependencies: [setup]
       template: implementTask
@@ -82,6 +69,45 @@ spec:
             ref: inputs.tasks.plan.outputs.tasks
           as: current_task
 
+    - name: review
+      dependencies: [applyPlan]
+      agent:
+        executorRef: reviewer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Change progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+            Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+
+            Every task in the plan has been implemented and integration-tested. Review the
+            whole change as one quality gate, following your instructions and the
+            `hamilton-review` skill. The change's diff is
+            `git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`; judge it against
+            the plan and project standards, write `review.md`, and set your task output.
+        output:
+          schema:
+            file: schemas/review.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    # When the change-level review requests changes, re-run the implementation template
+    # with the review feedback in place of a plan task — the developer addresses it and the
+    # tester re-validates. hamilton-finish-work's gate (review approved) is the backstop.
+    - name: reworkIfNeeded
+      dependencies: [review]
+      template: implementTask
+      when: 'inputs.tasks.review.outputs.verdict == "changes-requested"'
+      arguments:
+        parameters:
+        - name: validation_feedback
+          valueFrom:
+            ref: inputs.tasks.review.outputs.summary
+        - name: review_file
+          valueFrom:
+            ref: inputs.tasks.review.outputs.review_file
+
     - name: implementTask
       tasks:
         - name: code
@@ -89,39 +115,28 @@ spec:
             executorRef: developer
             prompt:
               content: |
-                ## Goal
-                Implement the code for following task. You are working on ONE task in a fresh session.
-
-                ## Context
                 Repository: {{inputs.project_dir}}
                 Branch: {{inputs.tasks.setup.outputs.current_branch}}
                 Build command: {{inputs.tasks.setup.outputs.build_cmd}}
                 Test command: {{inputs.tasks.setup.outputs.test_cmd}}
-      
-                Current task:
+                Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+                Following your instructions and the `hamilton-code` skill, then set your
+                task output.
+
+                {{#if inputs.parameters.current_task}}
+                Implement exactly this one task:
                 {{inputs.parameters.current_task}}
-
+                {{/if}}
                 {{#if inputs.parameters.validation_feedback}}
-                ## Retry
+                The reviewer requested changes on this change. Treat the review's blocking
+                items as the work to do — fix them, verify, and commit. Do not take on
+                anything the review did not ask for.
 
-                ### Validation feedback
+                Review file: {{inputs.parameters.review_file}}
+                Review feedback:
                 {{inputs.parameters.validation_feedback}}
                 {{/if}}
-      
-                ## Instructions
-                1. Read {{inputs.progress_file}} — especially the Codebase Patterns section
-                2. Pull latest on the branch
-                3. Implement this task only
-                4. Write tests for this task's functionality
-                5. Run typecheck / build
-                6. Run tests to confirm they pass
-                7. Commit: "feat: {{inputs.parameters.current_task.name}}"
-                8. Rewrite {{inputs.progress_file}} with updated story results and patterns
-                9. Update Codebase Patterns if you found reusable patterns
-      
-                ## Output
-                Set your output with:
-                `{"status": "done", "changes": "<what you implemented>", "tests": "<what tests you wrote"}`
             output:
               schema:
                 file: schemas/code.json
@@ -135,85 +150,24 @@ spec:
             executorRef: tester
             prompt:
               content: |
-                ## Goal
-                Review unit tests and write integration/E2E tests for the implementation.
+                Repository: {{inputs.project_dir}}
+                Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
 
-                ## Task
+                Following your instructions, validate the work and set your task output.
+
+                {{#if inputs.parameters.current_task}}
+                The developer implemented this task with unit tests. Confirm it integrates
+                with the rest of the feature:
                 {{inputs.parameters.current_task}}
-
-                ## Setup
-                Build command: `{{inputs.tasks.setup.outputs.build_cmd}}`
-                Test command: `{{inputs.tasks.setup.outputs.test_cmd}}`
-      
-                ## Instructions
-                Your job is:
-                1. Run the full test suite ({{inputs.tasks.setup.outputs.test_cmd}}) to confirm everything passes together
-                2. Look for integration issues between stories
-                3. If this is a UI feature, use agent-browser to test it end-to-end
-                4. Check cross-cutting concerns: error handling, edge cases across features
-                5. Verify the overall feature works as a cohesive whole
-
-                ## Output
-                If successful, set your output with:
-                `{"status": "done", "results": "<summary of tests created, modified and executed>"}`
-
-                Or, if issues found set your output with:
-                `{"status": "retry", "failures": "specific test failures or bugs found"}`
+                {{/if}}
+                {{#if inputs.parameters.validation_feedback}}
+                The developer just addressed reviewer feedback. Confirm the change still
+                integrates and the full suite passes after the fix.
+                {{/if}}
             output:
               schema:
                 file: schemas/test.json
           on_failure:
             max_retries: 4
             escalate_to: human
-
-        - name: verifyImplementation
-          dependencies: [test]
-          agent:
-            executorRef: verifier
-            prompt:
-              content: |
-                ## Goal
-                Verify the developer's work on this story.
-
-                ## Context
-                Repository: {{inputs.tasks.plan.outputs.repo}}
-                Branch: {{inputs.tasks.setup.outputs.current_branch}}
-                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
-      
-                Current Task:
-                {{inputs.parameters.current_task}}
-
-                ## Instructions      
-                Make the following checks:
-                1. Code exists (not just TODOs or placeholders)
-                2. Each acceptance criterion for the story is met
-                3. Tests were written for this story's functionality
-                4. Tests pass (run {{inputs.tasks.setup.outputs.test_cmd}})
-                5. No obvious incomplete work
-                6. Typecheck passes
-      
-
-                ## Output
-                If successful, set your output with:
-                `{"status": "done", "verified": "<what you confirmed>"}`
-
-                Or, if issues found set your output with:
-                `{"status": "done", "feedback": "<What's missing or incomplete>"}`
-          on_failure:
-            max_retries: 4
-            escalate_to: human
-
-        - name: applyVerificationFeedback
-          dependencies: [verifyImplementation]
-          template: implementTask
-          when: 'inputs.currentIteration.tasks.verifyImplementation.outputs.feedback != ""'
-          arguments:
-            parameters:
-            - name: current_task
-              valueFrom:
-                ref: inputs.parameters.current_task
-            - name: validation_feedback
-              valueFrom:
-                ref: inputs.currentIteration.tasks.verifyImplementation.outputs.feedback
-
-      
