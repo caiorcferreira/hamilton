@@ -16,6 +16,7 @@
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
 - [X] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
+- [ ] Make the Git commit co-author footer configurable via `~/.hamilton/config.yaml` (e.g. `git.co_author: "Hamilton <hamilton@caioferreira.dev>"`), injected into agents that commit instead of being hardcoded in each agent's INSTRUCTIONS. Currently hardcoded to `hamilton@caioferreira.dev` across fixer / sec-fixer / quarantiner.
 
 ### Extensions & Integrations
 - [ ] Refactor repo into multiple packages to expose pi extensions
