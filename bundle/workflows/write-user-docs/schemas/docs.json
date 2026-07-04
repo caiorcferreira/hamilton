@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "files": { "type": "array", "items": { "type": "string" } },
+    "summary": { "type": "string" }
+  }
+}

@@ -1,7 +1,7 @@
 apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
-  name: bug-fix
+  name: bugfix
   version: 3
   description: |
     Triage, investigate, plan, and fix a bug with automated verification — no merge.
@@ -105,10 +105,10 @@ spec:
             ref: inputs.tasks.plan.outputs.tasks
           as: current_task
 
-    - name: verify
+    - name: review
       dependencies: [applyPlan]
       agent:
-        executorRef: verifier
+        executorRef: reviewer
         prompt:
           content: |
             Project directory: {{inputs.project_dir}}
@@ -117,15 +117,16 @@ spec:
             Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
             Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
 
-            All planned tasks are implemented. Verify the whole bug fix
-            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`), following your
-            instructions, then set your task output. Beyond your standard checks, confirm:
+            All planned tasks are implemented. Review the whole bug fix
+            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality
+            gate, following your instructions and the `hamilton-review` skill; write
+            `review.md` and set your task output. Beyond your standard checks, confirm:
             - A regression test targets the specific bug scenario and would fail if the fix
               were reverted — not a generic test.
             - The fix is minimal and addresses the ROOT CAUSE, not just a symptom.
         output:
           schema:
-            file: schemas/verify.json
+            file: schemas/review.json
       on_failure:
         max_retries: 6
         escalate_to: human

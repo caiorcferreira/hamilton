@@ -1,0 +1,7 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Agent
+metadata:
+  name: user-docs-writer
+spec:
+  settings:
+    model: default

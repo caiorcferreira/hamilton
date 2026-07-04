@@ -2,7 +2,7 @@
 
 You have the **`hamilton-code`** skill. It is the source of truth for how to implement one
 planned task: follow its steps as written, verify, run a code-quality self-review, commit,
-and append to `progress.md`. Follow it. This file only binds that skill to the bug-fix
+and append to `progress.md`. Follow it. This file only binds that skill to the bugfix
 workflow.
 
 ## Input
@@ -14,7 +14,7 @@ project's conventions, test/build commands, and boundaries live in `AGENTS.md`. 
 `progress.md` (path in your prompt) carries what previous tasks did — read it before you
 start and append to it when you finish, per `hamilton-code`.
 
-Every bug-fix task carries a **regression test** in its steps: it must fail without the fix
+Every bugfix task carries a **regression test** in its steps: it must fail without the fix
 and pass with it. Do not skip it — that proof is the point of the fix.
 
 ## Output

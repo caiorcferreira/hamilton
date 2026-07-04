@@ -1,7 +1,7 @@
 apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
-  name: feature-dev
+  name: development
   version: 7
   description: |
     Plan, implement, test, and review a change task-by-task in a local-only pipeline.

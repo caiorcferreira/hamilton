@@ -1,0 +1,35 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: code-review
+  version: 1
+  description: |
+    Review the code changes on the current branch and return a verdict with located,
+    actionable feedback. A single quality-gate pass built on the shared reviewer — it judges
+    only and never edits code. Use it to review a change before merge, on demand.
+spec:
+  run:
+    entrypoint: review
+    timeout: 300s
+
+  tasks:
+    - name: review
+      dependencies: []
+      agent:
+        executorRef: reviewer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Review the code changes on the current branch, following your instructions and the
+            `hamilton-review` skill. Determine the diff to review from the repository — the
+            branch's changes against its base (e.g. the default branch or the fork point). If a
+            `plan.md` / `design.md` / `requirements/` for this change exists under
+            `.hamilton/`, judge against them; otherwise judge against the project's standards
+            in `AGENTS.md`. Write `review.md` and set your task output.
+        output:
+          schema:
+            file: schemas/review.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human

@@ -1,0 +1,117 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: increase-test-coverage
+  version: 1
+  description: |
+    Raise a project's test coverage. Setup records the baseline. The planner measures
+    coverage, finds the lowest-covered areas, and decomposes the work into small,
+    independently verifiable test-adding tasks. A test-writer implements each task in a loop
+    (via hamilton-code). The reviewer judges the added tests as one quality gate. Local-only,
+    no merge.
+spec:
+  run:
+    entrypoint: setup
+    timeout: 300s
+    max_recursion_depth: 3
+
+  variants:
+    supported: [branchout, merge, worktree]
+
+  tasks:
+    - name: setup
+      dependencies: []
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Record the starting point and baseline (including how tests and coverage are run)
+            for a test-coverage effort, following your instructions, then set your task output.
+        output:
+          schema:
+            file: schemas/setup.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: plan
+      dependencies: [setup]
+      agent:
+        executorRef: planner
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+
+            Measure current coverage (read-only) and identify the lowest-covered, highest-value
+            areas. Decompose the work to raise coverage into small, independently verifiable
+            tasks — each adds meaningful tests for one unit and states the behavior it now
+            covers — following your instructions and the `hamilton-plan` skill, then set your
+            task output. Do not change production code; tasks add tests only.
+        output:
+          schema:
+            file: schemas/plan.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: applyPlan
+      dependencies: [plan]
+      template: coverTask
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.plan.outputs.tasks
+          as: current_task
+
+    - name: review
+      dependencies: [applyPlan]
+      agent:
+        executorRef: reviewer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+            Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
+            Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+            All planned test-adding tasks are implemented. Review the whole change
+            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality gate,
+            following your instructions and the `hamilton-review` skill; write `review.md` and
+            set your task output. Beyond your standard checks, confirm:
+            - The new tests assert real behavior and would fail if that behavior regressed —
+              not trivial or tautological tests written only to move the coverage number.
+            - No production code was changed to make coverage easier.
+        output:
+          schema:
+            file: schemas/review.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: coverTask
+      tasks:
+        - name: cover
+          agent:
+            executorRef: test-writer
+            prompt:
+              content: |
+                Repository: {{inputs.project_dir}}
+                Branch: {{inputs.tasks.setup.outputs.current_branch}}
+                Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+                Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+                Implement exactly this one test-adding task, following your instructions and
+                the `hamilton-code` skill, then set your task output.
+
+                Current task:
+                {{inputs.parameters.current_task}}
+            output:
+              schema:
+                file: schemas/code.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human

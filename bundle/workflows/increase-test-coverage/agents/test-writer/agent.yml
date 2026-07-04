@@ -1,0 +1,8 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Agent
+metadata:
+  name: test-writer
+spec:
+  settings:
+    model: default
+    skills: [hamilton-code]

@@ -1,0 +1,56 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: write-user-docs
+  version: 1
+  description: |
+    Generate or update user-facing documentation from the codebase. The docs-writer explores
+    the project, identifies the user-facing features and workflows, and writes clear docs with
+    runnable examples. The verifier confirms the docs are accurate, complete against the stated
+    scope, and that the examples actually work.
+spec:
+  run:
+    entrypoint: draft
+    timeout: 600s
+
+  tasks:
+    - name: draft
+      dependencies: []
+      agent:
+        executorRef: user-docs-writer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Write or update the user-facing documentation described in this run, following your
+            instructions, then set your task output. Work from what the code actually does, and
+            make every example one a reader could run.
+        output:
+          schema:
+            file: schemas/docs.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human
+
+    - name: verify
+      dependencies: [draft]
+      agent:
+        executorRef: verifier
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Documents written: {{inputs.tasks.draft.outputs.files}}
+
+            Goal: the user docs accurately describe the software's user-facing features and
+            usage, cover the scope requested in this run, and their examples are correct.
+            Verify this against the actual documents and the code they describe, following your
+            instructions, then set your task output. Confirm specifically:
+            - Every documented command / API / step matches how the software actually behaves.
+            - Example commands and code snippets are runnable (no invented flags or endpoints).
+            - Setup/prerequisite instructions are complete enough for a new user to follow.
+        output:
+          schema:
+            file: schemas/verify.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human

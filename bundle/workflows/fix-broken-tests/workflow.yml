@@ -1,7 +1,7 @@
 apiVersion: dag.hamiltonai.dev/v1alpha1
 kind: Workflow
 metadata:
-  name: quarantine-broken-tests
+  name: fix-broken-tests
   version: 2
   description: |
     Detect failing tests, disable them minimally, and iterate until the full
@@ -16,7 +16,7 @@ metadata:
     files were modified.
   
     This is a local-only pipeline — no merge, no PR. Use
-    quarantine-broken-tests-merge to squash-merge the quarantined results back
+    fix-broken-tests-merge to squash-merge the quarantined results back
     into the original branch.
 spec:
   run:
@@ -70,28 +70,35 @@ spec:
         max_retries: 4
         escalate_to: human
   
-    - name: verify
+    - name: review
       dependencies: [quarantine]
       agent:
-        executorRef: qa-verifier
+        executorRef: reviewer
         prompt:
           content: |
             Project directory: {{inputs.project_dir}}
             Branch: {{inputs.tasks.setup.outputs.current_branch}}
             Build command: {{inputs.tasks.setup.outputs.build_cmd}}
             Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+            Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
             Disabled: {{disabled}}
             Summary: {{summary}}
 
-            Verify the quarantiner's work — confirm the suite passes and only test files were
-            disabled — following your instructions, then set your task output.
+            Review the quarantiner's diff
+            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality
+            gate, following your instructions and the `hamilton-review` skill; write
+            `review.md` and set your task output. There is no plan.md — the intended change is
+            deliberately narrow: only test files may be touched, and only to disable failing
+            tests (`.skip`/decorator/comment), each with an explanatory comment, and the suite
+            must pass. Flag any application-code change, deleted test, or altered assertion as
+            blocking (changes-requested).
 
             RETRY FEEDBACK (only present if your previous attempt was rejected — read
             carefully and fix specifically what it complains about):
             {{retry_feedback}}
         output:
           schema:
-            file: schemas/verify.json
+            file: schemas/review.json
       on_failure:
         max_retries: 4
         escalate_to: human

@@ -1,0 +1,57 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: write-release-docs
+  version: 1
+  description: |
+    Draft release notes / changelog entries from the changes since the last release. The
+    release-writer gathers the commits (and any merged work) since the previous tag, groups
+    them for a reader, and writes user-relevant notes that call out new features, fixes, and
+    breaking changes. The verifier confirms the notes match what actually changed.
+spec:
+  run:
+    entrypoint: draft
+    timeout: 600s
+
+  tasks:
+    - name: draft
+      dependencies: []
+      agent:
+        executorRef: release-writer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Draft the release notes for the changes since the last release (or the range this
+            run specifies), following your instructions, then set your task output. Group by
+            what matters to a user and call out anything breaking.
+        output:
+          schema:
+            file: schemas/notes.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human
+
+    - name: verify
+      dependencies: [draft]
+      agent:
+        executorRef: verifier
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Notes written: {{inputs.tasks.draft.outputs.files}}
+            Range: {{inputs.tasks.draft.outputs.range}}
+
+            Goal: the release notes faithfully and completely describe the changes in the range
+            they cover. Verify this against the actual commit history and diffs, following your
+            instructions, then set your task output. Confirm specifically:
+            - Every notable change in the range is represented (no significant feature or fix
+              silently dropped).
+            - Nothing is claimed that the diffs do not support (no invented entries).
+            - Breaking changes are explicitly flagged.
+        output:
+          schema:
+            file: schemas/verify.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human

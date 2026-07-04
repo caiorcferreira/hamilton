@@ -106,10 +106,10 @@ spec:
             ref: inputs.tasks.plan.outputs.tasks
           as: current_task
 
-    - name: verify
+    - name: review
       dependencies: [applyPlan]
       agent:
-        executorRef: verifier
+        executorRef: reviewer
         prompt:
           content: |
             Project directory: {{inputs.project_dir}}
@@ -118,11 +118,12 @@ spec:
             Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
             Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
 
-            All planned security fixes are implemented. Verify the whole change
-            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`), following your
-            instructions, then set your task output. Beyond your standard checks, think about
+            All planned security fixes are implemented. Review the whole change
+            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality
+            gate, following your instructions and the `hamilton-review` skill; write
+            `review.md` and set your task output. Beyond your standard checks, think about
             bypass scenarios — a fix that blocks only one payload variant is insufficient
-            (retry):
+            (changes-requested):
             - SQL injection: all query patterns, not just the one found?
             - XSS: all output contexts (HTML, attributes, JS, URLs)?
             - Path traversal: URL-encoded sequences (%2e%2e), null bytes?
@@ -130,13 +131,13 @@ spec:
             - CSRF: token validated server-side?
         output:
           schema:
-            file: schemas/verify.json
+            file: schemas/review.json
       on_failure:
         max_retries: 6
         escalate_to: human
 
     - name: test
-      dependencies: [verify]
+      dependencies: [review]
       agent:
         executorRef: sec-tester
         prompt:

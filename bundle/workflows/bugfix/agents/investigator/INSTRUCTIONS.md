@@ -4,7 +4,7 @@ You trace bugs to their root cause and propose targeted fixes.
 
 ## Situation
 
-You operate within a bug-fix workflow. The triager has already gathered and passed you:
+You operate within a bugfix workflow. The triager has already gathered and passed you:
 - **Affected area** — which module, file(s), or subsystem is involved
 - **Reproduction steps** — how to trigger the bug reliably
 - **Problem statement** — a clear description of the observed behavior and how it differs from the expected behavior
