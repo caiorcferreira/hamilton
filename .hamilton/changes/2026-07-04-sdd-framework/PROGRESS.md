@@ -4,6 +4,62 @@ Working ledger for building Hamilton's spec-driven-development framework (skills
 artifacts). We are dogfooding: this change folder is itself the framework's first
 change.
 
+---
+
+## Current state (top of ledger — read this first)
+
+This section is the consolidated, accurate picture. Everything below it is the **historical,
+append-only ledger** and may use pre-rename workflow names (`feature-dev`, `bug-fix`,
+`quarantine-broken-tests`) or describe intermediate states (e.g. a workflow-local `reviewer`)
+that this section supersedes.
+
+**Skills** (`skills/hamilton-*`): init, propose, plan, code, review, finish-work — the
+tool-agnostic source of truth for each pipeline step.
+
+**Shared agents** (`bundle/agents/`): `setup` (variant-agnostic baseline: `current_branch`,
+`baseline_sha`, build/test/ci), `planner` (→`hamilton-plan`), `reviewer` (→`hamilton-review`),
+`verifier` (general-purpose goal-verifier, NOT tied to code/SDD; unified output
+`{status: done|retry|failed, verified, issues[]}`), plus `pr`, `do`.
+
+**Workflows** (`bundle/workflows/`):
+
+| Workflow | Shape |
+|----------|-------|
+| `development` (was feature-dev) | plan → setup → applyPlan(forEach: code→test) → review → reworkIfNeeded (reuses implementTask) |
+| `bugfix` (was bug-fix) | triage → investigate → setup → plan → applyPlan(forEach: fix via hamilton-code) → review |
+| `security-audit` | scan → prioritize → setup → plan → applyPlan(forEach: fix-story via hamilton-code) → review → test |
+| `fix-broken-tests` (was quarantine-broken-tests) | setup → quarantine → review |
+| `scaffold` | scaffold → verify (general verifier) |
+| `do` | single doer |
+| `code-review` (new) | reviewer + codebase-wide TODO/FIXME scan |
+| `increase-test-coverage` (new) | setup → plan → applyPlan(forEach: cover via hamilton-code) → review |
+| `write-user-docs` (new) | draft (Diátaxis + coverage map) → verify |
+| `write-release-docs` (new) | draft (sell-test + doc-drift) → verify |
+
+**Skill bindings** (`agent.yml skills:`): planner→hamilton-plan; developer / fixer / sec-fixer
+/ test-writer→hamilton-code; reviewer→hamilton-review.
+
+**Resolved decisions:** co-author email → `hamilton@caioferreira.dev` (+ TODO to make it
+config-driven); `verifier` kept general (NOT bound to hamilton-review) with a unified schema;
+`fixer`/`sec-fixer` bound to hamilton-code behind a plan step + fix loop; `planner` and
+`reviewer` promoted to shared; the three code workflows' review gate uses the shared `reviewer`.
+
+**Live open items:**
+- Wire `hamilton setup` to install `bundle/templates/` + the shared agents.
+- Reconcile external `src/` + `tests/` references to the renamed workflows (engine/test code
+  still names `feature-dev`, etc. — not changed here).
+- Bare-ref convention ([B2]/[S2]) — are `{{severity}}`-style refs valid engine aliases?
+- Decide `qa-verifier`'s fate ([N1]) — now unused after fix-broken-tests moved to `reviewer`.
+- Whether `bugfix`/`security-audit` want a review→fix retry loop like `development`'s.
+- Legacy spec systems (`openspec/`, `.superpowers/`) consolidation; `hamilton-finish-work`
+  spec-sync; end-to-end dogfood run.
+
+**Housekeeping leftovers** (sandbox mount blocks `rmdir`): `bundle/.trash/planner_emptied`,
+unused `fix-broken-tests/agents/qa-verifier/`, unused `schemas/verify.json` in
+bugfix/security-audit/fix-broken-tests. Delete when convenient (empty dirs aren't git-tracked).
+
+---
+
 ## Core principles
 
 - **Skills are the single source of truth** for how to do each step, and are
