@@ -33,7 +33,7 @@ Execute these steps in order, stopping early only if a step produces a hard fail
 
 ## Progress
 
-After completing your work, you MUST append a progress entry to `{{inputs.change_dir}}/progress.md`:
+After completing your work, you MUST append a progress entry to the change's progress ledger (`{{inputs.tasks.plan.outputs.progress_file}}`):
 
 ```markdown
 ## <iso-timestamp> — sec-tester (<model-used>)

@@ -4,4 +4,4 @@ metadata:
   name: scaffolder
 spec:
   settings:
-    model: default
+    model: fast

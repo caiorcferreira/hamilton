@@ -4,11 +4,12 @@ metadata:
   name: bugfix
   version: 3
   description: |
-    Triage, investigate, plan, and fix a bug with automated verification — no merge.
+    Triage, investigate, plan, and fix a bug with an automated review gate — no merge.
     Triager reproduces and classifies the report. Investigator traces the root cause and
     proposes a fix approach. Setup records the baseline. Planner decomposes the fix into
-    small, TDD-sized tasks. The fixer implements each task in a loop (via hamilton-code).
-    The verifier confirms the whole fix reached its goal. No merge step.
+    small, TDD-sized tasks. The coder implements each task in a loop (via hamilton-code).
+    The reviewer judges the whole fix as one quality gate; if it requests changes, the coder
+    reworks once, and hamilton-finish-work's approved-review gate is the backstop. No merge step.
 spec:
   run:
     entrypoint: triage
@@ -67,9 +68,6 @@ spec:
 
             Record the starting point and baseline for the bugfix, following your
             instructions, then set your task output.
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
@@ -131,11 +129,27 @@ spec:
         max_retries: 6
         escalate_to: human
 
+    # When the change-level review requests changes, re-run the fix template with the review
+    # feedback in place of a plan task — the coder addresses it. This is a single rework pass;
+    # hamilton-finish-work's gate (review approved) is the backstop.
+    - name: reworkIfNeeded
+      dependencies: [review]
+      template: fixTask
+      when: 'inputs.tasks.review.outputs.verdict == "changes-requested"'
+      arguments:
+        parameters:
+        - name: validation_feedback
+          valueFrom:
+            ref: inputs.tasks.review.outputs.summary
+        - name: review_file
+          valueFrom:
+            ref: inputs.tasks.review.outputs.review_file
+
     - name: fixTask
       tasks:
         - name: fix
           agent:
-            executorRef: fixer
+            executorRef: coder
             prompt:
               content: |
                 Repository: {{inputs.project_dir}}
@@ -144,14 +158,22 @@ spec:
                 Test command: {{inputs.tasks.setup.outputs.test_cmd}}
                 Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
 
-                Implement exactly this one task — including its regression test — following
-                your instructions and the `hamilton-code` skill, then set your task output.
+                Following your instructions and the `hamilton-code` skill, then set your task
+                output.
 
-                Current task:
+                {{#if inputs.parameters.current_task}}
+                Implement exactly this one task — including its regression test:
                 {{inputs.parameters.current_task}}
-            output:
-              schema:
-                file: schemas/fix.json
+                {{/if}}
+                {{#if inputs.parameters.validation_feedback}}
+                The reviewer requested changes on this bug fix. Treat the review's blocking
+                items as the work to do — fix them, verify, and commit. Do not take on anything
+                the review did not ask for.
+
+                Review file: {{inputs.parameters.review_file}}
+                Review feedback:
+                {{inputs.parameters.validation_feedback}}
+                {{/if}}
           on_failure:
             max_retries: 4
             escalate_to: human

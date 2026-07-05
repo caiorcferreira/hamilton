@@ -7,9 +7,9 @@ metadata:
     Scan, prioritize, plan, and fix security vulnerabilities with automated verification in
     a local-only pipeline. Scanner explores the codebase for vulnerabilities. Prioritizer
     ranks and groups findings. Setup records the baseline. Planner turns the prioritized
-    findings into small, TDD-sized fix tasks. The sec-fixer implements each task in a loop
-    (via hamilton-code). The verifier confirms the fixes reached their goal. The tester runs
-    final integration validation.
+    findings into small, TDD-sized fix tasks. The coder implements each task in a loop
+    (via hamilton-code). The reviewer judges the fixes as one quality gate, then the sec-tester
+    runs final integration validation.
 
     Stops after testing — does NOT create a pull request. Use this workflow for local-only or
     non-GitHub repos; for the PR-creating variant use `security-audit-github-pr`.
@@ -69,9 +69,6 @@ spec:
 
             Record the starting point and baseline for the security fixes, following your
             instructions, then set your task output.
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
@@ -151,16 +148,6 @@ spec:
             Run final integration testing after all security fixes, following your
             instructions, then set your task output. Re-run the dependency audit and compare
             before/after, and confirm no regressions from the fixes.
-
-            Reply with:
-            STATUS: done
-            RESULTS: test outcomes
-            AUDIT_AFTER: remaining audit issues if any
-
-            Or if issues found:
-            STATUS: retry
-            FAILURES:
-            - What's broken
         output:
           schema:
             file: schemas/test.json
@@ -172,7 +159,7 @@ spec:
       tasks:
         - name: fix-story
           agent:
-            executorRef: sec-fixer
+            executorRef: coder
             prompt:
               content: |
                 Repository: {{inputs.project_dir}}
@@ -187,9 +174,6 @@ spec:
 
                 Current task:
                 {{inputs.parameters.current_task}}
-            output:
-              schema:
-                file: schemas/fix-story.json
           on_failure:
             max_retries: 4
             escalate_to: human

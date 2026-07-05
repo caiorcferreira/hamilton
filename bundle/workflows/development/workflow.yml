@@ -53,9 +53,6 @@ spec:
 
             ## Output
             `{"status": "done", "current_branch": "<current-branch>", "baseline_sha": "<HEAD sha>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
@@ -112,7 +109,7 @@ spec:
       tasks:
         - name: code
           agent:
-            executorRef: developer
+            executorRef: coder
             prompt:
               content: |
                 Repository: {{inputs.project_dir}}
@@ -137,9 +134,6 @@ spec:
                 Review feedback:
                 {{inputs.parameters.validation_feedback}}
                 {{/if}}
-            output:
-              schema:
-                file: schemas/code.json
           on_failure:
             max_retries: 4
             escalate_to: human

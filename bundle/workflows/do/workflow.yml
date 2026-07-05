@@ -16,7 +16,7 @@ spec:
     - name: execute
       dependencies: []
       agent:
-        executorRef: doer
+        executorRef: do
         prompt:
           content: |
             Take the task described in this run from start to finish, following your

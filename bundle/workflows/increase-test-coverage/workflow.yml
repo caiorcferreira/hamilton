@@ -29,9 +29,6 @@ spec:
 
             Record the starting point and baseline (including how tests and coverage are run)
             for a test-coverage effort, following your instructions, then set your task output.
-        output:
-          schema:
-            file: schemas/setup.json
       on_failure:
         max_retries: 4
         escalate_to: human
@@ -91,11 +88,27 @@ spec:
         max_retries: 4
         escalate_to: human
 
+    # When the change-level review requests changes, re-run the cover template with the review
+    # feedback in place of a plan task — the coder addresses it. This is a single rework pass;
+    # hamilton-finish-work's gate (review approved) is the backstop.
+    - name: reworkIfNeeded
+      dependencies: [review]
+      template: coverTask
+      when: 'inputs.tasks.review.outputs.verdict == "changes-requested"'
+      arguments:
+        parameters:
+        - name: validation_feedback
+          valueFrom:
+            ref: inputs.tasks.review.outputs.summary
+        - name: review_file
+          valueFrom:
+            ref: inputs.tasks.review.outputs.review_file
+
     - name: coverTask
       tasks:
         - name: cover
           agent:
-            executorRef: test-writer
+            executorRef: coder
             prompt:
               content: |
                 Repository: {{inputs.project_dir}}
@@ -104,14 +117,22 @@ spec:
                 Test command: {{inputs.tasks.setup.outputs.test_cmd}}
                 Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
 
-                Implement exactly this one test-adding task, following your instructions and
-                the `hamilton-code` skill, then set your task output.
+                Following your instructions and the `hamilton-code` skill, then set your task
+                output.
 
-                Current task:
+                {{#if inputs.parameters.current_task}}
+                Implement exactly this one test-adding task:
                 {{inputs.parameters.current_task}}
-            output:
-              schema:
-                file: schemas/code.json
+                {{/if}}
+                {{#if inputs.parameters.validation_feedback}}
+                The reviewer requested changes on the added tests. Treat the review's blocking
+                items as the work to do — fix them, verify, and commit. Do not take on anything
+                the review did not ask for.
+
+                Review file: {{inputs.parameters.review_file}}
+                Review feedback:
+                {{inputs.parameters.validation_feedback}}
+                {{/if}}
           on_failure:
             max_retries: 4
             escalate_to: human
