@@ -4,6 +4,7 @@
   "properties": {
     "status": { "type": "string", "enum": ["done", "failed"] },
     "files": { "type": "array", "items": { "type": "string" } },
+    "coverage_map": { "type": "string" },
     "summary": { "type": "string" }
   }
 }

@@ -511,6 +511,27 @@ and `tests/` and reconcile before relying on the renamed workflows.
   binding with a test-only persona. If more workflows need a coder, consider one shared
   `developer` rather than per-workflow copies.
 
+## Workflow prompt improvements from external references (2026-07-04, cont.)
+
+Extracted ideas (not copied) and applied:
+
+- **`write-user-docs`** (ex gstack `document-generate`): adopt the **Diátaxis** four-type model
+  (tutorial / how-to / reference / explanation), research-first, and a **coverage map** that
+  surfaces which types exist vs. are missing. Added `coverage_map` to `docs.json` and the
+  verify checks.
+- **`write-release-docs`** (ex gstack `document-release`): a **sell-test rubric** (every entry
+  must communicate user value), **doc-drift detection** (cross-reference the diff against
+  existing docs; fix or record as `doc_debt`), explicit breaking-change section, optional
+  VERSION bump. Added `doc_debt` to `notes.json` and the verify checks.
+- **`code-review`** (ex superpowers `requesting-code-review`): **severity calibration**
+  (Critical / Important / Minor, no inflation), **strengths-first** output, an **assessment
+  verdict with reasoning**, `file:line` + why + how-to-fix. Plus a codebase-wide
+  **TODO/FIXME/HACK/XXX/BUG scan** surfaced as opportunities; added `todos_found` to the
+  code-review `review.json`.
+- **Reminder hook** (`bundle/hooks/reminder.ts`): rewrote the `write_task_output` nudge to be
+  firm and specific — conform to the task's output schema, fill required fields when done, and
+  still report a failed/retry status (with the blocker) rather than exiting silently.
+
 ## Next step
 
 Reconcile external `src/`+`tests/` references to the renamed workflows; confirm the bare-ref

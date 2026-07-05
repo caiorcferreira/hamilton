@@ -4,9 +4,10 @@ metadata:
   name: code-review
   version: 1
   description: |
-    Review the code changes on the current branch and return a verdict with located,
-    actionable feedback. A single quality-gate pass built on the shared reviewer — it judges
-    only and never edits code. Use it to review a change before merge, on demand.
+    Review the code changes on the current branch and return a calibrated verdict with
+    located, actionable feedback, plus a sweep of the codebase for TODO/FIXME markers as
+    follow-up opportunities. A single quality-gate pass built on the shared reviewer — it
+    judges only and never edits code. Use it to review a change before merge, on demand.
 spec:
   run:
     entrypoint: review
@@ -24,9 +25,28 @@ spec:
             Review the code changes on the current branch, following your instructions and the
             `hamilton-review` skill. Determine the diff to review from the repository — the
             branch's changes against its base (e.g. the default branch or the fork point). If a
-            `plan.md` / `design.md` / `requirements/` for this change exists under
-            `.hamilton/`, judge against them; otherwise judge against the project's standards
-            in `AGENTS.md`. Write `review.md` and set your task output.
+            `plan.md` / `design.md` / `requirements/` for this change exists under `.hamilton/`,
+            judge against them; otherwise judge against the project's standards in `AGENTS.md`.
+
+            Write `review.md` structured for the author to act on, and calibrated so trust is
+            earned:
+            - **Strengths first** — name what was done well, specifically. Accurate praise makes
+              the rest of the feedback land.
+            - **Issues by real severity** — Critical (bugs, security, data loss, broken
+              behavior) → Important (architecture, missing cases, weak tests, poor error
+              handling) → Minor (style, small polish). Do NOT inflate: a nitpick is not
+              Critical. Each issue gives a `file:line`, what's wrong, why it matters, and how to
+              fix it.
+            - **TODO / FIXME opportunities** — scan the whole codebase (not just the diff) for
+              `TODO`, `FIXME`, `HACK`, `XXX`, and `BUG` markers. List them with `file:line` as
+              follow-up opportunities, and flag any that are directly relevant to this change as
+              issues.
+            - **Assessment** — a clear verdict (ready to merge: yes / no / with fixes) and a
+              one-to-two-sentence reason.
+
+            Map the verdict to your output: `changes-requested` if any Critical or Important
+            issue must be fixed before merge, otherwise `approved`. Set `todos_found` to the
+            count of TODO/FIXME-class markers you found. Then set your task output.
         output:
           schema:
             file: schemas/review.json

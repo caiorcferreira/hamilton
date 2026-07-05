@@ -23,8 +23,10 @@ spec:
             Project directory: {{inputs.project_dir}}
 
             Write or update the user-facing documentation described in this run, following your
-            instructions, then set your task output. Work from what the code actually does, and
-            make every example one a reader could run.
+            instructions, then set your task output. Research the code first, organize each page
+            by its Diátaxis type (tutorial / how-to / reference / explanation), report a
+            coverage map of what exists vs. is missing for the requested scope, and make every
+            example one a reader could actually run.
         output:
           schema:
             file: schemas/docs.json
@@ -40,6 +42,7 @@ spec:
           content: |
             Project directory: {{inputs.project_dir}}
             Documents written: {{inputs.tasks.draft.outputs.files}}
+            Coverage map: {{inputs.tasks.draft.outputs.coverage_map}}
 
             Goal: the user docs accurately describe the software's user-facing features and
             usage, cover the scope requested in this run, and their examples are correct.
@@ -48,6 +51,8 @@ spec:
             - Every documented command / API / step matches how the software actually behaves.
             - Example commands and code snippets are runnable (no invented flags or endpoints).
             - Setup/prerequisite instructions are complete enough for a new user to follow.
+            - Each page stays in one Diátaxis type, and the coverage map honestly reflects the
+              gaps that remain.
         output:
           schema:
             file: schemas/verify.json
