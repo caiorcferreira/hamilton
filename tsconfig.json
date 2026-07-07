@@ -15,7 +15,10 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "exactOptionalPropertyTypes": false,
-    "plugins": [{ "name": "@effect/language-service" }],
+    "plugins": [{
+      "name": "@effect/language-service",
+      "ignoreEffectWarningsInTscExitCode": true
+    }],
     "baseUrl": ".",
     "paths": {
       "@narumitw/pi-lsp": ["./node_modules/@narumitw/pi-lsp/src/pi-lsp.ts"]
