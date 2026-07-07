@@ -79,14 +79,16 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
    any change-specific boundaries. As you shape the architecture and components, apply
    `code-quality.md` — cohesive units with one reason to change, narrow boundaries, inverted
-   dependencies with named testable seams — sized to the change, not gold-plated.
+   dependencies with named testable seams — sized to the change, not gold-plated. Capture the
+   outcome in the design's **Quality Lens** subsection (one line for a trivial change).
 9. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
    ambiguity; fix in place. Then run `design.md` against `code-quality.md`. **Blocking:** for
    a non-trivial change — one that adds or restructures units, not a mechanical or single-file
    edit — an unresolved structural smell (a unit with more than one reason to change, a leaked
    boundary, a hard-wired dependency with no testable seam) is a gate failure. Fix the
-   structure, or, if you are deliberately accepting it, record the reason in the design's
-   Risks / Trade-offs. Do not pass the gate with a silent smell — a weak coder cannot recover
+   structure, or, if you are deliberately accepting it, record it in the design's **Quality
+   Lens** subsection (and cross-list under Risks / Trade-offs). Do not pass the gate with a
+   silent smell — a weak coder cannot recover
    quality the design did not encode.
 10. **Get approval.** Present the artifacts for review; revise and re-review affected
    artifacts on request. Running unattended, record open questions. Do not pass the gate
