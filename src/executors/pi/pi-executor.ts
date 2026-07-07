@@ -235,7 +235,7 @@ export function executeWithPi(
     const unsubscribe = session.subscribe((piEvent) => {
       Effect.runPromise(handlePiEvent(piEvent as Parameters<typeof handlePiEvent>[0]).pipe(
         Effect.provideService(EventBus, bus)
-      ))
+      )).catch(() => {})
     })
 
     try {

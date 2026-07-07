@@ -52,7 +52,7 @@ export function createLspAutocheckExtension(bus: EventBusService, runId: string,
               text: diagnosticsText
             }).pipe(
               Effect.catchAll(() => Effect.void)
-            ))
+            )).catch(() => {})
           }
 
           if (!diagnosticsText) return undefined
