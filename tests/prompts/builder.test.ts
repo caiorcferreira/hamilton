@@ -9,6 +9,7 @@ import type { WorkflowEnv } from "../../src/workflow/env.js"
 
 describe("buildAgentsPrompts", () => {
   const render = (t: Template): string => Effect.runSync(t.render()).trim()
+  const build = (...args: Parameters<typeof buildAgentsPrompts>) => Effect.runSync(buildAgentsPrompts(...args))
   const baseFragments = { agent: { content: "" }, soul: { content: "" }, context: { content: "" } }
   const baseParams: PromptParams = {
     fragments: baseFragments,
@@ -24,7 +25,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {} },
       agentConfig: { metadata: { name: "coder" }, dirPath: "", spec: { settings: {} } }
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(result).toHaveProperty("systemTemplate")
     expect(result).toHaveProperty("taskTemplate")
     expect(render(result.systemTemplate)).toContain("<platform>")
@@ -41,7 +42,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Fix bug in {{inputs.tasks.setup.outputs.repo}}" },
       env
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.taskTemplate)).toContain("Fix bug in hamilton")
   })
 
@@ -52,7 +53,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Stories: {{inputs.stories_json}}" },
       env
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.taskTemplate)).toContain('Stories: [{"id":"US-001","title":"Add thing"}]')
   })
 
@@ -62,7 +63,7 @@ describe("buildAgentsPrompts", () => {
       ...baseParams,
       env
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain("<context>")
     expect(render(result.systemTemplate)).toContain("Current directory:")
     expect(render(result.systemTemplate)).toContain("/tmp/repo")
@@ -76,30 +77,30 @@ describe("buildAgentsPrompts", () => {
       env,
       agentConfig: {}
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain('"stories_json"')
     expect(render(result.systemTemplate)).toContain('"Story"')
   })
 
   it("omits persona section when soulFile is empty", () => {
-    const result = buildAgentsPrompts(baseParams)
+    const result = build(baseParams)
     expect(render(result.systemTemplate)).not.toContain("<persona>")
     expect(render(result.taskTemplate)).toContain("Fix the bug")
   })
 
   it("includes Hamilton platform section", () => {
-    const result = buildAgentsPrompts(baseParams)
+    const result = build(baseParams)
     expect(render(result.systemTemplate)).toContain("Hamilton Agentic Orchestration")
     expect(render(result.systemTemplate)).toContain("write_task_output")
   })
 
   it("passes memoryContext through to AgentPrompts", () => {
-    const result = buildAgentsPrompts(baseParams, "some memory context")
+    const result = build(baseParams, "some memory context")
     expect(result.memoryContext).toBe("some memory context")
   })
 
   it("defaults memoryContext to empty string", () => {
-    const result = buildAgentsPrompts(baseParams)
+    const result = build(baseParams)
     expect(result.memoryContext).toBe("")
   })
 
@@ -110,7 +111,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {}, parameters: { project_dir: "/tmp/repo" } },
       agentConfig: {}
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain("/tmp/repo")
     expect(render(result.systemTemplate)).toContain("## Context")
   })
@@ -122,7 +123,7 @@ describe("buildAgentsPrompts", () => {
       env: { tasks: {}, project_dir: "/tmp/repo" },
       agentConfig: {}
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain("Working in /tmp/repo")
     expect(render(result.systemTemplate)).not.toContain("## Context")
   })
@@ -133,7 +134,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Hello {{inputs.name}}" },
       env: { tasks: {}, name: "world" }
     }
-    const result = buildAgentsPrompts(params, "", { strict: false })
+    const result = build(params, "", { strict: false })
     expect(render(result.taskTemplate)).toBe("Hello world")
   })
 
@@ -143,7 +144,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Hello {{inputs.missing}}" },
       env: { tasks: {} }
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.taskTemplate)).toBe("Hello")
   })
 
@@ -153,7 +154,7 @@ describe("buildAgentsPrompts", () => {
       taskPrompt: { content: "Keep {{this}} as-is", skipTemplate: true },
       env: { tasks: {} }
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.taskTemplate)).toBe("Keep {{this}} as-is")
   })
 
@@ -165,7 +166,7 @@ describe("buildAgentsPrompts", () => {
       env,
       agentConfig: {}
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain("You are a coder for hamilton.")
   })
 
@@ -177,7 +178,7 @@ describe("buildAgentsPrompts", () => {
       env,
       agentConfig: {}
     }
-    const result = buildAgentsPrompts(params)
+    const result = build(params)
     expect(render(result.systemTemplate)).toContain("<persona>")
     expect(render(result.systemTemplate)).toContain("Working from /tmp/repo")
   })

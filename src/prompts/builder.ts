@@ -1,7 +1,7 @@
 import type { Prompt, AgentManifest } from "../types.js"
 import type { WorkflowEnv } from "../workflow/env.js"
 import type { SystemPromptFragments } from "./system.js"
-import { Template, type TemplateOptions } from "./template.js"
+import { Template, type TemplateOptions, type TemplateError } from "./template.js"
 import { Effect } from "effect"
 
 export interface PromptParams {
@@ -64,53 +64,53 @@ export function buildAgentsPrompts(
   params: PromptParams,
   memoryContext: string = "",
   options: TemplateOptions = { strict: false }
-): AgentPrompts {
-  const resolvedAgentFile = Template.make(params.fragments.agent.content ?? "", options)
-    .setInputEnv(params.env)
+): Effect.Effect<AgentPrompts, TemplateError> {
+  return Effect.gen(function* (_) {
+    const resolvedAgentFile = Template.make(params.fragments.agent.content ?? "", options)
+      .setInputEnv(params.env)
 
-  const soulTemplate = params.fragments.soul.content
-    ? Template.make(params.fragments.soul.content, options).setInputEnv(params.env)
-    : null
+    const soulTemplate = params.fragments.soul.content
+      ? Template.make(params.fragments.soul.content, options).setInputEnv(params.env)
+      : null
 
-  const contextContent = params.fragments.context.content || defaultContextTemplate
-  const contextTemplate = Template.make(contextContent, options).setInputEnv(params.env)
+    const contextContent = params.fragments.context.content || defaultContextTemplate
+    const contextTemplate = Template.make(contextContent, options).setInputEnv(params.env)
 
-  const resolvedSoul = soulTemplate ? Effect.runSync(soulTemplate.render()) : ""
+    const resolvedSoul = soulTemplate ? yield* _(soulTemplate.render()) : ""
 
-  const persona = resolvedSoul
+    const renderedAgentFile = yield* _(resolvedAgentFile.render())
+    const renderedContext = yield* _(contextTemplate.render())
 
-  const renderedAgentFile = Effect.runSync(resolvedAgentFile.render())
-  const renderedContext = Effect.runSync(contextTemplate.render())
+    const systemTemplate = Template.make(systemTemplateStr, options)
+      .setVar("instructions", renderedAgentFile)
+      .setVar("persona", resolvedSoul)
+      .setVar("context", renderedContext)
 
-  const systemTemplate = Template.make(systemTemplateStr, options)
-    .setVar("instructions", renderedAgentFile)
-    .setVar("persona", persona)
-    .setVar("context", renderedContext)
+    let taskTemplateContent = params.taskPrompt.skipTemplate
+      ? (params.taskPrompt.content ?? "")
+      : params.taskPrompt.content ?? ""
 
-  let taskTemplateContent = params.taskPrompt.skipTemplate
-    ? (params.taskPrompt.content ?? "")
-    : params.taskPrompt.content ?? ""
+    if (params.outputSchema) {
+      const schemaJson = JSON.stringify(params.outputSchema, null, 2)
+      taskTemplateContent = `<task>\n${taskTemplateContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
+    }
+    if (params.isEntrypoint && params.userInput) {
+      taskTemplateContent = `${taskTemplateContent}\n\n<user_prompt>\n\n${params.userInput}\n</user_prompt>`
+    }
 
-  if (params.outputSchema) {
-    const schemaJson = JSON.stringify(params.outputSchema, null, 2)
-    taskTemplateContent = `<task>\n${taskTemplateContent}\n</task>\n\n<task_output_schema>\n${schemaJson}\n</task_output_schema>`
-  }
-  if (params.isEntrypoint && params.userInput) {
-    taskTemplateContent = `${taskTemplateContent}\n\n<user_prompt>\n\n${params.userInput}\n</user_prompt>`
-  }
+    let taskTemplate: Template
+    if (params.taskPrompt.skipTemplate && !params.outputSchema && !(params.isEntrypoint && params.userInput)) {
+      taskTemplate = Template.make((params.taskPrompt.content ?? "").replace(/{{/g, "\\{{"), options)
+    } else if (params.taskPrompt.skipTemplate) {
+      taskTemplate = Template.make(taskTemplateContent, options)
+    } else {
+      taskTemplate = Template.make(taskTemplateContent, options).setInputEnv(params.env)
+    }
 
-  let taskTemplate: Template
-  if (params.taskPrompt.skipTemplate && !params.outputSchema && !(params.isEntrypoint && params.userInput)) {
-    taskTemplate = Template.make((params.taskPrompt.content ?? "").replace(/{{/g, "\\{{"), options)
-  } else if (params.taskPrompt.skipTemplate) {
-    taskTemplate = Template.make(taskTemplateContent, options)
-  } else {
-    taskTemplate = Template.make(taskTemplateContent, options).setInputEnv(params.env)
-  }
-
-  return {
-    systemTemplate,
-    taskTemplate,
-    memoryContext
-  }
+    return {
+      systemTemplate,
+      taskTemplate,
+      memoryContext
+    }
+  })
 }

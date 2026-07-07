@@ -105,7 +105,7 @@ function buildAgentExecEffect(
       )
     )
 
-    const agentPrompts = buildAgentsPrompts({
+    const agentPrompts = yield* _(buildAgentsPrompts({
       fragments,
       taskPrompt: task.agent!.prompt,
       outputSchema: task.agent?.output?.schema?.content,
@@ -113,7 +113,7 @@ function buildAgentExecEffect(
       isEntrypoint: task.name === spec.spec.run.entrypoint,
       env: taskEnv,
       agentConfig: agent
-    }, memoryContext, templateOptions)
+    }, memoryContext, templateOptions))
 
     const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
     const resolved = resolveAgentDefaults(agent.spec.settings, agent.spec.systemPrompt)
