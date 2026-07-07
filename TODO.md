@@ -11,6 +11,8 @@
 - [X] Refactor the write task output reminder into a hook system
 - [ ] Review how script tasks are implemented. Shouldn't we have a "local/shell" executor for it?
 - [ ] Update `hamilton setup` to copy `bundle/templates/` into `~/.hamilton/templates/` (SDD framework artifact templates). Ensure templates are installed on setup and refreshed on `--force`; the pipeline skills read `~/.hamilton/templates/<name>.md`.
+- [ ] Show running time and total time for the workflow live
+- [ ] Add dependencies to task inserted events (or full task spec) 
 
 ### Core Engine
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
