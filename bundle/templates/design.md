@@ -42,7 +42,11 @@
 <!-- The units involved and how they fit. For each unit state: responsibility,
      public interface, and dependencies. A reader should understand what a unit
      does without reading its internals, and you should be able to change its
-     internals without breaking consumers. A table or short sub-sections both work. -->
+     internals without breaking consumers. A table or short sub-sections both work.
+     Quality lens (scale to the change): one reason to change per unit — if its
+     responsibility needs "and" to state, split it; narrow boundaries; high-level units
+     depend on abstractions, not concrete IO/DB/clock, with a named seam a test can
+     substitute. Right-size it — do not add a layer or extension point no requirement needs. -->
 
 ## Data & Flow
 

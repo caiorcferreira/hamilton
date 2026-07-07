@@ -39,6 +39,11 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 - **YAGNI.** Cut unnecessary scope from every artifact.
 - **Explore alternatives.** Offer 2–3 approaches with trade-offs and a recommendation
   before settling on a design.
+- **Design for quality.** Code quality is decided here, not at review. The decomposition,
+  boundaries, and dependencies the design commits to are inherited by every line the coder
+  later writes — and a defect caught at review means refactoring code that already exists.
+  Judge the design against `code-quality.md` (bundled with this skill), proportional to the
+  change's size.
 - **Right-size.** Scale each artifact to the change; a few sentences is fine when the
   change is simple.
 
@@ -71,9 +76,13 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
    (or, unattended, pick the recommended one and record the reasoning).
 8. **Write the design (how).** From the chosen approach, write `design.md`: context,
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
-   any change-specific boundaries.
+   any change-specific boundaries. As you shape the architecture and components, apply
+   `code-quality.md` — cohesive units with one reason to change, narrow boundaries, inverted
+   dependencies with named testable seams — sized to the change, not gold-plated.
 9. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
-   ambiguity; fix in place.
+   ambiguity; fix in place. Then run `design.md` against `code-quality.md`: for each
+   principle whose smell is present in this design, fix the structure before the gate — a
+   weak coder cannot recover quality the design did not encode.
 10. **Get approval.** Present the artifacts for review; revise and re-review affected
    artifacts on request. Running unattended, record open questions. Do not pass the gate
    until approved.

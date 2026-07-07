@@ -39,6 +39,11 @@ planning and coding. This skill produces it. **It never writes production code.*
   test-first where behavior is testable — all the sequencing thinking happens here, not at
   code time.
 - **Reference, don't copy.** Point to `design.md` / `requirements/`; do not duplicate them.
+- **Plan for quality.** The coder executes verbatim and adds no design, so the plan carries
+  the quality — not the code step. Decompose so each task preserves the design's structure
+  and stays independently testable, and make any code snippet model the clean shape rather
+  than a shortcut the coder will copy. Judge the plan against `code-quality.md` (bundled with
+  this skill), proportional to the change's size.
 - **Detail scales to risk.** Include code or exact commands only where they remove
   ambiguity. Otherwise state intent and let the coder think — do not pre-write the diff.
 
@@ -59,11 +64,15 @@ planning and coding. This skill produces it. **It never writes production code.*
 4. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
 5. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
-   independent tasks can run in parallel. Prefer more small tasks over few large ones.
+   independent tasks can run in parallel. Prefer more small tasks over few large ones. Cut
+   the seams along the design's boundaries so each task lands one cohesive unit — a task you
+   cannot describe without "and" is usually two.
 6. **Specify each task.** For every task capture: files (created / modified / deleted),
-   acceptance criteria (testable; cite the requirement scenario when one exists), steps
-   (write failing test → implement → verify), a verify command with its expected result,
-   and a commit message.
+   acceptance criteria (testable; cite the requirement scenario when one exists — and cover
+   the error/edge behavior, not just the happy path), steps (write failing test → implement
+   → verify), a verify command with its expected result, and a commit message. Where a step
+   includes a code snippet, make it model the clean shape from `code-quality.md`; the coder
+   copies it verbatim.
 7. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
@@ -85,6 +94,9 @@ Before finishing, confirm:
 - Each Files list is complete (created / modified / deleted).
 - Each acceptance criterion ties to a requirement scenario where one exists.
 - Dependencies are correct and acyclic.
+- The task seams follow the design's boundaries; no task bundles unrelated changes, and each
+  lands a unit that can be tested in isolation (`code-quality.md`, proportional to the change).
+- Any code snippet in a task models the clean shape — the coder copies it verbatim.
 - "Done when" captures: all tasks done, tests green, reviews addressed.
 
 ## Output

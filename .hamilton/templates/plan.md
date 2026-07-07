@@ -16,7 +16,11 @@
       if there are no upstream docs, state the minimal why/what inline.
     - Detail scales to risk and executor: include code or exact commands when they remove
       ambiguity; otherwise state intent and let the coder think. Do not pre-write the
-      whole diff.
+      whole diff. Any snippet you do include is copied verbatim by the coder — make it model
+      the clean shape (cohesive, testable, no shortcut), never a throwaway.
+    - Task seams follow the design's structure: each task lands one cohesive unit that can be
+      tested in isolation, and its acceptance covers the error/edge behavior, not just the
+      happy path. A task you cannot state without "and" is usually two.
   Delete this comment block and inline hints before finalizing.
 -->
 
