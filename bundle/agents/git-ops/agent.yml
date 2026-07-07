@@ -1,0 +1,7 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Agent
+metadata:
+  name: git-ops
+spec:
+  settings:
+    model: fast

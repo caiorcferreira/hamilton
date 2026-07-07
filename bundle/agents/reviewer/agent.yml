@@ -1,0 +1,8 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Agent
+metadata:
+  name: reviewer
+spec:
+  settings:
+    model: thinking
+    skills: [hamilton-review]

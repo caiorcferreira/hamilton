@@ -20,7 +20,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-branch",
           agent: {
-            executorRef: "setup",
+            executorRef: "git-ops",
             prompt: {
               content: `## Steps
               1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
@@ -51,7 +51,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-worktree",
           agent: {
-            executorRef: "setup",
+            executorRef: "git-ops",
             prompt: {
               content: `## Steps
               1. Think of a branch name that reflects the user input. Use prefix like "feat/", "refact/", "fix/", "chore/" or other that captures the main type of change that will be made.
@@ -83,7 +83,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "cleanup-worktree",
           agent: {
-            executorRef: "setup",
+            executorRef: "git-ops",
             prompt: {
               content: `## Steps
               1. Run the command: cd {{project_dir}}
@@ -108,7 +108,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "finalize-merge",
           agent: {
-            executorRef: "merger",
+            executorRef: "git-ops",
             prompt: {
               content: `## Steps
               1. Run the command: cd {{project_dir}}
@@ -139,7 +139,7 @@ export const VARIANT_REGISTRY: Record<string, VariantDefinition> = {
         task: {
           name: "create-pr",
           agent: {
-            executorRef: "developer",
+            executorRef: "pr",
             prompt: {
               content: `## Steps
               1. Run the command: cd {{project_dir}}

@@ -1,0 +1,187 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: bugfix
+  version: 3
+  description: |
+    Triage, investigate, plan, and fix a bug with an automated review gate — no merge.
+    Triager reproduces and classifies the report. Investigator traces the root cause and
+    proposes a fix approach. Setup records the baseline. Planner decomposes the fix into
+    small, TDD-sized tasks. The coder implements each task in a loop (via hamilton-code).
+    The reviewer judges the whole fix as one quality gate; if it requests changes, the coder
+    reworks once, and hamilton-finish-work's approved-review gate is the backstop. No merge step.
+spec:
+  run:
+    entrypoint: triage
+    timeout: 300s
+    max_recursion_depth: 3
+
+  variants:
+    supported: [branchout, merge, worktree, github_pr]
+
+  tasks:
+    - name: triage
+      dependencies: []
+      agent:
+        executorRef: triager
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Triage the bug report described in this run — explore, reproduce, and classify
+            severity — following your instructions, then set your task output.
+        output:
+          schema:
+            file: schemas/triage.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: investigate
+      dependencies: [triage]
+      agent:
+        executorRef: investigator
+        prompt:
+          content: |
+            REPO: {{inputs.tasks.triage.outputs.repo}}
+            SEVERITY: {{severity}}
+            AFFECTED_AREA: {{affected_area}}
+            REPRODUCTION: {{reproduction}}
+            PROBLEM_STATEMENT: {{problem_statement}}
+
+            Trace this bug to its root cause and propose a fix approach, following your
+            instructions, then set your task output.
+        output:
+          schema:
+            file: schemas/investigate.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: setup
+      dependencies: [investigate]
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Record the starting point and baseline for the bugfix, following your
+            instructions, then set your task output.
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: deepWork
+      dependencies: [setup]
+      template: workLoop
+
+    - name: workLoop
+      tasks:
+        - name: plan
+          dependencies: [setup]
+          agent:
+            executorRef: planner
+            prompt:
+              content: |
+                Project directory: {{inputs.project_dir}}
+                Affected area: {{affected_area}}
+                Root cause: {{root_cause}}
+                Fix approach: {{fix_approach}}
+                Problem statement: {{problem_statement}}
+
+                Turn this diagnosed bug fix into an ordered plan of small, TDD-sized tasks — each
+                with a regression test that would catch the bug — following your instructions and
+                the `hamilton-plan` skill, then set your task output.
+            output:
+              schema:
+                file: schemas/plan.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+
+        - name: applyPlan
+          dependencies: [plan]
+          template: fixTask
+          arguments:
+            forEach:
+              valueFrom:
+                ref: inputs.tasks.plan.outputs.tasks
+              as: current_task
+
+        - name: fixTask
+          tasks:
+            - name: fix
+              agent:
+                executorRef: coder
+                prompt:
+                  content: |
+                    Repository: {{inputs.project_dir}}
+                    Branch: {{inputs.tasks.triage.outputs.branch}}
+                    Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                    Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+                    Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+                    Following your instructions and the `hamilton-code` skill, then set your task
+                    output.
+
+                    {{#if inputs.parameters.current_task}}
+                    Implement exactly this one task — including its regression test:
+                    {{inputs.parameters.current_task}}
+                    {{/if}}
+                    {{#if inputs.parameters.validation_feedback}}
+                    The reviewer requested changes on this bug fix. Treat the review's blocking
+                    items as the work to do — fix them, verify, and commit. Do not take on anything
+                    the review did not ask for.
+
+                    Review file: {{inputs.parameters.review_file}}
+                    Review feedback:
+                    {{inputs.parameters.validation_feedback}}
+                    {{/if}}
+              on_failure:
+                max_retries: 4
+                escalate_to: human
+
+        - name: review
+          dependencies: [applyPlan]
+          agent:
+            executorRef: reviewer
+            prompt:
+              content: |
+                Project directory: {{inputs.project_dir}}
+                Branch: {{inputs.tasks.triage.outputs.branch}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+                Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
+                Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+                All planned tasks are implemented. Review the whole bug fix
+                (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality
+                gate, following your instructions and the `hamilton-review` skill; write
+                `review.md` and set your task output. Beyond your standard checks, confirm:
+                - A regression test targets the specific bug scenario and would fail if the fix
+                  were reverted — not a generic test.
+                - The fix is minimal and addresses the ROOT CAUSE, not just a symptom.
+            output:
+              schema:
+                file: schemas/review.json
+          on_failure:
+            max_retries: 6
+            escalate_to: human
+
+        # When the change-level review requests changes, re-run the fix template with the review
+        # feedback in place of a plan task — the coder addresses it. This is a single rework pass;
+        # hamilton-finish-work's gate (review approved) is the backstop.
+        - name: reworkIfNeeded
+          dependencies: [review]
+          template: workLoop
+          when: 'inputs.tasks.review.outputs.verdict == "changes-requested"'
+          arguments:
+            parameters:
+            - name: validation_feedback
+              valueFrom:
+                ref: inputs.tasks.review.outputs.summary
+            - name: review_file
+              valueFrom:
+                ref: inputs.tasks.review.outputs.review_file
+
+

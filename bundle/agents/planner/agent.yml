@@ -1,0 +1,8 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Agent
+metadata:
+  name: planner
+spec:
+  settings:
+    model: thinking
+    skills: [hamilton-plan]

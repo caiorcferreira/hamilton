@@ -1,0 +1,104 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: fix-broken-tests
+  version: 2
+  description: |
+    Detect failing tests, disable them minimally, and iterate until the full
+    test suite passes. Useful for establishing a clean baseline on a branch
+    with known test failures before starting other work.
+  
+    Setup prepares the environment and establishes the baseline (build + test).
+    Quarantiner runs the test suite, identifies failing tests, disables them
+    with the least invasive technique (.skip, decorator, comment), and iterates
+    until all tests pass. If no failures on first run, runs a second time to
+    catch flaky tests. Verifier confirms the suite is clean and only test
+    files were modified.
+  
+    This is a local-only pipeline — no merge, no PR. Use
+    fix-broken-tests-merge to squash-merge the quarantined results back
+    into the original branch.
+spec:
+  run:
+    entrypoint: setup
+    timeout: 300s
+  
+  variants:
+    supported: [branchout, merge, worktree]
+  
+  tasks:
+    - name: setup
+      dependencies: []
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Record the starting point and baseline for test quarantine, following your
+            instructions, then set your task output. Note which tests fail in the baseline —
+            the quarantiner will handle them.
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+   
+    - name: quarantine
+      dependencies: [setup]
+      agent:
+        executorRef: quarantiner
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Branch: {{inputs.tasks.setup.outputs.current_branch}}
+            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+
+            Find and disable failing tests until the suite passes, following your
+            instructions, then set your task output.
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+        output:
+          schema:
+            file: schemas/quarantine.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+  
+    - name: review
+      dependencies: [quarantine]
+      agent:
+        executorRef: reviewer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Branch: {{inputs.tasks.setup.outputs.current_branch}}
+            Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+            Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
+            Disabled: {{disabled}}
+            Summary: {{summary}}
+
+            Review the quarantiner's diff
+            (`git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`) as one quality
+            gate, following your instructions and the `hamilton-review` skill; write
+            `review.md` and set your task output. There is no plan.md — the intended change is
+            deliberately narrow: only test files may be touched, and only to disable failing
+            tests (`.skip`/decorator/comment), each with an explanatory comment, and the suite
+            must pass. Flag any application-code change, deleted test, or altered assertion as
+            blocking (changes-requested).
+
+            RETRY FEEDBACK (only present if your previous attempt was rejected — read
+            carefully and fix specifically what it complains about):
+            {{retry_feedback}}
+        output:
+          schema:
+            file: schemas/review.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human

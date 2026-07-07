@@ -1,95 +1,106 @@
 ---
 name: hamilton-propose
-description: "Propose a new change with all artifacts. Explores user intent, requirements and design before implementation."
+description: "Turn an idea into a change's proposal, requirements, and design through collaborative dialogue — proposal.md (why), requirements/ (what), design.md (how). The heavyweight front door; tactical changes skip it and start at hamilton-plan."
 ---
 
-# Proposing new changes
+# Proposing a change
 
-Help turn ideas into fully formed proposals and designs through natural collaborative dialogue.
+Turn an idea into a well-formed change by writing its proposal (why), requirements (what),
+and design (how) — refined with the user through dialogue before any implementation begins.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
+review → finish-work. Each step is a skill a person or an agent can run. This skill is
+**step 1** — the optional heavyweight front door that produces the PRD, the SRS, and the
+SDD. A change that does not warrant that depth skips this step and starts at `hamilton-plan`.
 
-Once the user approves, I'll create a change with artifacts:
-- proposal.md (why)
-- requeriments.md (what, can be multiple files)
-- design.md (how)
+**Gate.** Do not move to implementation — no `hamilton-plan`, no code — until the artifacts
+are approved.
 
-<HARD_GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
-</HARD_GATE>
+## What it produces
 
-## Input
+In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/templates/`:
 
-The user's request should include a change name (kebab-case) OR a description of what they want to build.
+- `proposal.md` — the PRD: why, what changes, and the capabilities affected.
+- `requirements/<capability>.md` — the SRS (delta form) for each capability.
+- `design.md` — the SDD: how it will be built.
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Inputs
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+- A change idea or request. If none is given, ask what to build.
+- The project's existing specs (`.hamilton/specs/`) — to tell new capabilities from
+  modified ones.
+- Project standards (`AGENTS.md`).
 
+## Principles
 
-## Checklist
+- **Collaborate.** Refine through dialogue — ask one question at a time, prefer
+  multiple-choice, and confirm each section before moving on.
+- **High-level first.** Start from the user's goal; draft, then elaborate together.
+- **YAGNI.** Cut unnecessary scope from every artifact.
+- **Explore alternatives.** Offer 2–3 approaches with trade-offs and a recommendation
+  before settling on a design.
+- **Right-size.** Scale each artifact to the change; a few sentences is fine when the
+  change is simple.
 
-You MUST create a task for each of these items and complete them in order:
+## Process
 
-1. **Setup change** - define change name and create change folder
-2. **Explore project context** — check files, docs, recent commits
-3. **Create the proposal** - write the proposal document outlining the change
-4. **Create the requeriments** - Detailed requeriment specification for the change
-5. **Create the design** - write a technical design document containing implementation details in coloboration with the user, asking questions and presenting approaches
-7. **User reviews written artifacts** — ask user to review the artifacts file before proceeding. If the user asks for changes, go to back steps to rewrite all artifacts the user asked for. If the user approves, notify them that you are ready for implementation.
+1. **Set up the change.** Derive a kebab-case title from the request; create
+   `.hamilton/changes/<YYYY-MM-DD-title>/`.
+2. **Explore context (read-only).** Project structure, docs, recent commits, and existing
+   specs. If the request spans several independent subsystems, stop and help decompose it
+   first — one change per spec.
+3. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
+   question at a time, multiple-choice when you can. Direct them at the requester (a person,
+   or the calling agent). When no one can answer, make the reasonable choice and record it
+   as an assumption. Do not start drafting until the intent is clear.
+4. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
+   changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
+   existing names). The Capabilities list is the contract into the requirements.
+5. **Write the requirements (what).** For each capability named in the proposal, write
+   `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
+   normative SHALL statements and WHEN/THEN scenarios. For MODIFIED, copy the entire existing
+   requirement block from the spec and edit it.
+6. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
+   their trade-offs. Lead with your recommendation and why, and get the requester's choice
+   (or, unattended, pick the recommended one and record the reasoning).
+7. **Write the design (how).** From the chosen approach, write `design.md`: context,
+   decisions (with the alternatives considered), architecture, testing strategy, risks, and
+   any change-specific boundaries.
+8. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
+   ambiguity; fix in place.
+9. **Get approval.** Present the artifacts for review; revise and re-review affected
+   artifacts on request. Running unattended, record open questions. Do not pass the gate
+   until approved.
 
-## Process Flow
+## Output
+
+`proposal.md`, `requirements/<capability>.md`, and `design.md` in the change directory —
+reviewed and approved, ready for `hamilton-plan`.
+
+## Process flow
 
 ```dot
 digraph hamilton_propose {
-    "Setup change\n(derive name, create folder)" [shape=box];
-    "Explore project context\n(check files, docs, commits)" [shape=box];
-    "Create proposal\n(proposal.md — why)" [shape=box];
-    "Create requeriments\n(requeriments.md — what)" [shape=box];
-    "Collaborate on design\n(ask questions,\npresent 2-3 approaches)" [shape=box];
-    "Write design doc\n(design.md — how)" [shape=box];
-    "User reviews artifacts?" [shape=diamond];
-    "Change ready\nfor implementation" [shape=doublecircle];
+    "Set up change dir" [shape=box];
+    "Explore context (read-only)" [shape=box];
+    "Ask clarifying questions\n(one at a time)" [shape=box];
+    "Proposal — why\n(problem, goals, capabilities)" [shape=box];
+    "Requirements — what\n(SRS delta per capability)" [shape=box];
+    "Propose 2–3 approaches\n(trade-offs + recommendation)" [shape=box];
+    "Design — how\n(chosen approach -> design.md)" [shape=box];
+    "Self-review each artifact" [shape=box];
+    "Approved?" [shape=diamond];
+    "Ready for hamilton-plan" [shape=doublecircle];
 
-    "Setup change\n(derive name, create folder)" -> "Explore project context\n(check files, docs, commits)";
-    "Explore project context\n(check files, docs, commits)" -> "Create proposal\n(proposal.md — why)";
-    "Create proposal\n(proposal.md — why)" -> "Create requeriments\n(requeriments.md — what)";
-    "Create requeriments\n(requeriments.md — what)" -> "Collaborate on design\n(ask questions,\npresent 2-3 approaches)";
-    "Collaborate on design\n(ask questions,\npresent 2-3 approaches)" -> "Write design doc\n(design.md — how)";
-    "Write design doc\n(design.md — how)" -> "User reviews artifacts?";
-    "User reviews artifacts?" -> "Create proposal\n(proposal.md — why)" [label="changes requested — rewrite affected artifacts"];
-    "User reviews artifacts?" -> "Change ready\nfor implementation" [label="approved"];
+    "Set up change dir" -> "Explore context (read-only)";
+    "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";
+    "Ask clarifying questions\n(one at a time)" -> "Proposal — why\n(problem, goals, capabilities)";
+    "Proposal — why\n(problem, goals, capabilities)" -> "Requirements — what\n(SRS delta per capability)";
+    "Requirements — what\n(SRS delta per capability)" -> "Propose 2–3 approaches\n(trade-offs + recommendation)";
+    "Propose 2–3 approaches\n(trade-offs + recommendation)" -> "Design — how\n(chosen approach -> design.md)";
+    "Design — how\n(chosen approach -> design.md)" -> "Self-review each artifact";
+    "Self-review each artifact" -> "Approved?";
+    "Approved?" -> "Ask clarifying questions\n(one at a time)" [label="changes requested"];
+    "Approved?" -> "Ready for hamilton-plan" [label="approved"];
 }
 ```
-
-## The Process
-
-**Setup change:**
-- From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth` or "implement-auth" → `implement-auth`)
-- If no clear input provided, ask what they want to build
-- Create the change directory  in the path `.hamilton/changes/<change-name>/`
-
-**Explore project context:**
-- Explore the current structure before proposing changes. Follow existing patterns.
-- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
-- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
-
-**Create the proposal:**
-
-Read [references/proposal.md] for detailed instruction on how to create the proposal document.
-
-**Create the requeriments:**
-Read [references/requeriments.md] for detailed instruction on how to create the requeriments documents.
-
-**Create the design:**
-
-Read [references/design.md] for detailed instruction on how to create the design document.
-
-## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense

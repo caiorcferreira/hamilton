@@ -7,4 +7,4 @@ dist/
 *.log
 .worktrees/
 bun.lockb
-.hamilton/
+.DS_Store

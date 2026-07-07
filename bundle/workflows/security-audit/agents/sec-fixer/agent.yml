@@ -1,7 +1,0 @@
-apiVersion: dag.hamiltonai.dev/v1alpha1
-kind: Agent
-metadata:
-  name: sec-fixer
-spec:
-  settings:
-    model: default

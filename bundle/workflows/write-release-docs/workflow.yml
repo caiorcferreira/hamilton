@@ -1,0 +1,63 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: write-release-docs
+  version: 1
+  description: |
+    Draft release notes / changelog entries from the changes since the last release. The
+    release-writer gathers the commits (and any merged work) since the previous tag, groups
+    them for a reader, and writes user-relevant notes that call out new features, fixes, and
+    breaking changes. The verifier confirms the notes match what actually changed.
+spec:
+  run:
+    entrypoint: draft
+    timeout: 600s
+
+  tasks:
+    - name: draft
+      dependencies: []
+      agent:
+        executorRef: release-writer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Draft the release notes for the changes since the last release (or the range this
+            run specifies), following your instructions, then set your task output. Group by
+            what matters to a user, apply the sell-test to every entry, call out anything
+            breaking, and cross-reference the diff against the existing docs to catch and record
+            any drift the release caused.
+        output:
+          schema:
+            file: schemas/notes.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human
+
+    - name: verify
+      dependencies: [draft]
+      agent:
+        executorRef: verifier
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Notes written: {{inputs.tasks.draft.outputs.files}}
+            Range: {{inputs.tasks.draft.outputs.range}}
+            Doc debt reported: {{inputs.tasks.draft.outputs.doc_debt}}
+
+            Goal: the release notes faithfully and completely describe the changes in the range
+            they cover, and any doc drift the release caused was fixed or recorded. Verify this
+            against the actual commit history and diffs, following your instructions, then set
+            your task output. Confirm specifically:
+            - Every notable change in the range is represented (no significant feature or fix
+              silently dropped).
+            - Nothing is claimed that the diffs do not support (no invented entries).
+            - Each entry passes the sell-test (communicates user value, not just mechanics).
+            - Breaking changes are explicitly flagged.
+            - Docs the release made stale were either updated or listed as doc debt.
+        output:
+          schema:
+            file: schemas/verify.json
+      on_failure:
+        max_retries: 3
+        escalate_to: human

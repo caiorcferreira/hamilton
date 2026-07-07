@@ -4,4 +4,4 @@ metadata:
   name: pr
 spec:
   settings:
-    model: default
+    model: fast

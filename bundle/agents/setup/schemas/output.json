@@ -1,8 +1,10 @@
 {
   "type": "object",
-  "required": ["status", "build_cmd", "test_cmd", "ci_notes", "baseline"],
+  "required": ["status", "current_branch", "baseline_sha", "build_cmd", "test_cmd"],
   "properties": {
     "status": { "type": "string", "enum": ["done", "failed"] },
+    "current_branch": { "type": "string" },
+    "baseline_sha": { "type": "string" },
     "build_cmd": { "type": "string" },
     "test_cmd": { "type": "string" },
     "ci_notes": { "type": "string" },

@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "required": ["status", "verdict"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "verdict": { "type": "string", "enum": ["approved", "changes-requested"] },
+    "review_file": { "type": "string" },
+    "blocking": { "type": "integer" },
+    "suggestions": { "type": "integer" },
+    "todos_found": { "type": "integer" },
+    "summary": { "type": "string" }
+  }
+}

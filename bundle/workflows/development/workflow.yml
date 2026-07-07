@@ -1,0 +1,167 @@
+apiVersion: dag.hamiltonai.dev/v1alpha1
+kind: Workflow
+metadata:
+  name: development
+  version: 7
+  description: |
+    Plan, implement, test, and review a change task-by-task in a local-only pipeline.
+    The planner decomposes the change into TDD-sized tasks. Setup prepares the environment
+    and records a baseline. For each task the developer implements it (with tests) in a
+    fresh session and the tester validates integration. Once every task is done, the
+    reviewer judges the whole change as a single quality gate.
+spec:
+  run:
+    entrypoint: plan
+    timeout: 300s
+    max_recursion_depth: 3
+
+  variants:
+    supported: [branchout, merge, worktree, github_pr]
+
+  tasks:
+    - name: plan
+      dependencies: []
+      agent:
+        executorRef: planner
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Decompose the change for this project into an ordered plan of TDD-sized tasks,
+            following your instructions and the `hamilton-plan` skill. Then set your task
+            output.
+        output:
+          schema:
+            file: schemas/plan.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: setup
+      dependencies: [plan]
+      agent:
+        executorRef: setup
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+
+            Record the starting point and baseline, following your instructions. This is a
+            local-only pipeline: work on the current branch — the variant owns branching, so
+            do not create or switch branches. Capture `current_branch` and the
+            `baseline_sha` (`git rev-parse HEAD`) before any work happens — the reviewer
+            diffs against that SHA.
+
+            ## Output
+            `{"status": "done", "current_branch": "<current-branch>", "baseline_sha": "<HEAD sha>", "build_cmd": "<build command>", "test_cmd": "<test command>", "ci_notes": "<brief CI notes>", "baseline": "<baseline status>"}`
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    - name: applyPlan
+      dependencies: [setup]
+      template: implementTask
+      arguments:
+        forEach:
+          valueFrom:
+            ref: inputs.tasks.plan.outputs.tasks
+          as: current_task
+
+    - name: review
+      dependencies: [applyPlan]
+      agent:
+        executorRef: reviewer
+        prompt:
+          content: |
+            Project directory: {{inputs.project_dir}}
+            Change progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+            Baseline commit: {{inputs.tasks.setup.outputs.baseline_sha}}
+            Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+
+            Every task in the plan has been implemented and integration-tested. Review the
+            whole change as one quality gate, following your instructions and the
+            `hamilton-review` skill. The change's diff is
+            `git diff {{inputs.tasks.setup.outputs.baseline_sha}}..HEAD`; judge it against
+            the plan and project standards, write `review.md`, and set your task output.
+        output:
+          schema:
+            file: schemas/review.json
+      on_failure:
+        max_retries: 4
+        escalate_to: human
+
+    # When the change-level review requests changes, re-run the implementation template
+    # with the review feedback in place of a plan task — the developer addresses it and the
+    # tester re-validates. hamilton-finish-work's gate (review approved) is the backstop.
+    - name: reworkIfNeeded
+      dependencies: [review]
+      template: implementTask
+      when: 'inputs.tasks.review.outputs.verdict == "changes-requested"'
+      arguments:
+        parameters:
+        - name: validation_feedback
+          valueFrom:
+            ref: inputs.tasks.review.outputs.summary
+        - name: review_file
+          valueFrom:
+            ref: inputs.tasks.review.outputs.review_file
+
+    - name: implementTask
+      tasks:
+        - name: code
+          agent:
+            executorRef: coder
+            prompt:
+              content: |
+                Repository: {{inputs.project_dir}}
+                Branch: {{inputs.tasks.setup.outputs.current_branch}}
+                Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+                Progress ledger: {{inputs.tasks.plan.outputs.progress_file}}
+
+                Following your instructions and the `hamilton-code` skill, then set your
+                task output.
+
+                {{#if inputs.parameters.current_task}}
+                Implement exactly this one task:
+                {{inputs.parameters.current_task}}
+                {{/if}}
+                {{#if inputs.parameters.validation_feedback}}
+                The reviewer requested changes on this change. Treat the review's blocking
+                items as the work to do — fix them, verify, and commit. Do not take on
+                anything the review did not ask for.
+
+                Review file: {{inputs.parameters.review_file}}
+                Review feedback:
+                {{inputs.parameters.validation_feedback}}
+                {{/if}}
+          on_failure:
+            max_retries: 4
+            escalate_to: human
+
+        - name: test
+          dependencies: [code]
+          agent:
+            executorRef: tester
+            prompt:
+              content: |
+                Repository: {{inputs.project_dir}}
+                Build command: {{inputs.tasks.setup.outputs.build_cmd}}
+                Test command: {{inputs.tasks.setup.outputs.test_cmd}}
+
+                Following your instructions, validate the work and set your task output.
+
+                {{#if inputs.parameters.current_task}}
+                The developer implemented this task with unit tests. Confirm it integrates
+                with the rest of the feature:
+                {{inputs.parameters.current_task}}
+                {{/if}}
+                {{#if inputs.parameters.validation_feedback}}
+                The developer just addressed reviewer feedback. Confirm the change still
+                integrates and the full suite passes after the fix.
+                {{/if}}
+            output:
+              schema:
+                file: schemas/test.json
+          on_failure:
+            max_retries: 4
+            escalate_to: human

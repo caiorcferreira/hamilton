@@ -10,11 +10,13 @@
 - [ ] Keep improving agents and workflow prompts
 - [X] Refactor the write task output reminder into a hook system
 - [ ] Review how script tasks are implemented. Shouldn't we have a "local/shell" executor for it?
+- [ ] Update `hamilton setup` to copy `bundle/templates/` into `~/.hamilton/templates/` (SDD framework artifact templates). Ensure templates are installed on setup and refreshed on `--force`; the pipeline skills read `~/.hamilton/templates/<name>.md`.
 
 ### Core Engine
 - [ ] Create a `init` command that onboards a project in Hamilton by creating a `.hamilton` folder, ingesting older spec files into memory, etc.
 - [X] Refactor runner.ts to improve code quality
 - [ ] Trigger workflows from other workflows
+- [ ] Make the Git commit co-author footer configurable via `~/.hamilton/config.yaml` (e.g. `git.co_author: "Hamilton <hamilton@caioferreira.dev>"`), injected into agents that commit instead of being hardcoded in each agent's INSTRUCTIONS. Currently hardcoded to `hamilton@caioferreira.dev` across fixer / sec-fixer / quarantiner.
 
 ### Extensions & Integrations
 - [ ] Refactor repo into multiple packages to expose pi extensions

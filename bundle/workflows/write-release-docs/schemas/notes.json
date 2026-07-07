@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "failed"] },
+    "range": { "type": "string" },
+    "files": { "type": "array", "items": { "type": "string" } },
+    "doc_debt": { "type": "string" },
+    "summary": { "type": "string" }
+  }
+}
