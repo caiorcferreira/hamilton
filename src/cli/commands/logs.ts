@@ -154,7 +154,7 @@ export const logsCommand = Command.make("logs", { id: runIdArg, task: taskOpt, f
     if (follow) {
       const controller = followLogs({ runId: id })
       process.on("SIGINT", () => { controller.stop(); process.exit(0) })
-      yield* Effect.never
+      return yield* Effect.never
     }
     const result = yield* Effect.exit(
       getRunLogs({ runId: id, taskId: task._tag === "Some" ? task.value : undefined })

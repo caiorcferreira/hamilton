@@ -131,7 +131,7 @@ export function loadWorkflowSpec(
 
     for (const task of walkTasks((spec as any).spec.tasks as any[])) {
       if (task.agent && !agentRegistry.has(task.agent.executorRef)) {
-        yield* _(Effect.fail(new AgentNotFoundError({ taskName: task.name, executorRef: task.agent.executorRef })))
+        return yield* _(Effect.fail(new AgentNotFoundError({ taskName: task.name, executorRef: task.agent.executorRef })))
       }
     }
 
