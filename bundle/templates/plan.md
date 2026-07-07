@@ -34,6 +34,10 @@
 - Build / typecheck: `<command>`
 - Context notes: <only the relevant slice — key constraints, files, patterns. Reference
   AGENTS.md / design.md instead of duplicating them.>
+- Quality notes: <how the task breakdown preserves the design's structure, and any
+  structural smell accepted on purpose (with why). One line, or "none" for a trivial change.
+  This is the plan's blocking record — an unresolved smell that is neither re-sliced away nor
+  recorded here fails the self-review.>
 
 ## Tasks
 

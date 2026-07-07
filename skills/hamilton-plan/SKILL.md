@@ -102,8 +102,9 @@ Before finishing, confirm:
 **Blocking.** For a non-trivial change — one that adds or restructures units, not a mechanical
 or single-file edit — do not finalize `plan.md` while a task carries an unresolved structural
 smell (bundles unrelated changes, cannot be tested in isolation, or embeds a snippet with a
-shortcut the coder will copy). Re-slice the tasks, or record a deliberate exception inline in
-the plan. The coder adds no design of its own, so a smell left in the plan ships to the code.
+shortcut the coder will copy). Re-slice the tasks, or record a deliberate exception in the
+plan's **Quality notes** (Overview). The coder adds no design of its own, so a smell left in
+the plan ships to the code.
 
 ## Output
 
