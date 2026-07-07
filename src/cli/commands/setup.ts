@@ -5,7 +5,7 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Readline from "node:readline"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir, hamiltonHome, dbPath } from "../../paths.js"
+import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir, templatesDir, hamiltonHome, dbPath } from "../../paths.js"
 import { piAgentDir } from "../../executors/pi/paths.js"
 import { openDb } from "../../workflow/state.js"
 import { installAllWorkflows } from "./install-logic.js"
@@ -134,6 +134,21 @@ function copyHooks(options?: { force?: boolean }): Effect.Effect<void, SetupErro
   })
 }
 
+function copyTemplates(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+  return Effect.gen(function* () {
+    const srcDir = Path.join(PROJECT_ROOT, "bundle", "templates")
+    if (!Fs.existsSync(srcDir)) return
+
+    const destTemplates = templatesDir()
+
+    yield* Effect.try({
+      try: () => Fs.cpSync(srcDir, destTemplates, { recursive: true, force: true }),
+      catch: (e) =>
+        new SetupError({ message: `Failed to copy templates: ${String(e)}` })
+    })
+  })
+}
+
 function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
     const agentDir = piAgentDir()
@@ -254,6 +269,7 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
     yield* copySkillManifests(options)
     yield* copyGuidelineManifests(options)
     yield* copyHooks(options)
+    yield* copyTemplates(options)
 
     if (options?.copyPiConfigs) {
       yield* copyPiConfigsFromHome()

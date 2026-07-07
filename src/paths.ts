@@ -75,6 +75,10 @@ export function userMemoryDBPath(): string {
   return Path.join(userMemoryDir(), "qmd.db")
 }
 
+export function templatesDir(): string {
+  return Path.join(hamiltonHome(), "templates")
+}
+
 export function settingsPath(): string {
   return Path.join(hamiltonHome(), "settings.yaml")
 }
@@ -102,7 +106,8 @@ export function ensureHamiltonHome(): void {
     Path.join(memoryDir(), "user", "canonical"),
     guidelinesDir(),
     skillsDir(),
-    hooksDir()
+    hooksDir(),
+    templatesDir()
   ]
   for (const dir of dirs) {
     if (!Fs.existsSync(dir)) {
