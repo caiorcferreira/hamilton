@@ -93,11 +93,15 @@ export function executeWithPi(
 
     const { systemTemplate, taskTemplate, memoryContext } = config.prompt
 
-    let systemPrompt = Effect.runSync(systemTemplate.render())
+    let systemPrompt = yield* _(systemTemplate.render().pipe(
+      Effect.mapError(e => new PiExecutionError({ taskId: config.taskId, message: String(e) }))
+    ))
     if (memoryContext) {
       systemPrompt += "\n\n" + memoryContext
     }
-    const taskPrompt = Effect.runSync(taskTemplate.render())
+    const taskPrompt = yield* _(taskTemplate.render().pipe(
+      Effect.mapError(e => new PiExecutionError({ taskId: config.taskId, message: String(e) }))
+    ))
 
     const bus = yield* _(EventBus)
 

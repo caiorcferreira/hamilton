@@ -158,10 +158,11 @@ function buildScriptExecEffect(
   scriptConfig: { maxOutputBytes: number }
 ): Effect.Effect<{ stdout: string; stderr: string; exitCode: number; status: string }, { stdout: string; stderr: string; exitCode: number; status: string }> {
   return Effect.gen(function* (_) {
-    const renderedCommand = Effect.runSync(
+    const renderedCommand = yield* _(
       Template.make(task.script!.command, templateOptions)
         .setInputEnv(taskEnv as Record<string, unknown>)
         .render()
+        .pipe(Effect.mapError(e => ({ stdout: "", stderr: String(e), exitCode: 1, status: "failed" })))
     )
     const workdir = task.script!.workdir ?? (taskEnv.project_dir as string | undefined) ?? process.cwd()
     const timeoutSeconds = resolveTaskTimeout(task, spec.spec.run.timeout)
