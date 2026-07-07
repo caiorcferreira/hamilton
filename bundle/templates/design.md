@@ -44,6 +44,19 @@
      does without reading its internals, and you should be able to change its
      internals without breaking consumers. A table or short sub-sections both work. -->
 
+### Quality Lens
+
+<!-- Record how this design holds up against code-quality.md — evidence, not a checkbox.
+     Scale to the change: for a mechanical or single-file change, one line ("trivial — no
+     structural risk") is enough. For a non-trivial change, cover:
+     - Responsibility: each unit's single reason to change (if it needs "and", split it).
+     - Boundaries & dependencies: what each unit hides; where high-level logic depends on an
+       abstraction, and the seam a test substitutes for concrete IO/DB/clock.
+     - Right-sizing: an abstraction or extension point you deliberately did NOT add.
+     - Accepted smells: any structural trade-off taken on purpose, and why (also list it under
+       Risks / Trade-offs). This is the gate's blocking record — an unresolved smell that is
+       neither fixed nor recorded here fails the self-review. -->
+
 ## Data & Flow
 
 <!-- Data model changes and the main control/data flow (the happy path as a
