@@ -14,8 +14,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 SDD. A change that does not warrant that depth skips this step and starts at `hamilton-plan`.
 
 **Gate.** Do not move to implementation — no `hamilton-plan`, no code — until the artifacts
-are approved and the design clears the `code-quality.md` self-review: for a non-trivial
-change, an unresolved structural smell blocks the gate (see step 9).
+are approved and the design clears the `references/code-quality.md` self-review: for a
+non-trivial change, an unresolved structural smell blocks the gate (see step 9).
 
 ## What it produces
 
@@ -32,6 +32,14 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
   modified ones.
 - Project standards (`AGENTS.md`).
 
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on
+the skill's own directory — they are co-located with this SKILL.md, **not** at
+`~/.hamilton/` or `~/.hamilton/templates/`.
+
+- `references/code-quality.md` — the self-review rubric for design quality.
+
 ## Principles
 
 - **Collaborate.** Refine through dialogue — ask one question at a time, prefer
@@ -43,8 +51,8 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 - **Design for quality.** Code quality is decided here, not at review. The decomposition,
   boundaries, and dependencies the design commits to are inherited by every line the coder
   later writes — and a defect caught at review means refactoring code that already exists.
-  Judge the design against `code-quality.md` (bundled with this skill), proportional to the
-  change's size.
+  Judge the design against `references/code-quality.md` (read it from this skill's
+  references directory), proportional to the change's size.
 - **Right-size.** Scale each artifact to the change; a few sentences is fine when the
   change is simple.
 
@@ -78,18 +86,19 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 8. **Write the design (how).** From the chosen approach, write `design.md`: context,
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
    any change-specific boundaries. As you shape the architecture and components, apply
-   `code-quality.md` — cohesive units with one reason to change, narrow boundaries, inverted
-   dependencies with named testable seams — sized to the change, not gold-plated. Capture the
-   outcome in the design's **Quality Lens** subsection (one line for a trivial change).
+   `references/code-quality.md` (read from this skill's references directory) — cohesive
+   units with one reason to change, narrow boundaries, inverted dependencies with named
+   testable seams — sized to the change, not gold-plated. Capture the outcome in the
+   design's **Quality Lens** subsection (one line for a trivial change).
 9. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
-   ambiguity; fix in place. Then run `design.md` against `code-quality.md`. **Blocking:** for
-   a non-trivial change — one that adds or restructures units, not a mechanical or single-file
-   edit — an unresolved structural smell (a unit with more than one reason to change, a leaked
-   boundary, a hard-wired dependency with no testable seam) is a gate failure. Fix the
-   structure, or, if you are deliberately accepting it, record it in the design's **Quality
-   Lens** subsection (and cross-list under Risks / Trade-offs). Do not pass the gate with a
-   silent smell — a weak coder cannot recover
-   quality the design did not encode.
+   ambiguity; fix in place. Then run `design.md` against `references/code-quality.md`.
+   **Blocking:** for a non-trivial change — one that adds or restructures units, not a
+   mechanical or single-file edit — an unresolved structural smell (a unit with more than one
+   reason to change, a leaked boundary, a hard-wired dependency with no testable seam) is a
+   gate failure. Fix the structure, or, if you are deliberately accepting it, record it in
+   the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
+   not pass the gate with a silent smell — a weak coder cannot recover quality the design
+   did not encode.
 10. **Get approval.** Present the artifacts for review; revise and re-review affected
    artifacts on request. Running unattended, record open questions. Do not pass the gate
    until approved.

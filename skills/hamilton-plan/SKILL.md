@@ -25,6 +25,14 @@ planning and coding. This skill produces it. **It never writes production code.*
 - Project standards: `AGENTS.md`, for test/build commands, project structure, code style,
   and boundaries. Read it — do not guess conventions.
 
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on
+the skill's own directory — they are co-located with this SKILL.md, **not** at
+`~/.hamilton/` or `~/.hamilton/templates/`.
+
+- `references/code-quality.md` — the self-review rubric for plan quality.
+
 ## Principles
 
 - **Plan-first, read-only.** Explore the code you will touch before writing the plan.
@@ -42,8 +50,8 @@ planning and coding. This skill produces it. **It never writes production code.*
 - **Plan for quality.** The coder executes verbatim and adds no design, so the plan carries
   the quality — not the code step. Decompose so each task preserves the design's structure
   and stays independently testable, and make any code snippet model the clean shape rather
-  than a shortcut the coder will copy. Judge the plan against `code-quality.md` (bundled with
-  this skill), proportional to the change's size.
+  than a shortcut the coder will copy. Judge the plan against `references/code-quality.md`
+  (read it from this skill's references directory), proportional to the change's size.
 - **Detail scales to risk.** Include code or exact commands only where they remove
   ambiguity. Otherwise state intent and let the coder think — do not pre-write the diff.
 
@@ -71,8 +79,8 @@ planning and coding. This skill produces it. **It never writes production code.*
    acceptance criteria (testable; cite the requirement scenario when one exists — and cover
    the error/edge behavior, not just the happy path), steps (write failing test → implement
    → verify), a verify command with its expected result, and a commit message. Where a step
-   includes a code snippet, make it model the clean shape from `code-quality.md`; the coder
-   copies it verbatim.
+   includes a code snippet, make it model the clean shape from `references/code-quality.md`;
+   the coder copies it verbatim.
 7. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
@@ -95,7 +103,8 @@ Before finishing, confirm:
 - Each acceptance criterion ties to a requirement scenario where one exists.
 - Dependencies are correct and acyclic.
 - The task seams follow the design's boundaries; no task bundles unrelated changes, and each
-  lands a unit that can be tested in isolation (`code-quality.md`, proportional to the change).
+  lands a unit that can be tested in isolation (`references/code-quality.md`, proportional to
+  the change).
 - Any code snippet in a task models the clean shape — the coder copies it verbatim.
 - "Done when" captures: all tasks done, tests green, reviews addressed.
 
