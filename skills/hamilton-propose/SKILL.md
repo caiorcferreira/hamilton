@@ -44,31 +44,37 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 
 ## Process
 
-1. **Set up the change.** Derive a kebab-case title from the request; create
-   `.hamilton/changes/<YYYY-MM-DD-title>/`.
-2. **Explore context (read-only).** Project structure, docs, recent commits, and existing
+1. **Derive the title and ensure an isolated workspace.** Derive a kebab-case title from the
+   request. Then detect isolation: if you are already in a linked worktree
+   (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a submodule)
+   or on a dedicated branch (not the repo's default branch), work in place. Otherwise create a
+   worktree on a new branch, both named for the change, under the git-ignored `.worktrees/`
+   directory — `git worktree add .worktrees/<title> -b <title>` — and switch into it. Do this
+   before creating any files.
+2. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
+3. **Explore context (read-only).** Project structure, docs, recent commits, and existing
    specs. If the request spans several independent subsystems, stop and help decompose it
    first — one change per spec.
-3. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
+4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
    question at a time, multiple-choice when you can. Direct them at the requester (a person,
    or the calling agent). When no one can answer, make the reasonable choice and record it
    as an assumption. Do not start drafting until the intent is clear.
-4. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
+5. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements.
-5. **Write the requirements (what).** For each capability named in the proposal, write
+6. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. For MODIFIED, copy the entire existing
    requirement block from the spec and edit it.
-6. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
+7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
    their trade-offs. Lead with your recommendation and why, and get the requester's choice
    (or, unattended, pick the recommended one and record the reasoning).
-7. **Write the design (how).** From the chosen approach, write `design.md`: context,
+8. **Write the design (how).** From the chosen approach, write `design.md`: context,
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
    any change-specific boundaries.
-8. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
+9. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
    ambiguity; fix in place.
-9. **Get approval.** Present the artifacts for review; revise and re-review affected
+10. **Get approval.** Present the artifacts for review; revise and re-review affected
    artifacts on request. Running unattended, record open questions. Do not pass the gate
    until approved.
 
@@ -81,6 +87,7 @@ reviewed and approved, ready for `hamilton-plan`.
 
 ```dot
 digraph hamilton_propose {
+    "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
     "Ask clarifying questions\n(one at a time)" [shape=box];
@@ -92,6 +99,7 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
+    "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";
     "Ask clarifying questions\n(one at a time)" -> "Proposal — why\n(problem, goals, capabilities)";

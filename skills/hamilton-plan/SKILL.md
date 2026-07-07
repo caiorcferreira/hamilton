@@ -44,22 +44,30 @@ planning and coding. This skill produces it. **It never writes production code.*
 
 ## Process
 
-1. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-2. **Gather context.** Read upstream artifacts if present (proposal, design, requirements)
+1. **Ensure an isolated workspace.** Detect isolation first: if you are already in a linked
+   worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
+   submodule) or on a dedicated branch (not the repo's default branch), work in place.
+   Otherwise derive a kebab-case title from the change (its existing directory name, or from
+   the request on the minimal path) and create a worktree on a new branch, both named for the
+   change, under the git-ignored `.worktrees/` directory —
+   `git worktree add .worktrees/<title> -b <title>` — then switch into it before doing anything
+   else.
+2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
+3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements)
    and the project standards (commands, structure, style, boundaries). On the minimal
    path, write a two-line why/what for the Overview.
-3. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
+4. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
-4. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
+5. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
    independent tasks can run in parallel. Prefer more small tasks over few large ones.
-5. **Specify each task.** For every task capture: files (created / modified / deleted),
+6. **Specify each task.** For every task capture: files (created / modified / deleted),
    acceptance criteria (testable; cite the requirement scenario when one exists), steps
    (write failing test → implement → verify), a verify command with its expected result,
    and a commit message.
-6. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
+7. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
-7. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
+8. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
    into the change directory.
 
 ## Task-sizing heuristics
@@ -87,6 +95,7 @@ Before finishing, confirm:
 
 ```dot
 digraph hamilton_plan {
+    "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Locate / create change dir" [shape=box];
     "Gather context\n(upstream artifacts + project standards)" [shape=box];
     "Explore code (read-only)" [shape=box];
@@ -97,6 +106,7 @@ digraph hamilton_plan {
     "Auto-reflect + record assumptions" [shape=box];
     "Write plan.md + self-review" [shape=doublecircle];
 
+    "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir";
     "Locate / create change dir" -> "Gather context\n(upstream artifacts + project standards)";
     "Gather context\n(upstream artifacts + project standards)" -> "Explore code (read-only)";
     "Explore code (read-only)" -> "Decompose into TDD-sized tasks";
