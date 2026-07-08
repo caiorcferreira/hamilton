@@ -58,13 +58,27 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Derive the title and ensure an isolated workspace.** Derive a kebab-case title from the
-   request. Then detect isolation: if you are already in a linked worktree
-   (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a submodule)
-   or on a dedicated branch (not the repo's default branch), work in place. Otherwise create a
-   worktree on a new branch, both named for the change, under the git-ignored `.worktrees/`
-   directory — `git worktree add .worktrees/<title> -b <title>` — and switch into it. Do this
-   before creating any files.
+1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive a
+   kebab-case title from the request. Then detect isolation: if you are already in a linked
+   worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
+   submodule) or on a dedicated branch (not the repo's default branch), work in place. Otherwise
+   create a worktree on a new branch, both named for the change, under the git-ignored
+   `.worktrees/` directory:
+
+   ```bash
+   git worktree add .worktrees/<title> -b <title>
+   cd .worktrees/<title>
+   git rev-parse --show-toplevel   # MUST print the .worktrees/<title> path
+   ```
+
+   Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
+   shell and every file tool rooted in the original checkout. You must `cd` into the worktree and
+   then **verify the switch took effect** before creating any files: run
+   `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
+   proceed to step 2 until it does.** If you skip this check you will silently write every
+   artifact on the default branch — the exact failure this step exists to prevent. From here on,
+   the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
+   the original checkout.
 2. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 3. **Explore context (read-only).** Project structure, docs, recent commits, and existing
    specs. If the request spans several independent subsystems, stop and help decompose it
@@ -90,8 +104,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    units with one reason to change, narrow boundaries, inverted dependencies with named
    testable seams — sized to the change, not gold-plated. Capture the outcome in the
    design's **Quality Lens** subsection (one line for a trivial change).
-9. **Self-review each artifact.** Scan for placeholders, contradictions, scope creep, and
-   ambiguity; fix in place. Then run `design.md` against `references/code-quality.md`.
+9. **Self-review each artifact.** First confirm the workspace: `git rev-parse --show-toplevel`
+   ends in `.worktrees/<title>` (or you were legitimately working in place per step 1) and every
+   artifact was written under that root, not the default checkout. Then scan for placeholders,
+   contradictions, scope creep, and ambiguity; fix in place. Then run `design.md` against
+   `references/code-quality.md`.
    **Blocking:** for a non-trivial change — one that adds or restructures units, not a
    mechanical or single-file edit — an unresolved structural smell (a unit with more than one
    reason to change, a leaked boundary, a hard-wired dependency with no testable seam) is a
