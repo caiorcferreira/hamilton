@@ -57,14 +57,30 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Ensure an isolated workspace.** Detect isolation first: if you are already in a linked
-   worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
-   submodule) or on a dedicated branch (not the repo's default branch), work in place.
-   Otherwise derive a kebab-case title from the change (its existing directory name, or from
-   the request on the minimal path) and create a worktree on a new branch, both named for the
-   change, under the git-ignored `.worktrees/` directory —
-   `git worktree add .worktrees/<title> -b <title>` — then switch into it before doing anything
-   else.
+1. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation first:
+   if you are already in a linked worktree (`git rev-parse --git-dir` differs from
+   `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the repo's
+   default branch), work in place. Otherwise derive a kebab-case title from the change (its
+   existing directory name, or from the request on the minimal path) and create a worktree on a
+   new branch, both named for the change, under the git-ignored `.worktrees/` directory:
+
+   ```bash
+   git worktree add .worktrees/<title> -b <title>
+   cd .worktrees/<title>
+   git rev-parse --show-toplevel   # MUST print the .worktrees/<title> path
+   ```
+
+   Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
+   shell and every file tool rooted in the original checkout. You must `cd` into the worktree
+   and then **verify the switch took effect** before doing anything else: run
+   `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
+   proceed to step 2 until it does.** If you skip this check you will silently plan and write on
+   the default branch — the exact failure this step exists to prevent.
+
+   From here on, every path in this skill is relative to that worktree root: the change directory,
+   all code you explore, and `plan.md` are created **inside** `.worktrees/<title>/`, never in the
+   original checkout. When in doubt, use the absolute worktree path returned by
+   `git rev-parse --show-toplevel` as the base for file operations.
 2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements)
    and the project standards (commands, structure, style, boundaries). On the minimal
@@ -97,6 +113,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 Before finishing, confirm:
 
+- You are inside the intended worktree, not the default branch: `git rev-parse --show-toplevel`
+  ends in `.worktrees/<title>` (or you were legitimately working in place per step 1), and
+  `plan.md` was written under that root.
 - Every task is independently verifiable, with a concrete verify command.
 - Each task's Steps are explicit enough to follow with no further design.
 - Each Files list is complete (created / modified / deleted).
