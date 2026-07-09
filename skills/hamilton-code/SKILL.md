@@ -55,9 +55,12 @@ Plus:
    resolve them by re-running the relevant step — or stop and report if blocked.
 5. **Code-quality self-review.** Check your diff against the checklist below; fix what you
    find.
-6. **Commit** using the task's Commit message and the project's git workflow.
-7. **Record progress.** Append an entry to the change directory's `progress.md` (format
+6. **Record progress.** Append an entry to the change directory's `progress.md` (format
    below).
+7. **Commit** using the task's Commit message and the project's git workflow. The commit must
+   include the change-directory updates — `progress.md` and any other artifact under
+   `.hamilton/changes/<change>/` you touched — alongside the code. Leave nothing in the change
+   directory uncommitted before you finish; run `git status` to confirm the tree is clean.
 
 This skill never edits `plan.md`.
 
@@ -95,9 +98,11 @@ Append to `.hamilton/changes/<change>/progress.md`, following the
 
 ## Output
 
-Implemented production code and tests for the one task; the full suite and build passing; a
-commit following the project's git workflow; and a `progress.md` entry. This skill does not
-modify `plan.md`. If anything is unresolved, state it plainly.
+Implemented production code and tests for the one task; the full suite and build passing; and
+a commit following the project's git workflow that includes both the code and the change-dir
+updates (the `progress.md` entry and any other change-dir artifact touched), with nothing left
+uncommitted under `.hamilton/changes/<change>/`. This skill does not modify `plan.md`. If
+anything is unresolved, state it plainly.
 
 ## Process flow
 
@@ -108,15 +113,15 @@ digraph hamilton_code {
     "Verify\n(task verify + full suite + build)" [shape=box];
     "Acceptance met?" [shape=diamond];
     "Code-quality self-review" [shape=box];
-    "Commit" [shape=box];
-    "Record progress.md entry" [shape=doublecircle];
+    "Record progress.md entry" [shape=box];
+    "Commit\n(code + change-dir updates)" [shape=doublecircle];
 
     "Load task\n(by reference or inline)" -> "Execute steps in order (as written)";
     "Execute steps in order (as written)" -> "Verify\n(task verify + full suite + build)";
     "Verify\n(task verify + full suite + build)" -> "Acceptance met?";
     "Acceptance met?" -> "Execute steps in order (as written)" [label="no — re-run step / stop"];
     "Acceptance met?" -> "Code-quality self-review" [label="yes"];
-    "Code-quality self-review" -> "Commit";
-    "Commit" -> "Record progress.md entry";
+    "Code-quality self-review" -> "Record progress.md entry";
+    "Record progress.md entry" -> "Commit\n(code + change-dir updates)";
 }
 ```
