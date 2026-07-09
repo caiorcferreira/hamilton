@@ -27,6 +27,14 @@ comes back to you — that loop is driven by whoever runs the pipeline, not by t
   for review.
 - Project standards (`AGENTS.md`): idioms, code style, security expectations, boundaries.
 
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on
+the skill's own directory — they are co-located with this SKILL.md, **not** at
+`~/.hamilton/` or `~/.hamilton/templates/`.
+
+- `references/code-quality.md` — the rubric for judging the structural quality of the diff.
+
 ## Principles
 
 - **Evidence over claims.** Trust the diff and the tests, not the description. "It works"
@@ -45,7 +53,8 @@ comes back to you — that loop is driven by whoever runs the pipeline, not by t
    the work was meant to do and its acceptance criteria. Read `progress.md` for what the
    coder did and any flagged deviations.
 2. **Inspect the diff.** Read the changes under review in full.
-3. **Review across dimensions** (checklist below).
+3. **Review across dimensions** (checklist below), applying the structural rubric in
+   `references/code-quality.md` scaled to the size of the change.
 4. **Decide a verdict:** `approved` or `changes-requested`.
 5. **Write feedback** in the format below — actionable, located, tagged blocking vs
    suggestion, each citing the criterion or standard it references.
@@ -63,6 +72,10 @@ comes back to you — that loop is driven by whoever runs the pipeline, not by t
   sensitive files in the diff.
 - **Idioms & standards:** Naming, structure, error handling, and style match the codebase
   and `AGENTS.md`.
+- **Structural quality:** Cohesion, coupling, testable seams, right-sized abstraction,
+  intention-revealing names, and complexity — judged against `references/code-quality.md`,
+  scaled to the change. A structural defect that traces to what the plan mandated is a
+  plan/design issue, not the coder's — flag it as such.
 - **Scope & hygiene:** Change is confined to the task; no stubs, dead code, debug output,
   commented-out blocks, or unrelated edits.
 - **Boundaries:** Nothing the design marked off-limits was touched.
@@ -107,15 +120,15 @@ Append a one-line summary to `.hamilton/changes/<change>/progress.md` (see
 digraph hamilton_review {
     "Establish intent\n(plan + requirements + progress)" [shape=box];
     "Inspect the diff" [shape=box];
-    "Review across dimensions" [shape=box];
+    "Review across dimensions\n(+ code-quality rubric)" [shape=box];
     "Verdict?" [shape=diamond];
     "Write blocking + suggestions" [shape=box];
     "State what was verified" [shape=box];
     "Write review.md + progress.md summary" [shape=doublecircle];
 
     "Establish intent\n(plan + requirements + progress)" -> "Inspect the diff";
-    "Inspect the diff" -> "Review across dimensions";
-    "Review across dimensions" -> "Verdict?";
+    "Inspect the diff" -> "Review across dimensions\n(+ code-quality rubric)";
+    "Review across dimensions\n(+ code-quality rubric)" -> "Verdict?";
     "Verdict?" -> "Write blocking + suggestions" [label="changes-requested"];
     "Verdict?" -> "State what was verified" [label="approved"];
     "Write blocking + suggestions" -> "Write review.md + progress.md summary";

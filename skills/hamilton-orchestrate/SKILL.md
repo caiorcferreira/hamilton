@@ -114,9 +114,15 @@ skill's own directory — they are co-located with this SKILL.md.
 6. **Fix the final review as one wave.** If it returns findings, dispatch **one**
    `hamilton-code` subagent with the complete findings list — not one fixer per finding — then
    re-review the affected range.
-7. **Hand off to finish-work.** When the whole-branch review is clean, the plan's "Done when"
-   is satisfied. Stop here and hand off to **hamilton-finish-work** to complete the branch;
-   do not merge or open a PR from this skill.
+7. **Commit any pending change-dir state, then hand off to finish-work.** Before handing off,
+   run `git status` and confirm the change directory is fully committed. Each `hamilton-code`
+   subagent commits its own `progress.md`, but the whole-branch review and final fix wave can
+   leave change-dir artifacts (e.g. `progress.md`) uncommitted — if any remain, commit them
+   with a bookkeeping message so nothing under `.hamilton/changes/<change>/` is left in the
+   working tree. This commit is the one exception to "never touch the tree": it moves no
+   production code, only the change-dir ledger. When the whole-branch review is clean and the
+   change dir is committed, the plan's "Done when" is satisfied. Stop here and hand off to
+   **hamilton-finish-work** to complete the branch; do not merge or open a PR from this skill.
 
 ## Handling implementer status
 
@@ -192,7 +198,8 @@ in your context for the rest of the session. Move bulk artifacts as files:
 ## Boundaries
 
 - Always: verify workspace isolation before Task 1; specify a model on every dispatch;
-  confirm each task's `progress.md` entry before moving on.
+  confirm each task's `progress.md` entry before moving on; confirm the change directory is
+  fully committed before handing off to finish-work.
 - Ask first: starting on the default branch; any plan-mandated finding a review flags as a
   defect; a blocker that implies the plan itself is wrong.
 - Never: edit production code or `plan.md` yourself; dispatch two implementers in parallel
@@ -204,9 +211,10 @@ in your context for the rest of the session. Move bulk artifacts as files:
 
 Every task in the plan implemented by its own `hamilton-code` subagent, each passing a
 `hamilton-review` gate; a clean whole-branch review; a `progress.md` with a `done` entry per
-task; and the branch ready for **hamilton-finish-work**. This skill writes no production code
-and never modifies `plan.md`. If anything is unresolved — a blocker, a plan defect, an
-unadjudicated plan-mandated finding — state it plainly and stop.
+task, fully committed with the rest of the change directory; and the branch ready for
+**hamilton-finish-work**. This skill writes no production code and never modifies `plan.md`.
+If anything is unresolved — a blocker, a plan defect, an unadjudicated plan-mandated finding —
+state it plainly and stop.
 
 ## Process flow
 
@@ -227,6 +235,7 @@ digraph hamilton_orchestrate {
     "Whole-branch hamilton-review\n(most capable model)" [shape=box];
     "Final review clean?" [shape=diamond];
     "One hamilton-code fix wave\n(all findings)" [shape=box];
+    "Commit pending change-dir state\n(git status clean)" [shape=box];
     "Hand off to hamilton-finish-work" [shape=doublecircle];
 
     "Verify isolated workspace\n(stop if on default branch)" -> "Load plan.md + progress.md\n(resume at first not-done task)";
@@ -247,6 +256,7 @@ digraph hamilton_orchestrate {
     "Whole-branch hamilton-review\n(most capable model)" -> "Final review clean?";
     "Final review clean?" -> "One hamilton-code fix wave\n(all findings)" [label="no"];
     "One hamilton-code fix wave\n(all findings)" -> "Whole-branch hamilton-review\n(most capable model)" [label="re-review"];
-    "Final review clean?" -> "Hand off to hamilton-finish-work" [label="yes"];
+    "Final review clean?" -> "Commit pending change-dir state\n(git status clean)" [label="yes"];
+    "Commit pending change-dir state\n(git status clean)" -> "Hand off to hamilton-finish-work";
 }
 ```

@@ -40,9 +40,11 @@ Subagent:
     ## Your job
 
     Follow hamilton-code: execute the Steps in order, verify (task Verify + full suite +
-    build), check acceptance, run the code-quality self-review, commit with the task's Commit
-    message, and append the progress.md entry. If a step is impossible or the task looks
-    wrong, stop and report — do not improvise.
+    build), check acceptance, run the code-quality self-review, append the progress.md entry,
+    and commit with the task's Commit message — the commit must include the change-dir updates
+    (progress.md and any other change-dir artifact touched), leaving nothing uncommitted under
+    the change directory. If a step is impossible or the task looks wrong, stop and report —
+    do not improvise.
 
     ## Report
 
