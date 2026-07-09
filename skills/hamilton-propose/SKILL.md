@@ -90,6 +90,24 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 5. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements.
+
+   **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
+   capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so
+   over-splitting here multiplies files through the whole pipeline. A capability is a
+   coherent area of behavior a reader would recognize as a top-level concern of the system —
+   not a mechanism, a config surface, an integration point, a single module, or a wiring/
+   startup step. Aim for the fewest capabilities that cover the change without overlap. You
+   have over-split when names are adjective+noun sub-aspects of one domain
+   (`structured-logging`, `distributed-tracing` are both just logging/tracing), name a single
+   file or bootstrap step (`server-startup`), or describe a detail shared by two others
+   (`trace-log-correlation` folds into logging + tracing). Prefer the durable domain noun and
+   let its requirement cover the aspects.
+
+   | Over-split (bad) | Right-sized (good) |
+   |------------------|--------------------|
+   | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
+   | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
+   | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
 6. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. For MODIFIED, copy the entire existing
