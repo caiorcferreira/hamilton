@@ -54,6 +54,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   (read it from this skill's references directory), proportional to the change's size.
 - **Detail scales to risk.** Include code or exact commands only where they remove
   ambiguity. Otherwise state intent and let the coder think — do not pre-write the diff.
+- **Write flowing prose.** In `plan.md` — overviews, task descriptions, acceptance
+  criteria, and every other narrative field — let paragraphs run as continuous lines. Do
+  not hard-wrap text at ~80 characters or any fixed width; insert a line break only at a
+  real boundary (between paragraphs, list items, or headings). Code blocks and commands
+  keep their own formatting; soft-wrapping prose is the reader's job, not yours.
 
 ## Process
 

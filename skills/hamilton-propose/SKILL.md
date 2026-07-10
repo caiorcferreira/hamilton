@@ -55,6 +55,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   references directory), proportional to the change's size.
 - **Right-size.** Scale each artifact to the change; a few sentences is fine when the
   change is simple.
+- **Write flowing prose.** In every artifact you produce (`proposal.md`, `requirements/`,
+  `design.md`), let paragraphs run as continuous lines — do not hard-wrap text at ~80
+  characters or any fixed width. Insert a line break only at a real boundary: between
+  paragraphs, list items, or headings. Soft-wrapping is the reader's job, not yours.
 
 ## Process
 
