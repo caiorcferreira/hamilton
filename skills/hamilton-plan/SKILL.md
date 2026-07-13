@@ -24,6 +24,10 @@ planning and coding. This skill produces it. **It never writes production code.*
 - Minimal path: only a user request. Capture the why/what in the plan's Overview and proceed.
 - Project standards: `AGENTS.md`, for test/build commands, project structure, code style,
   and boundaries. Read it — do not guess conventions.
+- The project's canonical specs (`.hamilton/specs/`): the current, consolidated requirement
+  truth for each capability. Read the specs the change touches so the plan stays consistent
+  with established behavior and prior decisions — especially on the minimal path, where no
+  per-change `requirements/` exists and the specs are your only view of existing behavior.
 
 ## References
 
@@ -47,6 +51,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   test-first where behavior is testable — all the sequencing thinking happens here, not at
   code time.
 - **Reference, don't copy.** Point to `design.md` / `requirements/`; do not duplicate them.
+- **Honor the canonical specs.** Before decomposing, read the `.hamilton/specs/` entries for
+  the capabilities the change touches. They record the conventions and decisions the project
+  has already committed to; a plan that quietly contradicts them regresses agreed behavior.
+  Follow them, or surface the conflict — do not plan around it silently.
 - **Plan for quality.** The coder executes verbatim and adds no design, so the plan carries
   the quality — not the code step. Decompose so each task preserves the design's structure
   and stays independently testable, and make any code snippet model the clean shape rather
@@ -87,9 +95,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    original checkout. When in doubt, use the absolute worktree path returned by
    `git rev-parse --show-toplevel` as the base for file operations.
 2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements)
-   and the project standards (commands, structure, style, boundaries). On the minimal
-   path, write a two-line why/what for the Overview.
+3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
+   the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
+   project standards (commands, structure, style, boundaries). The specs carry the conventions
+   and decisions already committed for those capabilities — follow them so the plan stays
+   consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
+   your primary source of existing behavior; write a two-line why/what for the Overview.
 4. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
 5. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
@@ -149,7 +160,7 @@ the plan ships to the code.
 digraph hamilton_plan {
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Locate / create change dir" [shape=box];
-    "Gather context\n(upstream artifacts + project standards)" [shape=box];
+    "Gather context\n(upstream artifacts + canonical specs + standards)" [shape=box];
     "Explore code (read-only)" [shape=box];
     "Decompose into TDD-sized tasks" [shape=box];
     "Specify each task\n(files, acceptance, steps, verify, commit)" [shape=box];
@@ -159,8 +170,8 @@ digraph hamilton_plan {
     "Write plan.md + self-review" [shape=doublecircle];
 
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir";
-    "Locate / create change dir" -> "Gather context\n(upstream artifacts + project standards)";
-    "Gather context\n(upstream artifacts + project standards)" -> "Explore code (read-only)";
+    "Locate / create change dir" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
+    "Gather context\n(upstream artifacts + canonical specs + standards)" -> "Explore code (read-only)";
     "Explore code (read-only)" -> "Decompose into TDD-sized tasks";
     "Decompose into TDD-sized tasks" -> "Specify each task\n(files, acceptance, steps, verify, commit)";
     "Specify each task\n(files, acceptance, steps, verify, commit)" -> "Interactive?";

@@ -28,8 +28,9 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 ## Inputs
 
 - A change idea or request. If none is given, ask what to build.
-- The project's existing specs (`.hamilton/specs/`) — to tell new capabilities from
-  modified ones.
+- The project's canonical specs (`.hamilton/specs/`) — the current requirement truth for each
+  capability. Read them to tell new capabilities from modified ones, and to keep the proposal
+  and requirements consistent with the conventions and decisions already committed.
 - Project standards (`AGENTS.md`).
 
 ## References
@@ -84,9 +85,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
    the original checkout.
 2. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-3. **Explore context (read-only).** Project structure, docs, recent commits, and existing
-   specs. If the request spans several independent subsystems, stop and help decompose it
-   first — one change per spec.
+3. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
+   specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
+   prior decisions the change inherits, so a MODIFIED capability builds on its existing
+   requirement block rather than contradicting it. If the request spans several independent
+   subsystems, stop and help decompose it first — one change per spec.
 4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
    question at a time, multiple-choice when you can. Direct them at the requester (a person,
    or the calling agent). When no one can answer, make the reasonable choice and record it
