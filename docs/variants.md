@@ -1,5 +1,7 @@
 # Variants
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Variants modify a base workflow's behavior by changing tasks, model assignments, or
 output destinations. A variant is a suffix appended to the workflow slug.
 

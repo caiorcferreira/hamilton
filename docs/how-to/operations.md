@@ -106,5 +106,5 @@ bun run purge    # removes ~/.hamilton/ and ~/.local/bin/hamilton
 
 ```bash
 rm -rf ~/.hamilton
-hamilton init --force
+hamilton setup --force
 ```

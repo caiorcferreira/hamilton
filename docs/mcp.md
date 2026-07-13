@@ -1,5 +1,7 @@
 # MCP Server
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Hamilton can expose its capabilities via the Model Context Protocol.
 
 ```bash

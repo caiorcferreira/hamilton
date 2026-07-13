@@ -1,10 +1,14 @@
 # Spec-Driven Development Framework
 
+> **Hamilton is in ALPHA.** This document is the design of Hamilton's **Assisted mode** — the
+> working core (see [The three modes](./modes.md)). For a task-focused map of the skills and how
+> to run them, see the [Skills reference](./skills.md); this page is the *why* behind them.
+
 Hamilton's spec-driven development (SDD) framework carries a change from idea to merge
 through a fixed sequence of steps, each captured as a **skill** and backed by durable
 **artifacts**. The same skills are used by a person working in an editor, by Hamilton's own
-agents running autonomously, or by a mix of the two — a person authors the spec and hands
-execution to Hamilton.
+agents running autonomously (the experimental [Autonomous mode](./modes.md)), or by a mix of
+the two — a person authors the spec and hands execution to Hamilton.
 
 ## Philosophy
 
@@ -206,13 +210,15 @@ executes the verbatim coding steps, a strong model reviews.
 
 ## Status and open work
 
-All six skills are authored. The remaining work is integration, not skill authoring:
+All six pipeline skills — plus the `hamilton-orchestrate` driver — are authored and usable today
+(Assisted mode). `hamilton setup` installs the
+artifact templates into `~/.hamilton/templates/`, so the pipeline runs end to end with any coding
+agent. The remaining work is integration with the Autonomous engine, not skill authoring:
 
-- Wire `hamilton setup` to copy `bundle/templates/` into `~/.hamilton/templates/`.
 - Unify the framework with the existing bundle: refactor the `feature-dev` agents and the
   merge / PR / worktree variants to *invoke* these skills instead of embedding their own
   instructions.
 - Consolidate the legacy spec systems (`openspec/`, `.superpowers/`, `docs/superpowers/`) into
   the `.hamilton/` model.
-- Run a real change end to end through the full human-to-Hamilton pipeline and record the
-  friction.
+- Run a real change end to end through the full human-to-Hamilton (Autonomous) pipeline and record
+  the friction.

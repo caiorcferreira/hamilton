@@ -1,5 +1,7 @@
 # Model Aliases
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Map short names to full model IDs for use in agent manifests and workflow YAMLs.
 
 ## Configuration

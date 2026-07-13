@@ -1,5 +1,7 @@
 # Agent System
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Hamilton agents are AI personas with defined roles, instructions, and output contracts. Each
 agent is a directory containing a manifest (`agent.yml`) and persona files (`INSTRUCTIONS.md`,
 `SOUL.md`, optionally `CONTEXT.md`). The engine resolves agents through a two-tier system and

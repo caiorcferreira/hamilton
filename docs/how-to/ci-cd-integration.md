@@ -86,7 +86,7 @@ jobs:
           bun run install-local
 
       - name: Bootstrap Hamilton
-        run: hamilton init
+        run: hamilton setup
 
       - name: Install docs-review workflow
         run: |
@@ -118,7 +118,7 @@ docs-review:
   script:
     - git clone https://github.com/your-org/hamilton.git
     - cd hamilton && bun install && bun run build && bun run install-local
-    - hamilton init
+    - hamilton setup
     - cp -r $CI_PROJECT_DIR/.gitlab/docs-review-workflow ~/.hamilton/workflows/docs-review
     - hamilton workflow run docs-review "Review docs changes in this MR"
   artifacts:

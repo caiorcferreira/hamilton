@@ -4,11 +4,11 @@ Common failures and how to resolve them.
 
 ## Installation Failures
 
-### `hamilton init` says "rtk not found"
+### `hamilton setup` says "rtk not found"
 
 ```bash
 npm install -g @rtk-ai/rtk
-hamilton init
+hamilton setup
 ```
 
 Verify: `rtk --version` should print `>= 0.23.0`.
