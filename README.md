@@ -1,8 +1,11 @@
 # Hamilton
 
-Structured AI-assisted coding for existing codebases. Hamilton carries a change from idea to merge
-through disciplined, spec-driven steps — usable with any coding agent, or run autonomously by its own
-workflow engine.
+> *"How do you write like you're running out of time?"* — *Hamilton*
+
+Hamilton is a coding toolbox focused on producing high-quality code and architecture. It brings
+structure to AI-assisted coding — carrying a change from idea to merge through disciplined,
+spec-driven steps that any coding agent can follow, or that Hamilton's own engine can run
+autonomously.
 
 > ⚠️ **ALPHA.** Hamilton is under active, early development. Interfaces, artifacts, workflow specs,
 > and CLI commands can change at any time **without notice or backward-compatibility guarantees.**
@@ -10,8 +13,8 @@ workflow engine.
 
 ## Three modes
 
-AI-assisted coding happens at three tempos, and Hamilton is organized around all three. See
-[The three modes](docs/modes.md) for the full picture.
+Hamilton is organized around three modes of AI-assisted coding, spanning fully autonomous to
+closely guided work. See [The three modes](docs/modes.md) for the full picture.
 
 | Mode | What it is | Status |
 |------|-----------|--------|
@@ -25,8 +28,8 @@ feeds context into both.
 
 ## Assisted mode — start here
 
-Assisted mode is a bundle of **spec-driven development skills** that carry a change through a fixed
-sequence, one disciplined step at a time:
+Assisted mode is a bundle of **[spec-driven development skills](docs/sdd-framework.md)** that carry a
+change through a fixed sequence, one disciplined step at a time:
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
@@ -36,9 +39,10 @@ init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──
 ```
 
 Each step is a self-contained `SKILL.md` that names no tool and depends on no engine internals — only
-on the project's standards (`AGENTS.md`) and the shared artifacts under the project's `.hamilton/`
-directory. The same skill guides a person in an editor or an agent like Claude Code. The heavyweight
-front door (`propose`) is optional; the only required step is `plan`.
+on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton installs at
+`~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
+`.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
+heavyweight front door (`propose`) is optional; the only required step is `plan`.
 
 ### Quick start
 
@@ -125,17 +129,6 @@ an agent's context. Failure is graceful — everything else runs without it. The
 - **An existing git repo** — Hamilton operates on an existing repository (no greenfield support yet).
 - **rtk** (optional) — `npm install -g @rtk-ai/rtk`; required for Autonomous-mode Pi SDK agent
   execution.
-
-## Tech stack
-
-- **Runtime**: bun (ESM, `"type": "module"`).
-- **Language**: TypeScript (target ES2022).
-- **Framework**: Effect-TS (`Effect.gen`, `Data.TaggedError`, `Schema`).
-- **AI SDK** (Autonomous mode): Pi SDK (`@earendil-works/pi-agent-core`, `pi-ai`, `pi-coding-agent`).
-- **State machine** (Autonomous mode): `@effect/workflow`, persisted in SQLite via `bun:sqlite`
-  (`~/.hamilton/hamilton.db`).
-- **Memory** (Ambient mode): `@tobilu/qmd` (markdown + hybrid search) over `~/.hamilton/memory/`.
-- **CLI**: `@effect/cli`. **YAML**: `yaml`. **Test runner**: vitest via `bun --bun vitest run`.
 
 ## Development
 

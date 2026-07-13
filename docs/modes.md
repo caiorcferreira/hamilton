@@ -4,10 +4,10 @@
 > backward-compatibility guarantees. This page describes what exists today and what is still
 > emerging — read the status line on each mode before you rely on it.
 
-AI-assisted coding happens at three different tempos, and a person moves between them all day:
-sometimes you want the machine to just *go*, sometimes you want to stay in the loop and shape the
-work, and sometimes you want the tool to quietly get better at *your* codebase over time. Hamilton
-is organized around those three modes.
+Hamilton is a coding toolbox focused on producing high-quality code and architecture. A person moves
+between three modes of AI-assisted work all day: sometimes you want the machine to just *go*,
+sometimes you want to stay in the loop and shape the work, and sometimes you want the tool to quietly
+get better at *your* codebase over time. Hamilton is organized around those three modes.
 
 | Mode | Who drives | What it is | Status |
 |------|-----------|-----------|--------|

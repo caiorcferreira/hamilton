@@ -3,9 +3,9 @@
 > **Hamilton is in ALPHA.** The ideas here are stable; the code that realizes them is not. See
 > [The three modes](./modes.md) for what works today.
 
-Hamilton is structured AI-assisted coding for existing codebases. It spans three modes — **Autonomous**
-(an engine runs a full agent graph), **Assisted** (portable spec-driven skills guide any coding
-agent), and **Ambient** (a memory layer that learns your project) — described in
+Hamilton is a coding toolbox focused on producing high-quality code and architecture. It spans three
+modes — **Autonomous** (an engine runs a full agent graph), **Assisted** (portable spec-driven skills
+guide any coding agent), and **Ambient** (a memory layer that learns your project) — described in
 [The three modes](./modes.md). This page is the rationale beneath all three.
 
 ## The problem
