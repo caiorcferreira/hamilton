@@ -1,12 +1,14 @@
 # CLI Reference
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Complete command-line reference for Hamilton. All commands accept `--help` for inline documentation.
 
 ## Command Tree
 
 ```
 hamilton
-  init [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
+  setup [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
   doctor
   workflow
     run <slug> <prompt...> [--variants <csv>] [--foreground|-f] [--run-id <id>]
@@ -27,12 +29,12 @@ hamilton
 
 ---
 
-## `hamilton init`
+## `hamilton setup`
 
 Bootstraps the `~/.hamilton/` directory, initializes the SQLite database, installs bundled workflows and shared agents, and creates default configuration.
 
 ```
-hamilton init [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
+hamilton setup [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
 ```
 
 ### Flags
@@ -59,16 +61,16 @@ hamilton init [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
 
 ```bash
 # Basic initialization
-hamilton init
+hamilton setup
 
 # Force overwrite of agents and skills
-hamilton init --force
+hamilton setup --force
 
 # Copy existing Pi configs and register model aliases
-hamilton init --copy-pi-configs --model-alias sonnet=anthropic.claude-sonnet-4
+hamilton setup --copy-pi-configs --model-alias sonnet=anthropic.claude-sonnet-4
 
 # Multiple aliases
-hamilton init --model-alias fast=google.gemini-flash-2 --model-alias big=anthropic.claude-opus-4
+hamilton setup --model-alias fast=google.gemini-flash-2 --model-alias big=anthropic.claude-opus-4
 ```
 
 ---

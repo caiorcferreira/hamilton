@@ -1,5 +1,7 @@
 # How Workflows Run
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 What happens under the hood when you run `hamilton workflow run <slug> <prompt>`.
 
 ## The Lifecycle

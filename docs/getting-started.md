@@ -1,14 +1,21 @@
 # Getting Started
 
-Hamilton orchestrates multi-step AI agent pipelines from the command line. This guide walks through installation, initialization, and running your first workflow.
+> **Hamilton is in ALPHA.** Commands, flags, and workflow specs can change without notice. Only
+> Assisted mode is considered usable today — see [The three modes](./modes.md).
+
+Hamilton has three modes ([overview](./modes.md)). This guide starts with **Assisted mode** — the
+working, recommended path — then walks through the **Autonomous** engine, which is experimental.
 
 ## Prerequisites
 
-- **bun** >= 1.2.x -- JavaScript runtime, package manager, and test runner
-- **rtk** >= 0.23.0 (optional) -- Rewriting Tool Kit for Pi SDK agent execution. Install with `npm install -g @rtk-ai/rtk`
-- **An existing git repository** -- Hamilton workflows operate on git repos (no greenfield support yet, except for the `scaffold` workflow)
+- **bun** >= 1.2.x — JavaScript runtime, package manager, and test runner.
+- **A coding agent that loads `SKILL.md` files** (e.g. Claude Code) — for Assisted mode.
+- **An existing git repository** — Hamilton operates on an existing repo (no greenfield support yet,
+  except the engine's `scaffold` workflow).
+- **rtk** >= 0.23.0 (optional) — for Autonomous-mode Pi SDK agent execution. Install with
+  `npm install -g @rtk-ai/rtk`.
 
-Optional LSP servers for enhanced agent diagnostics:
+Optional LSP servers give the engine's agents inline diagnostics:
 
 | Server | Package | File Types |
 |--------|---------|------------|
@@ -19,78 +26,107 @@ Optional LSP servers for enhanced agent diagnostics:
 | `yaml-language-server` | npm | `.yaml`, `.yml` |
 | `ruff` | pip | `.py`, `.pyi` |
 
-See [LSP Autocheck](./features/lsp-autocheck.md) for how Hamilton uses LSP to provide inline diagnostics to agents.
+See [LSP Autocheck](./features/lsp-autocheck.md) for how the engine uses LSP.
 
-## Installation
+## Install the CLI
 
-Clone the repository and install:
+Clone and build:
 
 ```bash
 git clone https://github.com/your-org/hamilton.git
 cd hamilton
 bun install
 bun run build
-```
-
-Install the CLI globally:
-
-```bash
 bun run install-local
 ```
 
-This symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`. Make sure `~/.local/bin` is in your `PATH`.
+`install-local` symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`. Make sure `~/.local/bin` is
+on your `PATH`.
 
-## Initialize Hamilton
-
-Bootstrap the `~/.hamilton/` directory with all required resources:
+Then bootstrap `~/.hamilton/`:
 
 ```bash
-hamilton init
+hamilton setup
 ```
 
-This creates:
+This creates the shared home directory and installs the artifact templates, shared agents,
+guidelines, hooks, and bundled workflows:
 
 ```
 ~/.hamilton/
-  agents/              # Shared agent personas (setup, verifier, do, pr)
-  workflows/           # Installed workflow specs (YAML) + per-workflow agents
-  runs/                # Per-run output directories
-  guidelines/          # Language-specific coding guidelines
-  skills/              # RTK skill manifests
-  executors/pi/agent/  # Pi SDK configuration
+  agents/              # Shared agent personas (Autonomous mode)
+  workflows/           # Installed workflow specs (Autonomous mode)
+  templates/           # Artifact templates for the Assisted skills
+  runs/                # Per-run output directories (Autonomous mode)
+  guidelines/          # Language-specific coding guidelines (Ambient mode)
+  memory/              # Guideline memory store (Ambient mode)
+  skills/              # RTK skill manifests (Autonomous mode)
+  executors/pi/agent/  # Pi SDK configuration (Autonomous mode)
   hamilton.db          # SQLite state machine persistence
   settings.yaml        # Global configuration
 ```
 
-Available flags:
+`hamilton setup` flags:
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Overwrite existing files (agents, skills, guidelines) |
+| `--force` | Overwrite existing files (agents, skills, guidelines, templates) |
 | `--copy-pi-configs` | Copy existing Pi SDK configs from `~/.pi/agent/` |
 | `--model-alias <name>=<modelId>` | Register a model alias (repeatable). If no settings file exists, prompts interactively. |
 
-If you already have Pi SDK configured (`~/.pi/agent/settings.json`), use `--copy-pi-configs` to preserve your model and authentication settings:
+If you already have the Pi SDK configured, preserve your model and auth settings:
 
 ```bash
-hamilton init --copy-pi-configs
+hamilton setup --copy-pi-configs
 ```
 
-To register model aliases for use in workflow YAMLs:
+Register model aliases for use in workflow YAMLs:
 
 ```bash
-hamilton init --model-alias sonnet=anthropic.claude-sonnet-4 --model-alias flash=google.gemini-flash-2
+hamilton setup --model-alias sonnet=anthropic.claude-sonnet-4 --model-alias flash=google.gemini-flash-2
 ```
 
-## Verify Installation
+## Start here — Assisted mode
 
-Run the doctor command to check prerequisites:
+Assisted mode guides your coding agent through a change with a fixed sequence of skills:
+`init → propose → plan → code → review → finish-work`. It needs two things beyond `hamilton setup`:
+
+1. **Templates** — already installed by `hamilton setup` into `~/.hamilton/templates/`. The skills
+   read them from there.
+2. **The skills available to your coding agent.** The pipeline skills live in `skills/hamilton-*/`.
+   Make them discoverable to your agent — for Claude Code, copy or symlink the `skills/hamilton-*`
+   directories into a skills directory it loads (e.g. `~/.claude/skills/`), or point it at the
+   `SKILL.md` paths. There is no CLI command that installs them into an agent; they are plain,
+   portable Markdown.
+
+Then, in your project, run the skills in order through your agent:
+
+```
+hamilton-init         → scaffold .hamilton/ and write AGENTS.md   (once per project)
+hamilton-propose      → proposal + requirements + design          (optional front door)
+hamilton-plan         → plan.md, the required task ledger
+hamilton-code         → implement one task
+hamilton-review       → judge the diff → verdict + feedback
+hamilton-finish-work  → gate, sync specs, finish via merge / PR
+```
+
+The `code` and `review` steps loop until the review passes; `hamilton-orchestrate` can drive the
+whole plan in one session. Artifacts land under your project's `.hamilton/` directory. See the
+**[Skills reference](./skills.md)** for each skill's inputs and outputs and the
+**[SDD framework](./sdd-framework.md)** for the design.
+
+## Autonomous mode — the workflow engine (experimental)
+
+> ⚠️ **Experimental.** The engine runs today, but it predates the Assisted skills and is being
+> reworked to invoke them. Commands, workflow specs, and personas can change without notice.
+
+The engine runs a whole multi-agent pipeline from a single prompt.
+
+### Verify installation
 
 ```bash
 hamilton doctor
 ```
-
-Output:
 
 ```
  Checking prerequisites:
@@ -100,41 +136,27 @@ Output:
  ✓ gopls
 ```
 
-The doctor runs four checks in parallel:
-- **rtk** -- binary exists and version >= 0.23.0
-- **typescript-language-server** -- LSP for TypeScript/JavaScript
-- **pylsp** -- LSP for Python
-- **gopls** -- LSP for Go
+Missing tools show as failures but don't block Hamilton — LSP servers are only needed for the LSP
+autocheck feature.
 
-Missing tools show as failures but don't block Hamilton. LSP servers are only needed for the LSP autocheck feature.
-
-## List Available Workflows
-
-See what workflows are installed:
+### List available workflows
 
 ```bash
 hamilton workflow list
 ```
-
-Output:
 
 ```
  NAME                    DESCRIPTION                                          VERSION  TASKS  AGENTS
  bug-fix                 Triage, investigate, and fix bugs...                 2        5      5
  bug-fix-github-pr       Same + GitHub PR                                     2        6      6
  bug-fix-merge           Same + squash-merge                                  2        6      6
- bug-fix-worktree        Worktree variant, local-only                         2        5      5
- bug-fix-merge-worktree  Worktree variant + merge                             2        6      6
  feature-dev             Plan, implement, test, and verify features           6        6      6
- feature-dev-github-pr   Same + GitHub PR + code review                       6        7      6
  ...
 ```
 
-The `list` command reads installed workflows from `~/.hamilton/workflows/` and renders a color-coded table.
+`list` reads installed workflows from `~/.hamilton/workflows/` and renders a color-coded table.
 
-## Run Your First Workflow
-
-Navigate to an existing git repository and run a bug-fix workflow:
+### Run your first workflow
 
 ```bash
 cd /path/to/your/repo
@@ -142,29 +164,26 @@ hamilton workflow run bug-fix "The login page crashes when submitting an empty e
 ```
 
 What happens:
-1. Hamilton loads the `bug-fix` workflow YAML spec
-2. Resolves agent personas (triager, investigator, setup, fixer, verifier)
-3. Builds the DAG: triage -> investigate -> setup -> fix -> verify
-4. Executes each task, passing accumulated context forward
-5. Writes events, logs, and task outputs to `~/.hamilton/runs/<run-id>/`
+1. Hamilton loads the `bug-fix` workflow YAML spec.
+2. Resolves agent personas (triager, investigator, setup, fixer, verifier).
+3. Builds the DAG: triage → investigate → setup → fix → verify.
+4. Executes each task, passing accumulated context forward.
+5. Writes events, logs, and task outputs to `~/.hamilton/runs/<run-id>/`.
 
-**Background mode (default):** The command returns immediately with a run ID. The workflow executes in a detached child process. Monitor with `hamilton workflow status <id>` and `hamilton workflow logs <id>`.
+**Background mode (default):** returns immediately with a run ID; the workflow runs in a detached
+child process. Monitor with `hamilton workflow status <id>` and `hamilton workflow logs <id>`.
 
-**Foreground mode:** Use `--foreground` (or `-f`) to see live progress in the terminal:
+**Foreground mode:** use `--foreground` (or `-f`) to see live progress:
 
 ```bash
 hamilton workflow run bug-fix "Fix the auth token expiry bug" -f
 ```
 
-## Monitor a Running Workflow
-
-Check status of any run:
+### Monitor a running workflow
 
 ```bash
 hamilton workflow status bug-fix-abc12
 ```
-
-Output:
 
 ```
  Workflow: bug-fix
@@ -181,20 +200,15 @@ Output:
  ○ verify
 ```
 
-View detailed logs:
+View logs:
 
 ```bash
-# View all logs for a run
-hamilton workflow logs bug-fix-abc12
-
-# View logs for a specific task
-hamilton workflow logs bug-fix-abc12 --task bug-fix-abc12-fix-x7k2m
-
-# Follow mode -- tail logs in real time
-hamilton workflow logs bug-fix-abc12 -f
+hamilton workflow logs bug-fix-abc12                                   # all logs for a run
+hamilton workflow logs bug-fix-abc12 --task bug-fix-abc12-fix-x7k2m   # a specific task
+hamilton workflow logs bug-fix-abc12 -f                                # follow / tail
 ```
 
-List all recent runs:
+List recent runs:
 
 ```bash
 hamilton workflow runs                    # all runs
@@ -203,25 +217,14 @@ hamilton workflow runs --status failed    # only failures
 hamilton workflow runs --limit 5          # last 5
 ```
 
-## Pause and Resume
-
-Pause a running workflow:
+### Pause and resume
 
 ```bash
-hamilton workflow pause bug-fix-abc12
+hamilton workflow pause bug-fix-abc12     # completes the current task, then stops; state in SQLite
+hamilton workflow resume bug-fix-abc12    # restores context, skips completed tasks, continues
 ```
 
-The engine completes the current task, then stops. State is preserved in SQLite.
-
-Resume later:
-
-```bash
-hamilton workflow resume bug-fix-abc12
-```
-
-Completed tasks are skipped. The engine restores context from the database and continues with the next pending task.
-
-## Run Outputs
+### Run outputs
 
 Every run produces structured output in `~/.hamilton/runs/<run-id>/`:
 
@@ -232,16 +235,13 @@ Every run produces structured output in `~/.hamilton/runs/<run-id>/`:
   summary.json            # Final summary (status, tokens, elapsed time)
   logs/
     bug-fix-abc12-triage-x3k9m.jsonl     # Per-task structured logs
-    bug-fix-abc12-investigate-p7m2k.jsonl
-    bug-fix-abc12-fix-x7k2m.jsonl
-    bug-fix-abc12-verify-n1w5q.jsonl
+    ...
   task-outputs/
     bug-fix-abc12-triage-x3k9m.json      # Task output payload
-    bug-fix-abc12-fix-x7k2m.json
-    bug-fix-abc12-verify-n1w5q.json
+    ...
 ```
 
-The `summary.json` includes:
+`summary.json`:
 
 ```json
 {
@@ -259,23 +259,25 @@ The `summary.json` includes:
 
 ## Next Steps
 
-- [Philosophy](./philosophy.md) -- design rationale and principles behind Hamilton
-- [How Workflows Run](./how-workflows-run.md) -- understand what just happened
-- [Variants](./variants.md) -- what variants are and how to combine them
-- [Model Aliases](./model-aliases.md) -- map short names to model IDs
-- [Template Expansion](./template-expansion.md) -- how template variables and forEach work
-- [Workflow YAML Reference](./workflow-yaml.md) -- understand the workflow spec format
-- [CLI Reference](./cli-reference.md) -- every command and flag
-- [Agent System](./agents.md) -- how agents work and how to create them
-- [Workflows Catalog](./workflows-catalog.md) -- all built-in workflows
-- [Common Use Cases](./how-to/use-cases.md) -- practical patterns for software development
-- [Troubleshooting](./how-to/troubleshooting.md) -- resolve common failures
-- [Debugging Runs](./how-to/debugging-runs.md) -- inspect and diagnose runs
-- [Custom Workflows](./how-to/custom-workflows.md) -- author your own workflows
-- [Custom Guidelines](./tutorials/custom-guidelines.md) -- create project-specific coding rules
-- [Creating Custom Workflows](./tutorials/custom-workflow.md) -- step-by-step tutorial
-- [CI/CD Integration](./how-to/ci-cd-integration.md) -- run workflows in automation
-- [Telemetry](./telemetry.md) -- metrics and monitoring
-- [MCP Server](./mcp.md) -- Model Context Protocol integration
-- [Operations](./how-to/operations.md) -- state machine, backup, performance
-- [Settings Reference](./settings.md) -- global configuration
+**Understand Hamilton**
+- [The three modes](./modes.md) — Autonomous / Assisted / Ambient, and what works today
+- [Philosophy](./philosophy.md) — the rationale beneath all three modes
+
+**Assisted mode (working)**
+- [Skills reference](./skills.md) — every pipeline skill, its inputs and outputs
+- [SDD framework](./sdd-framework.md) — the design of the spec-driven pipeline
+
+**Autonomous mode (experimental)**
+- [How Workflows Run](./how-workflows-run.md) — understand what just happened
+- [Variants](./variants.md) — what variants are and how to combine them
+- [Model Aliases](./model-aliases.md) — map short names to model IDs
+- [Template Expansion](./template-expansion.md) — template variables and forEach
+- [Workflow YAML Reference](./workflow-yaml.md) — the workflow spec format
+- [CLI Reference](./cli-reference.md) — every command and flag
+- [Agent System](./agents-system.md) — how agents work and how to create them
+- [Workflows Catalog](./workflows-catalog.md) — all built-in workflows
+- [Common Use Cases](./how-to/use-cases.md) — practical patterns
+- [Troubleshooting](./how-to/troubleshooting.md) · [Debugging Runs](./how-to/debugging-runs.md)
+- [Custom Workflows](./how-to/custom-workflows.md) · [Custom Guidelines](./tutorials/custom-guidelines.md)
+- [CI/CD Integration](./how-to/ci-cd-integration.md) · [Telemetry](./telemetry.md) · [MCP Server](./mcp.md)
+- [Operations](./how-to/operations.md) · [Settings Reference](./settings.md)

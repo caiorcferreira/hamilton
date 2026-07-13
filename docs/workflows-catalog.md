@@ -1,6 +1,8 @@
 # Workflows Catalog
 
-All bundled workflows. Each is installed to `~/.hamilton/workflows/<slug>/` by `hamilton init`.
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
+All bundled workflows. Each is installed to `~/.hamilton/workflows/<slug>/` by `hamilton setup`.
 
 ---
 

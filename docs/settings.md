@@ -1,6 +1,8 @@
 # Settings (`~/.hamilton/settings.yaml`)
 
-Global configuration for the Hamilton engine. Created by `hamilton init` and read at execution
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
+Global configuration for the Hamilton engine. Created by `hamilton setup` and read at execution
 time by the Pi executor, extension pipeline, and script task runner.
 
 ## Location
@@ -152,10 +154,10 @@ spec:
 **Setting aliases on init:**
 
 ```bash
-hamilton init --model-alias sonnet=anthropic.claude-sonnet-4 --model-alias flash=google.gemini-flash-2
+hamilton setup --model-alias sonnet=anthropic.claude-sonnet-4 --model-alias flash=google.gemini-flash-2
 ```
 
-If no settings.yaml exists, `hamilton init` prompts interactively for aliases.
+If no settings.yaml exists, `hamilton setup` prompts interactively for aliases.
 
 ### `telemetry`
 
@@ -201,7 +203,7 @@ Output beyond `maxOutputBytes` is truncated.
 
 ## Bootstrap
 
-`hamilton init` writes the default settings file:
+`hamilton setup` writes the default settings file:
 
 ```yaml
 extensions:
@@ -235,7 +237,7 @@ script:
   maxOutputBytes: 65536
 ```
 
-If the file already exists, `hamilton init` preserves it -- it never overwrites existing settings.
+If the file already exists, `hamilton setup` preserves it -- it never overwrites existing settings.
 Model aliases passed via `--model-alias` are merged into existing settings.
 
 ## Error Handling
@@ -262,8 +264,8 @@ gracefully degrades to sensible defaults.
 | `models.json` | Provider-specific model configurations |
 | `auth.json` | Authentication credentials for API providers |
 
-These are created with sensible defaults by `hamilton init`. Copy existing configs from
-`~/.pi/agent/` with `hamilton init --copy-pi-configs`.
+These are created with sensible defaults by `hamilton setup`. Copy existing configs from
+`~/.pi/agent/` with `hamilton setup --copy-pi-configs`.
 
 ### Change Directories (`./.hamilton/changes/`)
 

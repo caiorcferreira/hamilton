@@ -1,5 +1,7 @@
 # Template Expansion
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 How template variables and the forEach loop construct work in workflow YAML.
 
 ## Template Variables

@@ -1,5 +1,7 @@
 # Telemetry
 
+> ⚠️ **Autonomous mode (experimental).** This documents Hamilton's workflow engine, which is under active rework and can change without notice. See [The three modes](./modes.md). For the working path today, use [Assisted mode](./skills.md).
+
 Records detailed metrics for every LLM interaction during workflow runs.
 
 ## Data Collected
