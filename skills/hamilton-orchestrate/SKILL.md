@@ -87,10 +87,11 @@ skill's own directory — they are co-located with this SKILL.md.
    done.
 3. **Populate your todo tool from the plan.** Before dispatching anything, create one todo
    entry per task in `plan.md`, in plan order, using your coding agent's own todo/task-list
-   tool (name and shape vary by agent — use whichever one you have). Mark any task
-   `progress.md` already shows as `done` as completed immediately. This list is the visible,
-   durable mirror of the plan's task ledger for the rest of the run — keep it in sync with
-   `progress.md` rather than tracking status only in conversation.
+   tool (name and shape vary by agent — use whichever one you have), plus one trailing entry
+   for the whole-branch review. Mark any task `progress.md` already shows as `done` as
+   completed immediately. This list is the visible, durable mirror of the plan's task ledger
+   for the rest of the run — keep it in sync with `progress.md` rather than tracking status
+   only in conversation.
 4. **Pre-flight scan (once, before Task 1).** Scan the plan for internal conflicts: tasks
    that contradict each other or the plan's constraints, or anything the plan mandates that
    a review would treat as a defect (a test asserting nothing, verbatim duplication of a
@@ -123,22 +124,25 @@ skill's own directory — they are co-located with this SKILL.md.
    9. **Mark the task's todo entry completed.** Do this immediately after confirming
       `progress.md`, before moving to the next task — the todo list should never lag the
       ledger.
-6. **Broad whole-branch review.** After the last task, dispatch one `hamilton-review`
-   subagent over the entire branch diff (`git merge-base <default-branch> HEAD`..`HEAD`),
-   with the whole change's requirements and design as context. This is the merge gate the
-   per-task passes are not.
+6. **Broad whole-branch review.** After the last task, mark the trailing "whole-branch
+   review" todo entry in-progress, then dispatch one `hamilton-review` subagent over the
+   entire branch diff (`git merge-base <default-branch> HEAD`..`HEAD`), with the whole
+   change's requirements and design as context. This is the merge gate the per-task passes
+   are not.
 7. **Fix the final review as one wave.** If it returns findings, dispatch **one**
    `hamilton-code` subagent with the complete findings list — not one fixer per finding — then
-   re-review the affected range.
+   re-review the affected range. Leave the "whole-branch review" todo entry in-progress until
+   this re-review comes back clean.
 8. **Commit any pending change-dir state, then hand off to finish-work.** Before handing off,
    run `git status` and confirm the change directory is fully committed. Each `hamilton-code`
    subagent commits its own `progress.md`, but the whole-branch review and final fix wave can
    leave change-dir artifacts (e.g. `progress.md`) uncommitted — if any remain, commit them
    with a bookkeeping message so nothing under `.hamilton/changes/<change>/` is left in the
    working tree. This commit is the one exception to "never touch the tree": it moves no
-   production code, only the change-dir ledger. When the whole-branch review is clean and the
-   change dir is committed, the plan's "Done when" is satisfied. Stop here and hand off to
-   **hamilton-finish-work** to complete the branch; do not merge or open a PR from this skill.
+   production code, only the change-dir ledger. Once the whole-branch review is clean, mark
+   its todo entry completed. When the change dir is committed, the plan's "Done when" is
+   satisfied. Stop here and hand off to **hamilton-finish-work** to complete the branch; do
+   not merge or open a PR from this skill.
 
 ## Handling implementer status
 
@@ -214,10 +218,11 @@ in your context for the rest of the session. Move bulk artifacts as files:
 ## Boundaries
 
 - Always: verify workspace isolation before Task 1; populate the coding agent's todo tool
-  from `plan.md` before dispatching any task, and keep each entry's status in sync with
-  `progress.md` as tasks start and finish; specify a model on every dispatch; confirm each
-  task's `progress.md` entry before moving on; confirm the change directory is fully
-  committed before handing off to finish-work.
+  from `plan.md` before dispatching any task, including a trailing entry for the whole-branch
+  review, and keep each entry's status in sync with `progress.md` and the review outcome as
+  work starts and finishes; specify a model on every dispatch; confirm each task's
+  `progress.md` entry before moving on; confirm the change directory is fully committed
+  before handing off to finish-work.
 - Ask first: starting on the default branch; any plan-mandated finding a review flags as a
   defect; a blocker that implies the plan itself is wrong.
 - Never: edit production code or `plan.md` yourself; dispatch two implementers in parallel
@@ -252,9 +257,11 @@ digraph hamilton_orchestrate {
     "Confirm progress.md: done" [shape=box];
     "Mark task todo completed" [shape=box];
     "More tasks?" [shape=diamond];
+    "Mark whole-branch-review todo in-progress" [shape=box];
     "Whole-branch hamilton-review\n(most capable model)" [shape=box];
     "Final review clean?" [shape=diamond];
     "One hamilton-code fix wave\n(all findings)" [shape=box];
+    "Mark whole-branch-review todo completed" [shape=box];
     "Commit pending change-dir state\n(git status clean)" [shape=box];
     "Hand off to hamilton-finish-work" [shape=doublecircle];
 
@@ -274,11 +281,13 @@ digraph hamilton_orchestrate {
     "Confirm progress.md: done" -> "Mark task todo completed";
     "Mark task todo completed" -> "More tasks?";
     "More tasks?" -> "Mark task todo in-progress\nRecord BASE = HEAD" [label="yes"];
-    "More tasks?" -> "Whole-branch hamilton-review\n(most capable model)" [label="no"];
+    "More tasks?" -> "Mark whole-branch-review todo in-progress" [label="no"];
+    "Mark whole-branch-review todo in-progress" -> "Whole-branch hamilton-review\n(most capable model)";
     "Whole-branch hamilton-review\n(most capable model)" -> "Final review clean?";
     "Final review clean?" -> "One hamilton-code fix wave\n(all findings)" [label="no"];
     "One hamilton-code fix wave\n(all findings)" -> "Whole-branch hamilton-review\n(most capable model)" [label="re-review"];
-    "Final review clean?" -> "Commit pending change-dir state\n(git status clean)" [label="yes"];
+    "Final review clean?" -> "Mark whole-branch-review todo completed" [label="yes"];
+    "Mark whole-branch-review todo completed" -> "Commit pending change-dir state\n(git status clean)";
     "Commit pending change-dir state\n(git status clean)" -> "Hand off to hamilton-finish-work";
 }
 ```
