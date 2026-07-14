@@ -11,6 +11,19 @@ autonomously.
 > and CLI commands can change at any time **without notice or backward-compatibility guarantees.**
 > Only the Assisted mode (the skill bundle) is considered usable today.
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
+
+npx skills add https://github.com/caiorcferreira/hamilton
+```
+
+The first command setups Hamilton artifacts in `~/.hamilton`, the second installs the skills in your prefered coding agent.
+
+See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
+and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
+
 ## Three modes
 
 Hamilton is organized around three modes of AI-assisted coding, spanning fully autonomous to
@@ -43,39 +56,6 @@ on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton
 `~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
 `.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
 heavyweight front door (`propose`) is optional; the only required step is `plan`.
-
-### Quick start
-
-```bash
-# 1. Install the CLI (used to install the shared artifact templates)
-
-# Remote one-liner — clones the repo, builds, and runs setup:
-curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
-
-# ...or from a clone:
-./install.sh                   # installs deps, builds, symlinks `hamilton`, runs `hamilton setup`
-
-# ...or do it by hand:
-bun install
-bun run install-local          # symlinks `hamilton` to ~/.local/bin/
-hamilton setup --mode assisted # installs bundle/templates/ → ~/.hamilton/templates/
-
-# 2. Make the pipeline skills available to your coding agent.
-#    The skills live in skills/hamilton-*/ — copy or symlink them into a
-#    skills directory your agent loads (e.g. ~/.claude/skills/), or point
-#    the agent at the SKILL.md paths.
-
-# 3. In your project, run the skills through your agent, in order:
-#    hamilton-init         → scaffold .hamilton/ and write AGENTS.md (once)
-#    hamilton-propose      → proposal + requirements + design (optional)
-#    hamilton-plan         → plan.md (the required task ledger)
-#    hamilton-code         → implement one task
-#    hamilton-review       → judge the diff
-#    hamilton-finish-work  → gate, sync specs, merge / PR
-```
-
-See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
-and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
 
 ### Artifacts
 
@@ -139,6 +119,38 @@ an agent's context. Failure is graceful — everything else runs without it. The
   execution.
 
 ## Development
+
+### Quick start
+
+```bash
+# 1. Install the CLI (used to install the shared artifact templates)
+
+# Remote one-liner — clones the repo, builds, and runs setup:
+curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
+
+# ...or from a clone:
+./install.sh                   # installs deps, builds, symlinks `hamilton`, runs `hamilton setup`
+
+# ...or do it by hand:
+bun install
+bun run install-local          # symlinks `hamilton` to ~/.local/bin/
+hamilton setup --mode assisted # installs bundle/templates/ → ~/.hamilton/templates/
+
+# 2. Make the pipeline skills available to your coding agent.
+#    The skills live in skills/hamilton-*/ — copy or symlink them into a
+#    skills directory your agent loads (e.g. ~/.claude/skills/), or point
+#    the agent at the SKILL.md paths.
+
+# 3. In your project, run the skills through your agent, in order:
+#    hamilton-init         → scaffold .hamilton/ and write AGENTS.md (once)
+#    hamilton-propose      → proposal + requirements + design (optional)
+#    hamilton-plan         → plan.md (the required task ledger)
+#    hamilton-code         → implement one task
+#    hamilton-review       → judge the diff
+#    hamilton-finish-work  → gate, sync specs, merge / PR
+```
+
+Commands:
 
 ```bash
 bun install
