@@ -41,10 +41,10 @@ hamilton setup [--mode <assisted|autonomous|ambient>] [--force] [--copy-pi-confi
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--mode` | choice (`assisted`, `autonomous`, `ambient`) | Setup mode. Defaults to `autonomous` (the full bootstrap documented here). `assisted` runs a minimal setup for the [skill bundle](./skills.md): it creates `~/.hamilton/` and installs the artifact templates, skipping the database, agents, workflows, Pi configs, settings.yaml, and the model-alias prompt. `ambient` is not supported yet. |
+| `--mode` | choice (`assisted`, `autonomous`, `ambient`) | Setup mode. Defaults to `autonomous`. `assisted` runs the same bootstrap as the [skill bundle](./skills.md) needs, but skips the interactive model-alias prompt and Pi SDK configs (which only the Autonomous engine uses) — everything else (DB, agents, workflows, settings.yaml, guideline ingestion, doctor) runs identically. Explicit `--model-alias` flags are still honored. `ambient` is not supported yet. |
 | `--force` | boolean | Overwrite existing agents, skills, and guidelines. Does not overwrite existing settings.yaml. |
 | `--copy-pi-configs` | boolean | Copy existing Pi SDK configuration from `~/.pi/agent/` to `~/.hamilton/executors/pi/agent/`. |
-| `--model-alias` | repeatable text (`name=modelId`) | Register a named model alias in settings.yaml. Can be specified multiple times. Ignored in `--mode assisted`. |
+| `--model-alias` | repeatable text (`name=modelId`) | Register a named model alias in settings.yaml. Can be specified multiple times. Honored in every mode; `--mode assisted` just never prompts for aliases interactively. |
 
 ### What it creates
 
@@ -64,7 +64,7 @@ hamilton setup [--mode <assisted|autonomous|ambient>] [--force] [--copy-pi-confi
 # Basic initialization
 hamilton setup
 
-# Minimal setup for Assisted mode (skills only) — creates ~/.hamilton and templates
+# Assisted mode (skills) — full bootstrap without the model-alias prompt or Pi configs
 hamilton setup --mode assisted
 
 # Force overwrite of agents and skills

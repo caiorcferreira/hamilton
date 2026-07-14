@@ -264,14 +264,6 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
         new SetupError({ message: `Failed to create hamilton home directories: ${String(e)}` })
     })
 
-    // Assisted mode is the minimal bootstrap the skill bundle needs: the shared
-    // artifact templates that every skill reads from ~/.hamilton/templates/. It
-    // skips the engine machinery (DB, agents, workflows, Pi configs, settings).
-    if (mode === "assisted") {
-      yield* copyTemplates(options)
-      return []
-    }
-
     const db = yield* Effect.mapError(openDb(), (e) =>
       new SetupError({ message: `Failed to open database: ${e.message}` })
     )
@@ -283,10 +275,14 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
     yield* copyHooks(options)
     yield* copyTemplates(options)
 
-    if (options?.copyPiConfigs) {
-      yield* copyPiConfigsFromHome()
+    // Pi SDK configs are only used by the Autonomous engine. Assisted mode
+    // (the skill bundle) doesn't run agents through Pi, so it skips them.
+    if (mode !== "assisted") {
+      if (options?.copyPiConfigs) {
+        yield* copyPiConfigsFromHome()
+      }
+      yield* createDefaultPiConfigs(options)
     }
-    yield* createDefaultPiConfigs(options)
     yield* writeDefaultSettings(options?.modelAliases)
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
@@ -360,26 +356,19 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
       return
     }
 
-    // Assisted mode: a lean setup for the skill bundle. No model-alias prompt,
-    // no engine bootstrap — just create ~/.hamilton and install the templates.
-    if (selectedMode === "assisted") {
-      const result = yield* Effect.exit(setupHamilton({ force, mode: "assisted" }))
-      if (Exit.isFailure(result)) {
-        yield* Console.error(`Setup failed: ${String(result.cause)}`)
-        return
-      }
-      yield* Console.log("Hamilton set up successfully (assisted mode).")
-      yield* Console.log(`Artifact templates installed to ${templatesDir()}.`)
-      return
-    }
-
+    // Assisted mode differs from the full setup only in that it never prompts
+    // for model aliases and skips Pi SDK configs (see setupHamilton). Everything
+    // else — DB, agents, workflows, settings, guideline ingestion, doctor — runs
+    // the same. Explicit --model-alias flags are still honored.
     const flagAliases = parseModelAliasArgs(modelAlias)
     const modelAliases = Object.keys(flagAliases).length > 0
       ? flagAliases
-      : !Fs.existsSync(settingsPath())
-        ? yield* askModelAliases()
-        : undefined
-    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases }))
+      : selectedMode === "assisted"
+        ? undefined
+        : !Fs.existsSync(settingsPath())
+          ? yield* askModelAliases()
+          : undefined
+    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases, mode: selectedMode }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Setup failed: ${String(result.cause)}`)
       return

@@ -240,34 +240,46 @@ describe("setupHamilton", () => {
   })
 
   describe("assisted mode", () => {
-    it("creates ~/.hamilton and installs templates", async () => {
-      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
-      expect(Exit.isSuccess(exit)).toBe(true)
-
-      expect(Fs.existsSync(Path.join(tmpHome, ".hamilton"))).toBe(true)
-      const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
-      expect(Fs.existsSync(templatesBase)).toBe(true)
-      expect(Fs.existsSync(Path.join(templatesBase, "plan.md"))).toBe(true)
-    })
-
-    it("skips the engine bootstrap (no db, agents, workflows, or settings)", async () => {
+    it("runs the full bootstrap (templates, db, agents, workflows, settings)", async () => {
       const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
       expect(Exit.isSuccess(exit)).toBe(true)
 
       const home = Path.join(tmpHome, ".hamilton")
-      expect(Fs.existsSync(Path.join(home, "hamilton.db"))).toBe(false)
-      expect(Fs.existsSync(Path.join(home, "settings.yaml"))).toBe(false)
-      expect(Fs.existsSync(Path.join(home, "agents", "pr", "INSTRUCTIONS.md"))).toBe(false)
-      expect(Fs.existsSync(Path.join(home, "workflows", "bug-fix", "workflow.yml"))).toBe(false)
+      expect(Fs.existsSync(Path.join(home, "templates", "plan.md"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "hamilton.db"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "settings.yaml"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "agents", "pr", "INSTRUCTIONS.md"))).toBe(true)
     })
 
-    it("returns no workflow IDs in assisted mode", async () => {
+    it("still installs workflows", async () => {
       const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
       if (Exit.isSuccess(exit)) {
-        expect(exit.value).toEqual([])
+        expect(exit.value.length).toBeGreaterThan(0)
       } else {
         expect.unreachable("Expected success")
       }
+    })
+
+    it("skips Pi SDK configs", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
+      expect(Fs.existsSync(Path.join(agentDir, "models.json"))).toBe(false)
+      expect(Fs.existsSync(Path.join(agentDir, "auth.json"))).toBe(false)
+    })
+
+    it("does not copy Pi configs from ~/.pi even when copyPiConfigs is set", async () => {
+      const piSource = Path.join(tmpHome, ".pi", "agent")
+      Fs.mkdirSync(piSource, { recursive: true })
+      Fs.writeFileSync(Path.join(piSource, "settings.json"), JSON.stringify({ defaultProvider: "from-pi" }))
+
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted", copyPiConfigs: true }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
     })
   })
 })
