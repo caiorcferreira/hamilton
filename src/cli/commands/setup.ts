@@ -22,6 +22,8 @@ export class SetupError extends Data.TaggedError("SetupError")<{
   message: string
 }> {}
 
+export type SetupMode = "assisted" | "autonomous" | "ambient"
+
 export function parseModelAliasArgs(entries: string[]): Record<string, string> {
   const aliases: Record<string, string> = {}
   for (const entry of entries) {
@@ -252,13 +254,23 @@ function copyPiConfigsFromHome(): Effect.Effect<void, SetupError> {
   })
 }
 
-export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string> }): Effect.Effect<string[], SetupError> {
+export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string>; mode?: SetupMode }): Effect.Effect<string[], SetupError> {
   return Effect.gen(function* () {
+    const mode = options?.mode ?? "autonomous"
+
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
       catch: (e) =>
         new SetupError({ message: `Failed to create hamilton home directories: ${String(e)}` })
     })
+
+    // Assisted mode is the minimal bootstrap the skill bundle needs: the shared
+    // artifact templates that every skill reads from ~/.hamilton/templates/. It
+    // skips the engine machinery (DB, agents, workflows, Pi configs, settings).
+    if (mode === "assisted") {
+      yield* copyTemplates(options)
+      return []
+    }
 
     const db = yield* Effect.mapError(openDb(), (e) =>
       new SetupError({ message: `Failed to open database: ${e.message}` })
@@ -334,9 +346,33 @@ export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
 const force = Options.boolean("force")
 const copyPiConfigs = Options.boolean("copy-pi-configs")
 const modelAlias = Options.text("model-alias").pipe(Options.repeated)
+const mode = Options.choice("mode", ["assisted", "autonomous", "ambient"] as const).pipe(
+  Options.optional,
+  Options.withDescription("Setup mode: assisted (skills only), autonomous, or ambient. Defaults to autonomous.")
+)
 
-export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias }, ({ force, copyPiConfigs, modelAlias }) =>
+export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias, mode }, ({ force, copyPiConfigs, modelAlias, mode }) =>
   Effect.gen(function* () {
+    const selectedMode: SetupMode = mode._tag === "Some" ? mode.value : "autonomous"
+
+    if (selectedMode === "ambient") {
+      yield* Console.error("Setup mode 'ambient' is not supported yet. Use --mode assisted.")
+      return
+    }
+
+    // Assisted mode: a lean setup for the skill bundle. No model-alias prompt,
+    // no engine bootstrap — just create ~/.hamilton and install the templates.
+    if (selectedMode === "assisted") {
+      const result = yield* Effect.exit(setupHamilton({ force, mode: "assisted" }))
+      if (Exit.isFailure(result)) {
+        yield* Console.error(`Setup failed: ${String(result.cause)}`)
+        return
+      }
+      yield* Console.log("Hamilton set up successfully (assisted mode).")
+      yield* Console.log(`Artifact templates installed to ${templatesDir()}.`)
+      return
+    }
+
     const flagAliases = parseModelAliasArgs(modelAlias)
     const modelAliases = Object.keys(flagAliases).length > 0
       ? flagAliases

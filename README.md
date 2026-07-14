@@ -48,9 +48,12 @@ heavyweight front door (`propose`) is optional; the only required step is `plan`
 
 ```bash
 # 1. Install the CLI (used to install the shared artifact templates)
+./install.sh                   # installs deps, builds, symlinks `hamilton`, runs `hamilton setup`
+
+# ...or do it by hand:
 bun install
 bun run install-local          # symlinks `hamilton` to ~/.local/bin/
-hamilton setup                 # installs bundle/templates/ → ~/.hamilton/templates/
+hamilton setup --mode assisted # installs bundle/templates/ → ~/.hamilton/templates/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/hamilton-*/ — copy or symlink them into a

@@ -8,7 +8,7 @@ Complete command-line reference for Hamilton. All commands accept `--help` for i
 
 ```
 hamilton
-  setup [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
+  setup [--mode <assisted|autonomous|ambient>] [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
   doctor
   workflow
     run <slug> <prompt...> [--variants <csv>] [--foreground|-f] [--run-id <id>]
@@ -34,16 +34,17 @@ hamilton
 Bootstraps the `~/.hamilton/` directory, initializes the SQLite database, installs bundled workflows and shared agents, and creates default configuration.
 
 ```
-hamilton setup [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
+hamilton setup [--mode <assisted|autonomous|ambient>] [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
 ```
 
 ### Flags
 
 | Flag | Type | Description |
 |------|------|-------------|
+| `--mode` | choice (`assisted`, `autonomous`, `ambient`) | Setup mode. Defaults to `autonomous` (the full bootstrap documented here). `assisted` runs a minimal setup for the [skill bundle](./skills.md): it creates `~/.hamilton/` and installs the artifact templates, skipping the database, agents, workflows, Pi configs, settings.yaml, and the model-alias prompt. `ambient` is not supported yet. |
 | `--force` | boolean | Overwrite existing agents, skills, and guidelines. Does not overwrite existing settings.yaml. |
 | `--copy-pi-configs` | boolean | Copy existing Pi SDK configuration from `~/.pi/agent/` to `~/.hamilton/executors/pi/agent/`. |
-| `--model-alias` | repeatable text (`name=modelId`) | Register a named model alias in settings.yaml. Can be specified multiple times. |
+| `--model-alias` | repeatable text (`name=modelId`) | Register a named model alias in settings.yaml. Can be specified multiple times. Ignored in `--mode assisted`. |
 
 ### What it creates
 
@@ -62,6 +63,9 @@ hamilton setup [--force] [--copy-pi-configs] [--model-alias <alias>=<model>...]
 ```bash
 # Basic initialization
 hamilton setup
+
+# Minimal setup for Assisted mode (skills only) — creates ~/.hamilton and templates
+hamilton setup --mode assisted
 
 # Force overwrite of agents and skills
 hamilton setup --force

@@ -238,6 +238,38 @@ describe("setupHamilton", () => {
     expect(content).toContain("enabled: false")
     expect(content).not.toContain("cheap")
   })
+
+  describe("assisted mode", () => {
+    it("creates ~/.hamilton and installs templates", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      expect(Fs.existsSync(Path.join(tmpHome, ".hamilton"))).toBe(true)
+      const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
+      expect(Fs.existsSync(templatesBase)).toBe(true)
+      expect(Fs.existsSync(Path.join(templatesBase, "plan.md"))).toBe(true)
+    })
+
+    it("skips the engine bootstrap (no db, agents, workflows, or settings)", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const home = Path.join(tmpHome, ".hamilton")
+      expect(Fs.existsSync(Path.join(home, "hamilton.db"))).toBe(false)
+      expect(Fs.existsSync(Path.join(home, "settings.yaml"))).toBe(false)
+      expect(Fs.existsSync(Path.join(home, "agents", "pr", "INSTRUCTIONS.md"))).toBe(false)
+      expect(Fs.existsSync(Path.join(home, "workflows", "bug-fix", "workflow.yml"))).toBe(false)
+    })
+
+    it("returns no workflow IDs in assisted mode", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      if (Exit.isSuccess(exit)) {
+        expect(exit.value).toEqual([])
+      } else {
+        expect.unreachable("Expected success")
+      }
+    })
+  })
 })
 
 describe("parseModelAliasArgs", () => {
