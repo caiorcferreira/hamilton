@@ -356,10 +356,10 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
       return
     }
 
-    // Assisted mode differs from the full setup only in that it never prompts
-    // for model aliases and skips Pi SDK configs (see setupHamilton). Everything
-    // else — DB, agents, workflows, settings, guideline ingestion, doctor — runs
-    // the same. Explicit --model-alias flags are still honored.
+    // Assisted mode differs from the full setup by never prompting for model
+    // aliases, skipping Pi SDK configs (see setupHamilton), and skipping
+    // guideline memory ingestion. Everything else — DB, agents, workflows,
+    // settings, doctor — runs the same. Explicit --model-alias flags are honored.
     const flagAliases = parseModelAliasArgs(modelAlias)
     const modelAliases = Object.keys(flagAliases).length > 0
       ? flagAliases
@@ -380,9 +380,11 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
       yield* Console.log(`  ${id}`)
     }
 
-    yield* Console.log("")
-    yield* Console.log("Priming guideline memory...")
-    yield* ingestSetupGuidelines()
+    if (selectedMode !== "assisted") {
+      yield* Console.log("")
+      yield* Console.log("Priming guideline memory...")
+      yield* ingestSetupGuidelines()
+    }
 
     yield* Console.log("")
     yield* Console.log("Running prerequisite checks...")
