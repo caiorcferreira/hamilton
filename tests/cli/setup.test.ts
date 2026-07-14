@@ -238,6 +238,50 @@ describe("setupHamilton", () => {
     expect(content).toContain("enabled: false")
     expect(content).not.toContain("cheap")
   })
+
+  describe("assisted mode", () => {
+    it("runs the full bootstrap (templates, db, agents, workflows, settings)", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const home = Path.join(tmpHome, ".hamilton")
+      expect(Fs.existsSync(Path.join(home, "templates", "plan.md"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "hamilton.db"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "settings.yaml"))).toBe(true)
+      expect(Fs.existsSync(Path.join(home, "agents", "pr", "INSTRUCTIONS.md"))).toBe(true)
+    })
+
+    it("still installs workflows", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      if (Exit.isSuccess(exit)) {
+        expect(exit.value.length).toBeGreaterThan(0)
+      } else {
+        expect.unreachable("Expected success")
+      }
+    })
+
+    it("skips Pi SDK configs", async () => {
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
+      expect(Fs.existsSync(Path.join(agentDir, "models.json"))).toBe(false)
+      expect(Fs.existsSync(Path.join(agentDir, "auth.json"))).toBe(false)
+    })
+
+    it("does not copy Pi configs from ~/.pi even when copyPiConfigs is set", async () => {
+      const piSource = Path.join(tmpHome, ".pi", "agent")
+      Fs.mkdirSync(piSource, { recursive: true })
+      Fs.writeFileSync(Path.join(piSource, "settings.json"), JSON.stringify({ defaultProvider: "from-pi" }))
+
+      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted", copyPiConfigs: true }))
+      expect(Exit.isSuccess(exit)).toBe(true)
+
+      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
+      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
+    })
+  })
 })
 
 describe("parseModelAliasArgs", () => {

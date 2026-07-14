@@ -22,6 +22,8 @@ export class SetupError extends Data.TaggedError("SetupError")<{
   message: string
 }> {}
 
+export type SetupMode = "assisted" | "autonomous" | "ambient"
+
 export function parseModelAliasArgs(entries: string[]): Record<string, string> {
   const aliases: Record<string, string> = {}
   for (const entry of entries) {
@@ -252,8 +254,10 @@ function copyPiConfigsFromHome(): Effect.Effect<void, SetupError> {
   })
 }
 
-export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string> }): Effect.Effect<string[], SetupError> {
+export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string>; mode?: SetupMode }): Effect.Effect<string[], SetupError> {
   return Effect.gen(function* () {
+    const mode = options?.mode ?? "autonomous"
+
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
       catch: (e) =>
@@ -271,10 +275,14 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
     yield* copyHooks(options)
     yield* copyTemplates(options)
 
-    if (options?.copyPiConfigs) {
-      yield* copyPiConfigsFromHome()
+    // Pi SDK configs are only used by the Autonomous engine. Assisted mode
+    // (the skill bundle) doesn't run agents through Pi, so it skips them.
+    if (mode !== "assisted") {
+      if (options?.copyPiConfigs) {
+        yield* copyPiConfigsFromHome()
+      }
+      yield* createDefaultPiConfigs(options)
     }
-    yield* createDefaultPiConfigs(options)
     yield* writeDefaultSettings(options?.modelAliases)
 
     const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
@@ -334,16 +342,33 @@ export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
 const force = Options.boolean("force")
 const copyPiConfigs = Options.boolean("copy-pi-configs")
 const modelAlias = Options.text("model-alias").pipe(Options.repeated)
+const mode = Options.choice("mode", ["assisted", "autonomous", "ambient"] as const).pipe(
+  Options.optional,
+  Options.withDescription("Setup mode: assisted (skills only), autonomous, or ambient. Defaults to autonomous.")
+)
 
-export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias }, ({ force, copyPiConfigs, modelAlias }) =>
+export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias, mode }, ({ force, copyPiConfigs, modelAlias, mode }) =>
   Effect.gen(function* () {
+    const selectedMode: SetupMode = mode._tag === "Some" ? mode.value : "autonomous"
+
+    if (selectedMode === "ambient") {
+      yield* Console.error("Setup mode 'ambient' is not supported yet. Use --mode assisted.")
+      return
+    }
+
+    // Assisted mode differs from the full setup by never prompting for model
+    // aliases, skipping Pi SDK configs (see setupHamilton), and skipping
+    // guideline memory ingestion. Everything else — DB, agents, workflows,
+    // settings, doctor — runs the same. Explicit --model-alias flags are honored.
     const flagAliases = parseModelAliasArgs(modelAlias)
     const modelAliases = Object.keys(flagAliases).length > 0
       ? flagAliases
-      : !Fs.existsSync(settingsPath())
-        ? yield* askModelAliases()
-        : undefined
-    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases }))
+      : selectedMode === "assisted"
+        ? undefined
+        : !Fs.existsSync(settingsPath())
+          ? yield* askModelAliases()
+          : undefined
+    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases, mode: selectedMode }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Setup failed: ${String(result.cause)}`)
       return
@@ -355,9 +380,11 @@ export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelA
       yield* Console.log(`  ${id}`)
     }
 
-    yield* Console.log("")
-    yield* Console.log("Priming guideline memory...")
-    yield* ingestSetupGuidelines()
+    if (selectedMode !== "assisted") {
+      yield* Console.log("")
+      yield* Console.log("Priming guideline memory...")
+      yield* ingestSetupGuidelines()
+    }
 
     yield* Console.log("")
     yield* Console.log("Running prerequisite checks...")
