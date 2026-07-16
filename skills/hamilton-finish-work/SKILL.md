@@ -21,11 +21,23 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
   pull-request conventions, and the base branch.
 
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on the
+skill's own directory — they are co-located with this SKILL.md, **not** at `~/.hamilton/`.
+
+- `references/spec-altitude.md` — the rubric for requirement altitude: what belongs in a
+  canonical spec (contracts, behaviors, invariants, reusable patterns) and what must be lifted
+  or dropped (mechanism, private names, library calls, file paths). Apply it in step 2.
+
 ## Principles
 
 - **Gate before finishing.** Never complete a change that is not clean, green, and approved.
 - **Specs are the truth.** Fold the change's requirement deltas into the canonical specs so
   they always describe current behavior.
+- **Contracts, not mechanisms.** Fold requirements from the change's `requirements/` deltas
+  **only** — never mint one from the diff, `progress.md`, `review.md`, or review comments — and
+  distill each to altitude (`references/spec-altitude.md`) before it lands in the canonical spec.
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
 
 ## Process
@@ -36,7 +48,13 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
    - Every task in `plan.md` is implemented (per `progress.md`).
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
 2. **Sync specs.** Fold each `requirements/<capability>.md` delta in the change into the
-   canonical `.hamilton/specs/<capability>.md`. The canonical spec is always in
+   canonical `.hamilton/specs/<capability>.md`. The change's `requirements/` deltas are the
+   **only** source of canonical requirements: never create a requirement from the diff,
+   `progress.md`, `review.md`, or external/MR review comments. Those record how the work was
+   carried out, not what the capability guarantees — a review nit like "use a `switch`" or
+   "extract constants" is mechanism, not a requirement. If review surfaced a genuinely missing
+   *behavioral contract*, write it back as a delta requirement first, then fold that delta.
+   The canonical spec is always in
    `~/.hamilton/templates/requirements-spec.md` form: a single `## Requirements` section
    holding the current requirement blocks. It **MUST NOT** contain any delta-group header —
    `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements`, or
@@ -51,8 +69,15 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
    - **RENAMED** → rename the header.
    If the capability has no canonical spec yet, create `.hamilton/specs/<capability>.md` from
    the template and populate its `## Requirements` section with every ADDED and MODIFIED block
-   from the delta (regardless of which delta group they were authored under). Commit the spec
-   update following the git workflow.
+   from the delta (regardless of which delta group they were authored under).
+   Before writing each block into the canonical spec, **distill it to altitude** with
+   `references/spec-altitude.md`: a delta may arrive bound to mechanism — control flow, private
+   type/field/constructor names, library calls, or file paths. Drop that incident detail, lift
+   the block to the contract, behavior, or invariant it serves, and merge reusable design rules
+   into a single pattern requirement stated as a rule. The test: if a requirement's scenario
+   could only be verified by reading the source rather than observing inputs and outputs, it is
+   too low — lift it. The canonical spec states what the capability guarantees, not how one
+   commit achieved it. Commit the spec update following the git workflow.
 3. **Finish per strategy:**
    - **local-merge:** merge the change into the base branch following the project's workflow
      (e.g. squash), then clean up the branch if the workflow calls for it.

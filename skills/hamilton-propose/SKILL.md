@@ -40,6 +40,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 `~/.hamilton/` or `~/.hamilton/templates/`.
 
 - `references/code-quality.md` — the self-review rubric for design quality.
+- `references/spec-altitude.md` — the rubric for requirement altitude: what belongs in a spec
+  (contracts, behaviors, invariants, reusable patterns) versus mechanism that belongs in
+  `design.md`. Apply it in step 6.
 
 ## Principles
 
@@ -118,7 +121,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 6. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. For MODIFIED, copy the entire existing
-   requirement block from the spec and edit it.
+   requirement block from the spec and edit it. Author every requirement **at altitude**
+   (`references/spec-altitude.md`, read from this skill's references directory): state the
+   contract, behavior, or invariant — not the mechanism (control flow, private type or
+   constructor names, library calls, file paths). If a scenario could only be checked by reading
+   the source rather than observing inputs and outputs, the requirement is too low — lift it.
+   Design detail belongs in `design.md`, not in a requirement.
 7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
    their trade-offs. Lead with your recommendation and why, and get the requester's choice
    (or, unattended, pick the recommended one and record the reasoning).
