@@ -15,7 +15,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 ## Inputs
 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
-  `review.md`, and `requirements/` if present.
+  `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
+  `design.md`, and `requirements/` where present.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
@@ -26,18 +27,22 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 This skill ships with a `references/` folder. Read reference files using the Read tool on the
 skill's own directory — they are co-located with this SKILL.md, **not** at `~/.hamilton/`.
 
-- `references/spec-altitude.md` — the rubric for requirement altitude: what belongs in a
-  canonical spec (contracts, behaviors, invariants, reusable patterns) and what must be lifted
-  or dropped (mechanism, private names, library calls, file paths). Apply it in step 2.
+- `references/spec-altitude.md` — how a canonical spec is written at altitude when distilling a
+  change: what belongs (contracts, behaviors, invariants, decisions/patterns) and what stays
+  behind in the change artifacts (mechanism, private names, library calls, file paths). Change
+  artifacts may be specific; the canonical spec is not. Apply it in step 2.
 
 ## Principles
 
 - **Gate before finishing.** Never complete a change that is not clean, green, and approved.
 - **Specs are the truth.** Fold the change's requirement deltas into the canonical specs so
   they always describe current behavior.
-- **Contracts, not mechanisms.** Fold requirements from the change's `requirements/` deltas
-  **only** — never mint one from the diff, `progress.md`, `review.md`, or review comments — and
-  distill each to altitude (`references/spec-altitude.md`) before it lands in the canonical spec.
+- **Canonical specs are distilled, not copied.** The canonical spec is the project's durable
+  body of knowledge — contracts, behaviors, invariants, decisions — written at altitude. Distill
+  it from the change's deliberate artifacts (`proposal.md`, `design.md`, `requirements/`), never
+  from the raw diff, `progress.md`, or review comments. The change artifacts may be as specific
+  as they need to be; the canonical spec states what the capability guarantees, not the mechanism
+  one commit used (`references/spec-altitude.md`).
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
 
 ## Process
@@ -47,14 +52,14 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
-2. **Sync specs.** Fold each `requirements/<capability>.md` delta in the change into the
-   canonical `.hamilton/specs/<capability>.md`. The change's `requirements/` deltas are the
-   **only** source of canonical requirements: never create a requirement from the diff,
-   `progress.md`, `review.md`, or external/MR review comments. Those record how the work was
-   carried out, not what the capability guarantees — a review nit like "use a `switch`" or
-   "extract constants" is mechanism, not a requirement. If review surfaced a genuinely missing
-   *behavioral contract*, write it back as a delta requirement first, then fold that delta.
-   The canonical spec is always in
+2. **Sync specs.** Distill the change into the canonical `.hamilton/specs/<capability>.md`,
+   working from each `requirements/<capability>.md` delta and drawing rationale, decisions, and
+   reusable patterns from `design.md` and `proposal.md`. The requirement *set* comes from these
+   deliberate change artifacts — never invent a canonical requirement from the raw diff,
+   `progress.md`, or external/MR review comments. Those record how the work was carried out; a
+   review nit like "use a `switch`" or "extract constants" is mechanism, not a durable contract.
+   If review surfaced a genuinely missing *behavior*, write it back as a delta first, then
+   distill that. The canonical spec is always in
    `~/.hamilton/templates/requirements-spec.md` form: a single `## Requirements` section
    holding the current requirement blocks. It **MUST NOT** contain any delta-group header —
    `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements`, or
