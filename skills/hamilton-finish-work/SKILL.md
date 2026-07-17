@@ -15,17 +15,34 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 ## Inputs
 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
-  `review.md`, and `requirements/` if present.
+  `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
+  `design.md`, and `requirements/` where present.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
   pull-request conventions, and the base branch.
+
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on the
+skill's own directory — they are co-located with this SKILL.md, **not** at `~/.hamilton/`.
+
+- `references/spec-altitude.md` — how a canonical spec is written at altitude when distilling a
+  change: what belongs (contracts, behaviors, invariants, decisions/patterns) and what stays
+  behind in the change artifacts (mechanism, private names, library calls, file paths). Change
+  artifacts may be specific; the canonical spec is not. Apply it in step 2.
 
 ## Principles
 
 - **Gate before finishing.** Never complete a change that is not clean, green, and approved.
 - **Specs are the truth.** Fold the change's requirement deltas into the canonical specs so
   they always describe current behavior.
+- **Canonical specs are distilled, not copied.** The canonical spec is the project's durable
+  body of knowledge — contracts, behaviors, invariants, decisions — written at altitude. Distill
+  it from the change's deliberate artifacts (`proposal.md`, `design.md`, `requirements/`), never
+  from the raw diff, `progress.md`, or review comments. The change artifacts may be as specific
+  as they need to be; the canonical spec states what the capability guarantees, not the mechanism
+  one commit used (`references/spec-altitude.md`).
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
 
 ## Process
@@ -35,8 +52,14 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
-2. **Sync specs.** Fold each `requirements/<capability>.md` delta in the change into the
-   canonical `.hamilton/specs/<capability>.md`. The canonical spec is always in
+2. **Sync specs.** Distill the change into the canonical `.hamilton/specs/<capability>.md`,
+   working from each `requirements/<capability>.md` delta and drawing rationale, decisions, and
+   reusable patterns from `design.md` and `proposal.md`. The requirement *set* comes from these
+   deliberate change artifacts — never invent a canonical requirement from the raw diff,
+   `progress.md`, or external/MR review comments. Those record how the work was carried out; a
+   review nit like "use a `switch`" or "extract constants" is mechanism, not a durable contract.
+   If review surfaced a genuinely missing *behavior*, write it back as a delta first, then
+   distill that. The canonical spec is always in
    `~/.hamilton/templates/requirements-spec.md` form: a single `## Requirements` section
    holding the current requirement blocks. It **MUST NOT** contain any delta-group header —
    `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements`, or
@@ -51,8 +74,15 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
    - **RENAMED** → rename the header.
    If the capability has no canonical spec yet, create `.hamilton/specs/<capability>.md` from
    the template and populate its `## Requirements` section with every ADDED and MODIFIED block
-   from the delta (regardless of which delta group they were authored under). Commit the spec
-   update following the git workflow.
+   from the delta (regardless of which delta group they were authored under).
+   Before writing each block into the canonical spec, **distill it to altitude** with
+   `references/spec-altitude.md`: a delta may arrive bound to mechanism — control flow, private
+   type/field/constructor names, library calls, or file paths. Drop that incident detail, lift
+   the block to the contract, behavior, or invariant it serves, and merge reusable design rules
+   into a single pattern requirement stated as a rule. The test: if a requirement's scenario
+   could only be verified by reading the source rather than observing inputs and outputs, it is
+   too low — lift it. The canonical spec states what the capability guarantees, not how one
+   commit achieved it. Commit the spec update following the git workflow.
 3. **Finish per strategy:**
    - **local-merge:** merge the change into the base branch following the project's workflow
      (e.g. squash), then clean up the branch if the workflow calls for it.
