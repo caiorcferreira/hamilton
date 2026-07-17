@@ -29,7 +29,37 @@
 
 ## Task 2: Wire `setup.ts` to `resolveBundleRoot()`
 
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
+
+**Files modified**:
+- `src/cli/commands/setup.ts` - removed PROJECT_ROOT constant, imported resolveBundleRoot, modified all copy functions to accept bundleRoot parameter, updated setupHamilton to resolve bundle root once
+- `tests/cli/setup.test.ts` - added new describe block "bundle root resolution" with test for HAMILTON_BUNDLE_DIR env var override
+
+**Changes made**:
+1. Removed module-level `PROJECT_ROOT` constant
+2. Imported `resolveBundleRoot` from `../bundle-root.js`
+3. Modified `copySharedAgents`, `copySkillManifests`, `copyGuidelineManifests`, `copyHooks`, `copyTemplates` to accept `bundleRoot: string` as first parameter
+4. Updated each copy function to use `Path.join(bundleRoot, "<subdir>")` instead of `Path.join(PROJECT_ROOT, "bundle", "<subdir>")`
+5. In `setupHamilton()`, resolved bundleRoot once before copy calls using `Effect.try` to catch `BundleRootNotFoundError` and wrap it in `SetupError`
+6. Passed `bundleRoot` to each copy function call
+
+**Tests**:
+- Added new test "uses HAMILTON_BUNDLE_DIR env var to locate bundle assets" that verifies:
+  - Environment variable HAMILTON_BUNDLE_DIR is respected
+  - Bundle assets are copied from temp directory when env var is set
+  - Proper cleanup of env var in afterEach
+
+**Verification**:
+- ✅ `bun --bun vitest run tests/cli/setup.test.ts -t "bundle root resolution"` → new test passes
+- ✅ All pre-existing setup.ts copy-related tests still pass (27 passing tests for relevant functionality)
+- ✅ `bun run build` → clean build (no type errors)
+- ✅ `setupHamilton()` properly wraps BundleRootNotFoundError in SetupError via Effect.try catch handler
+
+**Notes**:
+- Three pre-existing test failures in setup.test.ts are unrelated to this task (workflow naming inconsistencies and timeout issues)
+- Implementation matches plan specification exactly
+- Error handling properly converts resolveBundleRoot() exceptions to SetupError as required
+- All copy functions still maintain their original logic, only the source path resolution changed
 
 ---
 
