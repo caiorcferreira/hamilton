@@ -118,16 +118,6 @@ jobs:
           path: hamilton-${{ matrix.os }}-${{ matrix.arch }}
           retention-days: 1
 
-  lint-install:
-    name: Lint install.sh
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run shellcheck
-        run: shellcheck install.sh || true
-
   package:
     name: Package artifacts
     needs: build

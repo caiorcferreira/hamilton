@@ -158,6 +158,13 @@
 - Smoke test limited to linux-x64 (only executable binary on the runner)
 - No manual dry-run performed in this session (documented as follow-up in design.md)
 
+**Fix applied (2026-07-17)**:
+- Removed the `lint-install` job (lines 121-129) which was out of scope for Task 4
+- The `lint-install` job including the `shellcheck install.sh || true` command belongs entirely to Task 5
+- The `|| true` wrapper would have defeated the purpose of linting by swallowing shellcheck failures
+- Remaining five jobs (check-version, tag, build, package, publish) all satisfy Task 4's acceptance criteria
+- YAML validation and build verification passed after removal
+
 ---
 
 ## Task 5: Rewrite `install.sh` for binary-based installs
