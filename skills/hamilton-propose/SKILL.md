@@ -150,6 +150,16 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 `proposal.md`, `requirements/<capability>.md`, and `design.md` in the change directory —
 reviewed and approved, ready for `hamilton-plan`.
 
+## Handoff
+
+- **Disclose the workspace.** If step 1 created a worktree for this change, state its path
+  (`.worktrees/<title>`) and branch — the artifacts, and all the work to come, live there, not
+  in the original checkout. If you worked in place, name that branch.
+- **Name the next step.** With the artifacts approved (step 10), what follows is `hamilton-plan`.
+- **Hand back the decision.** The step-10 gate already requires approval before proceeding:
+  ask whether to move on to `hamilton-plan` rather than declaring readiness, and never invoke
+  it yourself. Running unattended, record open questions, name the next step, and return.
+
 ## Process flow
 
 ```dot

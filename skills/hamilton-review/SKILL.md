@@ -114,6 +114,16 @@ Append a one-line summary to `.hamilton/changes/<change>/progress.md` (see
 `review.md` written with the verdict and feedback, and a one-line summary appended to
 `progress.md`. This skill does not modify code or `plan.md`.
 
+## Handoff
+
+- **Name the next step, per the verdict.** On `approved`, the change is ready for
+  `hamilton-finish-work` once every task is done. On `changes-requested`, it goes back to
+  `hamilton-code` with this feedback, on the same task.
+- **Hand back the decision.** Working with a person, state the verdict and ask whether to
+  proceed to the indicated step rather than declaring readiness — and never invoke the next
+  skill yourself. Running unattended, name the next step and return without asking; the driver
+  owns the loop.
+
 ## Process flow
 
 ```dot

@@ -44,6 +44,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
   as they need to be; the canonical spec states what the capability guarantees, not the mechanism
   one commit used (`references/spec-altitude.md`).
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
+- **Leave no orphan workspace, and disclose where the work landed.** If the change was done in
+  a worktree, it is torn down on local-merge and left-but-named otherwise. The user always
+  learns the final workspace state — which branch it merged into, or where the branch and
+  worktree still live.
 
 ## Process
 
@@ -83,19 +87,34 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    could only be verified by reading the source rather than observing inputs and outputs, it is
    too low — lift it. The canonical spec states what the capability guarantees, not how one
    commit achieved it. Commit the spec update following the git workflow.
-3. **Finish per strategy:**
-   - **local-merge:** merge the change into the base branch following the project's workflow
-     (e.g. squash), then clean up the branch if the workflow calls for it.
+3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
+   `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
+   disclose them, and on local-merge remove it. If you are not in a worktree (working in place
+   on a dedicated branch), there is nothing to tear down. Decide the strategy now (from the
+   input, the project default, or by asking), so the finish entry can record it.
+4. **Record.** Append a finish entry to `progress.md` (format below), stating the chosen strategy
+   and the intended workspace outcome, and commit it **before finishing** — and, if you are in a
+   worktree, before any local-merge teardown — so it merges into the base branch with the rest of
+   the change.
+5. **Finish per strategy.**
+   - **local-merge:** merge the change branch into the base branch following the project's
+     workflow (e.g. squash), then remove the worktree (`git worktree remove <path>`) and delete
+     the change branch if the workflow calls for it. **You cannot remove a worktree from inside
+     it** — run the merge and the removal from the main checkout (the working tree whose `.git`
+     is `git rev-parse --git-common-dir`). Report the base branch the work landed on.
    - **pull-request:** push the branch and open a pull/merge request; take the title and
-     body from `proposal.md` / `plan.md`.
-   - **no-op:** leave the work as committed; finish without merging or opening a request.
-4. **Record.** Append a finish entry to `progress.md` (format below).
+     body from `proposal.md` / `plan.md`. Leave the worktree and branch in place — the request
+     needs the branch and the author may keep iterating — and report both the request URL and
+     the worktree path.
+   - **no-op:** leave the work as committed in the worktree; finish without merging or opening
+     a request. Report the worktree path and branch so the work can be found.
 
 ## Boundaries
 
 - Never finish with a dirty tree, failing tests, or an unapproved review — stop and report.
 - Never edit code, or delete or weaken tests, to pass the gate.
 - Never fabricate a merge or a pull request.
+- Never remove a worktree from inside it — do the removal from the main checkout.
 - Ask first: if no finish strategy was given and the project has no default.
 
 ## Progress entry
@@ -107,12 +126,16 @@ Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/p
 - Preconditions: tree clean, tests green, review approved
 - Specs synced: <capabilities created/updated>, or none
 - Finished: local-merge into <base> | pull request <url> | no-op
+- Workspace: worktree <path> removed | worktree left at <path> (branch <branch>) | worked in place
 ```
 
 ## Output
 
 Either a blocking report naming the precondition that failed (nothing finished), or:
-the specs synced, the finish strategy carried out, and a `progress.md` finish entry.
+the specs synced, the finish strategy carried out, and a `progress.md` finish entry. Close by
+disclosing where the work landed — the base branch it merged into and that the worktree was
+removed, or the request URL and the worktree/branch left in place, or the no-op location — so
+the user is never left guessing which workspace holds the change.
 
 ## Process flow
 
@@ -122,21 +145,25 @@ digraph hamilton_finish_work {
     "Passed?" [shape=diamond];
     "Stop and report blocker" [shape=box];
     "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
+    "Detect workspace\n(worktree or in-place) + strategy" [shape=box];
+    "Record finish entry in progress.md\n(commit inside worktree)" [shape=box];
     "Finish per strategy" [shape=diamond];
-    "local-merge into base" [shape=box];
-    "open pull/merge request" [shape=box];
-    "no-op" [shape=box];
-    "Record finish entry in progress.md" [shape=doublecircle];
+    "local-merge into base\n(then remove worktree + branch)" [shape=box];
+    "open pull/merge request\n(leave worktree + branch)" [shape=box];
+    "no-op\n(leave worktree + branch)" [shape=box];
+    "Disclose final workspace state" [shape=doublecircle];
 
     "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" -> "Passed?";
     "Passed?" -> "Stop and report blocker" [label="no"];
     "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
-    "Sync requirement deltas\ninto .hamilton/specs/" -> "Finish per strategy";
-    "Finish per strategy" -> "local-merge into base";
-    "Finish per strategy" -> "open pull/merge request";
-    "Finish per strategy" -> "no-op";
-    "local-merge into base" -> "Record finish entry in progress.md";
-    "open pull/merge request" -> "Record finish entry in progress.md";
-    "no-op" -> "Record finish entry in progress.md";
+    "Sync requirement deltas\ninto .hamilton/specs/" -> "Detect workspace\n(worktree or in-place) + strategy";
+    "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry in progress.md\n(commit inside worktree)";
+    "Record finish entry in progress.md\n(commit inside worktree)" -> "Finish per strategy";
+    "Finish per strategy" -> "local-merge into base\n(then remove worktree + branch)";
+    "Finish per strategy" -> "open pull/merge request\n(leave worktree + branch)";
+    "Finish per strategy" -> "no-op\n(leave worktree + branch)";
+    "local-merge into base\n(then remove worktree + branch)" -> "Disclose final workspace state";
+    "open pull/merge request\n(leave worktree + branch)" -> "Disclose final workspace state";
+    "no-op\n(leave worktree + branch)" -> "Disclose final workspace state";
 }
 ```

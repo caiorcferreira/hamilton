@@ -78,7 +78,8 @@ gating on approval before any implementation.
 - **Produces**, in `.hamilton/changes/<YYYY-MM-DD-title>/`: `proposal.md` (why), `requirements/<capability>.md`
   (what, in delta form), `design.md` (how).
 - **Notes:** one question at a time; proposes 2–3 approaches with trade-offs; the design must clear a
-  code-quality self-review before the gate opens.
+  code-quality self-review before the gate opens. On handoff it discloses the worktree it created
+  and, when working with a person, asks before proceeding to `hamilton-plan`.
 - Source: [`skills/hamilton-propose/SKILL.md`](../skills/hamilton-propose/SKILL.md)
 
 ### `hamilton-plan` — change → `plan.md` *(step 2, required)*
@@ -93,6 +94,8 @@ artifact and the handoff contract between planning and coding. **It never writes
 - **Produces:** `plan.md` — an ordered task ledger, each task with its files, acceptance criteria,
   verbatim steps (test-first where behavior is testable), a verify command, and a commit message.
 - **Notes:** all the sequencing thinking happens here, because the coder executes the steps verbatim.
+  On handoff it discloses the worktree it created and, when working with a person, asks before
+  proceeding to `hamilton-code` / `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
 ### `hamilton-code` — implement one task *(step 3)*
@@ -104,7 +107,9 @@ Implements exactly one planned task by following its steps as written, then self
   change directory; `AGENTS.md`; optionally, review feedback from a prior pass on this task.
 - **Produces:** the task's tests + code, a commit, and an entry appended to `progress.md`.
 - **Notes:** never redesigns, reorders, or touches sibling tasks; never edits `plan.md`. Designed to
-  run on a cheap model, since the plan carries the design.
+  run on a cheap model, since the plan carries the design. Working with a person it asks before
+  proceeding to review or the next task; dispatched unattended by `hamilton-orchestrate` it returns
+  without asking.
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-review` — judge the diff *(step 4, quality gate)*
@@ -117,7 +122,9 @@ Reviews the code produced for a change and returns a verdict with specific, acti
   `design.md` / `requirements/` (acceptance criteria); `progress.md`; `AGENTS.md`.
 - **Produces:** a verdict (`approved` / `changes-requested`) and located feedback in `review.md`.
 - **Notes:** the strong-model quality gate. On `changes-requested`, the driver re-invokes
-  `hamilton-code` with the feedback — the skills do not call each other.
+  `hamilton-code` with the feedback — the skills do not call each other. On handoff it names the
+  next step per the verdict (`finish-work` on approval, `code` on changes-requested) and, working
+  with a person, asks before proceeding.
 - Source: [`skills/hamilton-review/SKILL.md`](../skills/hamilton-review/SKILL.md)
 
 ### `hamilton-finish-work` — close the change *(step 5)*
@@ -130,7 +137,8 @@ Gates the change, folds requirement deltas into the canonical specs, and finishe
 - **Produces:** updated `.hamilton/specs/<capability>.md` (deltas folded in, no delta markers), and
   the change finished per strategy; a finish entry in `progress.md`.
 - **Notes:** hard gate — refuses to finish a dirty tree, failing tests, or an unapproved review;
-  never fabricates a merge or a pull request.
+  never fabricates a merge or a pull request. If the change was done in a worktree, tears it down on
+  local-merge (leaving it in place for pull-request / no-op) and discloses where the work landed.
 - Source: [`skills/hamilton-finish-work/SKILL.md`](../skills/hamilton-finish-work/SKILL.md)
 
 ### `hamilton-orchestrate` — run a whole plan *(driver)*

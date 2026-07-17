@@ -154,6 +154,19 @@ the plan ships to the code.
 
 `.hamilton/changes/<change>/plan.md`, following `~/.hamilton/templates/plan.md`.
 
+## Handoff
+
+Close by orienting the user, not by silently stopping.
+
+- **Disclose the workspace.** If step 1 created a worktree for this change, state its path
+  (`.worktrees/<title>`) and branch — `plan.md`, and all the code to come, live there, not in
+  the original checkout. If you were already isolated and worked in place, name that branch.
+- **Name the next step.** `plan.md` is the handoff contract; what follows is `hamilton-code`
+  (one task at a time) or `hamilton-orchestrate` (the whole plan in one session).
+- **Hand back the decision.** Working with a person, ask whether to proceed to implementation
+  rather than declaring you are "ready" — and never invoke the next skill yourself. Running
+  unattended, name the next step and return without asking; the driver owns the loop.
+
 ## Process flow
 
 ```dot

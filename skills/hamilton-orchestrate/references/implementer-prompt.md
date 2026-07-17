@@ -57,6 +57,10 @@ Subagent:
 
     If blocked, put the specifics in the final message itself — the controller acts on it
     directly. Never silently produce work you are unsure about.
+
+    You are running unattended as a subagent — there is no person in this loop. Do not pause
+    to ask whether to proceed; hamilton-code's Handoff returns without asking here. Complete
+    the work and return your report.
 ```
 
 **Placeholders**
