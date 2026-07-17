@@ -130,7 +130,7 @@ Gates the change, folds requirement deltas into the canonical specs, and finishe
 - **Produces:** updated `.hamilton/specs/<capability>.md` (deltas folded in, no delta markers), and
   the change finished per strategy; a finish entry in `progress.md`.
 - **Notes:** hard gate — refuses to finish a dirty tree, failing tests, or an unapproved review;
-  never fabricates a merge or a pull request. Tears down the change's `.worktrees/` workspace on
+  never fabricates a merge or a pull request. If the change was done in a worktree, tears it down on
   local-merge (leaving it in place for pull-request / no-op) and discloses where the work landed.
 - Source: [`skills/hamilton-finish-work/SKILL.md`](../skills/hamilton-finish-work/SKILL.md)
 

@@ -44,10 +44,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
   as they need to be; the canonical spec states what the capability guarantees, not the mechanism
   one commit used (`references/spec-altitude.md`).
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
-- **Leave no orphan workspace, and disclose where the work landed.** A worktree Hamilton
-  created for the change is torn down on local-merge and left-but-named otherwise. The user
-  always learns the final workspace state — which branch it merged into, or where the branch
-  and worktree still live.
+- **Leave no orphan workspace, and disclose where the work landed.** If the change was done in
+  a worktree, it is torn down on local-merge and left-but-named otherwise. The user always
+  learns the final workspace state — which branch it merged into, or where the branch and
+  worktree still live.
 
 ## Process
 
@@ -87,22 +87,21 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    could only be verified by reading the source rather than observing inputs and outputs, it is
    too low — lift it. The canonical spec states what the capability guarantees, not how one
    commit achieved it. Commit the spec update following the git workflow.
-3. **Detect the workspace.** If you are in a Hamilton-created worktree —
-   `git rev-parse --git-dir` differs from `--git-common-dir` and `git rev-parse --show-toplevel`
-   is under `.worktrees/` — note its path and branch; you will disclose them, and on local-merge
-   remove the worktree. If you were working in place (a dedicated branch, no worktree), there is
-   nothing to tear down. Decide the strategy now (from the input, the project default, or by
-   asking), so the finish entry can record it.
+3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
+   `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
+   disclose them, and on local-merge remove it. If you are not in a worktree (working in place
+   on a dedicated branch), there is nothing to tear down. Decide the strategy now (from the
+   input, the project default, or by asking), so the finish entry can record it.
 4. **Record.** Append a finish entry to `progress.md` (format below), stating the chosen strategy
-   and the intended workspace outcome, and commit it **while still inside the worktree** — before
-   any local-merge teardown — so it merges into the base branch with the rest of the change.
-5. **Finish per strategy.** **You cannot remove a worktree from inside it:** run the merge and
-   the removal from the main checkout (the working tree whose `.git` is
-   `git rev-parse --git-common-dir`).
+   and the intended workspace outcome, and commit it **before finishing** — and, if you are in a
+   worktree, before any local-merge teardown — so it merges into the base branch with the rest of
+   the change.
+5. **Finish per strategy.**
    - **local-merge:** merge the change branch into the base branch following the project's
-     workflow (e.g. squash). Then, from the main checkout, remove the worktree
-     (`git worktree remove <path>`) and delete the change branch if the workflow calls for it.
-     Report the base branch the work landed on.
+     workflow (e.g. squash), then remove the worktree (`git worktree remove <path>`) and delete
+     the change branch if the workflow calls for it. **You cannot remove a worktree from inside
+     it** — run the merge and the removal from the main checkout (the working tree whose `.git`
+     is `git rev-parse --git-common-dir`). Report the base branch the work landed on.
    - **pull-request:** push the branch and open a pull/merge request; take the title and
      body from `proposal.md` / `plan.md`. Leave the worktree and branch in place — the request
      needs the branch and the author may keep iterating — and report both the request URL and
@@ -115,8 +114,7 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 - Never finish with a dirty tree, failing tests, or an unapproved review — stop and report.
 - Never edit code, or delete or weaken tests, to pass the gate.
 - Never fabricate a merge or a pull request.
-- Never remove a worktree from inside it, and never remove a worktree or branch Hamilton did
-  not create — only tear down the change's own `.worktrees/` workspace.
+- Never remove a worktree from inside it — do the removal from the main checkout.
 - Ask first: if no finish strategy was given and the project has no default.
 
 ## Progress entry
