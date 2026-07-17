@@ -104,6 +104,16 @@ updates (the `progress.md` entry and any other change-dir artifact touched), wit
 uncommitted under `.hamilton/changes/<change>/`. This skill does not modify `plan.md`. If
 anything is unresolved, state it plainly.
 
+## Handoff
+
+- **Name the next step.** With the task committed, what follows is a `hamilton-review` pass on
+  this task's diff — or, once a review has approved it and tasks remain, the next task via
+  `hamilton-code`.
+- **Hand back the decision.** Working with a person, ask whether to proceed rather than
+  declaring the task "ready for review" — and never invoke the next skill yourself. Running
+  unattended (for example dispatched by `hamilton-orchestrate`), return without asking; the
+  driver owns the code↔review loop and decides what runs next.
+
 ## Process flow
 
 ```dot

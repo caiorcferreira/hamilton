@@ -54,6 +54,10 @@ Subagent:
     why it matters, and what to change — separating blocking issues from suggestions. Report
     a requirement you cannot verify from the diff alone as a "cannot verify from diff" item
     rather than broadening the search; the controller resolves those with cross-task context.
+
+    You are running unattended as a subagent — there is no person in this loop. Do not pause
+    to ask whether to proceed; hamilton-review's Handoff returns without asking here. Return
+    your verdict and feedback.
 ```
 
 **Placeholders**
