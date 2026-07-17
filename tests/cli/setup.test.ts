@@ -52,7 +52,7 @@ describe("setupHamilton", () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "workflow.yml"))).toBe(true)
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bugfix", "workflow.yml"))).toBe(true)
   })
 
   it("does NOT copy per-workflow agents to shared agents dir", async () => {
@@ -112,7 +112,7 @@ describe("setupHamilton", () => {
     if (Exit.isSuccess(exit)) {
       expect(Array.isArray(exit.value)).toBe(true)
       expect(exit.value.length).toBeGreaterThan(0)
-      expect(exit.value).toContain("bug-fix")
+      expect(exit.value).toContain("bugfix")
     } else {
       expect.unreachable("Expected success")
     }
