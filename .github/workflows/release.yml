@@ -73,9 +73,23 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
 
+  lint:
+    name: Lint install script
+    needs: tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: |
+          apt-get update -qq
+          apt-get install -qq -y shellcheck
+          shellcheck install.sh
+
   build:
     name: Build CLI binaries
-    needs: tag
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
