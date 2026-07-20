@@ -87,3 +87,38 @@ Verdict: **approved**
 ### No Issues Found
 
 All binding constraints from plan.md and design.md are met. The script is robust, follows shell best practices, and integrates correctly into the release workflow.
+
+---
+
+## Whole-branch review — 2026-07-20
+
+Verdict: **approved**
+
+Base: `e13d16578b2709f92cc566c812637b011187eac2` (merge-base with `origin/main`)
+Head: `c444246fb10d73d79cf0dc941ed81cd1e1a32918`
+
+### Binding constraints met
+
+- All tasks implemented and recorded in `progress.md`.
+- `bun run test`: 666/667 passing (1 pre-existing failure in `reminder.test.ts`, unrelated to this change).
+- `bun run build`: clean, no new errors.
+- DRY fix in place: one `resolveBundleRoot()` replaces both prior `PROJECT_ROOT` copies.
+
+### Critical integration seam verified
+
+Traced the full path from CI packaging to runtime resolution:
+
+1. `release.yml`: `tar czf hamilton-bundle.tar.gz bundle/` archives the `bundle/` directory.
+2. `install.sh`: `tar xzf "$bundle_name" -C ~/.hamilton-dist` extracts it to `~/.hamilton-dist/bundle/`.
+3. `install.sh`: binary installed to `~/.hamilton-dist/bin/hamilton`, symlinked from `~/.local/bin/hamilton`.
+4. `bundle-root.ts`'s binary-sibling branch: `dirname(dirname(realpathSync(execPath)))` resolves `~/.local/bin/hamilton` → `~/.hamilton-dist/bin/hamilton` → `~/.hamilton-dist`, joined with `"bundle"` → `~/.hamilton-dist/bundle`.
+
+Matches the extraction location exactly — a real end-user install resolves its bundle assets correctly at runtime.
+
+### Cannot verify from diff
+
+- Whether `shasum -a 256 -c SHA256SUMS --ignore-missing` behaves correctly on an actual macOS system's `shasum` (shellcheck passes and syntax is correct; semantic correctness needs a real macOS smoke test). Low risk; already flagged in design.md as a first-release follow-up.
+
+### No blocking issues
+
+All six per-task reviews independently approved their diffs; this pass additionally confirmed cross-task integration is correct. Ready for `hamilton-finish-work`.
