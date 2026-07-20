@@ -19,7 +19,11 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 npx skills add https://github.com/caiorcferreira/hamilton
 ```
 
-The first command setups Hamilton artifacts in `~/.hamilton`, the second installs the skills in your prefered coding agent.
+The first command installs the Hamilton CLI binary and sets up artifacts in `~/.hamilton` (no prerequisites needed). The second installs the skills in your preferred coding agent.
+
+**Environment variables** (optional):
+- `HAMILTON_VERSION` — install a specific release version (default: latest)
+- `HAMILTON_REPO_SLUG` — GitHub repo slug to download from (default: `caiorcferreira/hamilton`)
 
 See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
 and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
@@ -112,9 +116,12 @@ an agent's context. Failure is graceful — everything else runs without it. The
 
 ## Requirements
 
-- **bun** >= 1.2.x — runtime, package manager, test runner.
-- **A coding agent that loads `SKILL.md` files** (e.g. Claude Code) — for Assisted mode.
+**To use the Hamilton CLI** (Assisted mode):
+- **A coding agent that loads `SKILL.md` files** (e.g. Claude Code).
 - **An existing git repo** — Hamilton operates on an existing repository (no greenfield support yet).
+
+**To build Hamilton from source or run Autonomous mode**:
+- **bun** >= 1.2.x — runtime, package manager, test runner.
 - **rtk** (optional) — `npm install -g @rtk-ai/rtk`; required for Autonomous-mode Pi SDK agent
   execution.
 
@@ -123,18 +130,16 @@ an agent's context. Failure is graceful — everything else runs without it. The
 ### Quick start
 
 ```bash
-# 1. Install the CLI (used to install the shared artifact templates)
+# 1. Install the CLI
 
-# Remote one-liner — clones the repo, builds, and runs setup:
+# For end users, use the install.sh script:
 curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
 
-# ...or from a clone:
-./install.sh                   # installs deps, builds, symlinks `hamilton`, runs `hamilton setup`
-
-# ...or do it by hand:
+# For contributors building from source:
 bun install
-bun run install-local          # symlinks `hamilton` to ~/.local/bin/
-hamilton setup --mode assisted # installs bundle/templates/ → ~/.hamilton/templates/
+bun run build                  # compile TypeScript
+bun run install-local          # symlink to ~/.local/bin/
+hamilton setup --mode assisted # install bundle/templates/ → ~/.hamilton/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/hamilton-*/ — copy or symlink them into a
@@ -150,17 +155,17 @@ hamilton setup --mode assisted # installs bundle/templates/ → ~/.hamilton/temp
 #    hamilton-finish-work  → gate, sync specs, merge / PR
 ```
 
-Commands:
+**Build and test commands** (for contributors):
 
 ```bash
-bun install
-bun run build                  # tsc -p tsconfig.json
-bun run test                   # bun --bun vitest run
+bun install                    # install dependencies
+bun run build                  # compile TypeScript (tsc -p tsconfig.json)
+bun run test                   # run tests (bun --bun vitest run)
 bun run install-local          # build + symlink the CLI locally
 bun run purge                  # remove the CLI symlink and ~/.hamilton/
 ```
 
-**Do NOT use `bun test`** — use `bun --bun vitest run` (the native runner lacks `vi.mocked()`). See
+**Do NOT use `bun test`** — use `bun run test` which uses the native runner (the fallback lacks `vi.mocked()`). See
 [AGENTS.md](AGENTS.md) for conventions and [CONTRIBUTING.md](CONTRIBUTING.md) for the docs-sync rules.
 
 ### Pi SDK patch (Autonomous mode)

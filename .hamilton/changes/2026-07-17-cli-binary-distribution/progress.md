@@ -227,8 +227,67 @@
 - Bundle extracted to ~/.hamilton-dist preserving bundle-root.ts resolution path for installed binaries
 - Script uses trap for cleanup to ensure temp directory removed even on error
 
+## Review: Task 5 — 2026-07-20
+- Verdict: **approved** (all acceptance criteria met, code quality solid, CI integration correct) — see review.md
+
 ---
 
 ## Task 6: Update README and CONTRIBUTING
 
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
+
+**Files modified**:
+- `README.md` - updated Install and Development sections, reorganized Requirements
+
+**Changes made**:
+1. **Install section** (lines 14-29):
+   - Clarified that `curl -fsSL .../install.sh | bash` is the binary-install path with no prerequisites
+   - Added **Environment variables** subsection documenting:
+     - `HAMILTON_VERSION` — to pin a specific release version (default: latest)
+     - `HAMILTON_REPO_SLUG` — GitHub repo slug (default: caiorcferreira/hamilton)
+   - Removed misleading language suggesting the old build flow
+
+2. **Requirements section** (lines 117-126):
+   - Reorganized into two subsections:
+     - "To use the Hamilton CLI" (Assisted mode): lists only coding agent and git repo requirements
+     - "To build Hamilton from source or run Autonomous mode": lists bun and rtk requirements
+   - This explicitly scopes bun to contributors/source builds, not end users
+
+3. **Development / Quick start section** (lines 130-156):
+   - Separated end-user path (install.sh script) from contributor path (bun commands)
+   - Clarified which commands are for end users vs contributors building from source
+   - Removed outdated language ("clones the repo, builds") that no longer applies to install.sh
+
+4. **Build and test commands subsection** (lines 158-169):
+   - Renamed from generic "Commands:" to "Build and test commands (for contributors)"
+   - Clarified that these are developer/contributor commands
+   - Updated note about test runner to reference `bun run test` as the correct approach
+
+**Acceptance criteria verified**:
+- ✅ README's install section describes `curl -fsSL .../install.sh | bash` binary-install path
+- ✅ No mention of bun prerequisite for end users in install section
+- ✅ HAMILTON_VERSION env var documented for pinning releases
+- ✅ README's "bun >= 1.2.x" requirement scoped explicitly to contributors/source builds
+- ✅ CONTRIBUTING.md clean: no references to old HAMILTON_REPO/HAMILTON_REF/HAMILTON_DIR env vars
+- ✅ No clone-and-build flow documented as the main install path
+- ✅ All old env vars removed from documentation
+
+**Verification**:
+- ✅ Manual re-read of README.md confirms:
+  - No reference to HAMILTON_REPO, HAMILTON_REF, HAMILTON_DIR in install sections
+  - No "clone the repo" language in install documentation
+  - Binary install path clearly documented without bun prerequisite
+  - Contributor path clearly separated from end-user path
+  - HAMILTON_VERSION documented for pinning
+- ✅ Manual re-read of CONTRIBUTING.md confirms:
+  - No references to old env vars (HAMILTON_REPO, HAMILTON_REF, HAMILTON_DIR)
+  - No stale clone-and-build flow documentation
+  - Only documentation conventions content remains
+- ✅ `bun run build` → clean (no type errors)
+
+**Notes**:
+- Implementation matches plan Task 6 specification exactly
+- Documentation now correctly reflects the new binary-based install flow from Task 5
+- Bun requirement properly scoped to source builds and Autonomous mode (not end-user CLI usage)
+- CONTRIBUTING.md required no changes; it was already clean of old install references
+- All links and references to docs/skills.md, docs/sdd-framework.md remain intact
