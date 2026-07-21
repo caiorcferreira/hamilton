@@ -287,6 +287,14 @@
 
 **Notes**:
 - Implementation matches plan Task 6 specification exactly
+
+---
+
+## Finish — 2026-07-20
+- Preconditions: tree clean, tests 666/667 green (1 pre-existing failure in `reminder.test.ts`, confirmed unrelated — this branch touches no files under `tests/hook/` or `src/hook/`), build clean, all 6 tasks + whole-branch review complete, review.md's latest verdict approved
+- Specs synced: `.hamilton/specs/cli-distribution.md` created (new capability)
+- Finished: pull request https://github.com/caiorcferreira/hamilton/pull/17
+- Workspace: worktree left at `.claude/worktrees/hamilton-cli-binary-publish-b7c9f5` (branch `claude/hamilton-cli-binary-publish-b7c9f5`)
 - Documentation now correctly reflects the new binary-based install flow from Task 5
 - Bun requirement properly scoped to source builds and Autonomous mode (not end-user CLI usage)
 - CONTRIBUTING.md required no changes; it was already clean of old install references
