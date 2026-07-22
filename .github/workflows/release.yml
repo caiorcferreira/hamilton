@@ -1,0 +1,211 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    name: Check if version changed
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version-check.outputs.should_release }}
+      version: ${{ steps.version-check.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read package.json version
+        id: read-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if version tag exists
+        id: version-check
+        run: |
+          VERSION="${{ steps.read-version.outputs.version }}"
+          TAG="v$VERSION"
+
+          # Check if the tag already exists
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Error: Tag $TAG already exists. Refusing to overwrite." >&2
+            exit 1
+          fi
+
+          # Check if this is a new version by comparing to latest release
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            # No releases yet, this is a new version
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif [ "$TAG" = "$LATEST_TAG" ]; then
+            # Same version as latest, no new release needed
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            # New version detected
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  tag:
+    name: Create version tag
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          TAG="v$VERSION"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag "$TAG"
+          git push origin "$TAG"
+
+  lint:
+    name: Lint install script
+    needs: tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: |
+          apt-get update -qq
+          apt-get install -qq -y shellcheck
+          shellcheck install.sh
+
+  build:
+    name: Build CLI binaries
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: darwin
+            arch: x64
+          - os: darwin
+            arch: arm64
+          - os: linux
+            arch: x64
+          - os: linux
+            arch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: |
+          bun build --compile \
+            --target=bun-${{ matrix.os }}-${{ matrix.arch }} \
+            src/cli/main.ts \
+            --outfile hamilton-${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Test binary (linux-x64 only)
+        if: matrix.os == 'linux' && matrix.arch == 'x64'
+        run: |
+          chmod +x ./hamilton-linux-x64
+          ./hamilton-linux-x64 --version
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamilton-${{ matrix.os }}-${{ matrix.arch }}
+          path: hamilton-${{ matrix.os }}-${{ matrix.arch }}
+          retention-days: 1
+
+  package:
+    name: Package artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          for dir in artifacts/*/; do
+            mv "$dir"/* .
+            rmdir "$dir"
+          done
+          ls -la
+
+      - name: Create bundle archive
+        run: tar czf hamilton-bundle.tar.gz bundle/
+
+      - name: Generate checksums
+        run: |
+          sha256sum hamilton-* hamilton-bundle.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: SHA256SUMS
+          retention-days: 1
+
+      - name: Upload bundle archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle
+          path: hamilton-bundle.tar.gz
+          retention-days: 1
+
+  publish:
+    name: Publish release
+    needs:
+      - check-version
+      - package
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Flatten artifacts
+        run: |
+          cd release-assets
+          for dir in */; do
+            mv "$dir"/* .
+            rmdir "$dir"
+          done
+          mv * ../ || true
+          cd ..
+          ls -la
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ needs.check-version.outputs.version }}" \
+            hamilton-* \
+            hamilton-bundle.tar.gz \
+            SHA256SUMS \
+            --title "v${{ needs.check-version.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

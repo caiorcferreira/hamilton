@@ -52,7 +52,7 @@ describe("setupHamilton", () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bug-fix", "workflow.yml"))).toBe(true)
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bugfix", "workflow.yml"))).toBe(true)
   })
 
   it("does NOT copy per-workflow agents to shared agents dir", async () => {
@@ -112,7 +112,7 @@ describe("setupHamilton", () => {
     if (Exit.isSuccess(exit)) {
       expect(Array.isArray(exit.value)).toBe(true)
       expect(exit.value.length).toBeGreaterThan(0)
-      expect(exit.value).toContain("bug-fix")
+      expect(exit.value).toContain("bugfix")
     } else {
       expect.unreachable("Expected success")
     }
@@ -324,6 +324,47 @@ describe("buildSettingsYaml", () => {
     const yaml = buildSettingsYaml({})
     const parsed = Yaml.parse(yaml)
     expect(parsed.models).toBeUndefined()
+  })
+})
+
+describe("bundle root resolution", () => {
+  let tmpHome: string
+  let tmpBundleDir: string
+  const originalHome = process.env.HOME
+  const originalBundleDir = process.env.HAMILTON_BUNDLE_DIR
+
+  beforeEach(() => {
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-setup-"))
+    tmpBundleDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-bundle-"))
+    process.env.HOME = tmpHome
+  })
+
+  afterEach(() => {
+    process.env.HOME = originalHome
+    delete process.env.HAMILTON_BUNDLE_DIR
+    if (originalBundleDir) {
+      process.env.HAMILTON_BUNDLE_DIR = originalBundleDir
+    }
+    Fs.rmSync(tmpHome, { recursive: true, force: true })
+    Fs.rmSync(tmpBundleDir, { recursive: true, force: true })
+  })
+
+  it("uses HAMILTON_BUNDLE_DIR env var to locate bundle assets", async () => {
+    // Create a fake bundle structure
+    const bundleAgentsDir = Path.join(tmpBundleDir, "agents", "demo")
+    Fs.mkdirSync(bundleAgentsDir, { recursive: true })
+    Fs.writeFileSync(Path.join(bundleAgentsDir, "INSTRUCTIONS.md"), "# Demo Agent\nFake instructions")
+
+    // Set env var and run setup
+    process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    // Assert the agent was copied from the temp bundle dir
+    const copiedAgent = Path.join(tmpHome, ".hamilton", "agents", "demo", "INSTRUCTIONS.md")
+    expect(Fs.existsSync(copiedAgent)).toBe(true)
+    const content = Fs.readFileSync(copiedAgent, "utf-8")
+    expect(content).toBe("# Demo Agent\nFake instructions")
   })
 })
 

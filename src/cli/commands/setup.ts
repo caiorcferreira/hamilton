@@ -15,8 +15,7 @@ import { createUserMemoryStore } from "../../memory/store.js"
 import { ingestGuidelines } from "../../memory/guidelines.js"
 import { loadAllGuidelines } from "../../guidelines/loader.js"
 import { migrate } from "../../db/migrations.js"
-
-const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
+import { resolveBundleRoot } from "../bundle-root.js"
 
 export class SetupError extends Data.TaggedError("SetupError")<{
   message: string
@@ -67,9 +66,9 @@ export function askModelAliases(): Effect.Effect<Record<string, string>, SetupEr
   })
 }
 
-function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copySharedAgents(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
-    const sharedDir = Path.join(PROJECT_ROOT, "bundle", "agents")
+    const sharedDir = Path.join(bundleRoot, "agents")
     if (!Fs.existsSync(sharedDir)) return
 
     const destAgents = agentsDir()
@@ -91,9 +90,9 @@ function copySharedAgents(options?: { force?: boolean }): Effect.Effect<void, Se
   })
 }
 
-function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copySkillManifests(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
-    const manifestDir = Path.join(PROJECT_ROOT, "bundle", "skills")
+    const manifestDir = Path.join(bundleRoot, "skills")
     if (!Fs.existsSync(manifestDir)) return
 
     const destSkills = skillsDir()
@@ -106,9 +105,9 @@ function copySkillManifests(options?: { force?: boolean }): Effect.Effect<void, 
   })
 }
 
-function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copyGuidelineManifests(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
-    const manifestDir = Path.join(PROJECT_ROOT, "bundle", "guidelines")
+    const manifestDir = Path.join(bundleRoot, "guidelines")
     if (!Fs.existsSync(manifestDir)) return
 
     const destGuidelines = guidelinesDir()
@@ -121,9 +120,9 @@ function copyGuidelineManifests(options?: { force?: boolean }): Effect.Effect<vo
   })
 }
 
-function copyHooks(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copyHooks(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
-    const srcDir = Path.join(PROJECT_ROOT, "bundle", "hooks")
+    const srcDir = Path.join(bundleRoot, "hooks")
     if (!Fs.existsSync(srcDir)) return
 
     const destHooks = hooksDir()
@@ -136,9 +135,9 @@ function copyHooks(options?: { force?: boolean }): Effect.Effect<void, SetupErro
   })
 }
 
-function copyTemplates(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
-    const srcDir = Path.join(PROJECT_ROOT, "bundle", "templates")
+    const srcDir = Path.join(bundleRoot, "templates")
     if (!Fs.existsSync(srcDir)) return
 
     const destTemplates = templatesDir()
@@ -269,11 +268,16 @@ export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boole
     )
     yield* Effect.sync(() => db.close())
 
-    yield* copySharedAgents(options)
-    yield* copySkillManifests(options)
-    yield* copyGuidelineManifests(options)
-    yield* copyHooks(options)
-    yield* copyTemplates(options)
+    const bundleRoot = yield* Effect.try({
+      try: () => resolveBundleRoot(),
+      catch: (e) => new SetupError({ message: String(e) })
+    })
+
+    yield* copySharedAgents(bundleRoot, options)
+    yield* copySkillManifests(bundleRoot, options)
+    yield* copyGuidelineManifests(bundleRoot, options)
+    yield* copyHooks(bundleRoot, options)
+    yield* copyTemplates(bundleRoot, options)
 
     // Pi SDK configs are only used by the Autonomous engine. Assisted mode
     // (the skill bundle) doesn't run agents through Pi, so it skips them.

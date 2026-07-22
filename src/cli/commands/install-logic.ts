@@ -2,8 +2,7 @@ import { Effect, Data } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import { workflowsDir, hamiltonHome } from "../../paths.js"
-
-const PROJECT_ROOT = Path.resolve(import.meta.dirname, "..", "..", "..")
+import { resolveBundleRoot } from "../bundle-root.js"
 
 export class InstallError extends Data.TaggedError("InstallError")<{
   workflowSlug: string
@@ -11,7 +10,7 @@ export class InstallError extends Data.TaggedError("InstallError")<{
 }> {}
 
 function bundledWorkflowsDir(): string {
-  return Path.join(PROJECT_ROOT, "bundle", "workflows")
+  return Path.join(resolveBundleRoot(), "workflows")
 }
 
 function listBundledWorkflowSlugs(): string[] {
@@ -34,7 +33,13 @@ export function installWorkflow(
       )
     }
 
-    const srcDir = Path.join(bundledWorkflowsDir(), workflowSlug)
+    const bundleRoot = yield* Effect.try({
+      try: () => resolveBundleRoot(),
+      catch: (e) =>
+        new InstallError({ workflowSlug, message: `Failed to resolve bundle: ${String(e)}` })
+    })
+
+    const srcDir = Path.join(bundleRoot, "workflows", workflowSlug)
     const destDir = Path.join(workflowsDir(), workflowSlug)
 
     if (!Fs.existsSync(srcDir)) {
@@ -101,7 +106,11 @@ export function installAllWorkflows(
   options?: { force?: boolean }
 ): Effect.Effect<string[], InstallError> {
   return Effect.gen(function* () {
-    const slugs = listBundledWorkflowSlugs()
+    const slugs = yield* Effect.try({
+      try: () => listBundledWorkflowSlugs(),
+      catch: (e) =>
+        new InstallError({ workflowSlug: "", message: `Failed to list bundled workflows: ${String(e)}` })
+    })
     const installed: string[] = []
     for (const slug of slugs) {
       yield* installWorkflow(slug, options)
