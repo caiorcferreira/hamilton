@@ -208,3 +208,4 @@ jobs:
             --title "v${{ needs.check-version.outputs.version }}"
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
