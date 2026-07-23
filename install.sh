@@ -118,6 +118,11 @@ install_hamilton() {
   mkdir -p ~/.hamilton-dist
   tar xzf "$bundle_name" -C ~/.hamilton-dist
 
+  # Leave the work dir before deleting it, otherwise the shell (and any
+  # command run afterwards, like `hamilton setup`) is left with a deleted
+  # working directory.
+  cd "$HOME"
+
   trap - EXIT
   rm -rf "$work_dir"
 }
