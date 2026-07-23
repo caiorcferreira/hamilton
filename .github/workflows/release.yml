@@ -25,31 +25,37 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check if version tag exists
+      - name: Check if version should be released
         id: version-check
         run: |
           VERSION="${{ steps.read-version.outputs.version }}"
           TAG="v$VERSION"
 
-          # Check if the tag already exists
-          if gh release view "$TAG" &>/dev/null; then
-            echo "Error: Tag $TAG already exists. Refusing to overwrite." >&2
+          # Most recent published release, empty if none exists yet.
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
+
+          # No version change: package.json matches the latest published
+          # release. Skip cleanly — no tag, no build, no publish.
+          if [ "$TAG" = "$LATEST_RELEASE" ]; then
+            echo "Version $VERSION already released as $TAG; nothing to do."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # We intend to release $TAG. If the tag already exists on the remote
+          # but isn't the latest release, it's a leftover from a run that
+          # failed after tagging but before publishing. Fail loudly with a
+          # recovery hint rather than pushing it again later (which errors
+          # cryptically) or reusing it (which would leave the tag pointing at
+          # a different commit than the artifacts built by this run).
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Error: tag $TAG already exists on the remote but has no matching release." >&2
+            echo "An earlier release run likely failed after creating the tag." >&2
+            echo "Delete the tag and re-run:  git push origin --delete $TAG" >&2
             exit 1
           fi
 
-          # Check if this is a new version by comparing to latest release
-          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
-
-          if [ -z "$LATEST_TAG" ]; then
-            # No releases yet, this is a new version
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          elif [ "$TAG" = "$LATEST_TAG" ]; then
-            # Same version as latest, no new release needed
-            echo "should_release=false" >> $GITHUB_OUTPUT
-          else
-            # New version detected
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          fi
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
 
