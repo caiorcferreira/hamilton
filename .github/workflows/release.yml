@@ -111,8 +111,16 @@ jobs:
 
       - name: Build binary
         run: |
+          # node-llama-cpp (pulled in transitively via @tobilu/qmd) ships
+          # per-platform native .node addons and dynamically imports every
+          # platform variant. bun's single-file --compile can't statically
+          # resolve those, and native addons can't be embedded in a
+          # standalone binary anyway. Mark them external: the memory store
+          # degrades gracefully when the module can't load at runtime.
           bun build --compile \
             --target=bun-${{ matrix.os }}-${{ matrix.arch }} \
+            --external node-llama-cpp \
+            --external '@node-llama-cpp/*' \
             src/cli/main.ts \
             --outfile hamilton-${{ matrix.os }}-${{ matrix.arch }}
 
