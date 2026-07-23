@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.version-check.outputs.should_release }}
-      version: ${{ steps.version-check.outputs.version }}
+      version: ${{ steps.read-version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
