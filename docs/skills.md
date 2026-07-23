@@ -24,7 +24,9 @@ init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──
 Seven skills. `hamilton-init` runs once per project. `hamilton-propose` is the optional heavyweight
 front door — a tactical change skips it and starts at `hamilton-plan`, the one required step. The
 `code` and `review` steps loop until the review passes. `hamilton-orchestrate` is a driver that runs
-the whole plan (code + review over every task) in one session using subagents.
+the whole plan (code + review over every task) in one session using subagents. `hamilton-critique`
+is an optional design-phase gate — an on-demand review of the propose artifacts before planning
+begins; it is not part of the required line.
 
 **Start anywhere.** The only required artifact is the plan. Each downstream step degrades gracefully —
 it uses the richer upstream artifact when present, and otherwise works from the raw request.
@@ -81,6 +83,26 @@ gating on approval before any implementation.
   code-quality self-review before the gate opens. On handoff it discloses the worktree it created
   and, when working with a person, asks before proceeding to `hamilton-plan`.
 - Source: [`skills/hamilton-propose/SKILL.md`](../skills/hamilton-propose/SKILL.md)
+
+### `hamilton-critique` — review the propose artifacts *(optional design-phase gate)*
+
+Critiques a change's `proposal.md`, `requirements/`, and `design.md` before planning — the
+design-phase counterpart to `hamilton-review`. Returns a numbered findings report and a verdict.
+**Reviews only; never edits the artifacts.**
+
+- **When:** on demand, after `hamilton-propose` and before `hamilton-plan`, to catch design defects
+  while nothing has been built yet.
+- **Inputs:** the change directory; `proposal.md` / `requirements/` / `design.md`; the actual
+  codebase (to ground every reference); the canonical specs (`.hamilton/specs/`); `AGENTS.md`.
+- **Produces:** a verdict (`approved` / `changes-requested`) and a numbered, located findings list —
+  printed to chat and persisted to `critique.md` in the change directory.
+- **Notes:** checks logical consistency, semantic coherence (ubiquitous language), and — the load-
+  bearing step — that every referenced type/function/file/example actually exists in the codebase
+  and nothing is planned against code the change removes. Applies the same `references/code-quality.md`
+  rubric `hamilton-propose` self-reviews against, capturing a Quality Lens. On handoff it names the
+  next step per the verdict (`plan` on approval, back to revising the artifacts on
+  changes-requested) and, working with a person, asks before proceeding.
+- Source: [`skills/hamilton-critique/SKILL.md`](../skills/hamilton-critique/SKILL.md)
 
 ### `hamilton-plan` — change → `plan.md` *(step 2, required)*
 
@@ -171,6 +193,7 @@ artifacts live under the project's `.hamilton/` directory:
       proposal.md                     # optional — why
       design.md                       # optional — how
       requirements/<capability>.md    # optional — what (delta form)
+      critique.md                     # optional — design-phase review of the propose artifacts
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
       review.md                       # review verdict + feedback
