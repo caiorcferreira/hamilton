@@ -111,7 +111,9 @@ hamilton-finish-work  → gate, sync specs, finish via merge / PR
 ```
 
 The `code` and `review` steps loop until the review passes; `hamilton-orchestrate` can drive the
-whole plan in one session. Artifacts land under your project's `.hamilton/` directory. See the
+whole plan in one session. Artifacts land under your project's `.hamilton/` directory. Outside this
+line, `hamilton-compose-spec` authors canonical specs directly — reformatting existing specs or
+writing them from your code — handy when adopting Hamilton on a codebase that has none. See the
 **[Skills reference](./skills.md)** for each skill's inputs and outputs and the
 **[SDD framework](./sdd-framework.md)** for the design.
 

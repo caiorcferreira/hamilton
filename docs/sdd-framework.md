@@ -53,8 +53,9 @@ pipeline runs those loops; a skill does one job and returns. This mirrors Hamilt
 retry-and-verify machinery.
 
 **Changes accumulate into living specs.** A change proposes requirement *deltas*
-(ADDED / MODIFIED / REMOVED / RENAMED). The finish step folds them into the canonical
-`specs/<capability>.md`, which always describes current behavior with no delta markers.
+(ADDED / MODIFIED / REMOVED / RENAMED) in structured form. The finish step folds them into the
+canonical `specs/<capability>.md` — human-readable documentation at altitude that always describes
+current behavior, with no delta markers and none of the change-side `SHALL`/scenario scaffolding.
 
 **Right-sized rigor.** The documents borrow the *spirit* of established standards — testable
 requirements, decisions with alternatives — without their ceremony. "29148-inspired," not
@@ -131,7 +132,17 @@ verdict and located, actionable feedback to `review.md`; it never edits code.
 
 **hamilton-finish-work** closes the change. It checks the completion gate (clean tree, tests
 green, all tasks done, review approved), folds the change's requirement deltas into the
-canonical specs, and finishes via local merge, a pull request, or no-op.
+canonical specs, and finishes via local merge, a pull request, or no-op. Folding is a *distill
+and translate* step: the change-side deltas are structured (`SHALL` + `WHEN`/`THEN`), but the
+canonical spec is human-readable documentation — a light universal skeleton (Overview / Contract
+/ Behavior + Examples / Invariants / Decisions) written at altitude — so finish-work rewrites each
+delta into the section it belongs to rather than copying requirement blocks by name.
+
+**hamilton-compose-spec** sits outside the per-change pipeline. It authors canonical specs
+directly, in two modes: *reformat* an existing spec into the current skeleton, or write specs
+*from the application code*. It is the front door for canonical specs — every pipeline path
+produces a spec only as a by-product of finishing a change — and the tool a project uses to
+bootstrap specs on adoption or migrate an older spec format.
 
 ## Artifacts and layout
 

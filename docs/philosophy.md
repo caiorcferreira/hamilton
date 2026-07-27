@@ -66,9 +66,10 @@ automation hits its limits.
 
 ### Changes accumulate into living specs
 
-A change proposes requirement *deltas* (ADDED / MODIFIED / REMOVED / RENAMED). The finish step folds
-them into the canonical `specs/<capability>.md`, which always describes current behavior with no delta
-markers. Changes are ephemeral; specs are durable.
+A change proposes requirement *deltas* (ADDED / MODIFIED / REMOVED / RENAMED) in structured form. The
+finish step folds them into the canonical `specs/<capability>.md` — human-readable documentation at
+altitude that always describes current behavior, with no delta markers. A project can also author these
+specs directly with `hamilton-compose-spec`, outside the change loop. Changes are ephemeral; specs are durable.
 
 ## Autonomous-mode design
 
