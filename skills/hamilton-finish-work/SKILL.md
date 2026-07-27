@@ -27,10 +27,13 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 This skill ships with a `references/` folder. Read reference files using the Read tool on the
 skill's own directory — they are co-located with this SKILL.md, **not** at `~/.hamilton/`.
 
-- `references/spec-altitude.md` — how a canonical spec is written at altitude when distilling a
-  change: what belongs (contracts, behaviors, invariants, decisions/patterns) and what stays
+- `references/spec-altitude.md` — the altitude rubric **and** the canonical spec's shape: the
+  human-readable skeleton (`## Overview` / `## Contract` / `## Behavior` + Examples /
+  `## Invariants` / `## Decisions`), what belongs in each section (contracts, behaviors,
+  invariants, decisions/patterns), the Examples-block treatment of scenarios, and what stays
   behind in the change artifacts (mechanism, private names, library calls, file paths). Change
-  artifacts may be specific; the canonical spec is not. Apply it in step 2.
+  artifacts may be specific and use the Requirement/Scenario form; the canonical spec is neither.
+  Apply it in step 2.
 
 ## Principles
 
@@ -38,11 +41,12 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 - **Specs are the truth.** Fold the change's requirement deltas into the canonical specs so
   they always describe current behavior.
 - **Canonical specs are distilled, not copied.** The canonical spec is the project's durable
-  body of knowledge — contracts, behaviors, invariants, decisions — written at altitude. Distill
-  it from the change's deliberate artifacts (`proposal.md`, `design.md`, `requirements/`), never
-  from the raw diff, `progress.md`, or review comments. The change artifacts may be as specific
-  as they need to be; the canonical spec states what the capability guarantees, not the mechanism
-  one commit used (`references/spec-altitude.md`).
+  body of knowledge — contracts, behaviors, invariants, decisions — written at altitude and read
+  like documentation a human wrote (the skeleton in `references/spec-altitude.md`), not the
+  change-side Requirement/SHALL/Scenario form. Distill it from the change's deliberate artifacts
+  (`proposal.md`, `design.md`, `requirements/`), never from the raw diff, `progress.md`, or
+  review comments. The change artifacts may be as specific as they need to be; the canonical spec
+  states what the capability guarantees, not the mechanism one commit used.
 - **Honest completion.** Never claim a merge or a pull request that did not happen.
 - **Leave no orphan workspace, and disclose where the work landed.** If the change was done in
   a worktree, it is torn down on local-merge and left-but-named otherwise. The user always
@@ -56,37 +60,49 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
-2. **Sync specs.** Distill the change into the canonical `.hamilton/specs/<capability>.md`,
-   working from each `requirements/<capability>.md` delta and drawing rationale, decisions, and
-   reusable patterns from `design.md` and `proposal.md`. The requirement *set* comes from these
-   deliberate change artifacts — never invent a canonical requirement from the raw diff,
-   `progress.md`, or external/MR review comments. Those record how the work was carried out; a
-   review nit like "use a `switch`" or "extract constants" is mechanism, not a durable contract.
-   If review surfaced a genuinely missing *behavior*, write it back as a delta first, then
-   distill that. The canonical spec is always in
-   `~/.hamilton/templates/requirements-spec.md` form: a single `## Requirements` section
-   holding the current requirement blocks. It **MUST NOT** contain any delta-group header —
-   `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements`, or
-   `## RENAMED Requirements`. Those headers exist only in the change delta. **Never copy a
-   delta file verbatim into `specs/`** — unwrap its requirement blocks and place them under
-   `## Requirements`. Apply each delta group to the canonical blocks:
-   - **ADDED** → add the requirement block(s).
-   - **MODIFIED** → replace the block whose `### Requirement:` name matches exactly; if the
-     spec has no such block yet, add it.
-   - **REMOVED** → delete the named block (drop its Reason/Migration — those stay in the
-     change).
-   - **RENAMED** → rename the header.
-   If the capability has no canonical spec yet, create `.hamilton/specs/<capability>.md` from
-   the template and populate its `## Requirements` section with every ADDED and MODIFIED block
-   from the delta (regardless of which delta group they were authored under).
-   Before writing each block into the canonical spec, **distill it to altitude** with
-   `references/spec-altitude.md`: a delta may arrive bound to mechanism — control flow, private
-   type/field/constructor names, library calls, or file paths. Drop that incident detail, lift
-   the block to the contract, behavior, or invariant it serves, and merge reusable design rules
-   into a single pattern requirement stated as a rule. The test: if a requirement's scenario
-   could only be verified by reading the source rather than observing inputs and outputs, it is
-   too low — lift it. The canonical spec states what the capability guarantees, not how one
-   commit achieved it. Commit the spec update following the git workflow.
+2. **Sync specs — distill and translate.** Fold the change into the canonical
+   `.hamilton/specs/<capability>.md`, working from each `requirements/<capability>.md` delta and
+   drawing rationale, decisions, and reusable patterns from `design.md` and `proposal.md`. The
+   content *set* comes from these deliberate change artifacts — never invent canonical content
+   from the raw diff, `progress.md`, or external/MR review comments. Those record how the work
+   was carried out; a review nit like "use a `switch`" or "extract constants" is mechanism, not a
+   durable contract. If review surfaced a genuinely missing *behavior*, write it back as a delta
+   first, then distill that.
+
+   The canonical spec is **not** in the change-side Requirement/SHALL/Scenario form. It is
+   human-readable documentation in the skeleton of `~/.hamilton/templates/requirements-spec.md`:
+   `## Overview` / `## Contract` / `## Behavior` (with a greppable **Examples** block) /
+   `## Invariants` / `## Decisions`, in flowing prose and tables, at altitude. It **MUST NOT**
+   contain any delta-group header (`## ADDED Requirements`, `## MODIFIED …`, `## REMOVED …`,
+   `## RENAMED …`) or `### Requirement:` / `#### Scenario:` blocks — those live only in the
+   change delta. **Never copy a delta file verbatim into `specs/`.** Instead **translate**: read
+   the capability's current canonical spec (if any) together with the change's deltas, and apply
+   each delta to the **anchored section** its behavior belongs to. A delta's `### Requirement:`
+   name and its scenarios are *input* — use them to locate the section or `### <subsection>`
+   anchor (an event type, an endpoint, a config group) to update, not as headings to reproduce:
+   - **ADDED** → add the new contract row/table, behavior sentence + Examples bullet, invariant,
+     or decision to the section it belongs to — creating a `### <subsection>` anchor if it is a
+     new, distinct contract surface.
+   - **MODIFIED** → rewrite the affected section or subsection to the new behavior.
+   - **REMOVED** → drop that behavior from its section (delete the row, the Examples bullet, or
+     the whole subsection); its Reason/Migration stay in the change.
+   - **RENAMED** → rename the subsection anchor if the rename surfaces in the spec.
+   If the capability has no canonical spec yet, create `.hamilton/specs/<capability>.md` from the
+   template and populate every applicable section from the ADDED and MODIFIED blocks (regardless
+   of which delta group they were authored under), omitting sections the capability has nothing
+   for.
+
+   Before writing, **distill each delta to altitude** with `references/spec-altitude.md`: a delta
+   may arrive bound to mechanism — control flow, private type/field/constructor names, library
+   calls, or file paths. Drop that incident detail (private field names stay out unless they are
+   the consumer-facing contract — a persisted schema, a payload, a request/response body — in
+   which case they belong in `## Contract` as a field table); lift each statement to the
+   contract, behavior, invariant, or decision it serves; fold surviving `WHEN`/`THEN` scenarios
+   into the **Examples** block as input → outcome bullets; and merge reusable design rules into a
+   single stated-as-a-rule decision. The test: if a statement could only be verified by reading
+   the source rather than observing inputs and outputs, it is too low — lift it or drop it.
+   Reserve `MUST`/`NEVER` for `## Invariants`. The canonical spec states what the capability
+   guarantees, not how one commit achieved it. Commit the spec update following the git workflow.
 3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
    `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
    disclose them, and on local-merge remove it. If you are not in a worktree (working in place

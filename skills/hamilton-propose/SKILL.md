@@ -87,8 +87,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 2. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 3. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
-   prior decisions the change inherits, so a MODIFIED capability builds on its existing
-   requirement block rather than contradicting it. If the request spans several independent
+   prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
+   canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
+   Invariants / Decisions) rather than contradicting it. If the request spans several independent
    subsystems, stop and help decompose it first — one change per spec.
 4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
    question at a time, multiple-choice when you can. Direct them at the requester (a person,
@@ -117,8 +118,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
 6. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
-   normative SHALL statements and WHEN/THEN scenarios. For MODIFIED, copy the entire existing
-   requirement block from the spec and edit it.
+   normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the
+   structured form regardless of how the canonical spec reads. For MODIFIED, there is no
+   requirement block to copy — the canonical spec is prose; instead read the behavior its
+   relevant section documents, then write a MODIFIED requirement that names the behavior it
+   changes clearly enough for finish-work to locate the spec section, and states the *whole* new
+   behavior (not just the diff).
 7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
    their trade-offs. Lead with your recommendation and why, and get the requester's choice
    (or, unattended, pick the recommended one and record the reasoning).

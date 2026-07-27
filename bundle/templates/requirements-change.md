@@ -39,9 +39,12 @@ The system SHALL <one normative statement>.
 
 ## MODIFIED Requirements
 
-<!-- Copy the ENTIRE existing requirement block from .hamilton/specs/<capability>.md,
-     then edit it to the new behavior. Partial copies lose detail when folded in at
-     finish-work. The "### Requirement:" name MUST match the original exactly. -->
+<!-- The canonical .hamilton/specs/<capability>.md is human-readable prose (Overview /
+     Contract / Behavior / Invariants / Decisions), NOT requirement blocks — there is
+     nothing to copy verbatim. Read the behavior the spec currently documents for this
+     area, then write the WHOLE changed behavior as a requirement block below. Name it
+     for the behavior it changes, so finish-work can locate the spec section to update.
+     State the entire new behavior, not just the diff. -->
 
 ## REMOVED Requirements
 

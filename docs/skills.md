@@ -28,6 +28,11 @@ the whole plan (code + review over every task) in one session using subagents. `
 is an optional design-phase gate — an on-demand review of the propose artifacts before planning
 begins; it is not part of the required line.
 
+`hamilton-compose-spec` sits outside this per-change line: it authors canonical specs
+(`.hamilton/specs/`) directly — reformatting existing specs into the current human-readable shape,
+or writing them from the application code — for projects adopting Hamilton or migrating an old spec
+format. The pipeline never needs it; it is a maintenance and bootstrap tool.
+
 **Start anywhere.** The only required artifact is the plan. Each downstream step degrades gracefully —
 it uses the richer upstream artifact when present, and otherwise works from the raw request.
 
@@ -177,6 +182,24 @@ whole-branch review at the end. **Coordinates only; never edits code itself.**
 - **Notes:** one task per subagent (fresh context), by reference; artifacts hand off as file paths;
   resumes from `progress.md` and `git log` after any compaction.
 - Source: [`skills/hamilton-orchestrate/SKILL.md`](../skills/hamilton-orchestrate/SKILL.md)
+
+### `hamilton-compose-spec` — author canonical specs directly *(out-of-band)*
+
+Writes or rewrites `.hamilton/specs/<capability>.md` outside the change pipeline, in two modes:
+**reformat** (an existing spec → the human-readable skeleton) and **from-code** (explore the
+application read-only and write specs from what it does). The front door for canonical specs — every
+other path creates a spec only when `hamilton-finish-work` distills a completed change.
+
+- **When:** adopting Hamilton on an existing codebase (bootstrap specs from code), or migrating specs
+  written in the older `Requirement:` / `Scenario:` form into the current shape.
+- **Inputs:** the mode and its target (spec files to reformat, or the code to document); the existing
+  `.hamilton/specs/`; `AGENTS.md`.
+- **Produces:** canonical specs in the skeleton (`## Overview` / `## Contract` / `## Behavior` +
+  Examples / `## Invariants` / `## Decisions`), at altitude, in human-readable prose.
+- **Notes:** reads code and writes specs only — never edits application code, never creates a change
+  directory. Reformat preserves every durable fact; from-code documents what the code actually does,
+  flagging inferred behavior rather than inventing guarantees.
+- Source: [`skills/hamilton-compose-spec/SKILL.md`](../skills/hamilton-compose-spec/SKILL.md)
 
 ## Artifacts and layout
 
