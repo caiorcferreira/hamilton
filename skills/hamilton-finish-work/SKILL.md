@@ -17,6 +17,10 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
   `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
   `design.md`, and `requirements/` where present.
+- `feedback/` where present: the feedback passes (`hamilton-feedback`). Read them
+  to know the change already has an open request, and to check every accepted comment was
+  resolved (step 1) — but never as spec material. Their comments are input to the artifacts,
+  not a source the canonical specs are distilled from (step 2).
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
@@ -58,8 +62,13 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 1. **Check preconditions.** All must hold; if any fails, stop and report — finish nothing:
    - The working tree is clean (no uncommitted changes).
    - The full test suite and the build/typecheck pass.
-   - Every task in `plan.md` is implemented (per `progress.md`).
+   - Every task in `plan.md` is implemented (per `progress.md`) — including the tasks in every
+     `## Tasks — amendment: feedback/…` section.
    - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
+   - Every comment decided `accepted` in each `feedback/<YYYY>-<MM>-<DD>-<index>.md` is resolved
+     by a finished task — match each comment id against the amendment tasks' `Source:` fields.
+     An accepted comment no task claims is unfinished work, not a finished change. Comments
+     decided `rejected`, `deferred`, or `no-action` are expected to have none.
 2. **Sync specs — distill and translate.** Fold the change into the canonical
    `.hamilton/specs/<capability>.md`, working from each `requirements/<capability>.md` delta and
    drawing rationale, decisions, and reusable patterns from `design.md` and `proposal.md`. The
@@ -68,6 +77,17 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    was carried out; a review nit like "use a `switch`" or "extract constants" is mechanism, not a
    durable contract. If review surfaced a genuinely missing *behavior*, write it back as a delta
    first, then distill that.
+
+   **On a re-finish, reconcile — do not fold twice.** A change that came back through
+   `hamilton-feedback` has already been synced once, and `progress.md` holds the earlier
+   finish entry naming the capabilities that pass wrote. Sync only what moved since: the deltas
+   `hamilton-propose` revised on its amendment path, which carry a `Revised:` line naming the
+   review pass that forced them. For each, read the capability's **current** canonical spec
+   first and reconcile against it — a statement the earlier pass already wrote is not written
+   again, and a delta the amendment rewrote replaces what is there rather than sitting beside
+   it. Folding an unchanged ADDED delta a second time duplicates a contract row or an Examples
+   bullet; that is the failure mode to watch for. An amendment whose accepted comments were all
+   `code` impact moved no behavior at all — sync nothing and record `none`.
 
    The canonical spec is **not** in the change-side Requirement/SHALL/Scenario form. It is
    human-readable documentation in the skeleton of `~/.hamilton/templates/requirements-spec.md`:
@@ -118,10 +138,13 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
      the change branch if the workflow calls for it. **You cannot remove a worktree from inside
      it** — run the merge and the removal from the main checkout (the working tree whose `.git`
      is `git rev-parse --git-common-dir`). Report the base branch the work landed on.
-   - **pull-request:** push the branch and open a pull/merge request; take the title and
-     body from `proposal.md` / `plan.md`. Leave the worktree and branch in place — the request
-     needs the branch and the author may keep iterating — and report both the request URL and
-     the worktree path.
+   - **pull-request:** first check whether the branch already has an open pull/merge request —
+     a change that came back through `hamilton-feedback` does, and its `feedback/` files
+     and `progress.md` finish entry name it. **If one exists, push to it and report that URL;
+     never open a second request for the same branch.** Otherwise push the branch and open the
+     request, taking the title and body from `proposal.md` / `plan.md`. Either way leave the
+     worktree and branch in place — the request needs the branch and the author may keep
+     iterating — and report both the request URL and the worktree path.
    - **no-op:** leave the work as committed in the worktree; finish without merging or opening
      a request. Report the worktree path and branch so the work can be found.
 
@@ -130,6 +153,9 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 - Never finish with a dirty tree, failing tests, or an unapproved review — stop and report.
 - Never edit code, or delete or weaken tests, to pass the gate.
 - Never fabricate a merge or a pull request.
+- Never open a second pull/merge request for a branch that already has one open — push to it.
+- Never fold a requirement delta into the canonical specs twice — on a re-finish, reconcile
+  against what the earlier pass already wrote.
 - Never remove a worktree from inside it — do the removal from the main checkout.
 - Ask first: if no finish strategy was given and the project has no default.
 
@@ -139,9 +165,10 @@ Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/p
 
 ```
 ## Finish — <YYYY-MM-DD>
-- Preconditions: tree clean, tests green, review approved
-- Specs synced: <capabilities created/updated>, or none
-- Finished: local-merge into <base> | pull request <url> | no-op
+- Pass: first finish | re-finish closing feedback/<YYYY-MM-DD-index>.md
+- Preconditions: tree clean, tests green, review approved, accepted comments resolved
+- Specs synced: <capabilities created/updated>, reconciled with the earlier pass, or none
+- Finished: local-merge into <base> | pull request <url> (opened | pushed to existing) | no-op
 - Workspace: worktree <path> removed | worktree left at <path> (branch <branch>) | worked in place
 ```
 
@@ -157,29 +184,29 @@ the user is never left guessing which workspace holds the change.
 
 ```dot
 digraph hamilton_finish_work {
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" [shape=box];
+    "Check preconditions\n(clean tree, tests green, tasks done,\nreview approved, accepted comments resolved)" [shape=box];
     "Passed?" [shape=diamond];
     "Stop and report blocker" [shape=box];
-    "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
+    "Sync requirement deltas\ninto .hamilton/specs/\n(re-finish: reconcile, never re-fold)" [shape=box];
     "Detect workspace\n(worktree or in-place) + strategy" [shape=box];
     "Record finish entry in progress.md\n(commit inside worktree)" [shape=box];
     "Finish per strategy" [shape=diamond];
     "local-merge into base\n(then remove worktree + branch)" [shape=box];
-    "open pull/merge request\n(leave worktree + branch)" [shape=box];
+    "push branch: open request,\nor push to the existing one\n(leave worktree + branch)" [shape=box];
     "no-op\n(leave worktree + branch)" [shape=box];
     "Disclose final workspace state" [shape=doublecircle];
 
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" -> "Passed?";
+    "Check preconditions\n(clean tree, tests green, tasks done,\nreview approved, accepted comments resolved)" -> "Passed?";
     "Passed?" -> "Stop and report blocker" [label="no"];
-    "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
-    "Sync requirement deltas\ninto .hamilton/specs/" -> "Detect workspace\n(worktree or in-place) + strategy";
+    "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/\n(re-finish: reconcile, never re-fold)" [label="yes"];
+    "Sync requirement deltas\ninto .hamilton/specs/\n(re-finish: reconcile, never re-fold)" -> "Detect workspace\n(worktree or in-place) + strategy";
     "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry in progress.md\n(commit inside worktree)";
     "Record finish entry in progress.md\n(commit inside worktree)" -> "Finish per strategy";
     "Finish per strategy" -> "local-merge into base\n(then remove worktree + branch)";
-    "Finish per strategy" -> "open pull/merge request\n(leave worktree + branch)";
+    "Finish per strategy" -> "push branch: open request,\nor push to the existing one\n(leave worktree + branch)";
     "Finish per strategy" -> "no-op\n(leave worktree + branch)";
     "local-merge into base\n(then remove worktree + branch)" -> "Disclose final workspace state";
-    "open pull/merge request\n(leave worktree + branch)" -> "Disclose final workspace state";
+    "push branch: open request,\nor push to the existing one\n(leave worktree + branch)" -> "Disclose final workspace state";
     "no-op\n(leave worktree + branch)" -> "Disclose final workspace state";
 }
 ```

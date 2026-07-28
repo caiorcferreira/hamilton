@@ -2,7 +2,7 @@
   Progress — execution ledger for a change.
   Lives at: .hamilton/changes/<change>/progress.md
   Records what was ACTUALLY done as the plan is implemented — one entry per task attempt,
-  appended by the code step (and optionally the review / finish steps).
+  appended by the code step (and optionally the review, feedback, and finish steps).
   plan.md stays declarative (what to do); progress.md is the log (what happened).
   There is no status field on plan.md tasks — this file is the single source of "done".
 -->

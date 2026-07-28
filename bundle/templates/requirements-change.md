@@ -28,6 +28,10 @@ The system SHALL <one normative statement>.
 
 - Priority: must / should / could
 - Rationale: <optional — why this exists; helps future readers and sync>
+- Revised: <optional — <YYYY-MM-DD> — feedback/<YYYY-MM-DD-index>.md#C3. Present only when an
+  accepted feedback comment changed this requirement after the change was implemented
+  (hamilton-propose, amendment path). It marks the delta as moved since the last spec sync, so
+  hamilton-finish-work re-folds this requirement and leaves the untouched ones alone.>
 
 #### Scenario: <name>
 

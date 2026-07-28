@@ -50,16 +50,20 @@ change through a fixed sequence, one disciplined step at a time:
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+ (once)   optional        ▲         ▲         │            │
+                          │         └─────────┘            │ pull request
+                          │   review requests changes      ▼
+                          └──────────────────────────── feedback
+                              accepted comments → propose / plan
 ```
 
 Each step is a self-contained `SKILL.md` that names no tool and depends on no engine internals — only
 on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton installs at
 `~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
 `.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
-heavyweight front door (`propose`) is optional; the only required step is `plan`.
+heavyweight front door (`propose`) is optional; the only required step is `plan`. When a reviewer
+comments on the pull request `finish-work` opened, `feedback` takes those comments back in — judged,
+decided, and routed through the artifacts rather than patched straight into the code.
 
 ### Artifacts
 
@@ -76,7 +80,8 @@ Assisted mode produces durable, per-project artifacts under `.hamilton/`:
       requirements/<capability>.md    # optional — what (delta form)
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
-      review.md                       # review verdict + feedback
+      review.md                       # internal review verdict + feedback
+      feedback/<YYYY-MM-DD-index>.md   # optional — reviewer feedback (one file per pass)
 ```
 
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
@@ -153,6 +158,10 @@ hamilton setup --mode assisted # install bundle/templates/ → ~/.hamilton/
 #    hamilton-code         → implement one task
 #    hamilton-review       → judge the diff
 #    hamilton-finish-work  → gate, sync specs, merge / PR
+#
+#    Then, if a reviewer comments on the pull request:
+#    hamilton-feedback → assess the comments, decide, route back to
+#                              hamilton-propose or hamilton-plan
 ```
 
 **Build and test commands** (for contributors):

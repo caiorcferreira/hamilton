@@ -36,6 +36,10 @@
 - Choice: <what we are doing>
 - Alternatives considered: <X, Y — and why each was rejected>
 - Rationale: <why this option wins; the trade-off you accepted>
+- Revised: <optional — <YYYY-MM-DD> — feedback/<YYYY-MM-DD-index>.md#C3. Present only when an
+  accepted feedback comment changed this decision after implementation. Rewrite Choice
+  and Rationale to the new decision; leave Alternatives considered intact so the history still
+  reads.>
 
 ## Architecture & Components
 

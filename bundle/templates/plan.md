@@ -47,6 +47,8 @@
 ### Task 1: <imperative title>
 
 - Depends on: none
+- Source: <optional — what put this task here when it is not the plan's own decomposition:
+  feedback/<YYYY-MM-DD-index>.md#C3, #C7. Omit for ordinary tasks.>
 - Files:
   - Created: <paths, or none>
   - Modified: <paths, or none>
@@ -74,6 +76,29 @@
 - Verify:
 - Commit:
 
+## Tasks — amendment: feedback/<YYYY-MM-DD-index>.md
+
+<!-- Optional, appended by hamilton-plan when a feedback pass comes back with accepted
+     comments (see hamilton-feedback). Numbering continues from the last task above;
+     the tasks above are history and are never rewritten, renumbered, or deleted. Each task
+     here cites in "Source:" the comment ids it resolves, and every accepted comment appears
+     in at least one. A second review pass appends its own section below this one. -->
+
+### Task <n>: <imperative title>
+
+- Depends on: <task, or none>
+- Source: feedback/<YYYY-MM-DD-index>.md#C<n>
+- Files:
+  - Created:
+  - Modified:
+  - Deleted:
+- Acceptance:
+  -
+- Steps:
+  1.
+- Verify:
+- Commit:
+
 ## Done when
 
 <!-- Plan-level definition of done — checked by hamilton-finish-work.
@@ -81,4 +106,4 @@
 
 - All tasks implemented (recorded in progress.md)
 - `<test command>` passes; build / typecheck is clean
-- All review feedback has been addressed
+- All review feedback has been addressed — internal (review.md) and external (feedback/)

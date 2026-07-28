@@ -11,7 +11,9 @@ in spirit (right-sized), not by conformance.
 | `design.md`              | SDD             | How   | IEEE 1016                | hamilton-propose     |
 | `plan.md`                | Plan            | Steps | — (handoff contract)     | hamilton-plan        |
 | `progress.md`            | Progress        | Log      | — (execution ledger)  | hamilton-code        |
+| `critique.md`            | Critique        | Verdict  | — (design gate)       | hamilton-critique    |
 | `review.md`              | Review          | Verdict  | — (review artifact)   | hamilton-review      |
+| `feedback.md`            | Feedback        | Decisions| — (intake artifact)   | hamilton-feedback    |
 
 The two SRS forms are the same content in two states: `requirements-change.md` is the
 delta a change proposes; `requirements-spec.md` is the consolidated truth it folds into.
@@ -45,10 +47,17 @@ Per-project, under the project's `.hamilton/` directory (created by `hamilton-in
       design.md                       # optional (SDD)
       requirements/                   # optional (SRS, delta form)
         <capability>.md               # requirements-change.md form
+      critique.md                     # optional (design-gate verdict)
       plan.md                         # required
       progress.md                     # execution ledger — what actually happened
-      review.md                       # review verdict + feedback (per pass)
+      review.md                       # internal review verdict + feedback (per pass)
+      feedback/                        # optional (reviewer feedback)
+        <YYYY-MM-DD-index>.md         # feedback.md form — one file per pass
 ```
+
+`review.md` and `feedback/` are different artifacts and never mix: `review.md` is our own
+review step's verdict on our own diff; `feedback/` holds third-party comments arriving from a
+pull/merge request, each assessed and decided by `hamilton-feedback`.
 
 `plan.md` is authored up front; `progress.md` is written during implementation. Task
 completion lives in `progress.md`, not as a status field on the plan.

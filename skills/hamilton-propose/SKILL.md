@@ -25,9 +25,17 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 - `requirements/<capability>.md` — the SRS (delta form) for each capability.
 - `design.md` — the SDD: how it will be built.
 
+**Two paths.** The default is a **new change** — steps 1–10 below. The other is an
+**amendment**: an existing change whose feedback pass (`hamilton-feedback`) accepted a
+comment that moves its requirements or design. Amendments revise the artifacts in place; see
+**Amending an existing change**.
+
 ## Inputs
 
 - A change idea or request. If none is given, ask what to build.
+- On the amendment path: the existing change directory and its finalized
+  `feedback/<YYYY>-<MM>-<DD>-<index>.md` — the comments to act on, and the assessment that
+  decided each one.
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth for each
   capability. Read them to tell new capabilities from modified ones, and to keep the proposal
   and requirements consistent with the conventions and decisions already committed.
@@ -150,16 +158,55 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    artifacts on request. Running unattended, record open questions. Do not pass the gate
    until approved.
 
+## Amending an existing change
+
+Run this instead of steps 1–2 and in place of a fresh draft when a change that already has
+artifacts comes back from `hamilton-feedback` with accepted comments whose Artifact
+impact is `design` or `requirements`. The change's decisions move; the change does not become
+a new one.
+
+1. **Work in place.** The change is already on its own branch — the one its request was opened
+   from — so isolation is satisfied. Do **not** create a worktree, a branch, or a second change
+   directory. Confirm you are on that branch and that the change directory exists.
+2. **Read the feedback file** (`feedback/<YYYY>-<MM>-<DD>-<index>.md`) alongside the current
+   `proposal.md`, `requirements/`, and `design.md`. Take only comments marked `accepted`.
+3. **Revise in place, at the right altitude.** A comment that changes *what* the system does
+   edits the affected `requirements/<capability>.md` requirement — restating the whole new
+   behavior, not the diff against the previous draft. A comment that changes *how* it is built
+   edits `design.md`. A comment that changes the change's scope or goals edits `proposal.md`;
+   set its status to `revised`.
+4. **Do not silently overturn a recorded decision.** Where a comment contradicts a decision
+   `design.md` already weighed, surface the recorded rationale, decide with the user, and then
+   revise — leaving the alternatives-considered note intact so the history reads.
+5. **Record the provenance.** Every section you revise — a `design.md` decision, a
+   `requirements/<capability>.md` delta, a `proposal.md` scope change — carries a
+   `Revised: <YYYY-MM-DD> — feedback/<file>#C3` line naming the comments that forced it. An
+   artifact that changed without a traceable reason is the failure this whole path exists to
+   prevent, and on a revised requirements delta the line is also what tells
+   `hamilton-finish-work` which deltas moved since the last spec sync.
+6. **Re-run the gate over what you touched.** Self-review the revised sections against
+   `references/code-quality.md` (step 9's blocking rule still applies), and check that the
+   revision did not contradict an untouched section elsewhere in the artifacts. Do not
+   re-litigate parts the review never challenged.
+7. **Get approval** for the revisions, then hand off to `hamilton-plan` (amendment path), which
+   appends the implementation tasks citing the same comment ids.
+
+Comments whose impact is `code` skip this path entirely and go straight to `hamilton-plan`.
+A comment asking for behavior this change never proposed is a *new* change, not an
+amendment — say so rather than growing the scope of one already under review.
+
 ## Output
 
 `proposal.md`, `requirements/<capability>.md`, and `design.md` in the change directory —
-reviewed and approved, ready for `hamilton-plan`.
+reviewed and approved, ready for `hamilton-plan`. On the amendment path, the same artifacts
+revised in place, each revision traceable to the comment that forced it.
 
 ## Handoff
 
 - **Disclose the workspace.** If step 1 created a worktree for this change, state its path
   (`.worktrees/<title>`) and branch — the artifacts, and all the work to come, live there, not
-  in the original checkout. If you worked in place, name that branch.
+  in the original checkout. If you worked in place, name that branch. On the amendment path,
+  name the branch and the feedback file the revisions came from.
 - **Name the next step.** With the artifacts approved (step 10), what follows is `hamilton-plan`.
 - **Hand back the decision.** The step-10 gate already requires approval before proceeding:
   ask whether to move on to `hamilton-plan` rather than declaring readiness, and never invoke
@@ -169,6 +216,8 @@ reviewed and approved, ready for `hamilton-plan`.
 
 ```dot
 digraph hamilton_propose {
+    "New change, or amendment?" [shape=diamond];
+    "Revise artifacts in place\n(accepted comments -> Revised: #C ids)" [shape=box];
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
@@ -181,6 +230,9 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
+    "New change, or amendment?" -> "Ensure isolated workspace\n(worktree if on default branch)" [label="new change"];
+    "New change, or amendment?" -> "Revise artifacts in place\n(accepted comments -> Revised: #C ids)" [label="amendment"];
+    "Revise artifacts in place\n(accepted comments -> Revised: #C ids)" -> "Self-review each artifact";
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";

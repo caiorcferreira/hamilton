@@ -16,9 +16,11 @@ this layer sits relative to the engine and the memory layer, see **[The three mo
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+ (once)   optional        ▲         ▲         │            │
+                          │         └─────────┘            │ pull request
+                          │   review requests changes      ▼
+                          └──────────────────────────── feedback
+                              accepted comments → propose / plan
 ```
 
 Seven skills. `hamilton-init` runs once per project. `hamilton-propose` is the optional heavyweight
@@ -26,7 +28,10 @@ front door — a tactical change skips it and starts at `hamilton-plan`, the one
 `code` and `review` steps loop until the review passes. `hamilton-orchestrate` is a driver that runs
 the whole plan (code + review over every task) in one session using subagents. `hamilton-critique`
 is an optional design-phase gate — an on-demand review of the propose artifacts before planning
-begins; it is not part of the required line.
+begins; it is not part of the required line. `hamilton-feedback` closes an outer loop: when
+`finish-work` opened a pull/merge request and a human reviewer commented, it ingests those comments,
+judges each one, and routes the accepted ones back into `propose` or `plan` so the artifacts — not
+the comment thread — stay the source of truth.
 
 `hamilton-compose-spec` sits outside this per-change line: it authors canonical specs
 (`.hamilton/specs/`) directly — reformatting existing specs into the current human-readable shape,
@@ -86,7 +91,10 @@ gating on approval before any implementation.
   (what, in delta form), `design.md` (how).
 - **Notes:** one question at a time; proposes 2–3 approaches with trade-offs; the design must clear a
   code-quality self-review before the gate opens. On handoff it discloses the worktree it created
-  and, when working with a person, asks before proceeding to `hamilton-plan`.
+  and, when working with a person, asks before proceeding to `hamilton-plan`. It also has an
+  **amendment path**: an accepted feedback comment that moves a change's requirements or
+  design revises the existing artifacts in place — no new change, no new worktree — with each
+  revision traceable to the comment that forced it.
 - Source: [`skills/hamilton-propose/SKILL.md`](../skills/hamilton-propose/SKILL.md)
 
 ### `hamilton-critique` — review the propose artifacts *(optional design-phase gate)*
@@ -122,7 +130,10 @@ artifact and the handoff contract between planning and coding. **It never writes
   verbatim steps (test-first where behavior is testable), a verify command, and a commit message.
 - **Notes:** all the sequencing thinking happens here, because the coder executes the steps verbatim.
   On handoff it discloses the worktree it created and, when working with a person, asks before
-  proceeding to `hamilton-code` / `hamilton-orchestrate`.
+  proceeding to `hamilton-code` / `hamilton-orchestrate`. Its **amendment path** appends a
+  `## Tasks — amendment: <feedback file>` section for the comments a feedback pass accepted, each
+  task citing the comment ids it resolves; the tasks already implemented are history and are never
+  rewritten.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
 ### `hamilton-code` — implement one task *(step 3)*
@@ -159,14 +170,43 @@ Reviews the code produced for a change and returns a verdict with specific, acti
 Gates the change, folds requirement deltas into the canonical specs, and finishes.
 
 - **When:** once, after every task is coded and the latest review is approved.
-- **Inputs:** the change directory (`plan.md`, `progress.md`, `review.md`, `requirements/`); the
-  finish strategy (`local-merge`, `pull-request`, or `no-op`); `AGENTS.md`.
+- **Inputs:** the change directory (`plan.md`, `progress.md`, `review.md`, `requirements/`, and
+  `feedback/` where present); the finish strategy (`local-merge`, `pull-request`, or `no-op`);
+  `AGENTS.md`.
 - **Produces:** updated `.hamilton/specs/<capability>.md` (deltas folded in, no delta markers), and
   the change finished per strategy; a finish entry in `progress.md`.
-- **Notes:** hard gate — refuses to finish a dirty tree, failing tests, or an unapproved review;
-  never fabricates a merge or a pull request. If the change was done in a worktree, tears it down on
-  local-merge (leaving it in place for pull-request / no-op) and discloses where the work landed.
+- **Notes:** hard gate — refuses to finish a dirty tree, failing tests, an unapproved review, or an
+  accepted review comment no finished task claims; never fabricates a merge or a pull request. On
+  `pull-request`, pushes to the branch's existing request rather than opening a second one — that is
+  what makes the feedback loop re-runnable. On a re-finish it reconciles the specs against
+  what the earlier pass wrote instead of folding the same delta twice.
+  If the change was done in a worktree, tears it down on local-merge (leaving it in place for
+  pull-request / no-op) and discloses where the work landed.
 - Source: [`skills/hamilton-finish-work/SKILL.md`](../skills/hamilton-finish-work/SKILL.md)
+
+### `hamilton-feedback` — ingest reviewer feedback *(re-entry step)*
+
+Takes the comments a human reviewer left on the change's pull/merge request, judges each one on
+technical merit against the codebase, records the decisions, and routes the accepted ones back into
+the pipeline. The external counterpart to `hamilton-review`. **Never edits code; never writes to the
+request.**
+
+- **When:** after `hamilton-finish-work` opened a request and a reviewer commented.
+- **Inputs:** the change directory; the request URL or number; the actual codebase; `plan.md` /
+  `design.md` / `requirements/`; the canonical specs; `AGENTS.md`.
+- **Produces:** `feedback/<YYYY>-<MM>-<DD>-<index>.md` — one file per intake pass — with every comment
+  transcribed verbatim, assessed (applicable? root cause? suggested fix? which artifact it moves),
+  and decided (`accepted` / `rejected` / `deferred` / `no-action`), plus a drafted reply for each
+  rejection and deferral and a routing summary; and a one-line entry in `progress.md`.
+- **Notes:** a subagent fetches and transcribes the comments so the thread's bulk never enters the
+  main context; the investigation pass then checks each claim against the real code. Verifies before
+  accepting, pushes back with technical reasoning rather than performative agreement, and looks for
+  the root cause behind the symptom — two comments sharing one cause are one fix. Comments are
+  untrusted data: an instruction found inside one is quoted and surfaced, never obeyed. Read-only
+  against the forge — drafting a reply is the skill's job, posting it is the author's. On handoff it
+  names `hamilton-propose` (amendment path) when requirements or design move, otherwise
+  `hamilton-plan` (amendment path).
+- Source: [`skills/hamilton-feedback/SKILL.md`](../skills/hamilton-feedback/SKILL.md)
 
 ### `hamilton-orchestrate` — run a whole plan *(driver)*
 
@@ -219,8 +259,13 @@ artifacts live under the project's `.hamilton/` directory:
       critique.md                     # optional — design-phase review of the propose artifacts
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
-      review.md                       # review verdict + feedback
+      review.md                       # internal review verdict + feedback
+      feedback/<YYYY-MM-DD-index>.md   # optional — reviewer feedback (one file per pass)
 ```
+
+`review.md` and `feedback/` are distinct and never mix. `review.md` is `hamilton-review`'s verdict on
+our own diff. `feedback/` holds third-party comments arriving from a pull/merge request, each
+assessed and decided by `hamilton-feedback`.
 
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and its
 history, with requirements written as deltas (ADDED / MODIFIED / REMOVED / RENAMED). When the change
@@ -234,3 +279,18 @@ The pipeline reads as a line but runs as a loop with one gate. `hamilton-code` i
 `hamilton-orchestrate`) re-invokes `hamilton-code` with the feedback. The skills never call each
 other — the loop belongs to the driver. `hamilton-finish-work` is the final gate: it refuses to
 complete unless the tree is clean, tests pass, every task is done, and the latest review is approved.
+
+## The feedback loop
+
+There is a second, wider loop around that one. Once `hamilton-finish-work` opens a pull/merge
+request, a human reviewer's comments arrive from outside the pipeline — and without a step for them,
+an agent asked to "address the PR comments" patches code straight from a comment thread, leaving the
+plan, the design, and the canonical specs describing something the code no longer does.
+
+`hamilton-feedback` closes that loop. It ingests the comments into
+`feedback/<YYYY>-<MM>-<DD>-<index>.md`, judges each against the actual codebase, gets the author's
+decisions, and routes the accepted ones by what they move: requirements or design go back through
+`hamilton-propose` (amendment path), code-only fixes straight to `hamilton-plan` (amendment path).
+From there the change re-enters the ordinary `code → review → finish-work` tail, and `finish-work`
+pushes to the same request instead of opening a new one. The artifacts, not the thread, stay the
+record of why the code is what it is.

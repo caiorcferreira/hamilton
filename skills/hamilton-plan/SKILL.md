@@ -22,6 +22,9 @@ planning and coding. This skill produces it. **It never writes production code.*
   `plan.md` always lives inside one, even when the pipeline starts at this step.
 - Rich path: `design.md` and `requirements/` already exist — plan from them.
 - Minimal path: only a user request. Capture the why/what in the plan's Overview and proceed.
+- Amendment path: `plan.md` already exists and the input is a finalized feedback file
+  (`feedback/<YYYY>-<MM>-<DD>-<index>.md`, from `hamilton-feedback`). Append tasks for the
+  accepted comments; do not rewrite the plan. See **Amendment path** below.
 - Project standards: `AGENTS.md`, for test/build commands, project structure, code style,
   and boundaries. Read it — do not guess conventions.
 - The project's canonical specs (`.hamilton/specs/`): the current, consolidated requirement
@@ -94,7 +97,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    all code you explore, and `plan.md` are created **inside** `.worktrees/<title>/`, never in the
    original checkout. When in doubt, use the absolute worktree path returned by
    `git rev-parse --show-toplevel` as the base for file operations.
-2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
+   On the **amendment path** the change is already on its own branch — the one the request was
+   opened from — so isolation is satisfied: work in place, and never create a second worktree
+   for a change that already has one.
+2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`. On the
+   amendment path the directory already exists — use it; never open a second one for the same
+   change.
 3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
    project standards (commands, structure, style, boundaries). The specs carry the conventions
@@ -117,13 +125,40 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
 8. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
-   into the change directory.
+   into the change directory. On the amendment path, append to the existing `plan.md` instead
+   — see below.
 
 ## Task-sizing heuristics
 
 - Implementable and testable in isolation — one red-green loop.
 - If a task needs more than one independent test to prove it, consider splitting it.
 - A task whose title contains "and" is often two tasks.
+
+## Amendment path
+
+A change that has already been implemented and reviewed externally comes back here with a
+finalized `feedback/<YYYY>-<MM>-<DD>-<index>.md`. The completed tasks in `plan.md` are the
+record of what was built and why — they are history. Do not rewrite, renumber, or delete
+them.
+
+- **Read the feedback file first,** and take only the comments marked `accepted`. `rejected`,
+  `deferred`, and `no-action` carry no work; a comment whose Artifact impact is `design` or
+  `requirements` should already have gone through `hamilton-propose` before reaching you, so
+  plan from the revised artifacts, not from the comment.
+- **Append one section,** headed `## Tasks — amendment: feedback/<YYYY>-<MM>-<DD>-<index>.md`,
+  below the existing tasks. Continue the task numbering from the last existing task; a second
+  amendment pass appends its own section below the first.
+- **Cite the comments each task resolves** in the task's `Source:` field
+  (`feedback/<file>#C3, #C7`). One task may resolve several comments when they share a root
+  cause — that is the point of the root-cause pass — and one comment may need several tasks.
+  Every accepted comment must appear in at least one task's `Source:`.
+- **Size and specify them like any other task:** files, acceptance criteria, test-first steps,
+  a verify command, a commit message. An amendment task is not exempt from TDD sizing because
+  it came from a reviewer.
+- **Fix the cause, not the comment.** Where the assessment found a root cause broader than
+  what the reviewer noticed, plan the fix at the cause and note the surface symptoms it
+  clears. Do not plan a per-comment patch that leaves the cause in place.
+- **Do not re-plan untouched work.** Tasks the review did not challenge stay as they are.
 
 ## Self-review
 
@@ -142,6 +177,9 @@ Before finishing, confirm:
   the change).
 - Any code snippet in a task models the clean shape — the coder copies it verbatim.
 - "Done when" captures: all tasks done, tests green, reviews addressed.
+- On the amendment path: every `accepted` comment in the feedback file appears in some task's
+  `Source:`; no existing task was rewritten, renumbered, or deleted; no `rejected` or
+  `deferred` comment produced work.
 
 **Blocking.** For a non-trivial change — one that adds or restructures units, not a mechanical
 or single-file edit — do not finalize `plan.md` while a task carries an unresolved structural
@@ -175,6 +213,8 @@ digraph hamilton_plan {
     "Locate / create change dir" [shape=box];
     "Gather context\n(upstream artifacts + canonical specs + standards)" [shape=box];
     "Explore code (read-only)" [shape=box];
+    "Amendment?\n(plan.md + finalized feedback file)" [shape=diamond];
+    "Append amendment tasks\n(accepted comments, Source: #C ids)" [shape=box];
     "Decompose into TDD-sized tasks" [shape=box];
     "Specify each task\n(files, acceptance, steps, verify, commit)" [shape=box];
     "Interactive?" [shape=diamond];
@@ -185,7 +225,10 @@ digraph hamilton_plan {
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir";
     "Locate / create change dir" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
     "Gather context\n(upstream artifacts + canonical specs + standards)" -> "Explore code (read-only)";
-    "Explore code (read-only)" -> "Decompose into TDD-sized tasks";
+    "Explore code (read-only)" -> "Amendment?\n(plan.md + finalized feedback file)";
+    "Amendment?\n(plan.md + finalized feedback file)" -> "Append amendment tasks\n(accepted comments, Source: #C ids)" [label="yes"];
+    "Amendment?\n(plan.md + finalized feedback file)" -> "Decompose into TDD-sized tasks" [label="no"];
+    "Append amendment tasks\n(accepted comments, Source: #C ids)" -> "Specify each task\n(files, acceptance, steps, verify, commit)";
     "Decompose into TDD-sized tasks" -> "Specify each task\n(files, acceptance, steps, verify, commit)";
     "Specify each task\n(files, acceptance, steps, verify, commit)" -> "Interactive?";
     "Interactive?" -> "Confirm breakdown with user" [label="yes"];

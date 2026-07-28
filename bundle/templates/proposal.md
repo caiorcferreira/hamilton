@@ -8,12 +8,17 @@
 
 # Proposal: <Change Title>
 
-| Field   | Value                              |
-|---------|------------------------------------|
-| Change  | <YYYY-MM-DD-change-title>          |
-| Status  | draft / approved / implemented     |
-| Author  | <name or agent>                    |
-| Created | <YYYY-MM-DD>                       |
+| Field   | Value                                    |
+|---------|------------------------------------------|
+| Change  | <YYYY-MM-DD-change-title>                |
+| Status  | draft / approved / implemented / revised |
+| Author  | <name or agent>                          |
+| Created | <YYYY-MM-DD>                             |
+
+<!-- Status "revised": the change was implemented and reviewed on a pull/merge request, and
+     an accepted feedback comment moved its scope or goals (hamilton-propose,
+     amendment path). Note the review pass that forced it under Proposed Change. -->
+
 
 ## Why
 

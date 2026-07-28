@@ -89,6 +89,8 @@ The framework is a synthesis, not an invention.
 ## The pipeline
 
 Six skills, run in order. Step 0 is one-time project setup; steps 1–5 run per change.
+`hamilton-feedback` is not a step in the line — it is the re-entry point a change comes
+back through when a reviewer comments on the pull request step 5 opened.
 
 | Step | Skill | Role |
 |------|-------|------|
@@ -98,12 +100,15 @@ Six skills, run in order. Step 0 is one-time project setup; steps 1–5 run per 
 | 3 | `hamilton-code` | Execute one task's steps verbatim → tests + code + `progress.md` |
 | 4 | `hamilton-review` | Judge the diff → verdict + feedback in `review.md` |
 | 5 | `hamilton-finish-work` | Gate, sync specs, finish via merge / PR / no-op |
+| ↻ | `hamilton-feedback` | Ingest a request's external comments → assess, decide, route back to 1 or 2 |
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+ (once)   optional        ▲         ▲         │            │
+                          │         └─────────┘            │ pull request
+                          │   review requests changes      ▼
+                          └──────────────────────────── feedback
+                              accepted comments → propose / plan
 ```
 
 **hamilton-init** explores the project read-only and writes `AGENTS.md` across the six
@@ -138,6 +143,16 @@ canonical spec is human-readable documentation — a light universal skeleton (O
 / Behavior + Examples / Invariants / Decisions) written at altitude — so finish-work rewrites each
 delta into the section it belongs to rather than copying requirement blocks by name.
 
+**hamilton-feedback** is the external counterpart to the review step, and the pipeline's
+re-entry point. When a human reviewer comments on the request finish-work opened, it ingests those
+comments into `feedback/<YYYY>-<MM>-<DD>-<index>.md` — a subagent transcribes them verbatim so the
+thread's bulk never enters the main context — then judges each against the actual codebase:
+applicable? what is the root cause behind the symptom? what is the fix? which artifact does it move?
+The author decides each comment; the accepted ones route back to `hamilton-propose` when they move
+requirements or design, and to `hamilton-plan` when they are code-only. It never edits code and never
+writes to the request: rejections and deferrals get a drafted reply, and posting it stays a human
+action.
+
 **hamilton-compose-spec** sits outside the per-change pipeline. It authors canonical specs
 directly, in two modes: *reformat* an existing spec into the current skeleton, or write specs
 *from the application code*. It is the front door for canonical specs — every pipeline path
@@ -163,7 +178,8 @@ installed copy, so there is one definition of each artifact's shape.
       requirements/<capability>.md    # optional — SRS delta (what)
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
-      review.md                       # review verdict + feedback
+      review.md                       # internal review verdict + feedback
+      feedback/<YYYY-MM-DD-index>.md   # optional — reviewer feedback (one file per pass)
 ```
 
 The document set and the standards it borrows from:
@@ -177,6 +193,7 @@ The document set and the standards it borrows from:
 | `plan.md` | Plan | Steps | — |
 | `progress.md` | Progress | Log | — |
 | `review.md` | Review | Verdict | — |
+| `feedback/<pass>.md` | Feedback | Decisions | — |
 
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and
 its history. The requirements inside it are deltas. When the change finishes, those deltas are
@@ -192,6 +209,16 @@ re-invokes `hamilton-code` with the feedback from `review.md`; the coder address
 the same task. The skills do not call each other — the loop belongs to the driver, which is
 either a person or a Hamilton workflow using the same retry semantics as the rest of the
 engine.
+
+**The feedback loop** wraps the whole line. A pull request is where feedback arrives from
+outside the pipeline, and without a step for it an agent asked to "address the PR comments" patches
+code straight from a comment thread — leaving the plan, the design, and the specs describing
+something the code no longer does. `hamilton-feedback` closes that loop: comments are recorded
+and judged, the author decides, and the accepted ones re-enter at `hamilton-propose` (when
+requirements or design move) or `hamilton-plan` (when only code changes), both of which have an
+amendment path that revises the existing change rather than starting a new one. The change then runs
+its ordinary `code → review → finish-work` tail, and finish-work pushes to the same request instead
+of opening another. Every artifact the loop touches carries the comment id that forced it.
 
 **The finish gate** is where quality accumulates into a go/no-go. `hamilton-finish-work`
 refuses to complete a change unless the tree is clean, tests pass, every task is done, and the
