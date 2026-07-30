@@ -32,6 +32,10 @@ Plus:
   for the acceptance criteria. Reference them; do not re-derive them.
 - Project standards (`AGENTS.md`): test/build commands, code style, git workflow, boundaries.
 - Optional: review feedback from a prior pass on this task — address it within this task.
+- Optional: a `Source:` line on the task citing a feedback entry id
+  (`feedback/<YYYY>-<MM>-<DD>-<index>.md#C<n>`). This means the task was added or revised by
+  `hamilton-plan` (amend) to resolve an accepted feedback item. The task's Steps and Acceptance
+  already incorporate the item; no special action is needed beyond executing the task as written.
 
 ## Principles
 

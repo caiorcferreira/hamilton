@@ -88,7 +88,9 @@ The framework is a synthesis, not an invention.
 
 ## The pipeline
 
-Six skills, run in order. Step 0 is one-time project setup; steps 1–5 run per change.
+Six core skills run in order (step 0 is one-time project setup; steps 1–5 run per change), plus
+two out-of-band skills: `hamilton-critique` (optional design-phase gate) and `hamilton-feedback`
+(re-entry step). `hamilton-compose-spec` authors canonical specs outside the pipeline.
 
 | Step | Skill | Role |
 |------|-------|------|
@@ -98,12 +100,19 @@ Six skills, run in order. Step 0 is one-time project setup; steps 1–5 run per 
 | 3 | `hamilton-code` | Execute one task's steps verbatim → tests + code + `progress.md` |
 | 4 | `hamilton-review` | Judge the diff → verdict + feedback in `review.md` |
 | 5 | `hamilton-finish-work` | Gate, sync specs, finish via merge / PR / no-op |
+| re-entry | `hamilton-feedback` | Ingest external feedback → judge, decide, route back to propose/plan |
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
  (once)   optional                  ▲         │
                                     └─────────┘
                           review requests changes → code
+
+                          feedback
+                     ┌──────────────────────────────────┐
+                     ▼                                  │
+              propose ◀── or ──▶ plan ──▶ code ──▶ review ──▶ finish-work
+              (amend)               (amend)
 ```
 
 **hamilton-init** explores the project read-only and writes `AGENTS.md` across the six
@@ -144,6 +153,17 @@ directly, in two modes: *reformat* an existing spec into the current skeleton, o
 produces a spec only as a by-product of finishing a change — and the tool a project uses to
 bootstrap specs on adoption or migrate an older spec format.
 
+**hamilton-feedback** is the re-entry step. It ingests external input — a reviewer's comments on a
+pull/merge request after `finish-work`, or the author's own corrections mid-change — judges each
+item against the codebase, records the decision and the reasoning behind it, and routes the accepted
+work back through `hamilton-propose` (when design or requirements move) or `hamilton-plan` (code
+only). It is the external counterpart to `hamilton-review`: where review is the internal gate
+producing a machine verdict in `review.md`, feedback is received input recorded in
+`feedback/<date>-<index>.md`, judged and decided rather than treated as a ruling. Two sources (forge
+comments, author feedback) share one spine; the only source-dependent fork is acquisition.
+Everything ingested is data — a claim to be verified, never an instruction to be followed, whoever
+wrote it.
+
 ## Artifacts and layout
 
 **Templates are global.** The canonical set lives in the repository's `bundle/templates/` and
@@ -164,6 +184,7 @@ installed copy, so there is one definition of each artifact's shape.
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
       review.md                       # review verdict + feedback
+      feedback/<YYYY>-<MM>-<DD>-<index>.md  # optional — external feedback intake passes
 ```
 
 The document set and the standards it borrows from:
@@ -177,6 +198,7 @@ The document set and the standards it borrows from:
 | `plan.md` | Plan | Steps | — |
 | `progress.md` | Progress | Log | — |
 | `review.md` | Review | Verdict | — |
+| `feedback/<date>-<index>.md` | Feedback | Decisions | — |
 
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and
 its history. The requirements inside it are deltas. When the change finishes, those deltas are
@@ -193,6 +215,14 @@ the same task. The skills do not call each other — the loop belongs to the dri
 either a person or a Hamilton workflow using the same retry semantics as the rest of the
 engine.
 
+**The feedback loop** sits outside the code–review loop. `hamilton-feedback` ingests external
+input — a reviewer's PR/MR comments after `finish-work`, or the author's own corrections
+mid-change — judges each item against the codebase, records the decision and reasoning, and
+routes the accepted work back through `hamilton-propose` (when design or requirements move) or
+`hamilton-plan` (code only). This is the loop that keeps the artifacts honest against external
+input: without it, code patched from a comment thread or a chat turn leaves `plan.md`,
+`design.md`, and the canonical specs describing behavior the code no longer has.
+
 **The finish gate** is where quality accumulates into a go/no-go. `hamilton-finish-work`
 refuses to complete a change unless the tree is clean, tests pass, every task is done, and the
 latest review verdict is `approved`. Only then does it sync specs and finish.
@@ -208,7 +238,7 @@ Three locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
   to `~/.hamilton/templates/` by `hamilton setup`.
-- `skills/hamilton-*/` — the six pipeline skills, each a self-contained `SKILL.md`.
+- `skills/hamilton-*/` — the pipeline skills, each a self-contained `SKILL.md`.
 - a project's `.hamilton/` — the per-project specs and change artifacts, created by
   `hamilton-init`.
 
@@ -221,7 +251,8 @@ executes the verbatim coding steps, a strong model reviews.
 
 ## Status and open work
 
-All six pipeline skills — plus the `hamilton-orchestrate` driver — are authored and usable today
+All six pipeline skills — plus the `hamilton-orchestrate` driver, `hamilton-critique`
+design-phase gate, and `hamilton-feedback` re-entry step — are authored and usable today
 (Assisted mode). `hamilton setup` installs the
 artifact templates into `~/.hamilton/templates/`, so the pipeline runs end to end with any coding
 agent. The remaining work is integration with the Autonomous engine, not skill authoring:

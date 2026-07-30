@@ -53,6 +53,12 @@ init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──
  (once)   optional                  ▲         │
                                     └─────────┘
                           review requests changes → code
+
+                          feedback
+                     ┌──────────────────────────────────┐
+                     ▼                                  │
+              propose ◀── or ──▶ plan ──▶ code ──▶ review ──▶ finish-work
+              (amend)               (amend)
 ```
 
 Each step is a self-contained `SKILL.md` that names no tool and depends on no engine internals — only
@@ -77,6 +83,7 @@ Assisted mode produces durable, per-project artifacts under `.hamilton/`:
       plan.md                         # required — the handoff contract
       progress.md                     # execution ledger — what happened
       review.md                       # review verdict + feedback
+      feedback/<YYYY>-<MM>-<DD>-<index>.md  # optional — external feedback intake passes
 ```
 
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
@@ -153,6 +160,7 @@ hamilton setup --mode assisted # install bundle/templates/ → ~/.hamilton/
 #    hamilton-code         → implement one task
 #    hamilton-review       → judge the diff
 #    hamilton-finish-work  → gate, sync specs, merge / PR
+#    hamilton-feedback     → ingest external feedback, judge, route back to propose/plan
 ```
 
 **Build and test commands** (for contributors):

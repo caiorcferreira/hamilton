@@ -13,6 +13,10 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 **step 1** — the optional heavyweight front door that produces the PRD, the SRS, and the
 SDD. A change that does not warrant that depth skips this step and starts at `hamilton-plan`.
 
+**Amendment.** This skill also amends an existing change's artifacts after `hamilton-feedback`
+accepted items that move the change's design or requirements. The change directory, workspace,
+and artifacts already exist; this skill revises them in place rather than creating from scratch.
+
 **Gate.** Do not move to implementation — no `hamilton-plan`, no code — until the artifacts
 are approved and the design clears the `references/code-quality.md` self-review: for a
 non-trivial change, an unresolved structural smell blocks the gate (see step 9).
@@ -32,6 +36,9 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
   capability. Read them to tell new capabilities from modified ones, and to keep the proposal
   and requirements consistent with the conventions and decisions already committed.
 - Project standards (`AGENTS.md`).
+- **Amendment path:** the change directory already exists with `proposal.md`, `requirements/`,
+  and `design.md`. A finalized feedback file (`feedback/<YYYY>-<MM>-<DD>-<index>.md`) lists the
+  accepted items whose artifact impact is `design` or `requirements`.
 
 ## References
 
@@ -62,6 +69,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   paragraphs, list items, or headings. Soft-wrapping is the reader's job, not yours.
 
 ## Process
+
+**Detect mode.** If a change directory with existing artifacts was given (amendment path), go
+to **Amendment process** below. Otherwise, this is a new change — follow the new-change process.
+
+### New-change process
 
 1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive a
    kebab-case title from the request. Then detect isolation: if you are already in a linked
@@ -150,25 +162,59 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    artifacts on request. Running unattended, record open questions. Do not pass the gate
    until approved.
 
+### Amendment process
+
+When `hamilton-feedback` routed accepted items with `design` or `requirements` impact, the
+artifacts must move before the plan can. The change directory and workspace already exist.
+
+1. **Confirm the workspace.** The change is on its own branch — the one it was created on, or
+   the one its request was opened from. Work in place; do not create a new worktree.
+2. **Read the feedback file.** Load the finalized
+   `feedback/<YYYY>-<MM>-<DD>-<index>.md` and identify every accepted entry whose artifact
+   impact is `design` or `requirements`. These are the items that move the artifacts.
+3. **Read the existing artifacts.** Load `proposal.md`, `requirements/`, and `design.md` in
+   full. These are the artifacts being amended, not blank templates.
+4. **Revise the artifacts.** For each accepted entry, apply the change its Assessment and
+   Suggested fix describe:
+   - `requirements` impact → update the relevant `requirements/<capability>.md` delta. A new
+     behavior is an ADDED block; a changed behavior is a MODIFIED block rewriting the whole new
+     behavior; a removed behavior is a REMOVED block.
+   - `design` impact → update `design.md` to reflect the revised approach, including new
+     decisions, updated architecture, and any boundaries that moved. If the entry reopens a
+     decision the design previously recorded, update the decision and note the feedback entry id
+     that prompted the revision.
+   - Update `proposal.md` where goals, non-goals, or the capabilities list change.
+5. **Self-review each revised artifact.** Same gate as step 9 of the new-change process: scan
+   for placeholders, contradictions, scope creep, and ambiguity; run `design.md` against
+   `references/code-quality.md`. A revised design carrying an unresolved structural smell is
+   still a gate failure.
+6. **Get approval.** Present the revised artifacts for review. Do not proceed to
+   `hamilton-plan` until approved.
+
 ## Output
 
 `proposal.md`, `requirements/<capability>.md`, and `design.md` in the change directory —
-reviewed and approved, ready for `hamilton-plan`.
+reviewed and approved, ready for `hamilton-plan`. On the amendment path, the same files,
+revised in place to reflect the accepted feedback items.
 
 ## Handoff
 
 - **Disclose the workspace.** If step 1 created a worktree for this change, state its path
   (`.worktrees/<title>`) and branch — the artifacts, and all the work to come, live there, not
-  in the original checkout. If you worked in place, name that branch.
-- **Name the next step.** With the artifacts approved (step 10), what follows is `hamilton-plan`.
-- **Hand back the decision.** The step-10 gate already requires approval before proceeding:
-  ask whether to move on to `hamilton-plan` rather than declaring readiness, and never invoke
-  it yourself. Running unattended, record open questions, name the next step, and return.
+  in the original checkout. If you worked in place, name that branch. On the amendment path, the
+  workspace was already established — name it.
+- **Name the next step.** With the artifacts approved, what follows is `hamilton-plan` (new
+  change) or `hamilton-plan` (amend) — in both cases, `hamilton-plan`.
+- **Hand back the decision.** The gate already requires approval before proceeding: ask whether
+  to move on to `hamilton-plan` rather than declaring readiness, and never invoke it yourself.
+  Running unattended, record open questions, name the next step, and return.
 
 ## Process flow
 
 ```dot
 digraph hamilton_propose {
+    "Detect mode" [shape=diamond];
+    "Amendment:\nread feedback file\nrevise artifacts in place" [shape=box];
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
@@ -181,6 +227,8 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
+    "Detect mode" -> "Amendment:\nread feedback file\nrevise artifacts in place" [label="amend"];
+    "Detect mode" -> "Ensure isolated workspace\n(worktree if on default branch)" [label="new change"];
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";
@@ -192,5 +240,6 @@ digraph hamilton_propose {
     "Self-review each artifact" -> "Approved?";
     "Approved?" -> "Ask clarifying questions\n(one at a time)" [label="changes requested"];
     "Approved?" -> "Ready for hamilton-plan" [label="approved"];
+    "Amendment:\nread feedback file\nrevise artifacts in place" -> "Self-review each artifact";
 }
 ```

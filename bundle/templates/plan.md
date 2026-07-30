@@ -47,6 +47,7 @@
 ### Task 1: <imperative title>
 
 - Depends on: none
+- Source: <feedback entry id, e.g. feedback/2026-07-30-1.md#C2 — only on amendment tasks>
 - Files:
   - Created: <paths, or none>
   - Modified: <paths, or none>
@@ -63,6 +64,7 @@
 ### Task 2: <imperative title>
 
 - Depends on: Task 1
+- Source: <omit unless this is an amendment task>
 - Files:
   - Created:
   - Modified:

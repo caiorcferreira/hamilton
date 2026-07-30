@@ -16,6 +16,10 @@ is the **plan** step.
 `plan.md` is the one required artifact in the pipeline and the handoff contract between
 planning and coding. This skill produces it. **It never writes production code.**
 
+**Amendment.** This skill also amends an existing `plan.md` after `hamilton-feedback` accepted
+items with `code` impact, or after `hamilton-propose` amended the design or requirements. The
+plan already exists; this skill revises it to reflect the accepted work.
+
 ## Inputs
 
 - A change directory at `.hamilton/changes/<YYYY-MM-DD-title>/`. Create it if missing —
@@ -28,6 +32,10 @@ planning and coding. This skill produces it. **It never writes production code.*
   truth for each capability. Read the specs the change touches so the plan stays consistent
   with established behavior and prior decisions — especially on the minimal path, where no
   per-change `requirements/` exists and the specs are your only view of existing behavior.
+- **Amendment path:** the change directory already exists with a `plan.md`. A finalized feedback
+  file (`feedback/<YYYY>-<MM>-<DD>-<index>.md`) lists the accepted items, and possibly a revised
+  `design.md` / `requirements/` from `hamilton-propose` (amend). `progress.md` records which
+  tasks are already done.
 
 ## References
 
@@ -69,6 +77,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   keep their own formatting; soft-wrapping prose is the reader's job, not yours.
 
 ## Process
+
+**Detect mode.** If the change directory already has a `plan.md` (amendment path), go to
+**Amendment process** below. Otherwise, this is a new plan — follow the new-plan process.
+
+### New-plan process
 
 1. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation first:
    if you are already in a linked worktree (`git rev-parse --git-dir` differs from
@@ -119,6 +132,37 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 8. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
    into the change directory.
 
+### Amendment process
+
+When `hamilton-feedback` accepted items with `code` impact, or `hamilton-propose` amended the
+design or requirements, the plan must reflect that before coding resumes. The change directory,
+workspace, and `plan.md` already exist.
+
+1. **Confirm the workspace.** The change is on its own branch. Work in place; do not create a
+   new worktree.
+2. **Read the feedback file and existing plan.** Load the finalized
+   `feedback/<YYYY>-<MM>-<DD>-<index>.md` and identify every accepted entry whose artifact impact
+   is `code`. Read `plan.md` in full and `progress.md` to determine which tasks are already done,
+   which are in progress, and which are planned but not yet started. If `hamilton-propose`
+   amended the design or requirements, read the revised `design.md` / `requirements/` too.
+3. **Route each accepted entry.** For each entry, determine where it lands:
+   - **On a task planned but not yet started** → revise that task in place. Add a `Source:` line
+     citing the feedback entry id (e.g. `Source: feedback/2026-07-30-1.md#C2`). Update its files,
+     acceptance criteria, steps, and commit message to reflect the accepted item. Do not
+     duplicate the task.
+   - **On a task already completed** → add a new amendment task, ordered after the original, with
+     a `Source:` line citing the feedback entry id. Completed tasks are history and are amended,
+     never rewritten.
+   - **On a behavior the plan never covered** → add a new task with a `Source:` line, ordered
+     where it belongs in the dependency chain.
+4. **Explore (read-only).** If the accepted items touch code the plan did not already map,
+   explore it before specifying the amendment tasks.
+5. **Self-review.** Same checklist as the new-plan process. The amendment tasks must be
+   independently verifiable, their steps explicit, and their files complete. An amendment task
+   that bundles unrelated feedback items is a smell — split it.
+6. **Write the revised `plan.md`.** Update the plan in place. The amendment tasks carry
+   `Source:` lines so `hamilton-finish-work` can verify every accepted item was addressed.
+
 ## Task-sizing heuristics
 
 - Implementable and testable in isolation — one red-green loop.
@@ -152,7 +196,9 @@ the plan ships to the code.
 
 ## Output
 
-`.hamilton/changes/<change>/plan.md`, following `~/.hamilton/templates/plan.md`.
+`.hamilton/changes/<change>/plan.md`, following `~/.hamilton/templates/plan.md`. On the
+amendment path, the same file, revised in place with amendment tasks carrying `Source:` lines
+citing the feedback entry ids they resolve.
 
 ## Handoff
 
@@ -160,9 +206,11 @@ Close by orienting the user, not by silently stopping.
 
 - **Disclose the workspace.** If step 1 created a worktree for this change, state its path
   (`.worktrees/<title>`) and branch — `plan.md`, and all the code to come, live there, not in
-  the original checkout. If you were already isolated and worked in place, name that branch.
+  the original checkout. If you were already isolated and worked in place, name that branch. On
+  the amendment path, the workspace was already established — name it.
 - **Name the next step.** `plan.md` is the handoff contract; what follows is `hamilton-code`
-  (one task at a time) or `hamilton-orchestrate` (the whole plan in one session).
+  (one task at a time) or `hamilton-orchestrate` (the whole plan in one session). On the
+  amendment path, resume at the first unstarted or amended task.
 - **Hand back the decision.** Working with a person, ask whether to proceed to implementation
   rather than declaring you are "ready" — and never invoke the next skill yourself. Running
   unattended, name the next step and return without asking; the driver owns the loop.
@@ -171,6 +219,8 @@ Close by orienting the user, not by silently stopping.
 
 ```dot
 digraph hamilton_plan {
+    "Detect mode" [shape=diamond];
+    "Amendment:\nread feedback file\nroute entries to tasks\nrevise plan.md in place" [shape=box];
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Locate / create change dir" [shape=box];
     "Gather context\n(upstream artifacts + canonical specs + standards)" [shape=box];
@@ -182,6 +232,8 @@ digraph hamilton_plan {
     "Auto-reflect + record assumptions" [shape=box];
     "Write plan.md + self-review" [shape=doublecircle];
 
+    "Detect mode" -> "Amendment:\nread feedback file\nroute entries to tasks\nrevise plan.md in place" [label="amend"];
+    "Detect mode" -> "Ensure isolated workspace\n(worktree if on default branch)" [label="new plan"];
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir";
     "Locate / create change dir" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
     "Gather context\n(upstream artifacts + canonical specs + standards)" -> "Explore code (read-only)";
@@ -192,5 +244,6 @@ digraph hamilton_plan {
     "Interactive?" -> "Auto-reflect + record assumptions" [label="no"];
     "Confirm breakdown with user" -> "Write plan.md + self-review";
     "Auto-reflect + record assumptions" -> "Write plan.md + self-review";
+    "Amendment:\nread feedback file\nroute entries to tasks\nrevise plan.md in place" -> "Write plan.md + self-review";
 }
 ```

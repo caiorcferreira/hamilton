@@ -16,7 +16,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
   `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
-  `design.md`, and `requirements/` where present.
+  `design.md`, and `requirements/` where present. If `hamilton-feedback` ran, the change
+  directory also holds `feedback/` passes; those are records of decisions, not spec material.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
@@ -67,7 +68,9 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    from the raw diff, `progress.md`, or external/MR review comments. Those record how the work
    was carried out; a review nit like "use a `switch`" or "extract constants" is mechanism, not a
    durable contract. If review surfaced a genuinely missing *behavior*, write it back as a delta
-   first, then distill that.
+   first, then distill that. If `hamilton-feedback` flagged a `spec-gap` (the canonical spec never
+   covered a behavior the change now touches), the requirement delta for it was written during the
+   amendment path through `hamilton-propose` — distill that delta here, the same as any other.
 
    The canonical spec is **not** in the change-side Requirement/SHALL/Scenario form. It is
    human-readable documentation in the skeleton of `~/.hamilton/templates/requirements-spec.md`:
@@ -118,10 +121,12 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
      the change branch if the workflow calls for it. **You cannot remove a worktree from inside
      it** — run the merge and the removal from the main checkout (the working tree whose `.git`
      is `git rev-parse --git-common-dir`). Report the base branch the work landed on.
-   - **pull-request:** push the branch and open a pull/merge request; take the title and
-     body from `proposal.md` / `plan.md`. Leave the worktree and branch in place — the request
-     needs the branch and the author may keep iterating — and report both the request URL and
-     the worktree path.
+   - **pull-request:** push the branch. If `progress.md` already records a finish entry with a
+     request URL (a re-finish after `hamilton-feedback`), push to the **existing** request — do
+     not open a second one. Otherwise, open a new pull/merge request; take the title and body
+     from `proposal.md` / `plan.md`. Leave the worktree and branch in place — the request needs
+     the branch and the author may keep iterating — and report both the request URL and the
+     worktree path.
    - **no-op:** leave the work as committed in the worktree; finish without merging or opening
      a request. Report the worktree path and branch so the work can be found.
 
