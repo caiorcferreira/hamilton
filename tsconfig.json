@@ -19,10 +19,6 @@
       "name": "@effect/language-service",
       "ignoreEffectWarningsInTscExitCode": true
     }],
-    "baseUrl": ".",
-    "paths": {
-      "@narumitw/pi-lsp": ["./node_modules/@narumitw/pi-lsp/src/pi-lsp.ts"]
-    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests"]

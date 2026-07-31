@@ -4,7 +4,19 @@ import * as Path from "node:path"
 import * as Os from "node:os"
 import * as Yaml from "yaml"
 import { Effect, Exit } from "effect"
-import { setupHamilton, parseModelAliasArgs, buildSettingsYaml, ingestSetupGuidelines } from "../../src/cli/commands/setup.js"
+import { setupHamilton, buildSettingsYaml } from "../../src/cli/commands/setup.js"
+
+const TEMPLATE_FILES = [
+  "critique.md",
+  "design.md",
+  "plan.md",
+  "progress.md",
+  "proposal.md",
+  "README.md",
+  "requirements-change.md",
+  "requirements-spec.md",
+  "review.md"
+]
 
 describe("setupHamilton", () => {
   let tmpHome: string
@@ -20,49 +32,44 @@ describe("setupHamilton", () => {
     Fs.rmSync(tmpHome, { recursive: true, force: true })
   })
 
-  it("creates all required directories", async () => {
+  it("creates required directories", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "agents"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "runs"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "executors", "pi", "agent"))).toBe(true)
+    const home = Path.join(tmpHome, ".hamilton")
+    expect(Fs.existsSync(home)).toBe(true)
+    expect(Fs.existsSync(Path.join(home, "templates"))).toBe(true)
+    expect(Fs.existsSync(Path.join(home, "guidelines"))).toBe(true)
   })
 
-  it("creates the SQLite DB", async () => {
+  it("copies artifact templates", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "hamilton.db"))).toBe(true)
+    const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
+    for (const file of TEMPLATE_FILES) {
+      expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true)
+    }
   })
 
-  it("copies shared agents from project root", async () => {
+  it("copies guideline manifests", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
-    expect(Fs.existsSync(Path.join(agentsBase, "pr", "INSTRUCTIONS.md"))).toBe(true)
-    expect(Fs.existsSync(Path.join(agentsBase, "setup", "INSTRUCTIONS.md"))).toBe(true)
-    expect(Fs.existsSync(Path.join(agentsBase, "verifier", "INSTRUCTIONS.md"))).toBe(true)
+    const guidelinesBase = Path.join(tmpHome, ".hamilton", "guidelines")
+    expect(Fs.existsSync(Path.join(guidelinesBase, "general", "01-code-style.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(guidelinesBase, "typescript", "01-setup.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(guidelinesBase, "golang", "code_style.md"))).toBe(true)
   })
 
-  it("installs bundled workflows", async () => {
+  it("returns installed template filenames", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "workflows", "bugfix", "workflow.yml"))).toBe(true)
-  })
-
-  it("does NOT copy per-workflow agents to shared agents dir", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const agentsBase = Path.join(tmpHome, ".hamilton", "agents")
-    expect(Fs.existsSync(Path.join(agentsBase, "triager", "INSTRUCTIONS.md"))).toBe(false)
-    expect(Fs.existsSync(Path.join(agentsBase, "investigator", "INSTRUCTIONS.md"))).toBe(false)
-    expect(Fs.existsSync(Path.join(agentsBase, "fixer", "INSTRUCTIONS.md"))).toBe(false)
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toContain("plan.md")
+      expect(exit.value.length).toBeGreaterThan(0)
+    } else {
+      expect.unreachable("Expected success")
+    }
   })
 
   it("is idempotent", async () => {
@@ -72,113 +79,7 @@ describe("setupHamilton", () => {
     const exit2 = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit2)).toBe(true)
 
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "hamilton.db"))).toBe(true)
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md"))).toBe(true)
-  })
-
-  it("skips agent copy when already exists without --force", async () => {
-    const exit1 = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit1)).toBe(true)
-
-    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
-    const originalContent = Fs.readFileSync(agentPath, "utf-8")
-
-    Fs.writeFileSync(agentPath, "modified")
-
-    const exit2 = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit2)).toBe(true)
-
-    const content = Fs.readFileSync(agentPath, "utf-8")
-    expect(content).toBe("modified")
-    expect(content).not.toBe(originalContent)
-  })
-
-  it("overwrites agents with --force", async () => {
-    const exit1 = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit1)).toBe(true)
-
-    const agentPath = Path.join(tmpHome, ".hamilton", "agents", "pr", "INSTRUCTIONS.md")
-    Fs.writeFileSync(agentPath, "modified")
-
-    const exit2 = await Effect.runPromiseExit(setupHamilton({ force: true }))
-    expect(Exit.isSuccess(exit2)).toBe(true)
-
-    const content = Fs.readFileSync(agentPath, "utf-8")
-    expect(content).not.toBe("modified")
-  })
-
-  it("returns installed workflow IDs", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    if (Exit.isSuccess(exit)) {
-      expect(Array.isArray(exit.value)).toBe(true)
-      expect(exit.value.length).toBeGreaterThan(0)
-      expect(exit.value).toContain("bugfix")
-    } else {
-      expect.unreachable("Expected success")
-    }
-  })
-
-  it("creates default Pi config files", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-
-    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
-    expect(settings.defaultProvider).toBe("openai")
-    expect(settings.defaultModel).toBe("glm-5.1")
-
-    const models = JSON.parse(Fs.readFileSync(Path.join(agentDir, "models.json"), "utf-8"))
-    expect(models.providers).toEqual({})
-
-    const auth = JSON.parse(Fs.readFileSync(Path.join(agentDir, "auth.json"), "utf-8"))
-    expect(auth).toEqual({})
-  })
-
-  it("does not overwrite existing Pi configs on re-init", async () => {
-    await Effect.runPromiseExit(setupHamilton())
-
-    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-    Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
-
-    await Effect.runPromiseExit(setupHamilton())
-
-    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
-    expect(settings.defaultProvider).toBe("custom")
-  })
-
-  it("overwrites Pi configs with --force", async () => {
-    await Effect.runPromiseExit(setupHamilton())
-
-    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-    Fs.writeFileSync(Path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "custom" }))
-
-    await Effect.runPromiseExit(setupHamilton({ force: true }))
-
-    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
-    expect(settings.defaultProvider).toBe("openai")
-  })
-
-  it("copies Pi configs from ~/.pi/agent when --copy-pi-configs is set", async () => {
-    const piSource = Path.join(tmpHome, ".pi", "agent")
-    Fs.mkdirSync(piSource, { recursive: true })
-    Fs.writeFileSync(Path.join(piSource, "settings.json"), JSON.stringify({ defaultProvider: "from-pi", defaultModel: "custom-model" }))
-    Fs.writeFileSync(Path.join(piSource, "models.json"), JSON.stringify({ providers: { openai: {} } }))
-    Fs.writeFileSync(Path.join(piSource, "auth.json"), JSON.stringify({ key: "secret" }))
-
-    await Effect.runPromiseExit(setupHamilton({ copyPiConfigs: true }))
-
-    const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-
-    const settings = JSON.parse(Fs.readFileSync(Path.join(agentDir, "settings.json"), "utf-8"))
-    expect(settings.defaultProvider).toBe("from-pi")
-    expect(settings.defaultModel).toBe("custom-model")
-
-    const models = JSON.parse(Fs.readFileSync(Path.join(agentDir, "models.json"), "utf-8"))
-    expect(models.providers).toEqual({ openai: {} })
-
-    const auth = JSON.parse(Fs.readFileSync(Path.join(agentDir, "auth.json"), "utf-8"))
-    expect(auth).toEqual({ key: "secret" })
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "templates", "plan.md"))).toBe(true)
   })
 
   it("creates default settings.yaml on init", async () => {
@@ -204,104 +105,6 @@ describe("setupHamilton", () => {
 
     const content = Fs.readFileSync(settingsPath, "utf-8")
     expect(content).toContain("enabled: false")
-  })
-
-  it("writes model aliases to settings.yaml when provided", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton({
-      modelAliases: { cheap: "deepseek-v4", thinking: "o3-pro" }
-    }))
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const content = Fs.readFileSync(Path.join(tmpHome, ".hamilton", "settings.yaml"), "utf-8")
-    const parsed = Yaml.parse(content)
-    expect(parsed.models.aliases.cheap).toBe("deepseek-v4")
-    expect(parsed.models.aliases.thinking).toBe("o3-pro")
-  })
-
-  it("omits models section when no aliases provided", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const content = Fs.readFileSync(Path.join(tmpHome, ".hamilton", "settings.yaml"), "utf-8")
-    const parsed = Yaml.parse(content)
-    expect(parsed.models).toBeUndefined()
-  })
-
-  it("skips model aliases on re-init even if provided", async () => {
-    await Effect.runPromiseExit(setupHamilton())
-    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml")
-    Fs.writeFileSync(settingsPath, "extensions:\n  - name: rtk\n    enabled: false\n")
-
-    await Effect.runPromiseExit(setupHamilton({ modelAliases: { cheap: "deepseek-v4" } }))
-
-    const content = Fs.readFileSync(settingsPath, "utf-8")
-    expect(content).toContain("enabled: false")
-    expect(content).not.toContain("cheap")
-  })
-
-  describe("assisted mode", () => {
-    it("runs the full bootstrap (templates, db, agents, workflows, settings)", async () => {
-      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
-      expect(Exit.isSuccess(exit)).toBe(true)
-
-      const home = Path.join(tmpHome, ".hamilton")
-      expect(Fs.existsSync(Path.join(home, "templates", "plan.md"))).toBe(true)
-      expect(Fs.existsSync(Path.join(home, "hamilton.db"))).toBe(true)
-      expect(Fs.existsSync(Path.join(home, "settings.yaml"))).toBe(true)
-      expect(Fs.existsSync(Path.join(home, "agents", "pr", "INSTRUCTIONS.md"))).toBe(true)
-    })
-
-    it("still installs workflows", async () => {
-      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
-      if (Exit.isSuccess(exit)) {
-        expect(exit.value.length).toBeGreaterThan(0)
-      } else {
-        expect.unreachable("Expected success")
-      }
-    })
-
-    it("skips Pi SDK configs", async () => {
-      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted" }))
-      expect(Exit.isSuccess(exit)).toBe(true)
-
-      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
-      expect(Fs.existsSync(Path.join(agentDir, "models.json"))).toBe(false)
-      expect(Fs.existsSync(Path.join(agentDir, "auth.json"))).toBe(false)
-    })
-
-    it("does not copy Pi configs from ~/.pi even when copyPiConfigs is set", async () => {
-      const piSource = Path.join(tmpHome, ".pi", "agent")
-      Fs.mkdirSync(piSource, { recursive: true })
-      Fs.writeFileSync(Path.join(piSource, "settings.json"), JSON.stringify({ defaultProvider: "from-pi" }))
-
-      const exit = await Effect.runPromiseExit(setupHamilton({ mode: "assisted", copyPiConfigs: true }))
-      expect(Exit.isSuccess(exit)).toBe(true)
-
-      const agentDir = Path.join(tmpHome, ".hamilton", "executors", "pi", "agent")
-      expect(Fs.existsSync(Path.join(agentDir, "settings.json"))).toBe(false)
-    })
-  })
-})
-
-describe("parseModelAliasArgs", () => {
-  it("parses NAME=VALUE entries", () => {
-    expect(parseModelAliasArgs(["cheap=deepseek-v4", "thinking=o3-pro"])).toEqual({
-      cheap: "deepseek-v4",
-      thinking: "o3-pro"
-    })
-  })
-
-  it("skips entries without =", () => {
-    expect(parseModelAliasArgs(["invalid", "ok=value"])).toEqual({ ok: "value" })
-  })
-
-  it("returns empty object for empty array", () => {
-    expect(parseModelAliasArgs([])).toEqual({})
-  })
-
-  it("handles value containing =", () => {
-    expect(parseModelAliasArgs(["model=a=b"])).toEqual({ model: "a=b" })
   })
 })
 
@@ -350,54 +153,17 @@ describe("bundle root resolution", () => {
   })
 
   it("uses HAMILTON_BUNDLE_DIR env var to locate bundle assets", async () => {
-    // Create a fake bundle structure
-    const bundleAgentsDir = Path.join(tmpBundleDir, "agents", "demo")
-    Fs.mkdirSync(bundleAgentsDir, { recursive: true })
-    Fs.writeFileSync(Path.join(bundleAgentsDir, "INSTRUCTIONS.md"), "# Demo Agent\nFake instructions")
+    const bundleTemplatesDir = Path.join(tmpBundleDir, "templates")
+    Fs.mkdirSync(bundleTemplatesDir, { recursive: true })
+    Fs.writeFileSync(Path.join(bundleTemplatesDir, "plan.md"), "# Plan Template")
 
-    // Set env var and run setup
     process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
 
-    // Assert the agent was copied from the temp bundle dir
-    const copiedAgent = Path.join(tmpHome, ".hamilton", "agents", "demo", "INSTRUCTIONS.md")
-    expect(Fs.existsSync(copiedAgent)).toBe(true)
-    const content = Fs.readFileSync(copiedAgent, "utf-8")
-    expect(content).toBe("# Demo Agent\nFake instructions")
-  })
-})
-
-describe("ingestSetupGuidelines", () => {
-  let tmpHome: string
-  const originalHome = process.env.HOME
-
-  beforeEach(() => {
-    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-ingest-"))
-    process.env.HOME = tmpHome
-  })
-
-  afterEach(() => {
-    process.env.HOME = originalHome
-    Fs.rmSync(tmpHome, { recursive: true, force: true })
-  })
-
-  it("ingests guidelines into qmd.db after setupHamilton", { timeout: 30000 }, async () => {
-    await Effect.runPromiseExit(setupHamilton())
-
-    const exit = await Effect.runPromiseExit(ingestSetupGuidelines())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const qmdDbPath = Path.join(tmpHome, ".hamilton", "memory", "user", "qmd.db")
-    expect(Fs.existsSync(qmdDbPath)).toBe(true)
-
-    const canonicalDir = Path.join(tmpHome, ".hamilton", "memory", "user", "canonical")
-    const files = Fs.readdirSync(canonicalDir)
-    expect(files.length).toBeGreaterThan(0)
-  })
-
-  it("succeeds gracefully when guidelines directory is empty", async () => {
-    const exit = await Effect.runPromiseExit(ingestSetupGuidelines())
-    expect(Exit.isSuccess(exit)).toBe(true)
+    const copiedTemplate = Path.join(tmpHome, ".hamilton", "templates", "plan.md")
+    expect(Fs.existsSync(copiedTemplate)).toBe(true)
+    const content = Fs.readFileSync(copiedTemplate, "utf-8")
+    expect(content).toBe("# Plan Template")
   })
 })
