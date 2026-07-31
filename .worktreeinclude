@@ -1,7 +1,5 @@
 src/
 tests/
-workflows/
-agents/
 docs/
 node_modules/
 bun.lock

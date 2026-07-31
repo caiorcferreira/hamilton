@@ -4,12 +4,13 @@
 
 Hamilton is a coding toolbox focused on producing high-quality code and architecture. It brings
 structure to AI-assisted coding — carrying a change from idea to merge through disciplined,
-spec-driven steps that any coding agent can follow, or that Hamilton's own engine can run
-autonomously.
+spec-driven steps that any coding agent can follow.
 
-> ⚠️ **ALPHA.** Hamilton is under active, early development. Interfaces, artifacts, workflow specs,
-> and CLI commands can change at any time **without notice or backward-compatibility guarantees.**
-> Only the Assisted mode (the skill bundle) is considered usable today.
+Hamilton is now a **simple CLI that sets up templates**: `hamilton setup` installs the
+spec-driven-development artifact templates and coding guidelines into `~/.hamilton/`, which the
+Assisted skills read. The Autonomous workflow engine and Ambient memory layer were removed in
+0.3.0; the last full-feature state is preserved on the `archive/full-feature-pre-cleanup` branch
+and the `pre-cleanup-0.2.1` tag.
 
 ## Install
 
@@ -19,34 +20,38 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 npx skills add https://github.com/caiorcferreira/hamilton
 ```
 
-The first command installs the Hamilton CLI binary and sets up artifacts in `~/.hamilton` (no prerequisites needed). The second installs the skills in your preferred coding agent.
+The first command installs the Hamilton CLI binary and sets up artifacts in `~/.hamilton`. The
+second installs the skills in your preferred coding agent.
 
 **Environment variables** (optional):
 - `HAMILTON_VERSION` — install a specific release version (default: latest)
 - `HAMILTON_REPO_SLUG` — GitHub repo slug to download from (default: `caiorcferreira/hamilton`)
+- `HAMILTON_BUNDLE_DIR` — override where `hamilton setup` reads `bundle/` from (for development)
 
 See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
 and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
 
-## Three modes
+## What the CLI does
 
-Hamilton is organized around three modes of AI-assisted coding, spanning fully autonomous to
-closely guided work. See [The three modes](docs/modes.md) for the full picture.
+`hamilton setup` bootstraps `~/.hamilton/`:
 
-| Mode | What it is | Status |
-|------|-----------|--------|
-| **Autonomous** | A workflow engine runs a full multi-agent graph end-to-end from a single prompt | **Experimental** — runs today, being reworked to invoke the Assisted skills |
-| **Assisted** | A portable, tool-agnostic bundle of spec-driven skills that guide any coding agent through a change | **Working** — the recommended way to use Hamilton today |
-| **Ambient** | A memory layer that learns from your work and feeds your guidelines and past decisions into future changes | **Early** — phase-1 guideline ingestion exists; the learning loop is planned |
+```
+~/.hamilton/
+  templates/     # SDD artifact templates (plan.md, design.md, proposal.md, ...)
+  guidelines/    # coding guidelines (general, golang, typescript)
+  settings.yaml  # default settings
+```
 
-The modes are layers of one system, not competing products: the Assisted skills are the core, the
-Autonomous engine's direction is to *run* those skills automatically, and the Ambient memory layer
-feeds context into both.
+```bash
+hamilton setup        # bootstrap ~/.hamilton/ (idempotent)
+hamilton setup --force  # re-copy templates and guidelines, reset settings
+hamilton --help
+```
 
-## Assisted mode — start here
+## Assisted skills — start here
 
-Assisted mode is a bundle of **[spec-driven development skills](docs/sdd-framework.md)** that carry a
-change through a fixed sequence, one disciplined step at a time:
+The **[spec-driven development skills](docs/sdd-framework.md)** carry a change through a fixed
+sequence, one disciplined step at a time:
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
@@ -63,7 +68,7 @@ heavyweight front door (`propose`) is optional; the only required step is `plan`
 
 ### Artifacts
 
-Assisted mode produces durable, per-project artifacts under `.hamilton/`:
+The skills produce durable, per-project artifacts under `.hamilton/`:
 
 ```
 .hamilton/
@@ -82,48 +87,10 @@ Assisted mode produces durable, per-project artifacts under `.hamilton/`:
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
 `specs/`, the project's always-current requirements truth.
 
-## Autonomous mode — the workflow engine (experimental)
-
-> ⚠️ **Experimental.** The engine runs today, but it predates the Assisted skills and is being
-> reworked to *invoke* them. The workflow format, agent personas, and CLI surface can change without
-> notice. For the working path, use Assisted mode above.
-
-The engine takes a single prompt and runs a whole multi-agent pipeline with no human in the loop — it
-loads a YAML workflow spec, resolves agent personas, builds a DAG of tasks, and executes them in
-order, passing structured context forward. Runs are persisted in SQLite and can be paused and resumed
-across processes.
-
-```bash
-hamilton setup                 # bootstrap ~/.hamilton/ (dirs, agents, DB, workflows, templates)
-hamilton doctor                # check prerequisites
-hamilton workflow list         # see what's installed
-
-cd /path/to/your/git/repo
-hamilton workflow run bug-fix "The login page crashes when the user submits an empty email"
-```
-
-See **[Getting started](docs/getting-started.md)** for the full engine walkthrough, and the engine
-docs: [How workflows run](docs/how-workflows-run.md), [Workflow YAML](docs/workflow-yaml.md),
-[CLI reference](docs/cli-reference.md), [Agent system](docs/agents-system.md),
-[Workflows catalog](docs/workflows-catalog.md).
-
-## Ambient mode — memory (early)
-
-Project guidelines are ingested as canonical atoms into a dual-layer memory store (markdown +
-SQLite) and retrieved via hybrid full-text/vector search, so relevant standards can be injected into
-an agent's context. Failure is graceful — everything else runs without it. The broader learning loop
-(store and recall historical decisions, with forgetting) is planned. See [ROADMAP](ROADMAP.md).
-
 ## Requirements
 
-**To use the Hamilton CLI** (Assisted mode):
 - **A coding agent that loads `SKILL.md` files** (e.g. Claude Code).
 - **An existing git repo** — Hamilton operates on an existing repository (no greenfield support yet).
-
-**To build Hamilton from source or run Autonomous mode**:
-- **bun** >= 1.2.x — runtime, package manager, test runner.
-- **rtk** (optional) — `npm install -g @rtk-ai/rtk`; required for Autonomous-mode Pi SDK agent
-  execution.
 
 ## Development
 
@@ -139,7 +106,7 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 bun install
 bun run build                  # compile TypeScript
 bun run install-local          # symlink to ~/.local/bin/
-hamilton setup --mode assisted # install bundle/templates/ → ~/.hamilton/
+hamilton setup                 # install bundle/templates/ + bundle/guidelines/ → ~/.hamilton/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/hamilton-*/ — copy or symlink them into a
@@ -167,9 +134,3 @@ bun run purge                  # remove the CLI symlink and ~/.hamilton/
 
 **Do NOT use `bun test`** — use `bun run test` which uses the native runner (the fallback lacks `vi.mocked()`). See
 [AGENTS.md](AGENTS.md) for conventions and [CONTRIBUTING.md](CONTRIBUTING.md) for the docs-sync rules.
-
-### Pi SDK patch (Autonomous mode)
-
-The Autonomous engine patches the Pi SDK to fix an upstream bug where `max_tokens` is not sent to the
-GenPlat API gateway, truncating agent output at 2048 tokens. The full rationale, the exact edits, and
-revert instructions live in [`patches/pi-ai-openai-maxTokens.md`](patches/pi-ai-openai-maxTokens.md).

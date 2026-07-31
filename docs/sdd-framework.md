@@ -1,14 +1,13 @@
 # Spec-Driven Development Framework
 
 > **Hamilton is in ALPHA.** This document is the design of Hamilton's **Assisted mode** — the
-> working core (see [The three modes](./modes.md)). For a task-focused map of the skills and how
+> working core (see [modes](./modes.md)). For a task-focused map of the skills and how
 > to run them, see the [Skills reference](./skills.md); this page is the *why* behind them.
 
 Hamilton's spec-driven development (SDD) framework carries a change from idea to merge
 through a fixed sequence of steps, each captured as a **skill** and backed by durable
-**artifacts**. The same skills are used by a person working in an editor, by Hamilton's own
-agents running autonomously (the experimental [Autonomous mode](./modes.md)), or by a mix of
-the two — a person authors the spec and hands execution to Hamilton.
+**artifacts**. The same skills are used by a person working in an editor or by a coding agent —
+a person authors the spec and hands execution to the agent.
 
 ## Philosophy
 
@@ -26,11 +25,10 @@ This is how historical decisions are preserved without letting the current pictu
 
 **Skills are portable knowledge; the harness is only a binding.** A skill encodes *how* to
 plan, code, or review well, once. It never assumes Hamilton mechanics, so the identical skill
-guides a human in any editor and an autonomous agent inside a workflow. Whatever is
+guides a human in any editor and a coding agent. Whatever is
 Hamilton-specific — how an agent reports output, how context templates are rendered — lives
 in a thin agent wrapper around the skill, not in the skill itself. The artifacts under a
-project's `.hamilton/` directory are the contract between authoring and execution, which is
-what makes the human-to-Hamilton handoff possible.
+project's `.hamilton/` directory are the contract between authoring and execution.
 
 ## Principles
 
@@ -213,11 +211,10 @@ Three locations hold the framework:
   `hamilton-init`.
 
 A typical run: a person invokes `hamilton-propose` in their editor to shape the change with
-Hamilton's help, reviews and approves the artifacts, then hands off — a Hamilton workflow runs
+Hamilton's help, reviews and approves the artifacts, then hands off — the agent runs
 `hamilton-plan`, loops `hamilton-code` and `hamilton-review` over the tasks, and calls
-`hamilton-finish-work`. Inside the workflow, each step is an agent whose instructions load the
-matching skill and add only the Hamilton binding. Model choice follows the work: a cheap model
-executes the verbatim coding steps, a strong model reviews.
+`hamilton-finish-work`. Each step loads the matching skill from `~/.claude/skills/` (or wherever
+your agent reads `SKILL.md` files) and follows it against the artifacts.
 
 ## Status and open work
 

@@ -1,33 +1,13 @@
 # Hamilton roadmap
 
-Brainstorms, ideas, and proposals for the project's next steps, grouped by the
-[mode](docs/modes.md) each advances.
+Hamilton is now a simple CLI that installs the Assisted-mode artifact templates and
+guidelines into `~/.hamilton/`. The Autonomous workflow engine and Ambient memory layer
+were removed; the last full-feature state is preserved on the
+`archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
 
-## Ambient mode (memory)
+## Next steps
 
-### Implement long-term memory
-
-Create a learning pipeline that stores historical decisions, changes, preferences, and facts about
-each project. Must support forgetting.
-
-Use a database (SQLite/PGLite) instead of markdown files.
-
-### Improve guidelines
-
-Implement a real RAG pipeline for guidelines. Maybe merge with long-term memory.
-
-## Autonomous mode (engine)
-
-### Invoke the Assisted skills from workflows
-
-Refactor the engine's `feature-dev` agents and the merge / PR / worktree variants to *invoke* the
-spec-driven skills instead of embedding their own copies of the instructions — the integration that
-makes Autonomous mode run the Assisted pipeline automatically.
-
-## Cross-cutting
-
-### Package infrastructure
-
-Design an extension system based on packages. Each package may bundle agents, workflows, variants,
-skills, hooks, and extensions. A development package, for example, would ship workflows like
-`feature-dev` plus a hook that nudges the agent to record its progress if it failed to do so.
+- Keep the [Assisted skills](docs/skills.md) and the [SDD framework](docs/sdd-framework.md) sharp:
+  each `SKILL.md` should stay tool-agnostic and self-contained.
+- Keep the artifact templates in `bundle/templates/` aligned with what the skills expect.
+- Keep the guidelines in `bundle/guidelines/` current for the reference stacks (general, golang, typescript).
