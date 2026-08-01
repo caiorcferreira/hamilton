@@ -7,10 +7,10 @@ The skills are Hamilton's **Assisted mode**: a portable, tool-agnostic bundle th
 from idea to merge through a fixed sequence of steps. Each step is a self-contained `SKILL.md` that
 names no tool and depends on no engine internals — only on the project's standards (`AGENTS.md`) and
 the shared artifacts under the project's `.hamilton/` directory. The same skill guides a person in an
-editor and, eventually, an autonomous agent inside a workflow.
+editor and a coding agent.
 
-For the design rationale behind the pipeline, see **[SDD framework](./sdd-framework.md)**. For where
-this layer sits relative to the engine and the memory layer, see **[The three modes](./modes.md)**.
+For the design rationale behind the pipeline, see **[SDD framework](./sdd-framework.md)**. For how
+this layer is installed and what the CLI does, see **[modes](./modes.md)**.
 
 ## The pipeline
 

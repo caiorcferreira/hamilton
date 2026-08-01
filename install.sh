@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the Hamilton CLI from published release binaries and bootstraps ~/.hamilton/ (assisted mode).
+# Installs the Hamilton CLI from published release binaries and bootstraps ~/.hamilton/.
 #
 # Run it remotely:
 #   curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
@@ -138,8 +138,8 @@ main() {
 
   install_hamilton "$platform" "$version" "$work_dir"
 
-  echo "==> Running hamilton setup (assisted mode)"
-  ~/.local/bin/hamilton setup --mode assisted
+  echo "==> Running hamilton setup"
+  ~/.local/bin/hamilton setup
 
   if [ "$(uname -s)" = "Darwin" ]; then
     cat << 'EOF'

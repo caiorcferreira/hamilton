@@ -1,53 +1,33 @@
 # Creating Custom Guidelines
 
-Guidelines inject project-specific coding rules and conventions into agent context.
-The engine loads guidelines based on your project's file types, so agents always
-follow your team's standards without manual prompt engineering.
+Guidelines are coding rules and conventions shipped with Hamilton and installed to
+`~/.hamilton/guidelines/` by `hamilton setup`. Agents and the Assisted skills read these
+files directly when working in a project, so they always have your team's standards at hand.
 
 ## What Guidelines Are
 
 Guidelines are markdown files that describe coding conventions for specific
-languages or frameworks. When a workflow runs, the engine scans your project's
-files, matches them against guideline glob patterns, and injects the matching
-guidelines into every agent's system prompt.
-
-Guidelines live in `~/.hamilton/guidelines/<name>/`:
+languages or frameworks. They live under `~/.hamilton/guidelines/<name>/`:
 
 ```
 ~/.hamilton/guidelines/<name>/
-  guideline.yml       # Manifest: name, matching patterns, file list
+  guideline.yml       # Metadata (name, optional glob patterns) — kept for reference
   convention-1.md     # Guideline content
   convention-2.md
 ```
 
-## Step 1: Create a Guideline
+`hamilton setup` copies the bundled guidelines (`general`, `golang`, `typescript`) from
+`bundle/guidelines/`. The markdown files are plain text your agent can be pointed at — the
+skills and agents read them directly.
 
-Create the directory and manifest:
+## Step 1: Add a Guideline
+
+Add a directory of markdown files under `~/.hamilton/guidelines/` (or extend the bundled
+ones in `bundle/guidelines/` in this repo):
 
 ```bash
 mkdir -p ~/.hamilton/guidelines/react-ts
 ```
-
-Create `~/.hamilton/guidelines/react-ts/guideline.yml`:
-
-```yaml
-apiVersion: dag.hamiltonai.dev/v1alpha1
-kind: Guideline
-metadata:
-  name: react-ts
-spec:
-  instructions:
-    - matching: ["**/*.tsx", "**/*.ts"]
-      files:
-        - component_patterns.md
-        - hooks_guide.md
-        - testing_conventions.md
-```
-
-| Field | Description |
-|-------|-------------|
-| `matching` | Glob patterns. If any project file matches, the guideline loads. |
-| `files` | Relative paths to markdown files in the guideline directory. |
 
 Create `~/.hamilton/guidelines/react-ts/component_patterns.md`:
 
@@ -67,65 +47,31 @@ Create `~/.hamilton/guidelines/react-ts/component_patterns.md`:
 - Co-locate tests in <ComponentName>.test.tsx
 ```
 
-Create `~/.hamilton/guidelines/react-ts/hooks_guide.md`:
+## Step 2: Point Your Agent at It
+
+Mention the guideline file in the project's `AGENTS.md` or in your prompt so the agent loads
+it before coding:
 
 ```markdown
-## Hook Conventions
+## Standards
 
-- Custom hooks start with `use` prefix
-- Return an object from hooks, not an array
-- Handle loading, error, and success states explicitly
-- Use useCallback/useMemo only when profiler shows benefit
-- Extract complex hooks into separate files
+Follow the conventions in ~/.hamilton/guidelines/react-ts/component_patterns.md
 ```
 
-Create `~/.hamilton/guidelines/react-ts/testing_conventions.md`:
+## Step 3: Iterate
 
-```markdown
-## Testing Conventions
-
-- Use @testing-library/react for component tests
-- Test behavior, not implementation
-- Use data-testid only as last resort; prefer role/label queries
-- Mock network calls at the fetch/axios level, not the component level
-- Each component test covers: rendering, user interaction, error states
-```
-
-## Step 2: Register in Settings
-
-Guidelines are auto-discovered from `~/.hamilton/guidelines/`. No settings.yaml
-registration is needed — the engine scans the guidelines directory on each run.
-
-## Step 3: Test with a Do Run
-
-```bash
-cd /path/to/react-ts-project
-hamilton workflow run do "Add a useDebounce hook with tests"
-```
-
-The `do` agent will see the react-ts guidelines and apply your conventions
-to the generated code.
-
-## Step 4: Iterate
-
-Guideline files are loaded fresh on every run. Edit them and re-run — no
-restart or reinstall needed.
+Guideline files are read on demand. Edit them and re-run — no restart or reinstall needed.
 
 Common iteration paths:
 
 1. **Agent ignores a convention** — be more prescriptive: "You MUST..." instead of "Prefer..."
 2. **Guidelines are too long** — agents have limited context. Keep each file focused and under 50 lines
-3. **Need to exclude some projects** — use more specific glob patterns (e.g., `**/src/**/*.tsx` instead of `**/*.tsx`)
-4. **Multiple guideline sets** — create separate guideline directories; the engine loads all matching sets
+3. **Multiple guideline sets** — create separate guideline directories and point at each as needed
 
 ## Bundled Guidelines
 
-| Guideline | Triggers On |
-|-----------|-------------|
-| `golang` | `**/*.go`, `go.mod` |
-
-## Guideline Load Order
-
-When multiple guidelines match, the engine loads all of them. Guidelines are
-concatenated in alphabetical order by directory name. This is deterministic
-but not configurable — design guidelines to be independent and non-overlapping.
+| Guideline | Covers |
+|-----------|--------|
+| `general` | Cross-language coding style |
+| `golang` | Go style, setup, testing, patterns, e2e |
+| `typescript` | TypeScript setup, style, patterns, unit + e2e testing |

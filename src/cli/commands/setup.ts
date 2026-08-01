@@ -1,109 +1,14 @@
 import { Command, Options } from "@effect/cli"
 import { Console, Data, Effect, Exit } from "effect"
-import { Database } from "bun:sqlite"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import * as Readline from "node:readline"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, agentsDir, settingsPath, skillsDir, guidelinesDir, hooksDir, templatesDir, hamiltonHome, dbPath } from "../../paths.js"
-import { piAgentDir } from "../../executors/pi/paths.js"
-import { openDb } from "../../workflow/state.js"
-import { installAllWorkflows } from "./install-logic.js"
-import { runDoctorChecks } from "./doctor.js"
-import { green, red } from "../formatting/colors.js"
-import { createUserMemoryStore } from "../../memory/store.js"
-import { ingestGuidelines } from "../../memory/guidelines.js"
-import { loadAllGuidelines } from "../../guidelines/loader.js"
-import { migrate } from "../../db/migrations.js"
+import { ensureHamiltonHome, guidelinesDir, settingsPath, templatesDir } from "../../paths.js"
 import { resolveBundleRoot } from "../bundle-root.js"
 
 export class SetupError extends Data.TaggedError("SetupError")<{
   message: string
 }> {}
-
-export type SetupMode = "assisted" | "autonomous" | "ambient"
-
-export function parseModelAliasArgs(entries: string[]): Record<string, string> {
-  const aliases: Record<string, string> = {}
-  for (const entry of entries) {
-    const eq = entry.indexOf("=")
-    if (eq === -1) continue
-    aliases[entry.slice(0, eq)] = entry.slice(eq + 1)
-  }
-  return aliases
-}
-
-export function askModelAliases(): Effect.Effect<Record<string, string>, SetupError> {
-  return Effect.gen(function* () {
-    yield* Console.log("Configure model aliases (optional)")
-    yield* Console.log("Aliases let you reference models by name in workflow YAMLs.")
-
-    const rl = Readline.createInterface({ input: process.stdin, output: process.stdout })
-    const question = (q: string): Effect.Effect<string, SetupError> =>
-      Effect.tryPromise({
-        try: () => new Promise<string>(resolve => rl.question(q, resolve)),
-        catch: (e) => new SetupError({ message: `Failed to read input: ${String(e)}` })
-      })
-
-    const answer = (yield* question("Add a model alias? (y/n) ")).trim().toLowerCase()
-    if (answer !== "y" && answer !== "yes") {
-      rl.close()
-      return {}
-    }
-
-    const aliases: Record<string, string> = {}
-    while (true) {
-      const name = (yield* question("  Alias name: ")).trim()
-      if (!name) break
-      const model = (yield* question("  Model ID: ")).trim()
-      if (!model) break
-      aliases[name] = model
-      const again = (yield* question("  Add another? (y/n) ")).trim().toLowerCase()
-      if (again !== "y" && again !== "yes") break
-    }
-    rl.close()
-    return aliases
-  })
-}
-
-function copySharedAgents(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
-  return Effect.gen(function* () {
-    const sharedDir = Path.join(bundleRoot, "agents")
-    if (!Fs.existsSync(sharedDir)) return
-
-    const destAgents = agentsDir()
-    const entries = Fs.readdirSync(sharedDir, { withFileTypes: true })
-
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue
-      const srcPath = Path.join(sharedDir, entry.name)
-      const destPath = Path.join(destAgents, entry.name)
-
-      if (Fs.existsSync(destPath) && !options?.force) continue
-
-      yield* Effect.try({
-        try: () => Fs.cpSync(srcPath, destPath, { recursive: true, force: true }),
-        catch: (e) =>
-          new SetupError({ message: `Failed to copy shared agent "${entry.name}": ${String(e)}` })
-      })
-    }
-  })
-}
-
-function copySkillManifests(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
-  return Effect.gen(function* () {
-    const manifestDir = Path.join(bundleRoot, "skills")
-    if (!Fs.existsSync(manifestDir)) return
-
-    const destSkills = skillsDir()
-
-    yield* Effect.try({
-      try: () => Fs.cpSync(manifestDir, destSkills, { recursive: true, force: true }),
-      catch: (e) =>
-        new SetupError({ message: `Failed to copy skill manifests: ${String(e)}` })
-    })
-  })
-}
 
 function copyGuidelineManifests(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
   return Effect.gen(function* () {
@@ -120,25 +25,10 @@ function copyGuidelineManifests(bundleRoot: string, options?: { force?: boolean 
   })
 }
 
-function copyHooks(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
-  return Effect.gen(function* () {
-    const srcDir = Path.join(bundleRoot, "hooks")
-    if (!Fs.existsSync(srcDir)) return
-
-    const destHooks = hooksDir()
-
-    yield* Effect.try({
-      try: () => Fs.cpSync(srcDir, destHooks, { recursive: true, force: true }),
-      catch: (e) =>
-        new SetupError({ message: `Failed to copy hooks: ${String(e)}` })
-    })
-  })
-}
-
-function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<void, SetupError> {
+function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<string[], SetupError> {
   return Effect.gen(function* () {
     const srcDir = Path.join(bundleRoot, "templates")
-    if (!Fs.existsSync(srcDir)) return
+    if (!Fs.existsSync(srcDir)) return []
 
     const destTemplates = templatesDir()
 
@@ -147,31 +37,10 @@ function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effec
       catch: (e) =>
         new SetupError({ message: `Failed to copy templates: ${String(e)}` })
     })
-  })
-}
 
-function createDefaultPiConfigs(options?: { force?: boolean }): Effect.Effect<void, SetupError> {
-  return Effect.gen(function* () {
-    const agentDir = piAgentDir()
-
-    yield* Effect.try({
-      try: () => {
-        const settings = Path.join(agentDir, "settings.json")
-        const models = Path.join(agentDir, "models.json")
-        const auth = Path.join(agentDir, "auth.json")
-
-        if (options?.force || !Fs.existsSync(settings)) {
-          Fs.writeFileSync(settings, JSON.stringify({ defaultProvider: "openai", defaultModel: "glm-5.1" }, null, 2))
-        }
-        if (options?.force || !Fs.existsSync(models)) {
-          Fs.writeFileSync(models, JSON.stringify({ providers: {} }, null, 2))
-        }
-        if (options?.force || !Fs.existsSync(auth)) {
-          Fs.writeFileSync(auth, JSON.stringify({}, null, 2))
-        }
-      },
-      catch: (e) => new SetupError({ message: `Failed to create default Pi configs: ${String(e)}` })
-    })
+    return Fs.readdirSync(destTemplates)
+      .filter((name) => Fs.statSync(Path.join(destTemplates, name)).isFile())
+      .sort()
   })
 }
 
@@ -232,170 +101,41 @@ function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Eff
   })
 }
 
-function copyPiConfigsFromHome(): Effect.Effect<void, SetupError> {
+export function setupHamilton(options?: { force?: boolean }): Effect.Effect<string[], SetupError> {
   return Effect.gen(function* () {
-    const piSource = Path.join(process.env.HOME ?? "", ".pi", "agent")
-    if (!Fs.existsSync(piSource)) return
-
-    const agentDir = piAgentDir()
-    const files = ["settings.json", "models.json", "auth.json"]
-
-    for (const file of files) {
-      const src = Path.join(piSource, file)
-      const dest = Path.join(agentDir, file)
-      if (!Fs.existsSync(src)) continue
-
-      yield* Effect.try({
-        try: () => Fs.copyFileSync(src, dest),
-        catch: (e) => new SetupError({ message: `Failed to copy ${file}: ${String(e)}` })
-      })
-    }
-  })
-}
-
-export function setupHamilton(options?: { force?: boolean; copyPiConfigs?: boolean; modelAliases?: Record<string, string>; mode?: SetupMode }): Effect.Effect<string[], SetupError> {
-  return Effect.gen(function* () {
-    const mode = options?.mode ?? "autonomous"
-
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
       catch: (e) =>
         new SetupError({ message: `Failed to create hamilton home directories: ${String(e)}` })
     })
 
-    const db = yield* Effect.mapError(openDb(), (e) =>
-      new SetupError({ message: `Failed to open database: ${e.message}` })
-    )
-    yield* Effect.sync(() => db.close())
-
     const bundleRoot = yield* Effect.try({
       try: () => resolveBundleRoot(),
       catch: (e) => new SetupError({ message: String(e) })
     })
 
-    yield* copySharedAgents(bundleRoot, options)
-    yield* copySkillManifests(bundleRoot, options)
+    const templates = yield* copyTemplates(bundleRoot, options)
     yield* copyGuidelineManifests(bundleRoot, options)
-    yield* copyHooks(bundleRoot, options)
-    yield* copyTemplates(bundleRoot, options)
+    yield* writeDefaultSettings()
 
-    // Pi SDK configs are only used by the Autonomous engine. Assisted mode
-    // (the skill bundle) doesn't run agents through Pi, so it skips them.
-    if (mode !== "assisted") {
-      if (options?.copyPiConfigs) {
-        yield* copyPiConfigsFromHome()
-      }
-      yield* createDefaultPiConfigs(options)
-    }
-    yield* writeDefaultSettings(options?.modelAliases)
-
-    const workflowSlugs = yield* Effect.mapError(installAllWorkflows({ force: true }), (e) =>
-      new SetupError({ message: `Failed to install workflows: ${e.message}` })
-    )
-
-    return workflowSlugs
+    return templates
   })
 }
 
-export function ingestSetupGuidelines(): Effect.Effect<void, never, never> {
-  return Effect.scoped(Effect.gen(function* (_) {
-    const store = yield* _(
-      Effect.tryPromise(() => createUserMemoryStore(hamiltonHome())).pipe(
-        Effect.orElseSucceed(() => null)
-      )
-    )
-    if (!store) {
-      yield* _(Console.log("Skipping guideline ingestion \u2014 memory store unavailable. Ingestion will run on first workflow execution."))
-      return
-    }
-    yield* _(Effect.addFinalizer(() => Effect.promise(() => store.close())))
-
-    const loadedGuidelines = yield* _(loadAllGuidelines(guidelinesDir()))
-
-    const db = yield* _(
-      Effect.sync(() => {
-        const database = new Database(dbPath())
-        migrate(database)
-        return database
-      }).pipe(
-        Effect.orElseSucceed(() => null)
-      )
-    )
-    if (!db) {
-      yield* _(Console.log("Guideline ingestion failed \u2014 will retry on next workflow run."))
-      return
-    }
-    yield* _(Effect.addFinalizer(() => Effect.sync(() => db.close())))
-
-    const summary = yield* _(
-      Effect.promise(async () => {
-        return ingestGuidelines(store.writer, db, loadedGuidelines)
-      }).pipe(
-        Effect.orElseSucceed(() => undefined)
-      )
-    )
-
-    if (summary) {
-      yield* _(Console.log(`Guideline memory primed: ${summary.ingested} ingested, ${summary.skipped} unchanged`))
-    } else {
-      yield* _(Console.log("Guideline ingestion failed \u2014 will retry on next workflow run."))
-    }
-  }))
-}
-
 const force = Options.boolean("force")
-const copyPiConfigs = Options.boolean("copy-pi-configs")
-const modelAlias = Options.text("model-alias").pipe(Options.repeated)
-const mode = Options.choice("mode", ["assisted", "autonomous", "ambient"] as const).pipe(
-  Options.optional,
-  Options.withDescription("Setup mode: assisted (skills only), autonomous, or ambient. Defaults to autonomous.")
-)
 
-export const setupCommand = Command.make("setup", { force, copyPiConfigs, modelAlias, mode }, ({ force, copyPiConfigs, modelAlias, mode }) =>
+export const setupCommand = Command.make("setup", { force }, ({ force }) =>
   Effect.gen(function* () {
-    const selectedMode: SetupMode = mode._tag === "Some" ? mode.value : "autonomous"
-
-    if (selectedMode === "ambient") {
-      yield* Console.error("Setup mode 'ambient' is not supported yet. Use --mode assisted.")
-      return
-    }
-
-    // Assisted mode differs from the full setup by never prompting for model
-    // aliases, skipping Pi SDK configs (see setupHamilton), and skipping
-    // guideline memory ingestion. Everything else — DB, agents, workflows,
-    // settings, doctor — runs the same. Explicit --model-alias flags are honored.
-    const flagAliases = parseModelAliasArgs(modelAlias)
-    const modelAliases = Object.keys(flagAliases).length > 0
-      ? flagAliases
-      : selectedMode === "assisted"
-        ? undefined
-        : !Fs.existsSync(settingsPath())
-          ? yield* askModelAliases()
-          : undefined
-    const result = yield* Effect.exit(setupHamilton({ force, copyPiConfigs, modelAliases, mode: selectedMode }))
+    const result = yield* Effect.exit(setupHamilton({ force }))
     if (Exit.isFailure(result)) {
       yield* Console.error(`Setup failed: ${String(result.cause)}`)
       return
     }
-    const installed = Exit.getOrElse(result, () => [] as string[])
+    const templates = Exit.getOrElse(result, () => [] as string[])
     yield* Console.log("Hamilton set up successfully.")
-    yield* Console.log(`Installed ${installed.length} workflows.`)
-    for (const id of installed) {
-      yield* Console.log(`  ${id}`)
-    }
-
-    if (selectedMode !== "assisted") {
-      yield* Console.log("")
-      yield* Console.log("Priming guideline memory...")
-      yield* ingestSetupGuidelines()
-    }
-
-    yield* Console.log("")
-    yield* Console.log("Running prerequisite checks...")
-    const checkResults = yield* runDoctorChecks()
-    for (const r of checkResults) {
-      const mark = r.pass ? green("  ✓") : red("  ✗")
-      yield* Console.log(`${mark} ${r.name.padEnd(10)}  ${r.detail}`)
+    yield* Console.log(`Installed ${templates.length} templates.`)
+    for (const name of templates) {
+      yield* Console.log(`  ${name}`)
     }
   })
-).pipe(Command.withDescription("Bootstrap Hamilton directories and install workflows"))
+).pipe(Command.withDescription("Bootstrap Hamilton directories and install templates"))
