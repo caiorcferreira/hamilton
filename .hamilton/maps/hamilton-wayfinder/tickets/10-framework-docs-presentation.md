@@ -32,5 +32,11 @@ Settle:
 - **`CONTRIBUTING.md`'s mapping table** — does it gain a row for map artifacts?
 - **`ROADMAP.md` and `TODO.md`** — both currently describe Hamilton as a template-setup CLI whose
   next steps are keeping existing skills sharp. Does this effort belong there?
+- **Introducing the fork's provenance in prose.** Inherited from
+  [Fork attribution and licensing](03-fork-attribution.md), which ruled that a fork is a different
+  kind of debt from an inspiration and kept it out of `docs/sdd-framework.md`'s **Inspirations**
+  section. The legal credit is settled — it lives in `NOTICE` files. What is left is narrative: a
+  reader asking "where did wayfinder come from?" currently finds nothing in the docs. Where that
+  sentence goes, and whether it names upstream at all, belongs with the rest of the docs shape here.
 
 Decides the shape of the docs work; the writing itself is a route unit.

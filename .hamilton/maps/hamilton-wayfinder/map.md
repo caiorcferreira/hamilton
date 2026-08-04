@@ -53,6 +53,11 @@ its own fork.
   assumes an issue to hang its context pointer on; `domain-modeling` is the real collision — it writes
   a root `CONTEXT.md` glossary and numbered `docs/adr/` records, a durable-truth system parallel to
   `.hamilton/specs/`.
+- [Fork attribution and licensing](tickets/03-fork-attribution.md) — Hamilton had **no licence at
+  all**; it adopts **Apache 2.0**. Upstream credit is formal, not prose: `LICENSE` + `NOTICE` at the
+  root, plus a `NOTICE` inside every forked skill directory, because the skill directory — not the
+  repo — is the unit of distribution. `Copyright 2026 Caio Ferreira`, no per-file headers, and the
+  Inspirations section stays untouched.
 
 ## Not yet specified
 
