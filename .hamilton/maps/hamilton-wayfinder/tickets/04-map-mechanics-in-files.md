@@ -32,6 +32,10 @@ Settle:
   take them off the frontier.
 - Where the resolution answer lands: appended under `## Answer` in the ticket, plus the one-line
   gist in the map's Decisions-so-far.
+- The **cleared marker on `map.md`**. [Map artifact layout under .hamilton/](01-map-artifact-layout.md)
+  decided a cleared map stays in place under `maps/` rather than being deleted or archived, which
+  means `map.md` must carry a marker saying so. That it exists is settled; its syntax belongs with
+  the other fields here.
 - The boundary of the `## Map mechanics` section — precisely what a future tracker backend would
   replace, so the pluggability promise is real rather than aspirational.
 

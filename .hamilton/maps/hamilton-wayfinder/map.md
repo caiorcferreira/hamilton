@@ -32,9 +32,11 @@ re-litigation without redrawing the destination:
 - **Port the siblings.** `research`, `prototype` and `domain-modeling` come into Hamilton
   alongside the fork rather than being inlined or soft-depended on.
 
-**Provisional layout.** This map lives at `.hamilton/maps/hamilton-wayfinder/` as a working
-guess — [Map artifact layout under .hamilton/](tickets/01-map-artifact-layout.md) decides the real
-convention and may relocate it. Dogfooding is deliberate: the fork's first user is its own fork.
+**Layout is settled.** `.hamilton/maps/<effort>/` holding `map.md`, `route.md` and
+`tickets/NN-slug.md` — decided in
+[Map artifact layout under .hamilton/](tickets/01-map-artifact-layout.md), which confirmed this
+map's provisional guess rather than moving it. Dogfooding is deliberate: the fork's first user is
+its own fork.
 
 **Skills every session should consult:** `/grilling` for the decision tickets.
 
@@ -42,6 +44,10 @@ convention and may relocate it. Dogfooding is deliberate: the fork's first user 
 
 <!-- one line per closed ticket: enough to judge relevance, then open the link for the detail -->
 
+- [Map artifact layout under .hamilton/](tickets/01-map-artifact-layout.md) — `.hamilton/maps/<effort>/`
+  as a third sibling to `specs/` and `changes/`, undated slug, `tickets/NN-slug.md`, no asset
+  directory. `hamilton-init` does not scaffold it; a cleared map stays in place, marked. Nothing
+  relocates — the provisional guess is now the convention.
 - [Read the three upstream sibling skills](tickets/02-read-upstream-siblings.md) — all three are small
   (research 12 lines, prototype 217, domain-modeling 181) and MIT. `research` ports clean; `prototype`
   assumes an issue to hang its context pointer on; `domain-modeling` is the real collision — it writes
@@ -60,8 +66,8 @@ convention and may relocate it. Dogfooding is deliberate: the fork's first user 
   query) — hangs on the template convention decision.
 - **Test impact.** `tests/cli/setup.test.ts` asserts what `hamilton setup` installs. If map
   templates land in `bundle/templates/`, that suite and the bundle-override fixtures move with them.
-- **Existing skills' awareness.** Whether `hamilton-init` scaffolds the map directory, and whether
-  `hamilton-propose` should mention an upstream map when one exists.
+- **Existing skills' awareness.** Whether `hamilton-propose` should mention an upstream map when
+  one exists. (The `hamilton-init` half is settled — it does not scaffold the map directory.)
 
 ## Out of scope
 

@@ -30,4 +30,11 @@ Settle, per skill:
   `hamilton-propose` and `hamilton-critique` already encode one-question-at-a-time dialogue, so
   there may be an existing Hamilton answer here.
 
+- **Where each ported skill's output lands.** Inherited from
+  [Map artifact layout under .hamilton/](01-map-artifact-layout.md), which fixed a map directory at
+  `map.md` + `tickets/` + `route.md` and deliberately gave assets no dedicated home. Upstream
+  `research` says to save findings "where the repo already keeps such notes" and names no fallback;
+  `prototype` hangs a context pointer on an issue Hamilton does not have. Each port has to answer
+  this for itself.
+
 The answer sets how many units the route gains, so it materially sizes the whole effort.
