@@ -62,6 +62,9 @@ its own fork.
   `type`, `status`, `blocked_by`. Claiming stays (signals intent, doesn't prevent collision).
   Status values: `open` / `resolved` for tickets, `open` / `cleared` for maps. `## Map mechanics`
   section documents the frontmatter contract for future tracker backends.
+- [Template convention](tickets/05-template-convention.md) — All three shapes (`map.md`, `ticket.md`,
+  `route.md`) go into `bundle/templates/wayfinder/`. Wayfinder depends on `hamilton setup` having been
+  run first; dependency is documented, not guarded. Test and docs updates in the route.
 
 ## Not yet specified
 
