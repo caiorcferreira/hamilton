@@ -58,6 +58,10 @@ its own fork.
   root, plus a `NOTICE` inside every forked skill directory, because the skill directory — not the
   repo — is the unit of distribution. `Copyright 2026 Caio Ferreira`, no per-file headers, and the
   Inspirations section stays untouched.
+- [Map mechanics in files](tickets/04-map-mechanics-in-files.md) — **YAML frontmatter** with
+  `type`, `status`, `blocked_by`. Claiming stays (signals intent, doesn't prevent collision).
+  Status values: `open` / `resolved` for tickets, `open` / `cleared` for maps. `## Map mechanics`
+  section documents the frontmatter contract for future tracker backends.
 
 ## Not yet specified
 
