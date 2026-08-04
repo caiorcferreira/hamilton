@@ -42,6 +42,12 @@ convention and may relocate it. Dogfooding is deliberate: the fork's first user 
 
 <!-- one line per closed ticket: enough to judge relevance, then open the link for the detail -->
 
+- [Read the three upstream sibling skills](tickets/02-read-upstream-siblings.md) — all three are small
+  (research 12 lines, prototype 217, domain-modeling 181) and MIT. `research` ports clean; `prototype`
+  assumes an issue to hang its context pointer on; `domain-modeling` is the real collision — it writes
+  a root `CONTEXT.md` glossary and numbered `docs/adr/` records, a durable-truth system parallel to
+  `.hamilton/specs/`.
+
 ## Not yet specified
 
 - **Worktrees and branching.** Hamilton's `hamilton-propose` creates worktrees per change. How a
