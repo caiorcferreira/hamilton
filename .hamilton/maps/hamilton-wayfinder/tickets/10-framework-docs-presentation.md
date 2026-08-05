@@ -1,7 +1,7 @@
 # How the framework docs present the pre-SDD stage
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 09
 
 ## Question
@@ -30,8 +30,6 @@ Settle:
   plan as the only required artifact. A seventh, optional, upstream stage either extends that story
   or contradicts it. Which, and how is it phrased?
 - **`CONTRIBUTING.md`'s mapping table** — does it gain a row for map artifacts?
-- **`ROADMAP.md` and `TODO.md`** — both currently describe Hamilton as a template-setup CLI whose
-  next steps are keeping existing skills sharp. Does this effort belong there?
 - **Introducing the fork's provenance in prose.** Inherited from
   [Fork attribution and licensing](03-fork-attribution.md), which ruled that a fork is a different
   kind of debt from an inspiration and kept it out of `docs/sdd-framework.md`'s **Inspirations**
@@ -40,3 +38,18 @@ Settle:
   sentence goes, and whether it names upstream at all, belongs with the rest of the docs shape here.
 
 Decides the shape of the docs work; the writing itself is a route unit.
+
+## Answer
+
+**Diagram:** Wayfinder sits before `propose` (optional, upstream of per-change work):
+```
+wayfinder (optional) ──▶ init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
+```
+
+**Docs scope:** Update `docs/skills.md` (wayfinder entry) and `CONTRIBUTING.md` (mapping table row) only. No reshape to `docs/sdd-framework.md` — wayfinder is an optional skill in the pipeline, not a philosophical addition to the framework.
+
+**Pipeline identity:** "Six core skills in fixed sequence, plus an optional pre-change planning stage (wayfinder)." This phrasing preserves the existing pipeline identity while acknowledging the optional stage.
+
+**CONTRIBUTING.md mapping:** Add row: `New/changed map artifacts in .hamilton/maps/` → `docs/skills.md`. Follows the existing pattern (CLI commands and artifact templates also map to `docs/skills.md`).
+
+**Fork provenance:** Narrative goes in the `docs/skills.md` wayfinder entry — brief note that it's a fork of upstream work, with a link to `NOTICE` for full legal credit.

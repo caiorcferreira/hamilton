@@ -79,6 +79,7 @@ its own fork.
   (`research`, `prototype`, `grilling`, `task`). Type name recorded in YAML frontmatter. Wayfinder keeps
   strict HITL rule for planning phase; Hamilton's three-tier model applies to SDD execution, not planning.
 - [Boundary with hamilton-propose and hamilton-critique](tickets/09-boundary-with-propose-and-critique.md) — One change = one session. Wayfinder breaks complex goals into clear units; propose transforms units into concrete specs. Propose gains map-aware behavior (reads route.md, finds next unit, pulls context). Every unit goes through propose; no critique equivalent for maps.
+- [How the framework docs present the pre-SDD stage](tickets/10-framework-docs-presentation.md) — Wayfinder sits before propose (optional). Update docs/skills.md and CONTRIBUTING.md only. Pipeline: "six core skills plus optional pre-change planning stage." Map artifacts row in CONTRIBUTING.md. Fork provenance narrative in skills.md entry.
 
 ## Not yet specified
 
