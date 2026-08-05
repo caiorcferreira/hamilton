@@ -69,6 +69,12 @@ its own fork.
   handoff document listing change-sized units in order with dependencies. Each unit: name, goal
   (paragraph), decision links, ordering/dependencies, entry point. Implementers follow links; route.md
   does not restate. Route tracks unit completion. Map status: `cleared` → `shipping` → `shipped`.
+- [Which siblings to port, and their Hamilton shape](tickets/07-which-siblings-to-port.md) — All three
+  ported under `hamilton-wayfinder-*` prefix, internal to wayfinder only. Grilling ports separately as
+  `hamilton-grilling` (general-purpose), and propose/critique refactored to use it. Research findings
+  to `.hamilton/maps/hamilton-wayfinder/research/`, prototypes linked from ticket bodies, domain-modeling
+  glossary to `.hamilton/maps/hamilton-wayfinder/glossary.md` with hard decisions in ticket Answers. Map
+  gains working glossary section; first route unit is glossary finalization.
 
 ## Not yet specified
 

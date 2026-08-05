@@ -1,7 +1,7 @@
 # Which siblings to port, and their Hamilton shape
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 02
 
 ## Question
@@ -38,3 +38,37 @@ Settle, per skill:
   this for itself.
 
 The answer sets how many units the route gains, so it materially sizes the whole effort.
+
+## Answer
+
+**All three siblings port into Hamilton under the `hamilton-wayfinder-*` prefix, strictly internal to wayfinder. Grilling ports separately as `hamilton-grilling`, a general-purpose dialogue primitive that propose and critique will use. Full ports, not trimmed. Artifacts follow Hamilton conventions: research findings to `.hamilton/maps/hamilton-wayfinder/research/`, prototypes linked from ticket bodies, domain-modeling glossary to `.hamilton/maps/hamilton-wayfinder/glossary.md` with hard decisions captured in ticket Answer sections.**
+
+### The three siblings
+
+**`hamilton-wayfinder-research`** — AFK, spins up a background agent for factual investigation. Findings go to `.hamilton/maps/hamilton-wayfinder/research/` (per-research subdirectories). No collisions with Hamilton's model; fits naturally.
+
+**`hamilton-wayfinder-prototype`** — HITL, builds throwaway code to answer design questions. Two branches: LOGIC.md for state models, UI.md for interface variants. Prototypes linked from the ticket body (no issue tracker to hang context on). Throwaway branch preserved for reference; verdict captured in ticket Answer.
+
+**`hamilton-wayfinder-domain-modeling`** — HITL, actively sharpens domain model during grilling by catching imprecise language, stress-testing scenarios, and maintaining a living glossary. Runs *within* grilling sessions, not as a separate ticket type. Working glossary lives at `.hamilton/maps/hamilton-wayfinder/glossary.md` during planning, updated as terms crystallize. Hard decisions surfaced during grilling are captured in ticket Answer sections (tickets are decision records already — no parallel ADR system needed). Once the map transitions to `shipping`, the glossary unit (first in route.md) finalizes the working glossary into `.hamilton/specs/glossary.md` for canonical use.
+
+### Grilling and the dialogue refactor
+
+**`hamilton-grilling`** ports as a general-purpose dialogue skill, not wayfinder-specific. One-question-at-a-time dialogue, wait for feedback, build shared understanding — this pattern belongs at the Hamilton level, not inside wayfinder.
+
+`hamilton-propose` and `hamilton-critique` already encode this dialogue internally. Extracting grilling and having both use it eliminates duplication and elevates dialogue to a first-class primitive. This refactor lives in [ticket 12](12-propose-and-critique-use-grilling.md), unblocked (propose and critique are stable).
+
+### Naming and coupling
+
+`hamilton-wayfinder-research`, `hamilton-wayfinder-prototype`, `hamilton-wayfinder-domain-modeling` are internal to wayfinder — not standalone, not discoverable elsewhere. They're implementation details of wayfinder's ticket types. The prefix groups them explicitly under wayfinder's umbrella while keeping `hamilton-` as the family convention.
+
+### Ticket types unchanged
+
+Hamilton's four ticket types remain: `research`, `prototype`, `grilling`, `task`. Domain-modeling is a supporting skill that runs during grilling, not a separate type. Wayfinder's ticket types are the same as upstream; the ported siblings are the *skills* they delegate to.
+
+### Scope and ports
+
+All three ported verbatim from upstream — no trimming. Full UI.md branch in prototype, full CONTEXT-FORMAT and ADR templates in domain-modeling. Trim later if needed; starting with the complete toolkit.
+
+### Knock-on effects
+
+The map gains a **working glossary section** capturing terms as they crystallize during planning. Route.md's first unit is always the glossary finalization unit — a boilerplate task that merges `.hamilton/maps/hamilton-wayfinder/glossary.md` into `.hamilton/specs/glossary.md` and confirms the canonical glossary is ready before other units begin. This keeps glossary refinement atomic and independent of feature work.
