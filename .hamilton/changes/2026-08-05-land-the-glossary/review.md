@@ -59,3 +59,27 @@ Verdict: changes-requested
 - Scope: diff is confined to the one new file plus the change-directory artifacts (`proposal.md`,
   `design.md`, `plan.md`, `progress.md`) that were pending commit from earlier pipeline steps; no
   edits outside the task.
+
+## Task 1 (review fix): Write `.hamilton/specs/glossary.md` — 2026-08-05
+
+Verdict: approved
+
+### What was verified
+
+- [.hamilton/specs/glossary.md:34-39] The **route** entry's field list ("a name, a goal paragraph,
+  links to the decisions backing it, and its ordering against the other units") now drops the
+  superseded "suggested entry point" field the prior pass flagged. Cross-checked against
+  [route.md shape and the SDD join](../../maps/hamilton-wayfinder/tickets/06-route-shape-and-sdd-join.md)'s
+  Answer and Unit fields section (name, goal, decision links, ordering — the remaining four match
+  exactly) and against `route.md`'s current preamble and per-unit sections (confirmed each of the
+  ten units still carries a `Status:` field, so the entry's closing "per-unit status field" claim
+  remains accurate). No remaining staleness against current route text.
+- The suggested full re-read of the entry (prior pass's Suggestion) was effectively done as part of
+  fixing the field list — the rest of the entry (written once at map close, points-not-restates,
+  status tracking) still traces to ticket 06 and current `route.md` with no further drift found.
+- `grep -nE 'SHALL|WHEN|THEN' .hamilton/specs/glossary.md` — no matches. `bun run build` → exit 0.
+- Line wrapping in the edited paragraph re-flows to the file's existing ~100-char convention
+  (checked via `awk 'NR>=34 && NR<=41 {print length}'` — all lines 70–102 chars, consistent with
+  the rest of the file); the fix didn't leave an orphaned short line.
+- Scope: diff confined to `.hamilton/specs/glossary.md` plus the `progress.md` entry and this
+  `review.md` file recording the prior pass — no edits outside the flagged issue.

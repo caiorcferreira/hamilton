@@ -44,3 +44,6 @@
   it, and its ordering against the other units") matches what `route.md`'s units actually carry.
   Re-wrapped the paragraph to the file's ~100-char hard-wrap convention afterward, since trimming
   the sentence left one short line breaking that pattern.
+
+## Review: Task 1 (review fix): Write `.hamilton/specs/glossary.md` — 2026-08-05
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
