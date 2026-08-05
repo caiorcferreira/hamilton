@@ -65,6 +65,10 @@ its own fork.
 - [Template convention](tickets/05-template-convention.md) — All three shapes (`map.md`, `ticket.md`,
   `route.md`) go into `bundle/templates/wayfinder/`. Wayfinder depends on `hamilton setup` having been
   run first; dependency is documented, not guarded. Test and docs updates in the route.
+- [Route shape and the SDD join](tickets/06-route-shape-and-sdd-join.md) — `route.md` is a static
+  handoff document listing change-sized units in order with dependencies. Each unit: name, goal
+  (paragraph), decision links, ordering/dependencies, entry point. Implementers follow links; route.md
+  does not restate. Route tracks unit completion. Map status: `cleared` → `shipping` → `shipped`.
 
 ## Not yet specified
 

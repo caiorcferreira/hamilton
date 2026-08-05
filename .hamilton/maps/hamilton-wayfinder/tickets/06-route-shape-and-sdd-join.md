@@ -1,7 +1,7 @@
 # route.md shape and the SDD join
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 01
 
 ## Question
@@ -28,3 +28,32 @@ Settle:
   visible?
 - **What happens after.** Does the route track which units have shipped, and is that how the map
   reaches its destination? Does a finished route mean the map can be deleted?
+
+## Answer
+
+**`route.md` is a static handoff document written once at map close, listing change-sized units in order with dependencies. Each unit carries name, goal (paragraph), decision links, ordering/dependencies between units, and suggested entry point (propose or straight to plan). Implementers follow decision links to the map; route.md does not restate. Route.md tracks unit completion status as implementation proceeds. Map status transitions: `cleared` (route written) → `shipping` (units in SDD loop) → `shipped` (all units complete).**
+
+### Change-sized units
+
+A unit is one thing that runs the propose→finish loop once. It's shaped by what one agent can hold in context in one change—roughly "one feature or one fix". Splits that make units smaller happen during wayfinding before route.md is written, not during implementation.
+
+### Unit fields
+
+Each unit in route.md contains:
+- **Name** — the unit's slug (change identifier)
+- **Goal** — a paragraph explaining what ships and why (not collapsed to one line so key context survives)
+- **Linked decisions** — which tickets from the map back this unit
+- **Ordering/dependencies** — which other units must ship before this one
+- **Suggested entry** — `hamilton-propose` (warrants a spec debate) or straight to `hamilton-plan` (tactical, decision clear)
+
+### Decision travel
+
+The implementer reads decision links and navigates to the map's tickets. Route.md is an index like the map itself—it points, does not restate. This keeps the source-of-truth in one place (the ticket) and makes route.md lightweight.
+
+### Writing and lifecycle
+
+Route.md is written once, as a closing act after all tickets are resolved. It is not grown incrementally. Once written, the map transitions from `cleared` to `shipping` to mark that units are flowing through the SDD loop. Route.md gains a **status** field per unit (e.g., `pending`, `in-progress`, `shipped`) so it tracks which units have been implemented. When all units are done, the map transitions to `shipped` and reaches its destination.
+
+### Knock-on effects
+
+The route.md template in `bundle/templates/wayfinder/` gains a unit structure. Tests and docs (CONTRIBUTING.md) need updates to reflect the unit shape and the three-status progression (`cleared` / `shipping` / `shipped`). These ride in the route unit, not as separate tickets.
