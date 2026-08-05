@@ -86,26 +86,36 @@ its own fork.
   **no** dialogue — correcting ticket 07's premise — and gains it on the `changes-requested` path,
   between the rubric and the report, so "Judge, don't fix" survives. Attendance is guarded at the call
   site; grilling never gains an unattended mode. No test coverage needed. Retyped `task` → `grilling`.
+- [Where map artifacts live relative to per-unit worktrees](tickets/13-map-artifacts-and-worktrees.md) —
+  The `route.md` status flip **rides the unit's own branch** and lands on the default branch when the
+  unit merges. `.hamilton/maps/` is ordinary repo content, no exception to propose's worktree gate.
+  Between-merge staleness accepted, matching the claiming mechanic. The map's own
+  `cleared`/`shipping`/`shipped` transitions follow the same rule.
 
 ## Not yet specified
 
-- **Worktrees and branching.** Hamilton's `hamilton-propose` creates worktrees per change. How a
-  long-lived map relates to that — does it live on `main`, on its own branch, in the worktree of
-  the unit being built? Can't be phrased sharply until layout and mechanics land.
-- **Concurrency and claiming.** Upstream's claim mechanic exists because several sessions share one
-  tracker. Whether a file-based map in a single repo needs claiming at all, and what it means when
-  two worktrees hold divergent copies, depends on the mechanics decision.
-- **CLI surface.** Whether `hamilton` grows anything for maps (a scaffold command, a frontier
-  query) — hangs on the template convention decision.
-- **Test impact.** `tests/cli/setup.test.ts` asserts what `hamilton setup` installs. If map
-  templates land in `bundle/templates/`, that suite and the bundle-override fixtures move with them.
-- **Existing skills' awareness.** Whether `hamilton-propose` should mention an upstream map when
-  one exists. (The `hamilton-init` half is settled — it does not scaffold the map directory.)
+**Clear.** Every patch charted here has graduated into a decision or been ruled out of scope:
+
+- *Worktrees and branching* → [Where map artifacts live relative to per-unit worktrees](tickets/13-map-artifacts-and-worktrees.md).
+- *Concurrency and claiming* → answered by [Map mechanics in files](tickets/04-map-mechanics-in-files.md)
+  (claiming stays; signals intent, doesn't prevent collision) and the divergent-copies half by ticket 13.
+- *CLI surface* → ruled out of scope, below.
+- *Test impact* → answered by [Template convention](tickets/05-template-convention.md); the
+  `setup.test.ts` assertions ride the "land the templates" route unit rather than earning a ticket.
+- *Existing skills' awareness* → answered by [Boundary with hamilton-propose and hamilton-critique](tickets/09-boundary-with-propose-and-critique.md)
+  (propose gains map-aware entrypoint logic).
 
 ## Out of scope
 
 - **Tracker pluggability** — GitHub/GitLab backends for the map. Ruled out at charting; the fork
   ships file-native with mechanics isolated so a later effort can add them.
+- **CLI surface for maps** — a `hamilton` subcommand to scaffold a map or query the frontier. Ruled
+  out while clearing the fog for [Compose route.md](tickets/11-compose-route.md). `hamilton` is a
+  template-installer with one subcommand (`setup`); no command scaffolds a change directory either —
+  `hamilton-propose` does that itself — so a map command would be the first to break that pattern. A
+  frontier query is a `grep` over a dozen files in one directory. The destination names a skill, its
+  ported siblings, and synced docs; a CLI command sits past that line and drags new tests and docs
+  behind it. Returns as a fresh effort if using the fork proves the ergonomics bad.
 - **Porting the rest of the upstream engineering skills** — `to-tickets`, `triage`, `to-spec`,
   `code-review`, `tdd`, `implement`, and the others. Only the three siblings wayfinder actually
   delegates to are in scope.
