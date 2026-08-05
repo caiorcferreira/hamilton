@@ -80,6 +80,12 @@ its own fork.
   strict HITL rule for planning phase; Hamilton's three-tier model applies to SDD execution, not planning.
 - [Boundary with hamilton-propose and hamilton-critique](tickets/09-boundary-with-propose-and-critique.md) — One change = one session. Wayfinder breaks complex goals into clear units; propose transforms units into concrete specs. Propose gains map-aware behavior (reads route.md, finds next unit, pulls context). Every unit goes through propose; no critique equivalent for maps.
 - [How the framework docs present the pre-SDD stage](tickets/10-framework-docs-presentation.md) — Wayfinder sits before propose (optional). Update docs/skills.md and CONTRIBUTING.md only. Pipeline: "six core skills plus optional pre-change planning stage." Map artifacts row in CONTRIBUTING.md. Fork provenance narrative in skills.md entry.
+- [Update propose and critique to use hamilton-grilling](tickets/12-propose-and-critique-use-grilling.md) —
+  Called as a skill. Grilling ports near-verbatim and owns the protocol only; callers own question
+  content and exit condition. Propose delegates at all three surfaces (steps 4, 7, 10). Critique had
+  **no** dialogue — correcting ticket 07's premise — and gains it on the `changes-requested` path,
+  between the rubric and the report, so "Judge, don't fix" survives. Attendance is guarded at the call
+  site; grilling never gains an unattended mode. No test coverage needed. Retyped `task` → `grilling`.
 
 ## Not yet specified
 
