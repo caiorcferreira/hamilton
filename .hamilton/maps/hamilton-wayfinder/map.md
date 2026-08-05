@@ -78,6 +78,7 @@ its own fork.
 - [Ticket types in the Hamilton fork](tickets/08-ticket-types.md) — All four upstream types survive
   (`research`, `prototype`, `grilling`, `task`). Type name recorded in YAML frontmatter. Wayfinder keeps
   strict HITL rule for planning phase; Hamilton's three-tier model applies to SDD execution, not planning.
+- [Boundary with hamilton-propose and hamilton-critique](tickets/09-boundary-with-propose-and-critique.md) — One change = one session. Wayfinder breaks complex goals into clear units; propose transforms units into concrete specs. Propose gains map-aware behavior (reads route.md, finds next unit, pulls context). Every unit goes through propose; no critique equivalent for maps.
 
 ## Not yet specified
 
