@@ -33,11 +33,10 @@ resolution, and the map records only a one-line gist pointing back.
 
 **route** — A static handoff document written once at map close, listing change-sized units in order
 with their dependencies. Each unit carries a name, a goal paragraph, links to the decisions backing
-it, its ordering against the other units, and a suggested entry point into the pipeline. The route
-points and does not restate — an implementer follows the decision links back to the map's tickets,
-which keeps the source of truth in one place. It is written as a closing act after every ticket is
-resolved rather than grown incrementally, and it carries a per-unit status field so it tracks which
-units have shipped.
+it, and its ordering against the other units. The route points and does not restate — an implementer
+follows the decision links back to the map's tickets, which keeps the source of truth in one place.
+It is written as a closing act after every ticket is resolved rather than grown incrementally, and it
+carries a per-unit status field so it tracks which units have shipped.
 ([route.md shape and the SDD join](../maps/hamilton-wayfinder/tickets/06-route-shape-and-sdd-join.md))
 
 ## Working the map
