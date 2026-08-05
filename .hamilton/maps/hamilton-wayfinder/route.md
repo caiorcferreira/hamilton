@@ -144,6 +144,20 @@ ordinary repo content, versioned and branched like source, per ticket 13.
 All four ticket types survive. Wayfinder keeps the strict HITL rule for planning; Hamilton's
 three-tier attendance model governs SDD execution, not this stage.
 
+**Author this against `/writing-great-skills`.** This unit writes a `SKILL.md` from scratch — the
+longest and most-invoked one in the repo — so the quality bar is the skill-writing craft itself, not
+just whether the decisions are faithfully transcribed. Its guidance on predictability as the root
+virtue, on the information hierarchy, and on pruning context load applies directly to the choices this
+unit makes: what goes in the body versus `references/`, how the `## Map mechanics` boundary is drawn,
+how much of the fog-of-war explanation a session actually needs loaded every turn.
+
+Invoke it **explicitly** — it is `disable-model-invocation: true`, so no agent will reach for it on
+its own. Read it before drafting rather than as a review pass afterwards; several of its levers
+(invocation mode, description shape, what earns a place in the body) are structural and expensive to
+retrofit. Wayfinder's own invocation mode is one of them: it is user-invoked upstream, and whether
+Hamilton keeps that or lets the agent fire it autonomously is a real decision for the proposal, with
+a context-load cost either way.
+
 Depends on the four units before it so that every reference it makes — to templates, to grilling, to
 its siblings — resolves on the branch it lands on.
 
