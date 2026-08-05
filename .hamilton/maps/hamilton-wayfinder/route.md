@@ -38,7 +38,7 @@ you think upstream's body itself is weak, note it for a later effort rather than
 
 ### 1. Land the glossary
 
-Status: pending
+Status: shipped
 Depends on: —
 Backed by: [Which siblings to port](tickets/07-which-siblings-to-port.md)
 

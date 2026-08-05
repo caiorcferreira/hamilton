@@ -1,6 +1,6 @@
 # Fork wayfinder into Hamilton
 
-Status: cleared
+Status: shipping
 
 ## Destination
 
