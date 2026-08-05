@@ -1,5 +1,7 @@
 # Fork wayfinder into Hamilton
 
+Status: cleared
+
 ## Destination
 
 `skills/hamilton-wayfinder/` — plus the ported sibling skills it needs and the synced framework
@@ -91,6 +93,19 @@ its own fork.
   unit merges. `.hamilton/maps/` is ordinary repo content, no exception to propose's worktree gate.
   Between-merge staleness accepted, matching the claiming mechanic. The map's own
   `cleared`/`shipping`/`shipped` transitions follow the same rule.
+- [Compose route.md — the change-sized units](tickets/11-compose-route.md) — [`route.md`](route.md)
+  written: **ten units**, all entering at `hamilton-propose`. Units 1–3 (glossary, licensing,
+  templates) are takeable in parallel; everything narrows onto unit 6, which authors the skill itself.
+  Five units the ticket did not predict came from decisions resolved after it was charted. Recorded
+  two findings: the working glossary ticket 07 assumed **never existed**, so unit 1 harvests terms from
+  ticket Answers instead of merging a file; and the per-unit "suggested entry" field is a constant
+  since ticket 09 made propose mandatory. **The map is `cleared`.**
+
+## The route
+
+[`route.md`](route.md) holds the handoff. Each unit runs
+`hamilton-propose → plan → code → review → finish-work` and flips its own status on its own branch.
+The map moves to `shipping` when the first unit starts and `shipped` when the last one merges.
 
 ## Not yet specified
 
