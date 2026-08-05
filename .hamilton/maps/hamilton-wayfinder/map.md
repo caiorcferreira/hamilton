@@ -75,6 +75,9 @@ its own fork.
   to `.hamilton/maps/hamilton-wayfinder/research/`, prototypes linked from ticket bodies, domain-modeling
   glossary to `.hamilton/maps/hamilton-wayfinder/glossary.md` with hard decisions in ticket Answers. Map
   gains working glossary section; first route unit is glossary finalization.
+- [Ticket types in the Hamilton fork](tickets/08-ticket-types.md) — All four upstream types survive
+  (`research`, `prototype`, `grilling`, `task`). Type name recorded in YAML frontmatter. Wayfinder keeps
+  strict HITL rule for planning phase; Hamilton's three-tier model applies to SDD execution, not planning.
 
 ## Not yet specified
 
@@ -98,3 +101,7 @@ its own fork.
 - **Porting the rest of the upstream engineering skills** — `to-tickets`, `triage`, `to-spec`,
   `code-review`, `tdd`, `implement`, and the others. Only the three siblings wayfinder actually
   delegates to are in scope.
+- **Prototype skill improvements** — The prototype skill as ported serves wayfinder's needs, but
+  for Hamilton's broader user base, enhancements could include better integration with Hamilton's
+  change-directory model, improved artifacts guidance, and UI/LOGIC branch guidance. This is future
+  work outside the scope of the fork decision.
