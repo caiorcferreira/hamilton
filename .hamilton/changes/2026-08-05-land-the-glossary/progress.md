@@ -47,3 +47,14 @@
 
 ## Review: Task 1 (review fix): Write `.hamilton/specs/glossary.md` — 2026-08-05
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Finish — 2026-08-05
+- Preconditions: tree clean, tests green (`bun --bun vitest run` → 23 passed, 3 files), build
+  green (`bun run build` → exit 0), review approved with no unaddressed blocking items.
+- Specs synced: none. This change's deliverable, `.hamilton/specs/glossary.md`, is itself the
+  canonical artifact — `design.md`'s "no requirements/<capability>.md delta" decision means there
+  is no per-capability delta to distill into a separate canonical spec; the glossary was written
+  directly to its final, canonical location in Task 1.
+- Finished: local-merge into `claude/compassionate-bose-d06f8d` (fast-forward — `land-the-glossary`
+  was 3 commits ahead with no divergence).
+- Workspace: worktree `.claude/worktrees/wayfinder-map/.worktrees/land-the-glossary` removed.
