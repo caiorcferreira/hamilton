@@ -20,6 +20,20 @@ ships it, per
 [Where map artifacts live relative to per-unit worktrees](tickets/13-map-artifacts-and-worktrees.md).
 Between merges this file lags on the default branch; that staleness is accepted, not a defect.
 
+**Every unit that writes or edits a `SKILL.md` is authored against `/writing-great-skills`.** That
+covers units 4, 5, 6 and 7 — five new skills and two edited ones, which is most of what this effort
+ships. Invoke it **explicitly**: it is `disable-model-invocation: true`, so no agent reaches for it on
+its own and no other skill can pull it in. Read it before drafting rather than as a review pass —
+its structural levers (invocation mode, description shape, what earns a place in the body versus
+`references/`) are expensive to retrofit once a long skill exists.
+
+One boundary on that, because two decisions collide here.
+[Which siblings to port](tickets/07-which-siblings-to-port.md) requires the ports be **verbatim, not
+trimmed**, and that governs. Craft guidance does not license rewriting upstream prose to taste. It
+applies to the **adaptation surface** — frontmatter, description, invocation mode, naming, the
+provenance line, and the re-homed paths — which is where these forks make their own choices. Where
+you think upstream's body itself is weak, note it for a later effort rather than fixing it in a port.
+
 ## Units
 
 ### 1. Land the glossary
@@ -99,6 +113,13 @@ Ships with its sibling `NOTICE` and the one-line provenance pointer in `SKILL.md
 Standalone, not under the `hamilton-wayfinder-*` prefix — ticket 07 placed dialogue at the Hamilton
 level because propose and critique use it too.
 
+**Craft focus: invocation mode.** Per the preamble, author against `/writing-great-skills`. Here the
+decision it forces is sharp — grilling must be reachable by *other skills*, since units 6, 7 and 8 all
+call it. That rules out `disable-model-invocation: true`, which strips a skill from other skills'
+reach as well as the agent's. So grilling is model-invoked and pays permanent context load for its
+description, which in turn means the description needs the harder pruning that guidance describes:
+triggers only, one per branch, no identity already stated in the body.
+
 ### 5. Port the three wayfinder siblings
 
 Status: pending
@@ -118,6 +139,15 @@ context pointer re-hung from an issue onto a ticket body. `domain-modeling` carr
 it drops upstream's root `CONTEXT.md` and numbered `docs/adr/` — the parallel durable-truth system
 ticket 02 flagged — in favour of a working glossary under the map and hard decisions recorded in
 ticket Answers.
+
+**Craft focus: invocation mode and the prefix.** Per the preamble, author against
+`/writing-great-skills`, holding the verbatim-port rule. Two choices here are genuinely open. These
+three are **wayfinder's internals** — ticket 07 says "not standalone, not discoverable elsewhere" —
+which reads as user-invoked, except that wayfinder itself has to reach them, and only a model-invoked
+skill can be reached by another skill. Settle that in the proposal; it decides whether three
+descriptions sit in the context window every turn. Second, the `hamilton-wayfinder-*` prefix is doing
+router-like work — grouping skills under one umbrella so the family is legible — and that guidance has
+things to say about how a router names what it points at.
 
 ### 6. Author hamilton-wayfinder
 
@@ -144,19 +174,18 @@ ordinary repo content, versioned and branched like source, per ticket 13.
 All four ticket types survive. Wayfinder keeps the strict HITL rule for planning; Hamilton's
 three-tier attendance model governs SDD execution, not this stage.
 
-**Author this against `/writing-great-skills`.** This unit writes a `SKILL.md` from scratch — the
-longest and most-invoked one in the repo — so the quality bar is the skill-writing craft itself, not
-just whether the decisions are faithfully transcribed. Its guidance on predictability as the root
-virtue, on the information hierarchy, and on pruning context load applies directly to the choices this
-unit makes: what goes in the body versus `references/`, how the `## Map mechanics` boundary is drawn,
-how much of the fog-of-war explanation a session actually needs loaded every turn.
+**Craft focus: this is the one written from scratch.** Per the preamble, author against
+`/writing-great-skills` — and here it carries the most weight, because nothing upstream constrains the
+shape and the result is the longest, most-invoked skill in the repo. The bar is the craft itself, not
+just faithful transcription of thirteen decisions.
 
-Invoke it **explicitly** — it is `disable-model-invocation: true`, so no agent will reach for it on
-its own. Read it before drafting rather than as a review pass afterwards; several of its levers
-(invocation mode, description shape, what earns a place in the body) are structural and expensive to
-retrofit. Wayfinder's own invocation mode is one of them: it is user-invoked upstream, and whether
-Hamilton keeps that or lets the agent fire it autonomously is a real decision for the proposal, with
-a context-load cost either way.
+Three choices it bears on directly. **Body versus `references/`** — wayfinder's explanatory material
+is what makes it usable and is also pure context load every turn; that trade is the information
+hierarchy question. **The `## Map mechanics` boundary** — pluggability is only real if the section is
+genuinely isolated, which is a structural-clarity problem before it is a documentation one. **Invocation
+mode** — wayfinder is user-invoked upstream, and whether Hamilton keeps that or lets the agent fire it
+autonomously is an open decision for the proposal, costed either way. Note it interacts with unit 5:
+if the siblings must be reachable by this skill, they cannot be user-invoked.
 
 Depends on the four units before it so that every reference it makes — to templates, to grilling, to
 its siblings — resolves on the branch it lands on.
@@ -180,6 +209,15 @@ Attendance is guarded at each call site: attended invokes grilling, unattended f
 behaviour both skills already document. Grilling itself never gains an unattended mode.
 
 No test coverage needed — `skills/` is not bundled and no test asserts on skill content.
+
+**Craft focus: what the deletions leave behind.** Per the preamble, author against
+`/writing-great-skills`. This unit edits two of the repo's most-invoked skills, and its main move is
+*removal* — propose's inline one-at-a-time dialogue comes out at three separate steps. Removal is
+where skills rot: leftover half-instructions, a step that now reads as a non-sequitur, duplication
+between what propose still says about dialogue and what grilling now owns. Since ticket 12 fixed the
+boundary at "grilling owns the protocol, callers own question content and the exit condition", every
+protocol sentence left in propose after this edit is duplication and should go. Read the edited steps
+end-to-end afterwards, not just the diff.
 
 ### 8. Teach propose to read a route
 
