@@ -22,3 +22,44 @@ or CLI commands must include corresponding documentation updates.
 3. **Use the existing format.** Tables, code blocks, and section structures in each doc file are consistent -- follow them.
 4. **Update the README.** If a change affects the quick-start flow or what the CLI does, update `README.md`.
 5. **No stale content.** When deprecating or removing a feature, remove its documentation in the same changeset. Do not leave `(deprecated)` notes -- cut cleanly.
+
+## Licensing and attribution
+
+Hamilton is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file, and its `SKILL.md` carries a one-line provenance pointer naming the upstream skill, its licence, and that `NOTICE`.
+
+The licence text must appear in the sibling `NOTICE` rather than in `references/`, which in this repo means content the agent is expected to read and brings into context on every skill invocation. The same text must not be repeated in the `SKILL.md` body, which is a context cost paid on every skill load.
+
+### Per-skill NOTICE template
+
+When forking a skill, create a `NOTICE` file in the skill directory by copying the template below, substituting the upstream skill and project names, and placing it at `skills/<skill>/NOTICE`:
+
+```
+This skill is adapted from the "<upstream skill name>" skill in
+<upstream project> (<upstream project URL>), used under the MIT License.
+Modifications and additions are Copyright 2026 Caio Ferreira, licensed
+under the Apache License, Version 2.0.
+
+Original work:
+
+  MIT License
+  
+  Copyright (c) 2026 Matt Pocock
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+```
