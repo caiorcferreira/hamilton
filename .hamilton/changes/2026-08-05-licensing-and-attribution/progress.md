@@ -39,3 +39,13 @@
   - Deleted: none
 - Verified: `tail -8 README.md` → shows the `## License` section with links to both `[LICENSE](LICENSE)` and `[NOTICE](NOTICE)`, no prose describing origin of wayfinder skills
 - Notes: review flagged the clause "and in a `NOTICE` file beside each forked skill directory" as asserting directories that have not shipped (design.md: "nothing asserts the existence of a directory that has not shipped"). Escalated as a plan-mandated finding — plan Task 4 Step 2 prescribes that wording. User ruled the plan governs: the clause states the repo's convention rather than an inventory, and matches the parallel sentence in the already-approved root `NOTICE`. Kept as written; no re-dispatch.
+
+## Task 5: Write the forked-skill attribution rule into CONTRIBUTING.md — 2026-08-05
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `CONTRIBUTING.md`
+  - Deleted: none
+- Verified: MIT text diff (empty) — template's MIT text is byte-identical to root `NOTICE`'s
+- Notes: none
