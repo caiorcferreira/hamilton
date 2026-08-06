@@ -49,3 +49,13 @@
   - Deleted: none
 - Verified: MIT text diff (empty) — template's MIT text is byte-identical to root `NOTICE`'s
 - Notes: none
+
+## Task 6: Flip unit 2 to shipped in the route — 2026-08-05
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/maps/hamilton-wayfinder/route.md`
+  - Deleted: none
+- Verified: `git diff --stat .hamilton/maps/hamilton-wayfinder/route.md` → 1 insertion, 1 deletion
+- Notes: none

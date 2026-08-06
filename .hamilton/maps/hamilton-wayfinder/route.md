@@ -59,7 +59,7 @@ finalizing it independently keeps it out of feature work.
 
 ### 2. Adopt Apache 2.0 and the attribution convention
 
-Status: pending
+Status: shipped
 Depends on: —
 Backed by: [Fork attribution and licensing](tickets/03-fork-attribution.md)
 
