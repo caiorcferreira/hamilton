@@ -59,3 +59,13 @@
   - Deleted: none
 - Verified: `git diff --stat .hamilton/maps/hamilton-wayfinder/route.md` → 1 insertion, 1 deletion
 - Notes: none
+
+## Review fix: whole-branch review — 2026-08-05
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `CONTRIBUTING.md`
+  - Deleted: none
+- Verified: `diff <(sed -n '/^  MIT License$/,/SOFTWARE\.$/p' NOTICE) <(sed -n '/^  MIT License$/,/SOFTWARE\.$/p' CONTRIBUTING.md)` → no output; `bun run test` passed 23 tests; `bun run build` completed with no errors
+- Notes: applied the one non-blocking finding from the whole-branch review — "read and brings into context" → "read and bring into context" (line 30). No other change.
