@@ -18,6 +18,8 @@ const TEMPLATE_FILES = [
   "review.md"
 ]
 
+const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md"]
+
 describe("setupHamilton", () => {
   let tmpHome: string
   const originalHome = process.env.HOME
@@ -48,6 +50,16 @@ describe("setupHamilton", () => {
 
     const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
     for (const file of TEMPLATE_FILES) {
+      expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true)
+    }
+  })
+
+  it("copies wayfinder artifact templates", async () => {
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
+    for (const file of WAYFINDER_TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true)
     }
   })
