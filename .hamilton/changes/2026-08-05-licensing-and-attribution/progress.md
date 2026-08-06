@@ -29,3 +29,13 @@
   - Deleted: none
 - Verified: `node -e 'const p=require("./package.json"); if(p.license!=="Apache-2.0"||p.private!==true) process.exit(1); console.log("ok")'` → ok
 - Notes: none
+
+## Task 4: State the licence in the README — 2026-08-05
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `README.md`
+  - Deleted: none
+- Verified: `tail -8 README.md` → shows the `## License` section with links to both `[LICENSE](LICENSE)` and `[NOTICE](NOTICE)`, no prose describing origin of wayfinder skills
+- Notes: none

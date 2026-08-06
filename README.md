@@ -134,3 +134,7 @@ bun run purge                  # remove the CLI symlink and ~/.hamilton/
 
 **Do NOT use `bun test`** — use `bun run test` which uses the native runner (the fallback lacks `vi.mocked()`). See
 [AGENTS.md](AGENTS.md) for conventions and [CONTRIBUTING.md](CONTRIBUTING.md) for the docs-sync rules.
+
+## License
+
+Hamilton is licensed under the [Apache License 2.0](LICENSE). Some skills in this repository are adapted from other projects; their original licences are reproduced in [NOTICE](NOTICE) and in a `NOTICE` file beside each forked skill directory.
