@@ -69,3 +69,11 @@
   - Deleted: none
 - Verified: `diff <(sed -n '/^  MIT License$/,/SOFTWARE\.$/p' NOTICE) <(sed -n '/^  MIT License$/,/SOFTWARE\.$/p' CONTRIBUTING.md)` → no output; `bun run test` passed 23 tests; `bun run build` completed with no errors
 - Notes: applied the one non-blocking finding from the whole-branch review — "read and brings into context" → "read and bring into context" (line 30). No other change.
+
+## Finish — 2026-08-05
+
+- Preconditions: tree clean; `bun run test` → 23 passed (3 files); `bun run build` clean; all six tasks recorded `Outcome: done`. **`review.md` was absent** — the per-task and whole-branch reviews ran as orchestrated subagents that returned verdicts to the controller without persisting the artifact, so no durable verdict existed to read. Rather than treat the missing file as an approval, the gate's substantive properties were re-verified directly at finish time: the MIT permission text in `NOTICE` diffs clean against a fresh fetch of upstream's own `LICENSE`, the `CONTRIBUTING.md` template's copy diffs clean against `NOTICE`, the branch touches no file under `src/` or `tests/`, `package.json` parses with `license: Apache-2.0` and `private: true` intact, and unit 2's route status reads `shipped`.
+- Specs synced: created `.hamilton/specs/licensing.md` — distilled from `requirements/licensing.md`, `design.md`, and `proposal.md` into the canonical Overview / Contract / Behavior / Invariants / Decisions skeleton.
+- Finished: local-merge into `claude/compassionate-bose-d06f8d`
+- Workspace: worktree `.worktrees/licensing-and-attribution` removed
+
