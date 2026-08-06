@@ -25,6 +25,22 @@ Every downstream skill therefore degrades gracefully — it consumes the richer
 upstream artifact when present, and otherwise works from the raw change
 description. This is what makes "start anywhere" real.
 
+## Wayfinder templates
+
+These templates support wayfinding—the optional pre-change stage that clarifies a change's
+shape before committing to the SDD loop. They are not SDD pipeline artifacts.
+
+| Template          | Artifact         | Produced by      |
+|-------------------|------------------|------------------|
+| `wayfinder/map.md`       | Map              | hamilton-wayfinder |
+| `wayfinder/ticket.md`    | Decision ticket  | hamilton-wayfinder |
+| `wayfinder/route.md`     | Route            | hamilton-wayfinder |
+
+The artifacts these templates produce live under `.hamilton/maps/<effort>/`: `map.md` and
+`route.md` at the root, and decision tickets at `tickets/NN-slug.md`. Unlike `specs/` and
+`changes/`, the `.hamilton/maps/` directory is not scaffolded by `hamilton-init`; the
+wayfinder skill creates it on first use.
+
 ## Where these templates live
 
 These templates are global, not per-project. They are bundled here in `bundle/templates/`

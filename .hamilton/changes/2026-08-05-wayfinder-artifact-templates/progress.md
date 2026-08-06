@@ -51,3 +51,13 @@
 
 ## Review: Land the wayfinder artifact templates, Task 4 — 2026-08-06
 - Verdict: approved — see review.md
+
+## Task 5: Document the wayfinder template set — 2026-08-06
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `bundle/templates/README.md`, `CONTRIBUTING.md`
+  - Deleted: none
+- Verified: `bun run test` → 24/24 tests passing (3 files); `bun run build` → clean, no typecheck errors; `git status` → only CONTRIBUTING.md and bundle/templates/README.md modified, no files under docs/ touched
+- Notes: Added "## Wayfinder templates" section to bundle/templates/README.md immediately before "## Where these templates live", naming all three templates with production artifacts and stating they live under .hamilton/maps/<effort>/. Section clarifies this is the optional pre-change wayfinding stage, distinct from SDD pipeline. Added routing row to CONTRIBUTING.md mapping table directly below existing bundle/templates/ row. Existing SDD table and tree diagram in README.md left completely unchanged. No maps/ directory added to existing tree per plan constraints.
