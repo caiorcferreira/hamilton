@@ -18,7 +18,7 @@ const TEMPLATE_FILES = [
   "review.md"
 ]
 
-const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md"]
+const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md", "wayfinder/route.md"]
 
 describe("setupHamilton", () => {
   let tmpHome: string
