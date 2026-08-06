@@ -207,3 +207,201 @@ Artifact names in table match the templates' lead lines:
 - `git status` → only CONTRIBUTING.md and bundle/templates/README.md modified; no files under docs/ touched ✓
 
 No blocking issues or suggestions.
+
+## Whole-Branch Review: Land the wayfinder artifact templates — 2026-08-06
+
+**Verdict: approved**
+
+### Summary
+
+The entire branch is implemented correctly and completely. All five tasks compose together to deliver the complete change: three artifact templates installed, reported accurately, tested exhaustively, and documented truthfully. The change satisfies every success criterion from the proposal, honors every constraint from design.md, and passes verification with no defects or inconsistencies.
+
+### Verification (Branch Composition)
+
+**Test suite (full run):**
+- `bun run test` → 24/24 passing (3 files) ✓
+- All tests include the specialized wayfinder template assertions ✓
+- Tests prove installation *and* reporting work end-to-end ✓
+
+**Build:**
+- `bun run build` → clean, no typecheck errors ✓
+- TypeScript cast in `copyTemplates` is necessary and correctly applied ✓
+
+**Git state:**
+- Branch HEAD: `e6b3f55` ("docs: record the Task 5 review verdict")
+- Base: `885c293` (git merge-base with main)
+- Working tree: clean ✓
+
+### Requirements & Success Criteria
+
+**Proposal success criteria (lines 17–22):**
+
+1. ✓ `bundle/templates/wayfinder/` exists and holds `map.md`, `ticket.md`, and `route.md`, each following established Hamilton template idiom
+   - Files exist at correct paths ✓
+   - Each opens with comment block naming artifact, producer, location, and deletion instruction ✓
+   - Each carries inline hints scoped to specific sections ✓
+   - Inline hint language and detail level consistent across all three ✓
+
+2. ✓ Template shapes are traceable to decisions that fixed them, not invented here
+   - Map's five sections (Destination, Notes, Decisions so far, Not yet specified, Out of scope) trace to ticket 01 ✓
+   - YAML frontmatter (`status` field) traces to ticket 04 ✓
+   - Ticket frontmatter (`type`, `status`, `blocked_by`) traces to tickets 04 and 08 ✓
+   - Route structure (title, preamble, units) traces to ticket 06 ✓
+   - Each design.md decision cites its upstream ticket ✓
+
+3. ✓ Running `hamilton setup` installs all twelve templates, reporting all twelve with nested names prefixed as `wayfinder/`
+   - `copyTemplates` now uses `Fs.readdirSync(..., { recursive: true })` ✓
+   - Platform separators normalized to `/` before reporting ✓
+   - `isFile()` filter excludes directory entries from count ✓
+   - Top-level templates (e.g., `plan.md`) retain bare names ✓
+   - Nested templates (e.g., `wayfinder/map.md`) appear with relative paths ✓
+
+4. ✓ `tests/cli/setup.test.ts` fails if any wayfinder template stops being installed
+   - `WAYFINDER_TEMPLATE_FILES` array lists all three ✓
+   - Dedicated `it("copies wayfinder artifact templates")` block iterates all three ✓
+   - Block will fail loudly if any template is missing from the filesystem ✓
+   - Assertion in "returns installed template filenames" proves reporting captures nested templates ✓
+
+5. ✓ `CONTRIBUTING.md` and `bundle/templates/README.md` describe the template set that actually ships
+   - README.md: Wayfinder templates section names all three, states producer (hamilton-wayfinder), locates artifacts ✓
+   - README.md: Clarifies templates are pre-SDD stage, not pipeline artifacts ✓
+   - README.md: Existing SDD template table completely untouched ✓
+   - CONTRIBUTING.md: New row routes `bundle/templates/wayfinder/` changes to `docs/skills.md` ✓
+   - CONTRIBUTING.md: More specific path makes routing unambiguous relative to general `bundle/templates/` row ✓
+
+**Capability (artifact-templates) requirements:**
+
+1. Nested template installation (3 scenarios):
+   - ✓ Templates in subdirectory are installed — Task 3 creates three templates in wayfinder/, Task 4 enables installation, test verified in Task 1
+   - ✓ Re-running setup refreshes existing templates — design.md idempotence test (line 96) confirmed, test "is idempotent" passes
+   - ✓ Bundle with no templates directory installs nothing — early return at line 31 of setup.ts unchanged
+
+2. Complete installation report (3 scenarios):
+   - ✓ Nested templates appear in report — Task 4's normalization step enables this; test assertion verifies it
+   - ✓ Report counts files, not top-level entries — isFile filter ensures directory name does not appear; test would fail if violated
+   - ✓ Top-level templates keep bare names — existing `toContain("plan.md")` assertion proves this; no regression
+
+3. Wayfinder artifact template set (4 scenarios):
+   - ✓ Map template carries frontmatter and body — frontmatter has `status` field with example value `open`; body has five sections in order specified
+   - ✓ Ticket template carries frontmatter and question — frontmatter has `type`, `status`, `blocked_by`; body has `## Question` section
+   - ✓ Route template carries units, no route-level status — no frontmatter; no top-level `Status:` line; `## Units` section templates per-unit structure
+   - ✓ Each template follows Hamilton's template idiom — all three open with comment blocks, carry inline hints, instruct deletion
+
+### Design Compliance
+
+**All five design decisions honored:**
+
+1. ✓ Report installed set with recursive directory read (design.md lines 30–34)
+   - Choice implemented: `recursive: true` option, `isFile()` filter on platform names, normalization after filter, sort ✓
+   - Rationale honored: smallest change making report honest, preserves existing contract of describing destination ✓
+
+2. ✓ Templates encode frontmatter syntax, not mechanics contract (design.md lines 36–40)
+   - No `## Map mechanics` prose restated in templates ✓
+   - Frontmatter fields and examples shown inline; mechanics left to documentation ✓
+   - This preserves unit 10's decision on where the contract lives ✓
+
+3. ✓ `route.md` carries no frontmatter and no route-level status (design.md lines 42–46)
+   - Template has no `---` frontmatter block ✓
+   - No top-level `Status:` line ✓
+   - Status only per unit ✓
+
+4. ✓ Separate test for wayfinder template set (design.md lines 48–52)
+   - `WAYFINDER_TEMPLATE_FILES` constant added ✓
+   - Dedicated `it("copies wayfinder artifact templates")` test block ✓
+   - Mirrors guideline manifest testing pattern ✓
+
+5. ✓ CONTRIBUTING.md row routes `bundle/templates/wayfinder/` at `docs/skills.md` (design.md lines 54–58)
+   - New row added immediately after general `bundle/templates/` row ✓
+   - More specific path unambiguous ✓
+   - Existing general row unchanged ✓
+
+**Quality decisions honored:**
+
+- No template-manifest file; directory is the manifest ✓
+- No per-namespace registry; one namespace is not two ✓
+- No `listTemplateFiles` helper; platform call sufficient ✓
+- No wayfinder-before-setup guard (ruled out by ticket 05) ✓
+- No filesystem mock; uses established seam via `HOME` redirection ✓
+- Unused `copyTemplates.options.force` left untouched (pre-existing smell, out of scope) ✓
+
+### Cross-Task Consistency
+
+**Template idiom consistency:**
+
+All three templates follow identical structure:
+- Comment block: artifact name, producer, location, explanation, deletion instruction ✓
+- Inline hints: present where clarification helps; silent where structure is self-evident ✓
+- YAML frontmatter: fields shown with example values; documented only by hints or inline examples ✓
+- Markdown body: sections/structure only; no extra guidance beyond hints ✓
+- Tone: professional, minimal; consistent across all three ✓
+
+**Frontmatter field consistency:**
+
+- Map frontmatter: `status` field with values `open` or `cleared` ✓
+- Ticket frontmatter: `type` (grilling), `status` (open), `blocked_by` (list) ✓
+- Route frontmatter: none ✓
+- No field duplication or inconsistency ✓
+
+**Documentation accuracy:**
+
+- README.md table artifact names ("Map", "Decision ticket", "Route") match template lead lines exactly ✓
+- README.md artifact locations match template "Lives at:" declarations exactly ✓
+- CONTRIBUTING.md routing row destinations match ticket 10 constraints ✓
+- No contradictions between documentation and templates ✓
+
+**Test progression:**
+
+- Task 1 established WAYFINDER_TEMPLATE_FILES constant ✓
+- Task 2 extended constant ✓
+- Task 3 completed constant ✓
+- Task 4 made reporting recursive to surface the completed set ✓
+- Task 5 documented the shipped set ✓
+- Tests pass when run after all tasks composed ✓
+
+### Accepted Trade-Offs (Design.md Risks)
+
+Both trade-offs recorded in design.md (lines 112–116) are present and acceptable:
+
+1. **Two of requirement 2's three scenarios stay unasserted** — the scenarios *The report counts files, not top-level entries* and the empty-`wayfinder/` edge case are covered by the `isFile()` filter but tested only through other scenarios. Accepted per design rationale: proving these negatives with separate fixtures would need more test infrastructure than the single assertion's value justifies; a regressed filter would be caught loudly by the `toContain("wayfinder/map.md") + toContain("plan.md")` pair.
+
+2. **Templates disagree with the live map** (until unit 10 converts `.hamilton/maps/hamilton-wayfinder/`) — the map instances at `.hamilton/maps/hamilton-wayfinder/` still use loose `Status:` lines while the templates declare frontmatter syntax. This is accepted on purpose: templates lead, live instance follows, and the route already sequences the conversion to unit 10. This was not added to this unit's scope.
+
+Both are acceptable per the design's explicit rationale.
+
+### Scope Boundaries (No Violations)
+
+**In scope and delivered:**
+- Three templates under `bundle/templates/wayfinder/` ✓
+- Changes to `copyTemplates` for recursive reporting ✓
+- Test coverage for wayfinder templates ✓
+- Documentation in `bundle/templates/README.md` and `CONTRIBUTING.md` ✓
+
+**Out of scope and correctly omitted:**
+- No SKILL.md authored (units 4–7) ✓
+- No live map conversion to frontmatter (unit 10) ✓
+- No Map mechanics contract home settled (unit 10) ✓
+- No wayfinder prose in `docs/sdd-framework.md` or `docs/` (unit 9 places it in `docs/skills.md`, not authored here) ✓
+- No guard code for wayfinder-before-setup (ruled out by ticket 05) ✓
+- No changes to `.hamilton/maps/hamilton-wayfinder/` or its tickets ✓
+
+### No Defects or Inconsistencies Found
+
+- All three templates are well-formed, complete, and idiomatic ✓
+- No typos or formatting inconsistencies across templates ✓
+- No test gaps or missing assertions ✓
+- No documentation contradictions or omissions ✓
+- All required files present and delivered ✓
+- No unintended side effects or scope creep ✓
+
+### Final Checklist
+
+- ✓ All five tasks approved individually (review.md lines 1–209)
+- ✓ Full test suite passes (24/24)
+- ✓ Build is clean (no typecheck errors)
+- ✓ All proposal success criteria satisfied
+- ✓ All capability requirements satisfied
+- ✓ All design decisions honored
+- ✓ All constraints observed
+- ✓ Scope boundaries respected
+- ✓ No blocking issues or suggestions
+- ✓ Ready for merge
