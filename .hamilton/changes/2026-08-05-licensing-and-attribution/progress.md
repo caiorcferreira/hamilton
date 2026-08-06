@@ -38,4 +38,4 @@
   - Modified: `README.md`
   - Deleted: none
 - Verified: `tail -8 README.md` → shows the `## License` section with links to both `[LICENSE](LICENSE)` and `[NOTICE](NOTICE)`, no prose describing origin of wayfinder skills
-- Notes: none
+- Notes: review flagged the clause "and in a `NOTICE` file beside each forked skill directory" as asserting directories that have not shipped (design.md: "nothing asserts the existence of a directory that has not shipped"). Escalated as a plan-mandated finding — plan Task 4 Step 2 prescribes that wording. User ruled the plan governs: the clause states the repo's convention rather than an inventory, and matches the parallel sentence in the already-approved root `NOTICE`. Kept as written; no re-dispatch.
