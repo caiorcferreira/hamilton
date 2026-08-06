@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "type": "module",
   "private": true,
+  "license": "Apache-2.0",
   "bin": {
     "hamilton": "dist/cli/main.js"
   },

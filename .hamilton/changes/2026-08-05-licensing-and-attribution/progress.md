@@ -19,3 +19,13 @@
   - Deleted: none
 - Verified: MIT text diff (empty), copyright line count: 1
 - Notes: MIT text is byte-identical to upstream source after 2-space indent removal; NOTICE file structure complete with Hamilton copyright and mattpocock/skills attribution
+
+## Task 3: Declare the licence in package.json — 2026-08-05
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `package.json`
+  - Deleted: none
+- Verified: `node -e 'const p=require("./package.json"); if(p.license!=="Apache-2.0"||p.private!==true) process.exit(1); console.log("ok")'` → ok
+- Notes: none
