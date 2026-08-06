@@ -131,3 +131,79 @@ Task 4 is implemented correctly and completely. The `copyTemplates` return expre
 - No dependencies between Task 4 and Task 5 (both depend on Task 3); Task 4's code changes are fully independent of template content ✓
 
 No blocking issues or suggestions.
+
+## Review: Land the wayfinder artifact templates, Task 5 — 2026-08-06
+
+Verdict: approved
+
+### Summary
+
+Task 5 is implemented correctly and completely. The documentation prose in `bundle/templates/README.md` and `CONTRIBUTING.md` accurately describes what actually ships: the three wayfinder templates and the artifacts they produce, with correct locations specified in each template's comment block. All acceptance criteria are met, constraints honored, and scope boundaries observed.
+
+### Verification
+
+**Prose accuracy against shipped templates:**
+
+The three template files each declare where their artifacts live via a "Lives at:" line in the comment block:
+- `bundle/templates/wayfinder/map.md` → "Lives at: .hamilton/maps/<effort>/map.md"
+- `bundle/templates/wayfinder/ticket.md` → "Lives at: .hamilton/maps/<effort>/tickets/NN-slug.md"
+- `bundle/templates/wayfinder/route.md` → "Lives at: .hamilton/maps/<effort>/route.md"
+
+README.md prose states: "The artifacts these templates produce live under `.hamilton/maps/<effort>/`: `map.md` and `route.md` at the root, and decision tickets at `tickets/NN-slug.md`."
+
+Mapping: "at the root" correctly describes the root-level paths (map.md, route.md); "at `tickets/NN-slug.md`" correctly describes the nested ticket path. ✓
+
+**Template production attribution:**
+
+All three templates declare "Produced by: hamilton-wayfinder" in their comment blocks.
+
+README.md table shows:
+- `wayfinder/map.md` | Map | hamilton-wayfinder
+- `wayfinder/ticket.md` | Decision ticket | hamilton-wayfinder
+- `wayfinder/route.md` | Route | hamilton-wayfinder
+
+All match the templates' declarations. ✓
+
+Artifact names in table match the templates' lead lines:
+- "Map" matches "Map — the shared chart for one wayfinding effort"
+- "Decision ticket" matches "Decision ticket — one question whose resolution is a decision"
+- "Route" matches "Route — the handoff from a cleared map to the SDD loop"
+
+✓
+
+**Acceptance criteria met:**
+
+1. ✓ `bundle/templates/README.md` names all three wayfinder templates with production artifacts — table includes all three, all show hamilton-wayfinder as producer
+2. ✓ README states their artifacts live under `.hamilton/maps/<effort>/` — prose section explicitly states this with per-artifact locations
+3. ✓ README clarifies this is optional pre-change stage — "These templates support wayfinding—the optional pre-change stage..."
+4. ✓ README states not SDD pipeline artifacts — "They are not SDD pipeline artifacts"
+5. ✓ CONTRIBUTING.md adds routing row for `bundle/templates/wayfinder/` → `docs/skills.md` — row 15, positioned directly below existing `bundle/templates/` row (line 14)
+6. ✓ More specific path serves as exception to general pattern — design.md rationale (line 58) honored: "the more specific path makes the intended match unambiguous"
+7. ✓ No files under `docs/` are modified — diff shows only CONTRIBUTING.md, bundle/templates/README.md, and progress.md
+8. ✓ Existing SDD template table (7 templates, 5 columns) completely unchanged — lines 6–14 untouched
+9. ✓ Existing `.hamilton/` tree diagram unchanged — lines 55–67 untouched, no `maps/` directory added
+
+**Scope and boundaries:**
+
+- ✓ New "## Wayfinder templates" section inserted immediately before "## Where these templates live" (line 28 before line 44) — matches plan requirement exactly
+- ✓ "These templates are global" intro paragraph (lines 45–48) now applies to both SDD and wayfinder sets — plan constraint (line 228: "so the 'these templates are global' paragraph that follows covers the wayfinder set too")
+- ✓ No changes to files outside scope — only bundle/templates/README.md and CONTRIBUTING.md modified as intended
+- ✓ Progress.md updated with Task 5 completion entry — expected and correct
+
+**Design compliance:**
+
+- Decision: "The new `CONTRIBUTING.md` row routes `bundle/templates/wayfinder/` at `docs/skills.md`" (design.md lines 54–58) — implemented: row 15 does exactly this ✓
+- Rationale: "the more specific path makes the intended match unambiguous" — the wayfinder row (line 15) is more specific than the general templates row (line 14), so routing is unambiguous ✓
+- Non-goal: "Any wayfinder prose in `docs/` — unit 9" (design.md line 25) — no docs/ files modified ✓
+
+**Requirements compliance:**
+
+- Requirement: *Wayfinder artifact template set*, scenario *Each template follows Hamilton's template idiom* (requirements line 74–76) — all three templates carry comment blocks naming artifact, producer, and location; README.md prose correctly reflects this ✓
+
+**Test and build status:**
+
+- `bun run test` → 24/24 passing (3 files) ✓
+- `bun run build` → clean, no typecheck errors ✓
+- `git status` → only CONTRIBUTING.md and bundle/templates/README.md modified; no files under docs/ touched ✓
+
+No blocking issues or suggestions.
