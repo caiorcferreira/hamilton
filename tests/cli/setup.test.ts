@@ -78,6 +78,7 @@ describe("setupHamilton", () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toContain("plan.md")
+      expect(exit.value).toContain("wayfinder/map.md")
       expect(exit.value.length).toBeGreaterThan(0)
     } else {
       expect.unreachable("Expected success")

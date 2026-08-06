@@ -38,8 +38,9 @@ function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effec
         new SetupError({ message: `Failed to copy templates: ${String(e)}` })
     })
 
-    return Fs.readdirSync(destTemplates)
+    return (Fs.readdirSync(destTemplates, { recursive: true }) as string[])
       .filter((name) => Fs.statSync(Path.join(destTemplates, name)).isFile())
+      .map((name) => name.split(Path.sep).join("/"))
       .sort()
   })
 }
