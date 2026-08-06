@@ -66,3 +66,68 @@ Task 3 is implemented correctly and completely. The wayfinder route template fol
 - Task 1 test "copies wayfinder artifact templates" now covers all three templates via the completed array. ✓
 
 No blocking issues or suggestions.
+
+## Review: Land the wayfinder artifact templates, Task 4 — 2026-08-06
+
+Verdict: approved
+
+## Summary
+
+Task 4 is implemented correctly and completely. The `copyTemplates` return expression is refactored exactly as specified to support nested template reporting, the test assertion is meaningful and will catch regressions, and all acceptance criteria are met. The code is verified passing by a full suite run with no typecheck errors. All constraints are honored.
+
+**Verified:**
+
+- **Return expression logic matches plan exactly** (plan step 3, lines 203–208): The three operations (`filter(isFile)`, `map(normalize)`, `sort()`) execute in the correct order with correct semantics.
+  - `Fs.readdirSync(destTemplates, { recursive: true })` with `{ recursive: true }` option ✓
+  - `.filter((name) => Fs.statSync(Path.join(destTemplates, name)).isFile())` still runs on platform-separator names, so `Path.join` resolves correctly ✓
+  - `.map((name) => name.split(Path.sep).join("/"))` normalizes each path to `/` separators after filtering ✓
+  - `.sort()` orders the normalized strings for stable output across platforms ✓
+  - TypeScript cast `as string[]` (added for type safety) is functionally transparent and necessary for build to pass; documented in progress notes ✓
+
+- **Test assertion quality:** `expect(exit.value).toContain("wayfinder/map.md")` added to `it("returns installed template filenames")`
+  - **Would fail if regressed to flat read** — removing `{ recursive: true }` returns only top-level files, so nested `wayfinder/map.md` would be missing ✓
+  - **Would fail if normalization was removed** — platform-specific separators (`wayfinder\map.md` on Windows) would not match the expected `wayfinder/map.md` ✓
+  - Works in conjunction with existing `expect(exit.value).toContain("plan.md")` assertion, which proves top-level templates retain bare names (the `split().join()` normalization does not affect files with no `Path.sep`) ✓
+
+- **All acceptance criteria met:**
+  1. `setupHamilton` returns wayfinder templates in installed list, named by path relative to templates root with `/` separators — ✓ Normalization step ensures this
+  2. Top-level templates keep bare names with no prefix — ✓ Unchanged existing assertion `toContain("plan.md")` still passes
+  3. Directory entries excluded from report — ✓ `isFile()` filter unchanged and still present
+  4. Bundle with no `templates` directory succeeds and reports nothing — ✓ Early return (line 46) unchanged
+  5. Nothing else in `copyTemplates` changes; unused `options?: { force?: boolean }` parameter preserved exactly — ✓ Parameter still present, unused, untouched per design constraint (plan line 195, design.md line 81)
+
+- **Code quality:**
+  - Function maintains single responsibility: copy templates and report installation ✓
+  - No new dependencies or external coupling ✓
+  - Existing testable seams unchanged (tests via HOME redirection and HAMILTON_BUNDLE_DIR) ✓
+  - No unnecessary abstractions or helpers added ✓
+  - No code comments (per AGENTS.md) ✓
+  - Linear pipeline fits on screen; no excess complexity ✓
+
+- **Scope adherence:**
+  - Only files modified: `src/cli/commands/setup.ts`, `tests/cli/setup.test.ts`, `progress.md` (expected) ✓
+  - No changes to `.hamilton/maps/hamilton-wayfinder/`, no SKILL.md edits, no wayfinder prose in `docs/` ✓
+  - No stubs, debug output, or commented-out code ✓
+
+- **Test results:** `bun --bun vitest run tests/cli/setup.test.ts` → 12/12 passing; `bun run test` → 24/24 passing; `bun run build` → clean, no typecheck errors ✓
+
+**Design compliance:**
+
+- Decision: "Report the installed set with a recursive directory read" (design.md lines 30–34) — implementation matches the chosen alternative: recursive read, `isFile` filter on native-separator names, normalization after filter and before sort. ✓
+- Rationale: "smallest change that makes the report honest, and it preserves the function's existing contract of describing the destination." Implementation honors this: only the return value's shape changes (now includes nested paths), not the function's purpose or interface. ✓
+- "Separator normalization matters because Hamilton ships cross-platform binaries and the reported name should match the path a skill would cite" — implementation uses `name.split(Path.sep).join("/")` exactly for this purpose. ✓
+
+**Requirements compliance:**
+
+- Requirement: *Complete installation report*, scenario *Nested templates appear in the report* — nested templates now reported with paths relative to templates root ✓
+- Requirement: *Complete installation report*, scenario *Top-level templates keep their bare names* — existing assertion proves this ✓
+- Requirement: *Complete installation report*, scenario *The report counts files, not top-level entries* — `isFile()` filter excludes directory entries ✓
+- Requirement: *Nested template installation*, scenario *A bundle with no templates directory installs nothing* — early return unchanged ✓
+
+**Relationship to prior tasks:**
+
+- Tasks 1–3 installed three nested templates into `bundle/templates/wayfinder/`; Task 4 enables the report to surface them ✓
+- The `WAYFINDER_TEMPLATE_FILES` constant built by Tasks 1–3 is now fully utilized by Task 4's assertion ✓
+- No dependencies between Task 4 and Task 5 (both depend on Task 3); Task 4's code changes are fully independent of template content ✓
+
+No blocking issues or suggestions.
