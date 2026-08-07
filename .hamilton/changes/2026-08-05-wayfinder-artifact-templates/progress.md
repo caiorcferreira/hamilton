@@ -69,3 +69,11 @@
 
 - Verdict: approved — see review.md
 - Summary: All five tasks compose correctly. Three artifact templates (map.md, ticket.md, route.md) installed and reported accurately. Tests comprehensive, build clean, documentation truthful. All success criteria met, all design decisions honored, no scope violations. Ready for merge.
+
+## Finish — 2026-08-06
+
+- Preconditions: tree clean, tests green (24/24 across 3 files), build clean, all five tasks done, review approved
+- Specs synced: `artifact-templates` created
+- Also landed: route unit 3 flipped to `shipped`, per the route's standing rule that a status flip rides the unit's own branch
+- Finished: local-merge into `claude/compassionate-bose-d06f8d`
+- Workspace: worktree `.worktrees/wayfinder-artifact-templates` removed
