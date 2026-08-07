@@ -1,3 +1,40 @@
+# Review: Task 1 — Port the grilling protocol into `skills/hamilton-grilling/SKILL.md`
+
+## Verdict
+
+**approved**
+
+## Summary
+
+Task 1 ports the grilling dialogue skill from `~/.claude/skills/grilling/SKILL.md` into `skills/hamilton-grilling/SKILL.md` with byte-exact protocol text and appropriate adaptation of frontmatter. All acceptance criteria are met: the four instruction paragraphs are byte-identical to upstream (verified by diff command stripping frontmatter, description, and provenance), the frontmatter carries `name` and `description` only, `description` is wrapped in double quotes per repository style while text remains unchanged, no `disable-model-invocation` key is present enabling skill-to-skill reach, the provenance pointer is appended at file end with em dash (U+2014) exactly as specified, the body is caller-agnostic with no mention of wayfinder, pipeline, artifact, or finding terms, and upstream's `agents/openai.yaml` sidecar is not ported. The implementation is correct and independent; the verify command passed, tests green (24/24 passing), and build clean.
+
+**Note:** This review was recorded on 2026-08-06 after the whole-branch merge gate identified the missing audit-trail entry. The code under review is unchanged from the original pass (commit `8890b29` amended only `progress.md` format; `git diff d03bbc2 8890b29 -- skills/` is empty).
+
+## Blocking Items
+
+None.
+
+## Suggestions
+
+None.
+
+## Notes
+
+- **Protocol integrity.** Lines 6–12 of `skills/hamilton-grilling/SKILL.md` (the four instruction paragraphs separated by single blank lines) are byte-identical to upstream. Verified via the diff command `diff <(grep -vE '^(---|name:|description:|Adapted from |$)' ~/.claude/skills/grilling/SKILL.md) <(grep -vE '^(---|name:|description:|Adapted from |$)' skills/hamilton-grilling/SKILL.md)` which returns no output (success). This filters away frontmatter, description line, provenance line, and blank lines, leaving only the protocol text for comparison.
+- **Upstream em dash preserved.** The third instruction paragraph contains the em dash (U+2014) character exactly as in upstream. The implementer's report confirms byte-for-byte copy to preserve this character, and the verify command would catch any substitution of hyphen or other dash variant.
+- **Frontmatter: name and description only.** Frontmatter lines 1–4 carry exactly two keys: `name: hamilton-grilling` and `description: "..."`. No `disable-model-invocation` key present (verified by check `! grep -q 'disable-model-invocation' skills/hamilton-grilling/SKILL.md`), ensuring the skill remains reachable by other skills at the model level, satisfying the requirement *Reachable by other skills*.
+- **Description text unchanged, wrapped in quotes.** The description text from upstream (`Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.`) is preserved exactly, including the single quotes around 'grill'. It is wrapped in double quotes in YAML frontmatter, matching the style of all nine other `skills/*/SKILL.md` files in the repository per `skills/hamilton-grilling/SKILL.md` (line 3).
+- **Provenance line: em dash and format correct.** Line 14 appends the one-line provenance pointer exactly as specified: `Adapted from the "grilling" skill in [mattpocock/skills](https://github.com/mattpocock/skills), used under the MIT License — see the \`NOTICE\` file beside this one.` The em dash between "License" and "see" is U+2014, matching the plan's specification. Backticks around `NOTICE` are present per requirement. The file ends with a newline after this line (diff shows 14 lines added; file ends correctly).
+- **Caller-agnostic protocol.** The protocol body (lines 6–12) contains no mention of:
+  - Wayfinder, wayfinder-specific terms, or Hamilton-specific vocabulary
+  - Pipeline, workflow, or execution-model terms
+  - Artifacts, findings, deliverables, or output structures
+  - Approaches, methods, or design concepts specific to any caller
+  The text is pure protocol: how questions are posed (one at a time), how they are answered (with a recommendation), how facts are resolved (by environment lookup), where decisions lie (with the human), and when action is permitted (after shared understanding is confirmed). This satisfies *The protocol is caller-agnostic*.
+- **`agents/openai.yaml` not ported.** The diff and final tree contain only `skills/hamilton-grilling/SKILL.md` and progress.md. Upstream's `agents/openai.yaml` sidecar (which carries display metadata for a different agent host) is correctly excluded per decision: the verbatim rule governs protocol instruction, not packaging metadata, and no Hamilton skill ships an `agents/` file.
+- **Tests and build.** The implementer ran `bun run test` (24/24 tests passing, 3 files) and `bun run build` (clean, no typecheck errors) as required. Since `skills/` is outside `bundle/`, `hamilton setup` does not install it, and no test in the repository asserts on skill content, these gates serve to confirm the change touched nothing it should not have. Both passed.
+- **File placement and accompanying work.** The new file is created at `skills/hamilton-grilling/SKILL.md` as specified. Task 2 (not reviewed here) creates the accompanying `skills/hamilton-grilling/NOTICE` file with upstream attribution. This two-file pattern is designed to allow the skill directory to travel outside the repository with full provenance intact, per `.hamilton/specs/licensing.md` and `CONTRIBUTING.md`.
+
 # Review: Task 2 — Add the sibling `NOTICE` for `hamilton-grilling`
 
 ## Verdict
