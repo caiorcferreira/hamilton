@@ -153,3 +153,64 @@ None arising from the implementation.
 ### Documentation gap
 
 **Task 1 review missing.** The `review.md` file (lines 1–58) contains formal reviews for Tasks 2 and 3. Each has a "Verdict" section explicitly marking them "approved". The `progress.md` file has corresponding "Review:" entries for Tasks 2 and 3. Task 1 is absent from both: `review.md` contains no Task 1 review section; `progress.md` Task 1 entry has "Verified:" but no "Review:" field. The git log confirms: commits `e705a09` and `f2e0d88` record Task 2 and Task 3 reviews, but no commit records Task 1's review. This is a structural omission in the audit trail, even though the task's implementation is correct and its Verify command passed.
+
+# Review: Whole-branch merge gate (re-review)
+
+## Verdict
+
+**approved**
+
+## Summary
+
+The prior blocking item — missing Task 1 formal review — has been addressed by conducting a real review and recording it in the change directory. Task 1's formal review now appears in `review.md` (lines 1–37) with an "approved" verdict, and a corresponding "Review:" entry has been added to `progress.md`. The review is honest about being retroactive: it carries an explicit note stating the code is unchanged from the original pass (`git diff d03bbc2 8890b29 -- skills/` returns empty) and identifying the commit date (2026-08-06) when the missing audit-trail entry was remedied. All three task reviews are now present and consistent across the change directory's audit trail.
+
+The change as a whole is structurally sound, meets all acceptance criteria, and is ready to merge. The upstream grilling skill is ported byte-identically to `skills/hamilton-grilling/SKILL.md`, the sibling `NOTICE` is instantiated correctly from the template in `CONTRIBUTING.md`, the route status for unit 4 is flipped to shipped, all requirement scenarios are satisfied, and the skill is properly attributed and caller-agnostic.
+
+## Blocking Items
+
+None.
+
+## Suggestions
+
+None.
+
+## Notes
+
+### Fix verification
+
+**Task 1 review now present.** The `review.md` file begins with a Task 1 review section (lines 1–37) carrying an "approved" verdict with detailed supporting notes. The review was recorded on 2026-08-06 (commit `7eb118b`) after the whole-branch merge gate identified the missing audit trail. The retroaction is explicitly disclosed in the review's summary note, which states: "This review was recorded on 2026-08-06 after the whole-branch merge gate identified the missing audit-trail entry. The code under review is unchanged from the original pass (commit `8890b29` amended only `progress.md` format; `git diff d03bbc2 8890b29 -- skills/` is empty)." This note is honest and verifiable — the diff command is accurate and the code integrity is confirmed.
+
+**Progress.md Task 1 entry updated.** The Task 1 entry in `progress.md` (lines 3–12) now carries a "Review:" field stating "approved — protocol text byte-identical to upstream; frontmatter correct; provenance pointer properly formatted with em dash; caller-agnostic boundary maintained; `agents/openai.yaml` not ported." This matches the verdict recorded in `review.md` and completes the audit trail structure.
+
+**Audit trail structure now consistent.** The change directory's `review.md` and `progress.md` now both show Task 1, Task 2, and Task 3 with explicit review verdicts. The Task 1 review is positioned above Task 2's (deliberate exception to newest-at-bottom convention to maintain task order) and carries a visible note explaining this retroaction. The prior whole-branch review verdict (`changes-requested`) remains in the record as history, showing what was identified and how it was addressed.
+
+**Code implementation verified unchanged.** The review notes accurately state that the code was not modified between the original pass and the retroactive review. The git diff `d03bbc2 8890b29 -- skills/` is empty, confirming:
+- `skills/hamilton-grilling/SKILL.md` remains byte-identical to upstream (four protocol paragraphs + em dash verified)
+- `skills/hamilton-grilling/NOTICE` remains byte-identical to template (trailing whitespace preserved)
+- No files were added, removed, or modified in the skills/ directory during the interval
+
+**Whole-branch acceptance criteria verified.** Re-examining the implementation against plan, design, requirements, and proposal:
+
+- **Protocol integrity:** Byte-identical to upstream, verified via diff command stripping frontmatter and provenance. All four paragraphs separated by single blank lines; em dash (U+2014) preserved in third paragraph. Upstream's `agents/openai.yaml` correctly not ported.
+- **Frontmatter and reach:** Only `name` and `description` keys; `description` text unchanged, wrapped in quotes (YAML style matching sibling skills); no `disable-model-invocation` key, ensuring both direct and skill-to-skill reach.
+- **Provenance and attribution:** One-line pointer appended at file end naming upstream skill (`grilling`), license (`MIT License`), and sibling `NOTICE` file. Sibling `NOTICE` exists, byte-identical to template block from `CONTRIBUTING.md` (lines 38–65, permission block from "Original work:" to "SOFTWARE.") with three placeholder substitutions and trailing whitespace preserved.
+- **Caller-agnostic boundary:** Protocol text contains no mention of wayfinder, pipeline, workflow, artifact, finding, approach, or any context-specific vocabulary. Protocol is pure: one question at a time, recommendation-led, facts looked up, decisions to human, no action before shared understanding.
+- **Requirement scenarios:** All eight requirement scenarios from `requirements/dialogue.md` are satisfied by the protocol text. Protocol owns the how; caller owns the what and when.
+- **Route status:** Unit 4's status flipped from `pending` to `shipped` in `.hamilton/maps/hamilton-wayfinder/route.md`; only this one line changed; no other unit's status altered.
+- **Non-goals properly excluded:** No call sites in other skills; no `docs/skills.md` entry; no unattended mode; no trimming of upstream text; no tests added; no changes to root `NOTICE` or `CONTRIBUTING.md` beyond what was already specified.
+- **Change directory completeness:** `proposal.md`, `requirements/dialogue.md`, `design.md`, `plan.md`, `progress.md`, and `review.md` all present and internally consistent. Skills directory contains exactly two files (`SKILL.md` and `NOTICE`); no extra files, no `references/` directory.
+- **Deliberate deviations recorded:** Description ports unpruned (accepted user decision, recorded in design's Quality Lens and Risks). Skill ships undocumented pending unit 9 (recorded in design's Quality Lens and Risks, noted in proposal's Impact). Neither creates a second reason to change or a structural leak; both are explicitly tracked.
+- **Dependency correctness:** Skill has no runtime dependencies on `.hamilton/`, the pipeline, or wayfinder. Callable from any context unchanged. This is the property that justified placing it at Hamilton level rather than inside wayfinder.
+- **Tests and build:** Per the task reports, `bun run build` passed (clean, no typecheck errors) and `bun run test` passed (24/24 tests, 3 files) for all three tasks. Since `skills/` is outside `bundle/` and no test asserts on skill content, these gates serve to confirm the change touched nothing it should not have.
+
+### Record integrity
+
+The change directory now contains a complete and truthful audit trail:
+
+1. **Task 1 review** (lines 1–37 of `review.md`): Approved verdict with detailed notes; retroaction explicitly disclosed with verifiable note about unchanged code.
+2. **Task 2 review** (lines 38–66 of `review.md`): Approved verdict; trailing whitespace verified; template byte-exactness confirmed.
+3. **Task 3 review** (lines 67–96 of `review.md`): Approved verdict; status flip truthfully recorded; no side effects.
+4. **Prior whole-branch review** (lines 97–156 of `review.md`): Changes-requested verdict identifying the missing Task 1 review; preserved as history showing what was identified and how it was remedied.
+5. **Progress.md entries**: Each task documented with outcome, verification results, and notes; each now has a review verdict recorded.
+
+The prior `changes-requested` verdict and this new `approved` verdict together form a complete narrative: the blocking item was identified, investigated, and resolved by conducting a real review (not by rewriting history or reconstructing a verdict from memory). The resolution is now recorded in the audit trail for inspection.
