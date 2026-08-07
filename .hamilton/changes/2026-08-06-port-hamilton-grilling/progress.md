@@ -19,3 +19,4 @@
   - Deleted: none
 - Verified: `diff <(sed -n '/^Original work:$/,/^  SOFTWARE\.$/p' CONTRIBUTING.md) <(sed -n '/^Original work:$/,/^  SOFTWARE\.$/p' skills/hamilton-grilling/NOTICE) && ! grep -q '<upstream' skills/hamilton-grilling/NOTICE && echo OK` → prints `OK`; `bun run build` → clean; `bun run test` → 24/24 tests passing (3 files)
 - Notes: Permission block extracted from CONTRIBUTING.md template (lines 38-65) and copied byte-for-byte preserving trailing whitespace in blank lines within MIT block. Placeholders substituted in first two lines only: `<upstream skill name>` → `grilling`, `<upstream project>` → `mattpocock/skills`, `<upstream project URL>` → `https://github.com/mattpocock/skills`. MIT license text and Hamilton copyright line unchanged from template.
+- Review: approved — byte-exact match to template with all placeholders correctly substituted; trailing whitespace preserved; file ends with newline.
