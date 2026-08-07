@@ -31,3 +31,8 @@
 - Verified: `grep -A 2 '^### 4\. Port hamilton-grilling$' .hamilton/maps/hamilton-wayfinder/route.md` → shows `Status: shipped`; `git diff --stat` → one file changed, one insertion, one deletion; `bun run build` → clean; `bun run test` → 24/24 tests passing (3 files)
 - Notes: Single-line status edit in route.md flipping unit 4 from pending to shipped. Capability shipped in prior tasks; this is pure bookkeeping to record completion in the route.
 - Review: approved — single status line flipped from pending to shipped; no other unit's status altered; no other route.md lines modified; flip is truthful (SKILL.md and NOTICE shipped in Tasks 1 and 2).
+
+## Whole-branch review — 2026-08-06
+
+- Outcome: changes-requested
+- Reason: Implementation is correct and all acceptance criteria are met. However, the per-task review structure is incomplete: Task 1's formal review is missing from review.md while Tasks 2 and 3 have explicit formal reviews with approval verdicts. This is a documentation gap in the audit trail, not an implementation defect.
