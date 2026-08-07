@@ -81,7 +81,7 @@ Early in the route because ticket 03 requires the answer to exist before anythin
 
 ### 3. Land the wayfinder artifact templates
 
-Status: pending
+Status: shipped
 Depends on: —
 Backed by: [Template convention](tickets/05-template-convention.md),
 [Map mechanics in files](tickets/04-map-mechanics-in-files.md),
