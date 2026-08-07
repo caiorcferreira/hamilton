@@ -42,3 +42,10 @@
 
 - Outcome: approved
 - Reason: The missing Task 1 formal review has been conducted and recorded in review.md (lines 1–37) with an "approved" verdict. The retroaction is explicitly disclosed with a verifiable note confirming the code is unchanged from the original pass. The change directory audit trail is now complete. All acceptance criteria are met, all requirement scenarios are satisfied, and the change is ready to merge.
+
+## Finish — 2026-08-06
+
+- Preconditions: tree clean, tests green (`bun run test` 24/24, `bun run build` clean), all three tasks done, review approved with no unaddressed blocking items
+- Specs synced: created `.hamilton/specs/dialogue.md` from the `requirements/dialogue.md` ADDED block, distilled to altitude
+- Finished: local-merge into claude/compassionate-bose-d06f8d
+- Workspace: worktree .worktrees/port-hamilton-grilling removed
