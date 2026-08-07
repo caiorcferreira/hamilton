@@ -20,3 +20,13 @@
 - Verified: `diff <(sed -n '/^Original work:$/,/^  SOFTWARE\.$/p' CONTRIBUTING.md) <(sed -n '/^Original work:$/,/^  SOFTWARE\.$/p' skills/hamilton-grilling/NOTICE) && ! grep -q '<upstream' skills/hamilton-grilling/NOTICE && echo OK` → prints `OK`; `bun run build` → clean; `bun run test` → 24/24 tests passing (3 files)
 - Notes: Permission block extracted from CONTRIBUTING.md template (lines 38-65) and copied byte-for-byte preserving trailing whitespace in blank lines within MIT block. Placeholders substituted in first two lines only: `<upstream skill name>` → `grilling`, `<upstream project>` → `mattpocock/skills`, `<upstream project URL>` → `https://github.com/mattpocock/skills`. MIT license text and Hamilton copyright line unchanged from template.
 - Review: approved — byte-exact match to template with all placeholders correctly substituted; trailing whitespace preserved; file ends with newline.
+
+## Task 3: Flip route unit 4 to shipped — 2026-08-06
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/maps/hamilton-wayfinder/route.md`
+  - Deleted: none
+- Verified: `grep -A 2 '^### 4\. Port hamilton-grilling$' .hamilton/maps/hamilton-wayfinder/route.md` → shows `Status: shipped`; `git diff --stat` → one file changed, one insertion, one deletion; `bun run build` → clean; `bun run test` → 24/24 tests passing (3 files)
+- Notes: Single-line status edit in route.md flipping unit 4 from pending to shipped. Capability shipped in prior tasks; this is pure bookkeeping to record completion in the route.

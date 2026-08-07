@@ -98,7 +98,7 @@ is a worked example of what `route.md` should template to.
 
 ### 4. Port hamilton-grilling
 
-Status: pending
+Status: shipped
 Depends on: 2
 Backed by: [Which siblings to port](tickets/07-which-siblings-to-port.md),
 [Fork attribution and licensing](tickets/03-fork-attribution.md)
