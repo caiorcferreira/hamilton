@@ -122,7 +122,7 @@ triggers only, one per branch, no identity already stated in the body.
 
 ### 5. Port the three wayfinder siblings
 
-Status: pending
+Status: shipped
 Depends on: 2
 Backed by: [Which siblings to port](tickets/07-which-siblings-to-port.md),
 [Read the three upstream sibling skills](tickets/02-read-upstream-siblings.md),
