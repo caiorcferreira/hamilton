@@ -81,3 +81,16 @@
 
 ## Review: Task 6 — 2026-08-08
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 7: Flip route unit 5 to shipped — 2026-08-08
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/maps/hamilton-wayfinder/route.md`
+  - Deleted: none
+- Verified: `git show --stat HEAD` → one file changed, 1 insertion(+) 1 deletion(-); `git show HEAD` → only status line changed from `Status: pending` to `Status: shipped`; status format matches units 2 and 4 exactly; no other unit's status changed; no other prose in route.md touched; `bun run test` → 24/24 tests passing; `bun run build` → clean
+- Notes: Changed unit 5's status from `Status: pending` to `Status: shipped` in `.hamilton/maps/hamilton-wayfinder/route.md`, matching the exact format used by units 2 and 4. The entry's description accurately reflects the work completed: porting the three wayfinder sibling skills (research, prototype, domain-modeling) to their respective directories. All three dependent tasks (2, 4, 6) completed successfully per review.
+
+## Review: Task 7 — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md

@@ -72,3 +72,18 @@ Verdict: approved
 - **Minimal-patching compliance:** No section deleted except the authorized Context Map example and Relationships list. No sections re-styled while being re-homed. Every re-homing touches only the sentences naming the old destination; surrounding prose unchanged ✓
 
 All eight Steps executed exactly as specified. No structural defects, no deviations from design constraints, and all acceptance criteria met.
+
+## Task 7: Flip route unit 5 to shipped — 2026-08-08
+
+Verdict: approved
+
+### Verified
+
+- **Status line format compliance:** Unit 5's status line reads `Status: shipped`, matching the exact form used by units 2 (line 62) and 4 (line 101). No variations in whitespace or capitalization — identical format across all three shipped units.
+- **Single-line change:** `git show --stat HEAD` confirms one file changed (`.hamilton/maps/hamilton-wayfinder/route.md`) with exactly one insertion and one deletion. The diff shows only the status line changed from `Status: pending` to `Status: shipped` at line 122 of the unit 5 entry.
+- **No other changes:** Full `git show HEAD` output confirms only the status line for unit 5 was modified. No other unit's status changed (units 1, 2, 3, 4, 6, 7 all untouched). No prose elsewhere in `route.md` was touched — only the one-line status flip within the Unit 5 section.
+- **Unit 5 description accuracy:** Unit 5's entry correctly describes the work this branch accomplished: "Port `research`, `prototype` and `domain-modeling` to `skills/hamilton-wayfinder-research/`, `skills/hamilton-wayfinder-prototype/` and `skills/hamilton-wayfinder-domain-modeling/`" — the full scope of porting the three wayfinder sibling skills. The unit's dependent tasks (Task 2, Task 4, Task 6) all completed per review.md, and the branch's commit history shows all six task commits (two per skill: verbatim then adapt).
+- **Commit message and metadata:** Commit `bb57390` authored correctly; message reads "docs: flip route unit 5 to shipped"; change date 2026-08-08 14:29:58 -0700.
+- **Regression guards:** `bun run test` passes 24/24 tests; `bun run build` clean.
+
+All acceptance criteria met. Minimal, precise change with zero defects.
