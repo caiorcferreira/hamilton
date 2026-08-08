@@ -87,3 +87,83 @@ Verdict: approved
 - **Regression guards:** `bun run test` passes 24/24 tests; `bun run build` clean.
 
 All acceptance criteria met. Minimal, precise change with zero defects.
+
+## Port the three wayfinder siblings — Branch-wide merge-gate review — 2026-08-08
+
+Verdict: approved
+
+### Scope
+
+Merge-gate review of the complete `port-wayfinder-siblings` branch (commits 885c293..HEAD). Seven per-task reviews already approved; this pass judges the branch as a whole merge candidate against design.md's binding constraints and the plan's "Done when" checklist.
+
+### Verified
+
+**1. Branch-wide forbidden-terms grep**
+```
+grep -rnE "docs/adr|CONTEXT-MAP|CONTEXT\.md|issue|where the repo already keeps" skills/hamilton-wayfinder-*/
+```
+Result: No output, exit 0. All re-homing destinations verified as complete across all three skill directories. The check carried no exemptions as designed; zero forbidden-term hits means zero unfinished re-homings.
+
+**2. Adaptation commit verification (git show on each second commit)**
+- Research adaptation (64e7bdd): `git show --stat` → two files modified (SKILL.md, progress.md). `git show` diff shows only (a) frontmatter `name` changed to `hamilton-wayfinder-research`, (b) item 3 re-pointed from "where the repo already keeps such notes" to `.hamilton/maps/<effort>/research/`, and (c) provenance line added. All within adaptation surface ✓
+- Prototype adaptation (5558f24): `git show --stat` → two files modified (SKILL.md, progress.md). `git show` diff shows only (a) frontmatter `name` changed to `hamilton-wayfinder-prototype`, (b) two branch pointers updated to `references/` paths, (c) rule 6 re-pointed from "implementation issue" to "resolving ticket's body" and verdict destination to "ticket's `## Answer`", and (d) provenance line added. All within adaptation surface ✓
+- Domain-modeling adaptation (11ac589): `git show --stat` → three files modified (SKILL.md, references/CONTEXT-FORMAT.md, references/ADR-FORMAT.md). All changes verified to be re-homing and path re-pointing only. No upstream prose rewritten; sections made inert by re-homing (e.g., ADR-FORMAT.md's `## Numbering`) are re-pointed rather than deleted. The one authorized deletion (CONTEXT-FORMAT.md's `# Context Map` example document and Relationships list) is confirmed present and complete. All within adaptation surface ✓
+
+**3. Test and build verification**
+- `bun run test` → 24/24 tests passing, 282ms
+- `bun run build` → Clean (tsc -p tsconfig.json with no errors or warnings)
+Both regression guards pass. No test deletions or weakening detected in plan's "Done when" check.
+
+**4. NOTICE file byte-identity verification (cat -A trailing-space check)**
+- Research NOTICE: `diff skills/hamilton-grilling/NOTICE skills/hamilton-wayfinder-research/NOTICE` → only line 1 differs (skill name). MIT block trailing spaces verified with `cat -A`: blank lines 9, 11, 17, 19 show `··␊` (two spaces before newline), matching grilling NOTICE exactly ✓
+- Prototype NOTICE: `diff skills/hamilton-grilling/NOTICE skills/hamilton-wayfinder-prototype/NOTICE` → only line 1 differs. Trailing spaces verified matching ✓
+- Domain-modeling NOTICE: `diff skills/hamilton-grilling/NOTICE skills/hamilton-wayfinder-domain-modeling/NOTICE` → only line 1 differs. Trailing spaces verified matching ✓
+All three NOTICE files are byte-identical to grilling's NOTICE apart from the quoted skill name on line 1, with all four blank lines inside the indented MIT block carrying exactly two trailing spaces each.
+
+**5. Reference file existence and pointer verification**
+- Research: No reference files (correct; upstream has none). No pointers to reference files needed ✓
+- Prototype: Two files exist (`references/LOGIC.md`, `references/UI.md`). Pointers in SKILL.md read `[LOGIC.md](references/LOGIC.md)` and `[UI.md](references/UI.md)`, resolving correctly into `references/` directory ✓
+- Domain-modeling: Two files exist (`references/CONTEXT-FORMAT.md`, `references/ADR-FORMAT.md`). Pointers in SKILL.md read `[CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md)` and `[ADR-FORMAT.md](references/ADR-FORMAT.md)`, resolving correctly into `references/` directory ✓
+All reference files shipped; all pointers resolve to `references/` rather than remaining flat.
+
+**6. Cross-skill consistency verification**
+- **Provenance line wording:** All three SKILL.md files end with identical format: `Adapted from the "<skillname>" skill in [mattpocock/skills](https://github.com/mattpocock/skills), used under the MIT License — see the `NOTICE` file beside this one.` Consistent across all three ✓
+- **Frontmatter `name` convention:** All three prefixed with `hamilton-wayfinder-` (research, prototype, domain-modeling). Consistent prefix applied uniformly ✓
+- **Frontmatter `description` convention:** All three left verbatim from upstream (unchanged). No narrowing of trigger phrasing. Consistent across all three ✓
+- **References directory layout:** Prototype and domain-modeling both use `references/` subdirectory with pointers updated to match. Research has no reference files (correct). Consistent with Hamilton's convention ✓
+- **Hamilton map path naming:** All skills using the path reference use `.hamilton/maps/<effort>/` as the placeholder, with `<effort>` as the variable portion. Consistent convention across all three. Domain-modeling additionally distinguishes canonical `.hamilton/specs/glossary.md` vs. working `.hamilton/maps/<effort>/glossary.md` consistently throughout ✓
+
+**7. Requirements satisfaction verification**
+All nine requirements in `requirements/ticket-resolution.md` are satisfied by the shipped skills:
+- Research procedure: SKILL.md exists, describes background agent and primary sources ✓
+- Research findings home: SKILL.md names `.hamilton/maps/<effort>/research/` as destination ✓
+- Prototype procedure: SKILL.md exists with logic and UI branches specified ✓
+- Prototype capture: Rule 6 specifies "context pointer to that branch in the resolving ticket's body" and "verdict in that ticket's `## Answer`" ✓
+- Domain-model sharpening: Domain-modeling skill provides the procedure ✓
+- Working glossary home: SKILL.md and CONTEXT-FORMAT.md name `.hamilton/maps/<effort>/glossary.md` as written destination ✓
+- Decision capture in the ticket: Domain-modeling SKILL.md specifies "Capture the decision in the resolving ticket's `## Answer`" ✓
+- Reachability from another skill: All three skills are model-invoked (no `disable-model-invocation` field) and reachable by name ✓
+- Verbatim fidelity to upstream: All adaptation commits verified to touch only frontmatter, provenance, and re-homed paths ✓
+
+**Known open requirement gap (design.md noted, not blocking here):** `requirements/ticket-resolution.md` does not yet capture that `hamilton-wayfinder-domain-modeling` reads from *both* glossary levels (canonical `.hamilton/specs/glossary.md` for vocabulary reference and map's working `.hamilton/maps/<effort>/glossary.md` for the session's working language) while writing only to the map's. The SKILL.md itself correctly documents this two-level read (line 48: "canonical `.hamilton/specs/glossary.md` or the map's working `glossary.md`"). This is recorded in plan.md as a MUST-close gap for a follow-up change (not a blocking issue for this merge). The gap exists and is confirmed recorded in design.md lines 9–10 and plan.md Quality notes ✓
+
+**8. Design's known, accepted deviations (confirmed still true)**
+Design.md Risks lines 154–160 (re-homing patches) sanction patches that "state something upstream does not say, anywhere the re-homing removes a mechanism rather than relocating it". Named example: ADR-FORMAT.md's `## Numbering` section. Verified: the section was upstream's "Scan `docs/adr/` for the highest existing number and increment by one" and is re-homed to "The resolving ticket's own number identifies the decision — there is no separate numbering sequence to maintain." This statement is indeed new (not in upstream) because the destination mechanism (the `docs/adr/` directory) no longer exists in Hamilton. This deviation is authorized and documented ✓
+
+All design constraints honored; all "Done when" checklist items verified.
+
+### Summary
+
+All seven task reviews approved. Merge-gate checks complete:
+- Branch-wide forbidden-terms grep: passed (zero forbidden terms)
+- Three adaptation commits: all conform to adaptation surface
+- Tests and build: both passing
+- NOTICE files: byte-identical apart from skill name, with trailing spaces verified
+- Reference files: all present and correctly pointed
+- Cross-skill consistency: uniform in provenance, frontmatter convention, references layout, and map path naming
+- Requirements: all nine satisfied; known open gap documented as follow-up, not blocking
+- Design deviations: all three known, accepted, and verified still true
+
+The branch is ready to merge. All acceptance criteria met.
+
+**Ready for:** `hamilton-finish-work` (merge complete via user's selection; the route entry for unit 5 already flipped to `shipped` in commit bb57390).

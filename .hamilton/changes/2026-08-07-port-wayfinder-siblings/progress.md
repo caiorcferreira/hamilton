@@ -94,3 +94,6 @@
 
 ## Review: Task 7 — 2026-08-08
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Branch-wide merge-gate review — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
