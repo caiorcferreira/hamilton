@@ -47,3 +47,28 @@ Verdict: approved
 - **Commit message and progress:** Single commit `c3b5425` with message "feat: port the domain-modeling skill verbatim"; progress.md entry records task completion, verified sources, and correct handling of trailing spaces in NOTICE MIT block.
 
 All design constraints honored; Task 5 correctly lands verbatim upstream content with no adaptation.
+
+## Task 6: Re-home the domain model onto the map — 2026-08-08
+
+Verdict: approved
+
+### Verified
+
+- **Upstream departure verification:** Fetched all three upstream files fresh via `curl` and compared via `diff`. SKILL.md (74 lines upstream, 78 lines local), CONTEXT-FORMAT.md (60 lines upstream, 47 lines local), ADR-FORMAT.md (47 lines upstream, 45 lines local). Line-by-line diffs confirm every change in the commit aligns with one of the eight authorized Steps.
+- **Step 1 — frontmatter `name`:** Changed from `domain-modeling` to `hamilton-wayfinder-domain-modeling` ✓
+- **Step 2 — opening parenthetical:** Re-pointed from `(Merely *reading* \`CONTEXT.md\` ...)` to `(Merely *reading* the glossary ...)` — one term swap, shape preserved ✓
+- **Step 3 — file structure trees:** Both `## File structure` ASCII trees replaced. Single-context tree now shows `.hamilton/specs/glossary.md` and `.hamilton/maps/<effort>/glossary.md`. Multi-context tree shows efforts under `.hamilton/maps/` with each keeping its own working `glossary.md` while canonical lives at `.hamilton/specs/`. Prose re-keyed from "If a CONTEXT-MAP.md exists" to "When several efforts are worked against a single canonical glossary" ✓
+- **Step 4 — lazy-creation line:** Replaced `If no \`CONTEXT.md\` exists, create one when the first term is resolved. If no \`docs/adr/\` exists, create it when the first ADR is needed.` with `The canonical \`.hamilton/specs/glossary.md\` is the source of truth; each map's working \`glossary.md\` holds that effort's working language. A decision is written into the resolving ticket's \`## Answer\` — there is no separate directory to create.` ✓
+- **Step 5 — challenge against glossary:** Re-pointed to read against both canonical `.hamilton/specs/glossary.md` and map's working `glossary.md`; heading renamed from `### Update CONTEXT.md inline` to `### Update the glossary inline`; body re-pointed to map's working `glossary.md`; two sentences about devoid-of-implementation-details now apply to working glossary ✓
+- **Step 6 — reference pointers and CONTEXT-FORMAT.md:** Pointer from `[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)` to `[CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md)`. Title of references/CONTEXT-FORMAT.md changed to `# glossary.md Format`. `## Single vs multi-context repos` body completely replaced with Hamilton's two-level structure (canonical at specs, working at maps/<effort>). The fenced `# Context Map` example document (14 lines) and its `## Relationships` list (6 lines) deleted — this is the one authorized deletion. `## Structure` and `## Rules` sections verified byte-identical to upstream ✓
+- **Step 7 — ADR-FORMAT.md re-homing:** Opening line changed from `ADRs live in \`docs/adr/\` and use sequential numbering` to `Decisions are recorded in the resolving ticket's \`## Answer\` section`. Lazy-creation line (`Create the \`docs/adr/\` directory lazily`) and its blank line deleted. In Optional sections, `ADR-NNNN` changed to `ticket NNNN`. Under `## Numbering`, replaced `Scan \`docs/adr/\` for the highest existing number and increment by one.` with `The resolving ticket's own number identifies the decision — there is no separate numbering sequence to maintain.` Sections `## Template`, `## When to offer an ADR`, and `### What qualifies` verified byte-identical to upstream (9 bullet points including "Rejected alternatives..." all intact) ✓
+- **Step 8 — provenance line:** Appended `Adapted from the "domain-modeling" skill in [mattpocock/skills](https://github.com/mattpocock/skills), used under the MIT License — see the \`NOTICE\` file beside this one.` — exact pattern match to `skills/hamilton-grilling/SKILL.md`'s closing line ✓
+- **Re-homing completeness check:** `grep -rnE "docs/adr|CONTEXT-MAP|CONTEXT\.md|issue|where the repo already keeps" skills/hamilton-wayfinder-domain-modeling/` → exit code 1, no output. No forbidden terms remain ✓
+- **Two-level glossary structure:** Canonical `.hamilton/specs/glossary.md` mentioned multiple times (lazy-creation line, Challenge section, CONTEXT-FORMAT.md). Working `.hamilton/maps/<effort>/glossary.md` mentioned in parallel structures, lazy-creation guidance, and CONTEXT-FORMAT.md's multi-context section. Both levels correctly distinguished throughout ✓
+- **Reference file structure:** Files placed in `references/` directory and correctly linked via `references/CONTEXT-FORMAT.md` and `references/ADR-FORMAT.md` in SKILL.md ✓
+- **Commit scope:** `git show --stat HEAD` lists exactly three files modified (SKILL.md, references/CONTEXT-FORMAT.md, references/ADR-FORMAT.md); no over-broad edits ✓
+- **NOTICE file:** Unchanged; present in directory from Task 5; not touched by Task 6 ✓
+- **Regression guards:** `bun run test` passes 24/24; `bun run build` clean (tsc no errors) ✓
+- **Minimal-patching compliance:** No section deleted except the authorized Context Map example and Relationships list. No sections re-styled while being re-homed. Every re-homing touches only the sentences naming the old destination; surrounding prose unchanged ✓
+
+All eight Steps executed exactly as specified. No structural defects, no deviations from design constraints, and all acceptance criteria met.
