@@ -68,3 +68,13 @@
 
 ## Review: Task 5 — 2026-08-08
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 6: Re-home the domain model onto the map — 2026-08-08
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `skills/hamilton-wayfinder-domain-modeling/SKILL.md`, `skills/hamilton-wayfinder-domain-modeling/references/CONTEXT-FORMAT.md`, `skills/hamilton-wayfinder-domain-modeling/references/ADR-FORMAT.md`
+  - Deleted: none
+- Verified: `grep -rnE "docs/adr|CONTEXT-MAP|CONTEXT\.md|issue|where the repo already keeps" skills/hamilton-wayfinder-domain-modeling/` → exit 1 (no output); `git show --stat HEAD` → exactly three files changed; `bun run test` → 24/24 tests passing; `bun run build` → clean
+- Notes: Changed frontmatter `name` from `domain-modeling` to `hamilton-wayfinder-domain-modeling`. Updated opening paragraph: `\`CONTEXT.md\`` → `the glossary`. Replaced both `## File structure` ASCII trees with Hamilton map layouts (single and multi-effort). Updated `### Challenge against the glossary` to reference both canonical and working glossaries. Renamed `### Update CONTEXT.md inline` to `### Update the glossary inline` with re-pointed references. Updated `[ADR-FORMAT.md]` and `[CONTEXT-FORMAT.md]` pointers to `references/` paths. Added ticket `## Answer` reference to "Offer ADRs sparingly" section. In `references/CONTEXT-FORMAT.md`: changed title to `# glossary.md Format`; replaced `## Single vs multi-context repos` body with Hamilton structure; removed `# Context Map` example document and `## Relationships` list (only deletion authorized by design). In `references/ADR-FORMAT.md`: re-pointed line 3 to ticket `## Answer`; changed `ADR-NNNN` to `ticket NNNN`; updated `## Numbering` to reference resolving ticket's number. Appended provenance line matching pattern from other ports. All eight steps executed exactly as specified.
