@@ -39,3 +39,6 @@
   - Deleted: none
 - Verified: `diff /tmp/verify-SKILL.md skills/hamilton-wayfinder-prototype/SKILL.md` → no output (byte-identical); `diff /tmp/verify-LOGIC.md skills/hamilton-wayfinder-prototype/references/LOGIC.md` → no output (byte-identical); `diff /tmp/verify-UI.md skills/hamilton-wayfinder-prototype/references/UI.md` → no output (byte-identical); `sed 1,2d skills/hamilton-grilling/NOTICE > /tmp/grilling-rest.txt && sed 1,2d skills/hamilton-wayfinder-prototype/NOTICE > /tmp/prototype-rest.txt && diff /tmp/grilling-rest.txt /tmp/prototype-rest.txt` → no output (MIT block byte-identical); `bun run test` → 24/24 tests passing; `bun run build` → clean
 - Notes: Upstream SKILL.md, LOGIC.md, and UI.md copied byte-for-byte from mattpocock/skills/main/skills/engineering/prototype/. LOGIC.md and UI.md placed in references/ directory. NOTICE file created by copying skills/hamilton-grilling/NOTICE via cp and changing only line 1 from `"grilling"` to `"prototype"` using sed -i '', preserving all trailing whitespace including the two spaces on each blank line inside the MIT block. Pointers in SKILL.md still read (LOGIC.md) and (UI.md) — fix in Task 4. No frontmatter name change, no provenance line — adapt in Task 4. Four files created, matching upstream exactly.
+
+## Review: Task 3 — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
