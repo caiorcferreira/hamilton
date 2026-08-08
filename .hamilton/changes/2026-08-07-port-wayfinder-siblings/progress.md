@@ -52,3 +52,6 @@
   - Deleted: none
 - Verified: `grep -rnE "docs/adr|CONTEXT\.md|issue|where the repo already keeps" skills/hamilton-wayfinder-prototype/` → exit 1 (no output); `git status` → only SKILL.md modified in skills/hamilton-wayfinder-prototype/; `bun run test` → 24/24 tests passing; `bun run build` → clean
 - Notes: Changed frontmatter `name` from `prototype` to `hamilton-wayfinder-prototype`. Updated branch pointers: `[LOGIC.md](LOGIC.md)` → `[LOGIC.md](references/LOGIC.md)` and `[UI.md](UI.md)` → `[UI.md](references/UI.md)`. Re-pointed rule 6: `leave a context pointer to that branch on the implementation issue` becomes `leave a context pointer to that branch in the resolving ticket's body`; `Capture the answer too — the verdict and the question it settled — in the issue or a commit` becomes `Capture the answer too — the verdict and the question it settled — in that ticket's ## Answer`. Appended provenance line: "Adapted from the "prototype" skill in [mattpocock/skills](https://github.com/mattpocock/skills), used under the MIT License — see the `NOTICE` file beside this one."
+
+## Review: Task 4 — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
