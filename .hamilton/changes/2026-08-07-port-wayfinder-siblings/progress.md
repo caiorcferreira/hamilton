@@ -65,3 +65,6 @@
   - Deleted: none
 - Verified: `diff /tmp/up-domain-modeling-SKILL.md skills/hamilton-wayfinder-domain-modeling/SKILL.md` → no output (byte-identical); `diff /tmp/up-domain-modeling-CONTEXT-FORMAT.md skills/hamilton-wayfinder-domain-modeling/references/CONTEXT-FORMAT.md` → no output (byte-identical); `diff /tmp/up-domain-modeling-ADR-FORMAT.md skills/hamilton-wayfinder-domain-modeling/references/ADR-FORMAT.md` → no output (byte-identical); `diff skills/hamilton-grilling/NOTICE skills/hamilton-wayfinder-domain-modeling/NOTICE` → only line 1 differs (skill name); `bun run test` → 24/24 tests passing; `bun run build` → clean
 - Notes: Upstream SKILL.md, CONTEXT-FORMAT.md, and ADR-FORMAT.md copied byte-for-byte from mattpocock/skills/main/skills/engineering/domain-modeling/. CONTEXT-FORMAT.md and ADR-FORMAT.md placed in references/ directory. NOTICE file created by copying skills/hamilton-grilling/NOTICE via cp and changing only line 1 from `"grilling"` to `"domain-modeling"` using sed -i '', preserving all trailing whitespace including the two spaces on each blank line inside the MIT block. No frontmatter name change, no provenance line, no re-homing of paths — adapt in Task 6. Four files created, matching upstream exactly.
+
+## Review: Task 5 — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
