@@ -1,4 +1,4 @@
-# CONTEXT.md Format
+# glossary.md Format
 
 ## Structure
 
@@ -31,30 +31,16 @@ _Avoid_: Client, buyer, account
 
 ## Single vs multi-context repos
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+**Single context (most repos):** One `glossary.md` at `.hamilton/specs/`.
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
-
-```md
-# Context Map
-
-## Contexts
-
-- [Ordering](./src/ordering/CONTEXT.md) — receives and tracks customer orders
-- [Billing](./src/billing/CONTEXT.md) — generates invoices and processes payments
-- [Fulfillment](./src/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
-
-## Relationships
-
-- **Ordering → Fulfillment**: Ordering emits `OrderPlaced` events; Fulfillment consumes them to start picking
-- **Fulfillment → Billing**: Fulfillment emits `ShipmentDispatched` events; Billing consumes them to generate invoices
-- **Ordering ↔ Billing**: Shared types for `CustomerId` and `Money`
-```
+**Multiple contexts:** Each effort under `.hamilton/maps/` keeps its own working
+`glossary.md`, holding that effort's language while it is worked. The canonical
+`.hamilton/specs/glossary.md` holds the language the project has committed to.
 
 The skill infers which structure applies:
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
-- If only a root `CONTEXT.md` exists, single context
-- If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
+- If a map's `glossary.md` exists, read it for the working language of this effort
+- If only `.hamilton/specs/glossary.md` exists, single context
+- If the map has no `glossary.md`, create one lazily when the first term is resolved
 
-When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+When both exist, infer which one the current topic relates to. If unclear, ask.

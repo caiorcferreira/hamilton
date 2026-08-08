@@ -1,8 +1,6 @@
 # ADR Format
 
-ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.
-
-Create the `docs/adr/` directory lazily — only when the first ADR is needed.
+Decisions are recorded in the resolving ticket's `## Answer` section.
 
 ## Template
 
@@ -18,13 +16,13 @@ That's it. An ADR can be a single paragraph. The value is in recording *that* a 
 
 Only include these when they add genuine value. Most ADRs won't need them.
 
-- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ADR-NNNN`) — useful when decisions are revisited
+- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ticket NNNN`) — useful when decisions are revisited
 - **Considered Options** — only when the rejected alternatives are worth remembering
 - **Consequences** — only when non-obvious downstream effects need to be called out
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+The resolving ticket's own number identifies the decision — there is no separate numbering sequence to maintain.
 
 ## When to offer an ADR
 
