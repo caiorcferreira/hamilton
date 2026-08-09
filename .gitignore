@@ -8,3 +8,4 @@ dist/
 .worktrees/
 bun.lockb
 .DS_Store
+.maestro/
