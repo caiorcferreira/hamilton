@@ -65,3 +65,16 @@ Original work:
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 ```
+
+## Map mechanics
+
+This section is the file-native frontmatter contract for map artifacts under `.hamilton/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/hamilton-wayfinder/SKILL.md`, and no other content in this file needs to change.
+
+| Frontmatter field | Valid values |
+|-------------------|--------------|
+| `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
+| `status` (ticket) | `open` / `claimed` / `resolved` |
+| `status` (map) | `open` / `cleared` / `shipping` / `shipped` |
+| `blocked_by` | YAML list of ticket numbers: `[]` for none, `[01]` for one, `[01, 04, 06, 09]` for several |
+
+Ticket frontmatter is `type`, `status`, `blocked_by`, in that order. `map.md` carries `status` only — no `type` — matching the map template. The map lifecycle is `cleared` → `shipping` → `shipped` once the route is written (ticket 06's three-stage lifecycle, superseding ticket 04's `open`/`cleared` for maps).
