@@ -80,10 +80,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `changes-requested`, invoke `hamilton-grilling` with the findings as content and
    "every finding is validated" as the exit condition, before writing the report. A
    false positive can be rejected; where a finding offers several fixes, the author
-   picks one. Unattended, name the next step and return. On the `approved` path there
-   are no findings, so grilling never runs. This step validates findings — it does not
-   fix them: the propose artifacts are not modified, and the revision loop stays with
-   whoever runs the pipeline.
+   picks one. Unattended, name the next step and return.
 7. **Write the report** — the numbered format below — printed to chat **and** persisted to
    `critique.md` in the change directory, written from the findings that survived
    validation.
@@ -132,7 +129,7 @@ Verdict: approved | changes-requested — <one line>
 1. **[Critical]** <title>
    - Where: <artifact:loc>, <artifact:loc>
    - Problem: <what is wrong and why>
-   - Fix: <what to change; sub-number 1./2. when there are options>
+   - Fix: <what to change; sub-number 1./2. when there are options, marking the author's choice>
 2. **[Significant]** <title>
    - Where: ...
    - Problem: ...

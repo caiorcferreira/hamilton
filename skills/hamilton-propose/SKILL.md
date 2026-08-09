@@ -93,8 +93,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
    the requester (a person, or the calling agent). Attended, invoke `hamilton-grilling`
    with those questions as content and "intent is clear" as the exit condition.
-   Unattended, record a reasonable choice as an assumption. Do not start drafting until
-   the intent is clear.
+   Unattended, record a reasonable choice as an assumption.
 5. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements.
