@@ -23,3 +23,6 @@ backticks to match the table's established convention (CONTRIBUTING.md rule 3).
 - `bun run build`: exit 0
 - `bun --bun vitest run`: all passing
 - `git diff --name-only`: only `docs/skills.md` and `CONTRIBUTING.md`
+
+## Review: unit-9 docs diff (`docs/skills.md` + `CONTRIBUTING.md`) — 2026-08-09
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
