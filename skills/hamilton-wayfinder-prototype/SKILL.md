@@ -31,3 +31,20 @@ The two flavours produce very different artifacts — getting this wrong wastes 
 4. **Skip the polish.** No tests, no error handling beyond what makes the prototype _runnable_, no abstractions. The point is to learn something fast.
 5. **Surface the state.** After every action or variant switch, print or render the full relevant state so the user can see what changed.
 6. **Capture it when done.** Fold any validated decision into the real code, then capture the prototype itself as a **primary source**: commit it to a throwaway branch, out of main, and leave a context pointer to that branch in the resolving ticket's body. Capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The main branch keeps only the validated decision.
+
+## Process flow
+
+```dot
+digraph hamilton_wayfinder_prototype {
+    "Identify the question\n(logic/state vs. appearance)" [shape=box];
+    "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" [shape=box];
+    "Build throwaway\n(trivial to run, surface state, no persistence)" [shape=box];
+    "Hand over to user" [shape=box];
+    "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)" [shape=doublecircle];
+
+    "Identify the question\n(logic/state vs. appearance)" -> "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)";
+    "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" -> "Build throwaway\n(trivial to run, surface state, no persistence)";
+    "Build throwaway\n(trivial to run, surface state, no persistence)" -> "Hand over to user";
+    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)";
+}
+```

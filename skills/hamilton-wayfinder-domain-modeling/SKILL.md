@@ -74,3 +74,31 @@ Every decision is captured in the resolving ticket's `## Answer`. For most decis
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
 If any criterion is missing, the verdict alone suffices.
+
+## Process flow
+
+```dot
+digraph hamilton_wayfinder_domain_modeling {
+    "Encounter term / relationship" [shape=box];
+    "Conflicts with glossary?" [shape=diamond];
+    "Challenge the conflict" [shape=box];
+    "Fuzzy or overloaded?" [shape=diamond];
+    "Propose precise canonical term" [shape=box];
+    "Stress-test with concrete scenarios" [shape=box];
+    "Cross-reference with code" [shape=box];
+    "Resolved?" [shape=diamond];
+    "Update glossary inline\n+ record decision in ticket ## Answer" [shape=doublecircle];
+
+    "Encounter term / relationship" -> "Conflicts with glossary?";
+    "Conflicts with glossary?" -> "Challenge the conflict" [label="yes"];
+    "Conflicts with glossary?" -> "Fuzzy or overloaded?" [label="no"];
+    "Challenge the conflict" -> "Fuzzy or overloaded?";
+    "Fuzzy or overloaded?" -> "Propose precise canonical term" [label="yes"];
+    "Fuzzy or overloaded?" -> "Stress-test with concrete scenarios" [label="no"];
+    "Propose precise canonical term" -> "Stress-test with concrete scenarios";
+    "Stress-test with concrete scenarios" -> "Cross-reference with code";
+    "Cross-reference with code" -> "Resolved?";
+    "Resolved?" -> "Update glossary inline\n+ record decision in ticket ## Answer" [label="yes"];
+    "Resolved?" -> "Stress-test with concrete scenarios" [label="no"];
+}
+```

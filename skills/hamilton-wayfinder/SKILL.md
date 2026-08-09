@@ -72,3 +72,35 @@ This section is the contract between the wayfinder methodology and its file-nati
 **Claiming.** Setting a ticket's `status:` to `claimed` is a signal of intent: it tells a reader the ticket is in hand. It does not affect frontier calculation — a claimed ticket is still open, not resolved — and it does not prevent a collision; concurrent sessions collide through git, and the claim is how a reader sees the ticket is already being worked.
 
 **Branching.** Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge, so the flip ships with the work it marks. Between merges the route lags on the default branch; that staleness is accepted, not a defect.
+
+## Process flow
+
+```dot
+digraph hamilton_wayfinder {
+    "Name destination\n(grilling)" [shape=box];
+    "Map frontier breadth-first" [shape=box];
+    "Fog ahead?" [shape=diamond];
+    "Stop — no map needed" [shape=doublecircle];
+    "Create map + tickets\n(fire research in parallel)" [shape=box];
+    "Load map" [shape=box];
+    "Open unblocked ticket?" [shape=diamond];
+    "Write route\n(closing act)" [shape=doublecircle];
+    "Claim ticket" [shape=box];
+    "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
+    "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
+    "Graduate fog / close out-of-scope" [shape=box];
+
+    "Name destination\n(grilling)" -> "Map frontier breadth-first";
+    "Map frontier breadth-first" -> "Fog ahead?";
+    "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
+    "Fog ahead?" -> "Create map + tickets\n(fire research in parallel)" [label="fog exists"];
+    "Create map + tickets\n(fire research in parallel)" -> "Load map";
+    "Load map" -> "Open unblocked ticket?";
+    "Open unblocked ticket?" -> "Write route\n(closing act)" [label="frontier empty"];
+    "Open unblocked ticket?" -> "Claim ticket" [label="next ticket"];
+    "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
+    "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
+    "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Graduate fog / close out-of-scope";
+    "Graduate fog / close out-of-scope" -> "Load map";
+}
+```
