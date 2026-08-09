@@ -12,3 +12,6 @@
 
 - Oracle agent was unavailable (backing model not found, 2 attempts) and did not author this; the parent agent authored the skill directly against the approved design, plan, requirements, and `writing-great-skills`. A downstream `hamilton-review` and an explicit `writing-great-skills` craft pass (later playbook tasks) will validate.
 - Design decisions honored: user-invoked (`disable-model-invocation: true`), no `references/` directory, `## Map mechanics` isolated in the body, original NOTICE under Apache 2.0 with no provenance line.
+
+## Review: skills/hamilton-wayfinder (SKILL.md + NOTICE) — 2026-08-08
+- Verdict: approved (blocking: 0, suggestions: 3) — see review.md
