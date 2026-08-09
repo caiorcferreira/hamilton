@@ -1,0 +1,35 @@
+# Phase 03: Teach propose to read a route (Route Unit 8)
+
+Give `hamilton-propose` map-aware entrypoint logic: when pointed at a map folder, it reads `route.md`, finds the next unit with status `pending`, and navigates that unit's decision links to pull full context before its normal dialogue begins. Everything after the entrypoint is unchanged. This is a contained, mechanical addition to an existing skill's entrypoint, so it uses the **coder** agent (not oracle). It must run after Phase 02 because both edit `skills/hamilton-propose/SKILL.md` — serializing them avoids a conflict on the same file. Once this unit ships, propose can read routes on its own, which the later units benefit from.
+
+## Tasks
+
+- [x] Load the unit's context. Read the `### 8. Teach propose to read a route` section of `.hamilton/maps/hamilton-wayfinder/route.md` and its two backing tickets: `tickets/09-boundary-with-propose-and-critique.md` (the map-aware behaviour spec — propose reads the folder, finds `route.md`, identifies the next `pending` unit, navigates decision links to pull context) and `tickets/13-map-artifacts-and-worktrees.md` (the branching rule — propose reads `route.md` from the branch the session started on and does **not** reach for the default branch's copy, which keeps propose's worktree gate intact). Also read the current `skills/hamilton-propose/SKILL.md` to locate where the entrypoint logic lands (step 1 / step 3 context-exploration).
+
+  **Context loaded.** Route unit 8 (`route.md:222-237`) is `pending`, depends on units 6 + 7 (both `shipped`). Ticket 09 fixes the behaviour: the human points propose at a map folder; propose reads the folder, finds `route.md`, identifies the next `pending` unit, navigates that unit's decision links to pull full context, then proceeds into its normal workflow unchanged. Propose is a required gate — no straight-to-plan path. Ticket 13 fixes the branching rule: propose reads `route.md` from the branch the session started on (never the default branch's copy), which keeps propose's worktree gate intact; status flips ride the unit's own branch.
+
+  **Entrypoint landing points in `skills/hamilton-propose/SKILL.md`:**
+  - **Step 1** (Derive the title, ensure an isolated workspace) — map-folder detection happens here; the title derives from the next pending unit's slug rather than a free-form request.
+  - **Step 3** (Explore context, read-only) — reading `route.md` (current branch) and navigating the next pending unit's decision links into `tickets/` feeds the existing context-exploration step. Steps 4–10 stay untouched.
+
+- [x] Establish an isolated workspace for this unit off `port-wayfinder-siblings`: create a worktree on a dedicated branch (e.g. `unit-08-propose-reads-route`) and `cd` into it, confirming `git rev-parse --show-toplevel` ends in that worktree.
+
+  **Workspace established — 0 images analyzed.** Created worktree at `/Users/caio.cavalcante/personal/hamilton/.worktrees/port-wayfinder-siblings/.worktrees/unit-08-propose-reads-route` on branch `unit-08-propose-reads-route`, based off `port-wayfinder-siblings` (`4a8079d`, the tip that includes unit-7's merged grilling refactor). Confirmed `git rev-parse --show-toplevel` → `…/.worktrees/unit-08-propose-reads-route`, `branch --show-current` → `unit-08-propose-reads-route`, base commit `4a8079d`, and `git rev-parse --git-dir` ≠ `--git-common-dir` (linked worktree).
+
+  **Path note — deliberate deviation from unit-7's sibling worktree.** Unit-7 placed its worktree as a sibling at `…/.worktrees/unit-07-…`, which sat outside this agent's hard write boundary and forced the Auto Run `Working/`-folder staging dance for `review.md`/`progress.md`. Unit-08 nests under `port-wayfinder-siblings/.worktrees/unit-08-propose-reads-route` instead, keeping the worktree **inside** the `port-wayfinder-siblings/` write boundary. Every subsequent task in this phase can therefore write artifacts directly to the change dir on the `unit-08-propose-reads-route` branch — no staging, no subagent workaround for boundary tension. Ticket 13's rule is fully satisfied (unit rides its own branch; the status flip rides that branch; propose reads `route.md` from the branch the session started on) — only the on-disk path of the worktree differs, which ticket 13 does not constrain. `.worktrees/` is gitignored, so the nested worktree does not pollute `port-wayfinder-siblings`'s `git status` (verified: parent status shows only the pre-existing untracked Phase-03–07 playbook docs, not the worktree).
+
+  Subsequent unit-08 work runs from this worktree: `cd .worktrees/unit-08-propose-reads-route` from the `port-wayfinder-siblings` worktree root (or set the workdir there). Branch `unit-08-propose-reads-route` is local for now; it pushes with the first artifact commit, matching the unit-7 cadence.
+
+- [ ] Run `hamilton-propose` for this unit, feeding it the unit 8 goal and the ticket 09 / 13 decisions as the change request (propose does not yet read routes — that is exactly what this unit adds — so supply context explicitly). The proposal must scope the change to the entrypoint only: when given a map folder, read `route.md`, find the next `pending` unit, navigate its decision links, then proceed into propose's normal workflow unchanged. Answer any HITL questions from the ticket context so the phase is autonomous.
+
+- [ ] Run `hamilton-plan` on the approved propose artifacts to produce the ordered task ledger for the entrypoint addition.
+
+- [ ] Dispatch the **coder** agent to implement the change in `skills/hamilton-propose/SKILL.md`, giving it the propose + plan artifacts. The entrypoint logic must: detect when it is pointed at a `.hamilton/maps/<effort>/` folder; read `route.md` from the current branch (the branch the session started on — never reach for the default branch's copy, per ticket 13); locate the next unit whose status is `pending`; navigate that unit's backing decision links into `tickets/` to pull full context; then hand off to propose's existing workflow. Everything after the entrypoint stays untouched.
+
+- [ ] Run `hamilton-review` on the unit's diff, confirming the entrypoint is additive and the rest of propose's workflow reads coherently with the new front logic. Address any blocking findings.
+
+- [ ] Run the `writing-great-skills` skill **explicitly** against `skills/hamilton-propose/` (it was edited again this unit) and fix every finding in place — the mandated post-unit craft pass for the skill this phase changed.
+
+- [ ] Run `hamilton-finish-work` with the **`local-merge`** strategy, merging the unit's branch back into **`port-wayfinder-siblings`** (not `main`), from the `port-wayfinder-siblings` worktree. Tear down the unit worktree after the merge; confirm the spec sync and `progress.md` finish entry ride into `port-wayfinder-siblings`.
+
+- [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 8.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
