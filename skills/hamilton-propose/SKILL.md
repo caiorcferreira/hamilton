@@ -62,8 +62,17 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive a
-   kebab-case title from the request. Then detect isolation: if you are already in a linked
+1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** If
+   the request points at a `.hamilton/maps/<effort>/` folder that contains a `route.md`,
+   enter map-aware mode: read `route.md` from the working tree — the branch the session
+   started on — and do not reach for the default branch's copy via `git show`, `git
+   checkout`, or any equivalent (the worktree this step creates is based off the current
+   branch, so the working tree's copy is the session's copy). Scan the `### N.` units in
+   order and find the first whose `Status:` line reads `pending`; derive the kebab-case
+   change title from that unit's name (the heading text after `### N.`). If no unit is
+   `pending`, stop and tell the user that every unit is already in-progress or shipped —
+   do not fall through to free-form mode. Otherwise derive a kebab-case title from the
+   request. Then detect isolation: if you are already in a linked
    worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
    submodule) or on a dedicated branch (not the repo's default branch), work in place. Otherwise
    create a worktree on a new branch, both named for the change, under the git-ignored
