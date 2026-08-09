@@ -238,7 +238,7 @@ both edit `skills/hamilton-propose/SKILL.md` — serializing them avoids a confl
 
 ### 9. Sync the framework docs
 
-Status: pending
+Status: shipped
 Depends on: 6
 Backed by: [How the framework docs present the pre-SDD stage](tickets/10-framework-docs-presentation.md),
 [Fork attribution and licensing](tickets/03-fork-attribution.md)

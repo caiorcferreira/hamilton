@@ -88,4 +88,8 @@ Add the `hamilton-wayfinder` entry to `docs/skills.md` in the established format
 
   **Next step is task 8** (the following checkbox) — verify the unit shipped: flip route.md §9 `Status:` to `shipped` and re-run the repo gates.
 
-- [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 9.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
+- [x] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 9.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
+
+  **Unit 9 verified shipped — 0 images analyzed.** Flipped route.md §9 `Status:` from `pending` to `shipped` (line 241) directly on `port-wayfinder-siblings`, matching the unit-8 precedent (`cfd3f8b` flipped §8 the same way as a standalone commit on the integration branch). Section 10 (line 261) and the map-level status (line 3) remain `pending` — unit 10 is a separate phase and the map is only complete when all units ship. Confirmed via `rg -n 'Status:' route.md`: lines 41–241 now all read `shipped` (units 1–9), line 261 reads `pending` (unit 10), line 3 reads `pending` (map-level).
+
+  **Gates green:** `bun run build` → exit 0; `bun --bun vitest run` → 24/24 passed (3 files). No code changed this commit — docs/map-only — so the gate re-run is the confirmatory check, not a regression guard. Committed as a standalone `MAESTRO:` commit on `port-wayfinder-siblings` and pushed. **Phase 04 is complete; all eight tasks are checked off.** The next phase (Phase 05) converts the map's own files to the mechanics contract (route unit 10).
