@@ -1,8 +1,10 @@
-# Where map artifacts live relative to per-unit worktrees
+---
+type: grilling
+status: resolved
+blocked_by: [01, 04, 06, 09]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 01, 04, 06, 09
+# Where map artifacts live relative to per-unit worktrees
 
 ## Question
 

@@ -1,8 +1,10 @@
-# Read the three upstream sibling skills
+---
+type: research
+status: resolved
+blocked_by: []
+---
 
-Type: research
-Status: resolved
-Blocked by: —
+# Read the three upstream sibling skills
 
 ## Question
 

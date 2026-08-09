@@ -1,8 +1,10 @@
-# How the framework docs present the pre-SDD stage
+---
+type: grilling
+status: resolved
+blocked_by: [09]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 09
+# How the framework docs present the pre-SDD stage
 
 ## Question
 

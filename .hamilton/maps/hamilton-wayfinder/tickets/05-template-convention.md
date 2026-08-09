@@ -1,8 +1,10 @@
-# Template convention: inline vs bundle/templates/
+---
+type: grilling
+status: resolved
+blocked_by: [01]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 01
+# Template convention: inline vs bundle/templates/
 
 ## Question
 

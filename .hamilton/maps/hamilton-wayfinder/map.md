@@ -1,6 +1,8 @@
-# Fork wayfinder into Hamilton
+---
+status: shipping
+---
 
-Status: shipping
+# Fork wayfinder into Hamilton
 
 ## Destination
 

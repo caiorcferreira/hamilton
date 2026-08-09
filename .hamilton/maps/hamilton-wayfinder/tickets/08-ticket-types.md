@@ -1,8 +1,10 @@
-# Ticket types in the Hamilton fork
+---
+type: grilling
+status: resolved
+blocked_by: [07]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 07
+# Ticket types in the Hamilton fork
 
 ## Question
 

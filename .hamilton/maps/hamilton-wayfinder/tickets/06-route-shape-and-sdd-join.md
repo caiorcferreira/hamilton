@@ -1,8 +1,10 @@
-# route.md shape and the SDD join
+---
+type: grilling
+status: resolved
+blocked_by: [01]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 01
+# route.md shape and the SDD join
 
 ## Question
 

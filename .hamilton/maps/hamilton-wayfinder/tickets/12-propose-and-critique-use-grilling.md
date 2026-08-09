@@ -1,8 +1,10 @@
-# Update propose and critique to use hamilton-grilling
+---
+type: grilling
+status: resolved
+blocked_by: [07]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 07
+# Update propose and critique to use hamilton-grilling
 
 ## Question
 

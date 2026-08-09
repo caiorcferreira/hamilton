@@ -1,8 +1,10 @@
-# Boundary with hamilton-propose and hamilton-critique
+---
+type: grilling
+status: resolved
+blocked_by: [06]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 06
+# Boundary with hamilton-propose and hamilton-critique
 
 ## Question
 

@@ -1,8 +1,10 @@
-# Which siblings to port, and their Hamilton shape
+---
+type: grilling
+status: resolved
+blocked_by: [02]
+---
 
-Type: grilling
-Status: resolved
-Blocked by: 02
+# Which siblings to port, and their Hamilton shape
 
 ## Question
 

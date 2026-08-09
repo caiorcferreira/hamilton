@@ -1,8 +1,10 @@
-# Fork attribution and licensing
+---
+type: grilling
+status: resolved
+blocked_by: []
+---
 
-Type: grilling
-Status: resolved
-Blocked by: —
+# Fork attribution and licensing
 
 ## Question
 

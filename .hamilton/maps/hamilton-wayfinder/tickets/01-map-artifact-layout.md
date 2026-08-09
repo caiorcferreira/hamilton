@@ -1,8 +1,10 @@
-# Map artifact layout under .hamilton/
+---
+type: grilling
+status: resolved
+blocked_by: []
+---
 
-Type: grilling
-Status: resolved
-Blocked by: —
+# Map artifact layout under .hamilton/
 
 ## Question
 
