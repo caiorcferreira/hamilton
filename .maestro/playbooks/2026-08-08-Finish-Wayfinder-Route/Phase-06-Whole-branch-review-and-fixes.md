@@ -1,0 +1,20 @@
+# Phase 06: Whole-branch review and fixes
+
+After all five route units (6–10) have merged back into `port-wayfinder-siblings`, dispatch the **oracle** agent for a broad review of the entire branch diff (`port-wayfinder-siblings` vs `main`) — internal consistency across the changed skills, coherence with the route's intent, and proper integration with the Hamilton framework (skill conventions, SDD-loop wiring, framework docs). Oracle writes a findings report with suggested fixes to a known path; if the report contains findings, a **coder** agent applies them (keeping oracle out of mechanical fix work for cost control), then re-runs the gates. If the report is clean, the phase is done. This runs on the merged branch state — its purpose is cross-unit coherence that no single unit's review could catch.
+
+## Tasks
+
+- [ ] Confirm the branch is ready for review: all five route units (6–10) show `Status: shipped` in `.hamilton/maps/hamilton-wayfinder/route.md`, `map.md` reads `shipped`, the working tree on `port-wayfinder-siblings` is clean, and `bun run build` + `bun --bun vitest run` pass. Capture the full branch diff for the reviewer: `git diff main...port-wayfinder-siblings --stat` and the full diff.
+
+- [ ] Dispatch the **oracle** agent to review the entire branch diff (`git diff main...port-wayfinder-siblings`), giving it the route.md, map.md, and the changed skills/docs as context. **Cap oracle retries at 2.** The review must cover three axes:
+  - **Internal consistency across changed skills** — do `hamilton-wayfinder`, the three ported siblings, `hamilton-grilling`, and the refactored `hamilton-propose` / `hamilton-critique` agree on vocabulary, invocation boundaries, and how they reach each other? No leftover duplication from the grilling refactor; no half-instructions the removals left behind.
+  - **Coherence with the route's intent** — does what shipped actually deliver what each unit's backing tickets decided? Flag any decision that silently dropped or drifted.
+  - **Hamilton-framework integration** — skill conventions (provenance lines, `NOTICE` files, `references/` usage), SDD-loop wiring (propose's map-aware entrypoint, the worktree-gate rule from ticket 13), and framework docs (`docs/skills.md` entry, `CONTRIBUTING.md` mapping rows) all consistent and complete.
+
+- [ ] Have the oracle write its findings as a structured Markdown report to `.maestro/playbooks/2026-08-08-Finish-Wayfinder-Route/Working/whole-branch-review.md` with YAML front matter (`type: report`, `title: Whole-branch review — Finish Wayfinder Route`, `created: <today>`, `tags: [review, wayfinder, framework]`), a numbered findings list (each tagged `[Critical]` / `[Significant]` / `[Minor]` with a located fix), and a final verdict (`clean` or `findings`). Create the `Working/` folder if it does not exist.
+
+- [ ] Read the report and gate on the verdict. If the verdict is `clean` (no findings), mark this phase done with a note that the branch passed review unchanged. If the verdict is `findings`, proceed to the next task.
+
+- [ ] Dispatch the **coder** agent to apply every finding from `Working/whole-branch-review.md`, giving it the report and the branch context. Keep the oracle out of the mechanical fix work — it reviews, the coder builds. After applying, re-run the gates (`bun run build` and `bun --bun vitest run`) and confirm they pass. If a finding is genuinely a design question the coder cannot resolve, stop and report it rather than guessing.
+
+- [ ] Re-verify the branch is whole after any fixes: the working tree on `port-wayfinder-siblings` is clean, the gates pass, and no finding from the report is left unaddressed. Commit the fixes on `port-wayfinder-siblings`.
