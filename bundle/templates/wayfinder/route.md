@@ -5,7 +5,7 @@
   Written once when the map clears; it points at the decisions that back each
   unit and does not restate them. Each unit runs the SDD loop once and flips
   its own status on its own branch.
-  Delete this comment block and every inline <!-- ... --> hint before finalizing.
+  Delete this comment block and every inline hint comment before finalizing.
 -->
 
 # Route — <Effort Name>

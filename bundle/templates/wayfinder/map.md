@@ -5,7 +5,7 @@
   The map is an INDEX, not a store — it gists each closed ticket and links it,
   never restating the decision the ticket holds. Note that the frontmatter
   below becomes the first line of the file once this block is deleted.
-  Delete this comment block and every inline <!-- ... --> hint before finalizing.
+  Delete this comment block and every inline hint comment before finalizing.
 -->
 
 ---
