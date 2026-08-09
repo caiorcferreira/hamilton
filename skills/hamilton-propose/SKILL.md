@@ -62,8 +62,15 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive a
-   kebab-case title from the request. Then detect isolation: if you are already in a linked
+1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive
+   a kebab-case title from the request — unless the request points at a
+   `.hamilton/maps/<effort>/` folder containing a `route.md`, in which case enter map-aware
+   mode: read `route.md` from the working tree (the worktree this step creates is based off
+   the current branch, so the working tree's copy is the session's copy, never the default
+   branch's), scan the `### N.` units in order for the first whose `Status:` line reads
+   `pending`, and derive the title from that unit's name (the heading text after `### N.`);
+   if no unit is `pending`, stop and tell the user that every unit is already in-progress or
+   shipped. Then detect isolation: if you are already in a linked
    worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
    submodule) or on a dedicated branch (not the repo's default branch), work in place. Otherwise
    create a worktree on a new branch, both named for the change, under the git-ignored
@@ -88,8 +95,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
-   Invariants / Decisions) rather than contradicting it. If the request spans several independent
-   subsystems, stop and help decompose it first — one change per spec.
+   Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
+   also navigate the selected unit's `Backed by:` links — reading each linked
+   `tickets/NN-slug.md` to pull the full decision context — and feed it into this exploration.
+   If the unit has no `Backed by:` line, proceed with its route entry's goal paragraph alone.
+   If the request spans several independent subsystems, stop and help decompose it first —
+   one change per spec.
 4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
    the requester (a person, or the calling agent). Attended, invoke `hamilton-grilling`
    with those questions as content and "intent is clear" as the exit condition.
