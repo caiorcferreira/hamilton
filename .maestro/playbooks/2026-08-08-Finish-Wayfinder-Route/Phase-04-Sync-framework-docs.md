@@ -1,0 +1,33 @@
+# Phase 04: Sync the framework docs (Route Unit 9)
+
+Add the `hamilton-wayfinder` entry to `docs/skills.md` in the established format (positioned before `hamilton-propose` as an optional pre-change planning stage), and add the `New/changed map artifacts in .hamilton/maps/` → `docs/skills.md` row to `CONTRIBUTING.md`'s mapping table. The `docs/skills.md` entry also carries the fork's provenance in prose — the one place a reader learns where wayfinder came from, with a link to `NOTICE` for the legal credit. Docs-only, mechanical, so it uses the **coder** agent. **Hold the scope literally:** ticket 10 restricts edits to `docs/skills.md` and `CONTRIBUTING.md` only — the six-skill diagram in `README.md` and `docs/sdd-framework.md` stays exactly as it is. That is the decision, not an oversight; resist widening it while editing. No skills change this unit, so there is no `writing-great-skills` pass.
+
+## Tasks
+
+- [x] Load the unit's context. Read the `### 9. Sync the framework docs` section of `.hamilton/maps/hamilton-wayfinder/route.md` and its two backing tickets: `tickets/10-framework-docs-presentation.md` (the docs-shape decision — wayfinder sits before propose as optional; pipeline phrased as "six core skills in fixed sequence, plus an optional pre-change planning stage"; fork provenance narrative lives in the `docs/skills.md` entry, brief, linking to `NOTICE`; scope held to `docs/skills.md` + `CONTRIBUTING.md` only) and `tickets/03-fork-attribution.md` (provenance is prose here, legal credit stays in `NOTICE`). Also read the current `docs/skills.md` to learn the established entry format (`### \`hamilton-...\`` headings with When / What / Source structure) and `CONTRIBUTING.md`'s mapping table.
+
+  **Context loaded — 4 sources read (route.md §9, tickets 10 + 03, `docs/skills.md`, `CONTRIBUTING.md` mapping table); `NOTICE`/`LICENSE` + `skills/hamilton-wayfinder/{SKILL.md,NOTICE}` verified present. Load-bearing constraints for the downstream propose/plan/code tasks:**
+
+  - **Scope (ticket 10):** edit `docs/skills.md` + `CONTRIBUTING.md` ONLY. No touches to `README.md` or `docs/sdd-framework.md` — the six-skill diagram stays exactly as it is. This is the decision, not an oversight; resist widening while editing.
+  - **Position (ticket 10):** the `hamilton-wayfinder` entry goes **before** `hamilton-propose`, as an optional pre-change planning stage.
+  - **Pipeline phrasing (ticket 10):** "Six core skills in fixed sequence, plus an optional pre-change planning stage (wayfinder)."
+  - **Provenance (tickets 03 + 10):** carry the fork's provenance in **prose** inside the `docs/skills.md` wayfinder entry — brief note that it is a fork of upstream `mattpocock/skills` (MIT), with a link to `NOTICE` for full legal credit. Legal credit stays in `NOTICE`; `docs/sdd-framework.md`'s Inspirations section stays untouched.
+  - **CONTRIBUTING.md row (ticket 10):** add `New/changed map artifacts in .hamilton/maps/` → `docs/skills.md`. A **different** row already exists for wayfinder artifact *templates* in `bundle/templates/wayfinder/` (line 15) — add the new map-artifacts row, do not duplicate or conflate the two.
+  - **Established entry format (`docs/skills.md`):** `### \`hamilton-...\`` heading with a short role + step tag, a 1–2 sentence intro, then `- **When:**` / `- **Inputs:**` / `- **Produces:**` / `- **Notes:**` bullets, ending with `- Source: [\`skills/...\`](...)`.
+  - **One-sentence rule for the entry** (carried verbatim in the implementation task below, attributed to ticket 09): "Use wayfinder to break a complex goal into clear, realizable units. Use hamilton-propose to transform each route unit into a concrete change spec ready for autonomous implementation."
+
+- [ ] Establish an isolated workspace for this unit off `port-wayfinder-siblings`: create a worktree on a dedicated branch (e.g. `unit-09-sync-framework-docs`) and `cd` into it, confirming `git rev-parse --show-toplevel` ends in that worktree.
+
+- [ ] Run `hamilton-propose` for this unit. Propose may now read the route itself (unit 8 shipped the map-aware entrypoint in Phase 03); if not, feed the unit 9 goal and ticket 10 / 03 decisions as the change request. The proposal must hold the scope literally — `docs/skills.md` and `CONTRIBUTING.md` only, no edits to `README.md` or `docs/sdd-framework.md`. Answer any HITL questions from the ticket context so the phase is autonomous.
+
+- [ ] Run `hamilton-plan` on the approved propose artifacts to produce the ordered task ledger for the two doc edits.
+
+- [ ] Dispatch the **coder** agent to implement both edits, giving it the propose + plan artifacts:
+  - **`docs/skills.md`** — add a `### \`hamilton-wayfinder\`` entry in the established format, positioned **before** `hamilton-propose` as an optional pre-change planning stage. State the one-sentence rule from ticket 09 ("Use wayfinder to break a complex goal into clear, realizable units. Use hamilton-propose to transform each route unit into a concrete change spec ready for autonomous implementation."). Carry the fork's provenance in prose — brief note that it is a fork of upstream work, with a link to `NOTICE` for full legal credit. Adjust the pipeline identity phrasing to "six core skills in fixed sequence, plus an optional pre-change planning stage (wayfinder)."
+  - **`CONTRIBUTING.md`** — add the mapping-table row `New/changed map artifacts in .hamilton/maps/` → `docs/skills.md`. Note: a **different** row already exists for wayfinder artifact *templates* in `bundle/templates/wayfinder/` (added by unit 3) — add the new map-artifacts row, do not duplicate or conflate the two.
+
+- [ ] Run `hamilton-review` on the unit's diff, confirming the scope was held literally (no touches to `README.md` or `docs/sdd-framework.md`) and the `docs/skills.md` entry matches the established format. Address any blocking findings.
+
+- [ ] Run `hamilton-finish-work` with the **`local-merge`** strategy, merging the unit's branch back into **`port-wayfinder-siblings`** (not `main`), from the `port-wayfinder-siblings` worktree. Tear down the unit worktree after the merge; confirm the spec sync and `progress.md` finish entry ride into `port-wayfinder-siblings`.
+
+- [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 9.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
