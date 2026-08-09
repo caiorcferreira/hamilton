@@ -34,13 +34,16 @@ _Avoid_: Client, buyer, account
 **Single context (most repos):** One `glossary.md` at `.hamilton/specs/`.
 
 **Multiple contexts:** Each effort under `.hamilton/maps/` keeps its own working
-`glossary.md`, holding that effort's language while it is worked. The canonical
-`.hamilton/specs/glossary.md` holds the language the project has committed to.
+`glossary.md` — the current effort's scratch language only. Only the **current**
+effort's working `glossary.md` is ever read; you never read another effort's
+working glossary. When an effort closes, its resolved terms fold up into the
+canonical `.hamilton/specs/glossary.md`, which is the accumulated language the
+project has committed to.
 
 The skill infers which structure applies:
 
-- If a map's `glossary.md` exists, read it for the working language of this effort
+- If this effort's `glossary.md` exists, read it for this effort's working language — no other effort's glossary is read
 - If only `.hamilton/specs/glossary.md` exists, single context
-- If the map has no `glossary.md`, create one lazily when the first term is resolved
+- If this effort has no `glossary.md`, create one lazily when the first term is resolved
 
 When both exist, infer which one the current topic relates to. If unclear, ask.
