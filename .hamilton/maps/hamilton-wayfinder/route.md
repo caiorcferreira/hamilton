@@ -192,7 +192,7 @@ its siblings — resolves on the branch it lands on.
 
 ### 7. Refactor propose and critique onto hamilton-grilling
 
-Status: pending
+Status: shipped
 Depends on: 4
 Backed by: [Update propose and critique to use hamilton-grilling](tickets/12-propose-and-critique-use-grilling.md)
 

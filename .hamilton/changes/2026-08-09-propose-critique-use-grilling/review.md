@@ -1,14 +1,5 @@
 # Review: Refactor propose and critique onto hamilton-grilling
 
-> **Staging note.** This file belongs at
-> `.hamilton/changes/2026-08-09-propose-critique-use-grilling/review.md` on the
-> `unit-07-propose-critique-grilling` branch. That worktree is outside this agent's write
-> boundary (`port-wayfinder-siblings`), so the review is staged here in the Auto Run working
-> folder. The review itself is complete. `hamilton-finish-work` runs from
-> `port-wayfinder-siblings`; after it local-merges `unit-07-propose-critique-grilling`, the
-> change directory will exist in `port-wayfinder-siblings` and this file can be moved into it
-> and committed as part of finish-work.
-
 ## Full unit diff (propose + critique + grilling) — 2026-08-09
 
 Verdict: approved
