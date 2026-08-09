@@ -4,7 +4,9 @@ After all five route units (6–10) have merged back into `port-wayfinder-siblin
 
 ## Tasks
 
-- [ ] Confirm the branch is ready for review: all five route units (6–10) show `Status: shipped` in `.hamilton/maps/hamilton-wayfinder/route.md`, `map.md` reads `shipped`, the working tree on `port-wayfinder-siblings` is clean, and `bun run build` + `bun --bun vitest run` pass. Capture the full branch diff for the reviewer: `git diff main...port-wayfinder-siblings --stat` and the full diff.
+- [x] Confirm the branch is ready for review: all five route units (6–10) show `Status: shipped` in `.hamilton/maps/hamilton-wayfinder/route.md`, `map.md` reads `shipped`, the working tree on `port-wayfinder-siblings` is clean, and `bun run build` + `bun --bun vitest run` pass. Capture the full branch diff for the reviewer: `git diff main...port-wayfinder-siblings --stat` and the full diff.
+
+  **Done.** Confirmed all ten route units (6–10 included) carry `Status: shipped` in `route.md`; `map.md` frontmatter reads `status: shipped`. Gates green: `bun run build` exits 0; `bun --bun vitest run` passes 24/24 tests across 3 files. Working tree was made clean by committing the two previously-untracked Phase-06/07 playbook docs (matching the pattern of Phases 01–05 being tracked), then pushing to `origin/port-wayfinder-siblings` (`2637d9b`). Branch diff captured: `git diff main...port-wayfinder-siblings --stat` shows 117 files changed, +9980/−26; the full diff (10,844 lines) is saved at `Working/branch-diff-main...port-wayfinder-siblings.patch` for the reviewer.
 
 - [ ] Dispatch the **oracle** agent to review the entire branch diff (`git diff main...port-wayfinder-siblings`), giving it the route.md, map.md, and the changed skills/docs as context. **Cap oracle retries at 2.** The review must cover three axes:
   - **Internal consistency across changed skills** — do `hamilton-wayfinder`, the three ported siblings, `hamilton-grilling`, and the refactored `hamilton-propose` / `hamilton-critique` agree on vocabulary, invocation boundaries, and how they reach each other? No leftover duplication from the grilling refactor; no half-instructions the removals left behind.
