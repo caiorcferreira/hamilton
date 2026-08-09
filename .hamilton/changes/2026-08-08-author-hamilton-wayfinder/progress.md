@@ -26,3 +26,10 @@ Applied every lever (invocation, description pruning, single source of truth, no
 4. **No-op** — "steady" in "steady loop" (working intro) — loops are steady by default. Trimmed to "the loop".
 
 Levers that passed clean: invocation mode (user-invoked, description is one-line summary), description pruning (front-loads "map", names both branches, no trigger-list), leading words (map, destination, ticket, frontier, fog of war — consistent), sediment (new skill), sprawl (74 lines, right-sized), co-location (each concept under one heading), negation (two hard guardrails both paired with positives). Isolation boundary re-verified: zero `type:`/`status:`/`blocked_by:`/`.hamilton/maps/` matches above `## Map mechanics` (line 64). Gates green: `bun run build` + `bun --bun vitest run` (24/24). All plan acceptance criteria hold.
+
+## Finish — 2026-08-08
+- Preconditions: tree clean, tests green (24/24), review approved (0 blocking)
+- Specs synced: `wayfinder` created at `.hamilton/specs/wayfinder.md` — ADDED deltas distilled to altitude (Overview / Contract / Behavior + Examples / Invariants / Decisions)
+- Route status flipped: unit 6 `pending` → `shipped` in `route.md` (rides this branch, per ticket 13)
+- Finished: local-merge into `port-wayfinder-siblings`
+- Workspace: worktree `/Users/caio.cavalcante/personal/hamilton/.worktrees/unit-06-author-hamilton-wayfinder` removed after merge

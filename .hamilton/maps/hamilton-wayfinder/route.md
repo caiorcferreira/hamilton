@@ -151,7 +151,7 @@ things to say about how a router names what it points at.
 
 ### 6. Author hamilton-wayfinder
 
-Status: pending
+Status: shipped
 Depends on: 2, 3, 4, 5
 Backed by: [Map artifact layout](tickets/01-map-artifact-layout.md),
 [Map mechanics in files](tickets/04-map-mechanics-in-files.md),
