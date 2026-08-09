@@ -27,9 +27,9 @@ or CLI commands must include corresponding documentation updates.
 
 ## Licensing and attribution
 
-Hamilton is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file, and its `SKILL.md` carries a one-line provenance pointer naming the upstream skill, its licence, and that `NOTICE`.
+Hamilton is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file as the sole carrier of upstream attribution. The `SKILL.md` body carries no provenance or attribution text at all — it is a context cost paid on every skill load.
 
-The licence text must appear in the sibling `NOTICE` rather than in `references/`, which in this repo means content the agent is expected to read and bring into context on every skill invocation. The same text must not be repeated in the `SKILL.md` body, which is a context cost paid on every skill load.
+The licence text must appear in the sibling `NOTICE` rather than in `references/`, which in this repo is content the agent reads into context on every invocation.
 
 ### Per-skill NOTICE template
 
