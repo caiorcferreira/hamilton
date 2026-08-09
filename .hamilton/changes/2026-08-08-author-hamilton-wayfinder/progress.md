@@ -15,3 +15,14 @@
 
 ## Review: skills/hamilton-wayfinder (SKILL.md + NOTICE) — 2026-08-08
 - Verdict: approved (blocking: 0, suggestions: 3) — see review.md
+
+## writing-great-skills craft pass — 2026-08-08
+
+Applied every lever (invocation, description pruning, single source of truth, no-ops, leading words, sediment) against SKILL.md. Four fixes, all pruning — no additions:
+
+1. **Single source of truth** — map template path `~/.hamilton/templates/wayfinder/map.md` was in both the conceptual section (line 13) and step 4 (line 41). Removed from the conceptual section; step 4 is the sole authoritative reference. Ticket and route template paths were already single-sourced.
+2. **No-op** — "rather than chasing the deepest one first" (charting step 2) restated "breadth-first", the leading word already in the step heading. Trimmed.
+3. **No-op** — "the frontier is the edge of the known" (working step 2) restated the step's own procedural definition ("Take the first open, unblocked, unclaimed ticket in order"). Trimmed.
+4. **No-op** — "steady" in "steady loop" (working intro) — loops are steady by default. Trimmed to "the loop".
+
+Levers that passed clean: invocation mode (user-invoked, description is one-line summary), description pruning (front-loads "map", names both branches, no trigger-list), leading words (map, destination, ticket, frontier, fog of war — consistent), sediment (new skill), sprawl (74 lines, right-sized), co-location (each concept under one heading), negation (two hard guardrails both paired with positives). Isolation boundary re-verified: zero `type:`/`status:`/`blocked_by:`/`.hamilton/maps/` matches above `## Map mechanics` (line 64). Gates green: `bun run build` + `bun --bun vitest run` (24/24). All plan acceptance criteria hold.

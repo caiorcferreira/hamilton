@@ -10,7 +10,7 @@ Some goals are too big for one agent session — not because the work is hard, b
 
 ## The map
 
-The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). Create it from the installed template at `~/.hamilton/templates/wayfinder/map.md`; the template fixes the shape, the skill fixes when to create it.
+The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). The installed template provides the format; the skill fixes when to create it.
 
 ## Ticket types
 
@@ -36,7 +36,7 @@ Some work is consciously ruled beyond the destination. It goes in Out of scope a
 Charting is one session's work and resolves no tickets — it names the destination and lays out the frontier.
 
 1. **Name the destination.** Run a `hamilton-grilling` session to fix what reaching the end of the map looks like — the spec, decision, or change the effort is finding its way to.
-2. **Map the frontier breadth-first.** Grill across the whole space, surfacing open decisions and first takeable steps rather than chasing the deepest one first.
+2. **Map the frontier breadth-first.** Grill across the whole space, surfacing open decisions and first takeable steps.
 3. **Check for fog.** If breadth-first grilling surfaces no fog, the way is already clear for one session — stop and tell the user a map is not needed.
 4. **Create the map.** Write it from the installed template at `~/.hamilton/templates/wayfinder/map.md`, with Destination and Notes filled in, Decisions so far empty, and the fog sketched into Not yet specified.
 5. **Create the tickets that can be specified now.** Write each from the installed template at `~/.hamilton/templates/wayfinder/ticket.md`, then wire each ticket's blocking dependencies in a second pass once the set exists.
@@ -44,10 +44,10 @@ Charting is one session's work and resolves no tickets — it names the destinat
 
 ## Work through the map
 
-Working is the steady loop that clears the map one ticket at a time.
+Working is the loop that clears the map one ticket at a time.
 
 1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead.
-2. **Choose the frontier ticket.** Take the first open, unblocked, unclaimed ticket in order — the frontier is the edge of the known.
+2. **Choose the frontier ticket.** Take the first open, unblocked, unclaimed ticket in order.
 3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
 4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
 5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
