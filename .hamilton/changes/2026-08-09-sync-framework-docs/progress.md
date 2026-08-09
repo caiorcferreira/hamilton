@@ -26,3 +26,9 @@ backticks to match the table's established convention (CONTRIBUTING.md rule 3).
 
 ## Review: unit-9 docs diff (`docs/skills.md` + `CONTRIBUTING.md`) — 2026-08-09
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Finish — 2026-08-09
+- Preconditions: tree clean, tests green (build exit 0, 24/24 passed), review approved
+- Specs synced: framework-docs created (first-time tracking — no prior canonical spec; distilled from proposal/design/requirements into the skeleton)
+- Finished: local-merge into port-wayfinder-siblings
+- Workspace: worktree `.worktrees/unit-09-sync-framework-docs` removed
