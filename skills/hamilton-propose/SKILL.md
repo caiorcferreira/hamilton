@@ -97,8 +97,13 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
-   Invariants / Decisions) rather than contradicting it. If the request spans several independent
-   subsystems, stop and help decompose it first — one change per spec.
+   Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
+   also navigate the selected unit's backing decision links — the tickets listed in its
+   `Backed by:` line — reading each linked `tickets/NN-slug.md` to pull the full decision
+   context, and feed that into this exploration alongside the specs, docs, and recent commits.
+   If the unit has no `Backed by:` line, proceed with its route entry's goal paragraph alone.
+   If the request spans several independent subsystems, stop and help decompose it first —
+   one change per spec.
 4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
    the requester (a person, or the calling agent). Attended, invoke `hamilton-grilling`
    with those questions as content and "intent is clear" as the exit condition.
