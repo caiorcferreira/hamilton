@@ -15,7 +15,7 @@ SDD. A change that does not warrant that depth skips this step and starts at `ha
 
 **Gate.** Do not move to implementation — no `hamilton-plan`, no code — until the artifacts
 are approved and the design clears the `references/code-quality.md` self-review: for a
-non-trivial change, an unresolved structural smell blocks the gate (see step 9).
+non-trivial change, an unresolved structural smell blocks the gate (see step 10).
 
 ## What it produces
 
@@ -62,19 +62,18 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Derive the title, ensure an isolated workspace — then confirm you are inside it.** Derive
-   a kebab-case title from the request — unless the request points at a
-   `.hamilton/maps/<effort>/` folder containing a `route.md`, in which case enter map-aware
-   mode: read `route.md` from the working tree (the worktree this step creates is based off
-   the current branch, so the working tree's copy is the session's copy, never the default
-   branch's), scan the `### N.` units in order for the first whose `Status:` line reads
-   `pending`, and derive the title from that unit's name (the heading text after `### N.`);
-   if no unit is `pending`, stop and tell the user that every unit is already in-progress or
-   shipped. Then detect isolation: if you are already in a linked
-   worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and you are not in a
-   submodule) or on a dedicated branch (not the repo's default branch), work in place. Otherwise
-   create a worktree on a new branch, both named for the change, under the git-ignored
-   `.worktrees/` directory:
+1. **Goal discovery.** Derive a kebab-case title from the request — unless the request points
+   at a `.hamilton/maps/<effort>/` folder containing a `route.md`, in which case enter
+   map-aware mode: read `route.md` from the current working tree (step 2's worktree, if it
+   creates one, is based off the current branch, so its copy matches what this step read),
+   scan the `### N.` units in order for the first whose `Status:` line reads `pending`, and
+   derive the title from that unit's name (the heading text after `### N.`); if no unit is
+   `pending`, stop and tell the user that every unit is already in-progress or shipped.
+2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation: if
+   you are already in a linked worktree (`git rev-parse --git-dir` differs from
+   `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the
+   repo's default branch), work in place. Otherwise create a worktree on a new branch, both
+   named for the change, under the git-ignored `.worktrees/` directory:
 
    ```bash
    git worktree add .worktrees/<title> -b <title>
@@ -86,12 +85,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    shell and every file tool rooted in the original checkout. You must `cd` into the worktree and
    then **verify the switch took effect** before creating any files: run
    `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
-   proceed to step 2 until it does.** If you skip this check you will silently write every
+   proceed to step 3 until it does.** If you skip this check you will silently write every
    artifact on the default branch — the exact failure this step exists to prevent. From here on,
    the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
    the original checkout.
-2. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-3. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
+3. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
+4. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
@@ -101,11 +100,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    If the unit has no `Backed by:` line, proceed with its route entry's goal paragraph alone.
    If the request spans several independent subsystems, stop and help decompose it first —
    one change per spec.
-4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
+5. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
    the requester (a person, or the calling agent). Attended, invoke `hamilton-grilling`
    with those questions as content and "intent is clear" as the exit condition.
    Unattended, record a reasonable choice as an assumption.
-5. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
+6. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements.
 
@@ -126,7 +125,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
    | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
    | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
-6. **Write the requirements (what).** For each capability named in the proposal, write
+7. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the
    structured form regardless of how the canonical spec reads. For MODIFIED, there is no
@@ -134,30 +133,30 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    relevant section documents, then write a MODIFIED requirement that names the behavior it
    changes clearly enough for finish-work to locate the spec section, and states the *whole* new
    behavior (not just the diff).
-7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it
+8. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it
    with their trade-offs and a recommendation. Attended, invoke `hamilton-grilling` with
    the approaches as content and "an approach is chosen" as the exit condition.
    Unattended, pick the recommended approach and record the reasoning.
-8. **Write the design (how).** From the chosen approach, write `design.md`: context,
+9. **Write the design (how).** From the chosen approach, write `design.md`: context,
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
    any change-specific boundaries. As you shape the architecture and components, apply
    `references/code-quality.md` (read from this skill's references directory) — cohesive
    units with one reason to change, narrow boundaries, inverted dependencies with named
    testable seams — sized to the change, not gold-plated. Capture the outcome in the
    design's **Quality Lens** subsection (one line for a trivial change).
-9. **Self-review each artifact.** First confirm the workspace: `git rev-parse --show-toplevel`
-   ends in `.worktrees/<title>` (or you were legitimately working in place per step 1) and every
-   artifact was written under that root, not the default checkout. Then scan for placeholders,
-   contradictions, scope creep, and ambiguity; fix in place. Then run `design.md` against
-   `references/code-quality.md`.
-   **Blocking:** for a non-trivial change — one that adds or restructures units, not a
-   mechanical or single-file edit — an unresolved structural smell (a unit with more than one
-   reason to change, a leaked boundary, a hard-wired dependency with no testable seam) is a
-   gate failure. Fix the structure, or, if you are deliberately accepting it, record it in
-   the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
-   not pass the gate with a silent smell — a weak coder cannot recover quality the design
-   did not encode.
-10. **Get approval.** Present the artifacts for review. Attended, invoke
+10. **Self-review each artifact.** First confirm the workspace: `git rev-parse --show-toplevel`
+    ends in `.worktrees/<title>` (or you were legitimately working in place per step 2) and every
+    artifact was written under that root, not the default checkout. Then scan for placeholders,
+    contradictions, scope creep, and ambiguity; fix in place. Then run `design.md` against
+    `references/code-quality.md`.
+    **Blocking:** for a non-trivial change — one that adds or restructures units, not a
+    mechanical or single-file edit — an unresolved structural smell (a unit with more than one
+    reason to change, a leaked boundary, a hard-wired dependency with no testable seam) is a
+    gate failure. Fix the structure, or, if you are deliberately accepting it, record it in
+    the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
+    not pass the gate with a silent smell — a weak coder cannot recover quality the design
+    did not encode.
+11. **Get approval.** Present the artifacts for review. Attended, invoke
     `hamilton-grilling` with the revision feedback as content and "artifacts approved"
     as the exit condition. Unattended, record open questions. Do not pass the gate
     until approved.
@@ -169,11 +168,11 @@ reviewed and approved, ready for `hamilton-plan`.
 
 ## Handoff
 
-- **Disclose the workspace.** If step 1 created a worktree for this change, state its path
+- **Disclose the workspace.** If step 2 created a worktree for this change, state its path
   (`.worktrees/<title>`) and branch — the artifacts, and all the work to come, live there, not
   in the original checkout. If you worked in place, name that branch.
-- **Name the next step.** With the artifacts approved (step 10), what follows is `hamilton-plan`.
-- **Hand back the decision.** The step-10 gate already requires approval before proceeding:
+- **Name the next step.** With the artifacts approved (step 11), what follows is `hamilton-plan`.
+- **Hand back the decision.** The step-11 gate already requires approval before proceeding:
   ask whether to move on to `hamilton-plan` rather than declaring readiness, and never invoke
   it yourself. Running unattended, record open questions, name the next step, and return.
 
@@ -181,6 +180,7 @@ reviewed and approved, ready for `hamilton-plan`.
 
 ```dot
 digraph hamilton_propose {
+    "Goal discovery\n(title + map-aware route read)" [shape=box];
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
@@ -193,6 +193,7 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
+    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree if on default branch)";
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions";
