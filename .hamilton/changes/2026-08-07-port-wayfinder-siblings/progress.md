@@ -97,3 +97,10 @@
 
 ## Branch-wide merge-gate review — 2026-08-08
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Finish — 2026-08-08
+
+- Preconditions: tree clean, tests green (`bun run test` → 24/24 in 3 files; `bun run build` → clean), all seven tasks implemented, latest `review.md` verdict `approved` (blocking: 0, suggestions: 0)
+- Specs synced: created `.hamilton/specs/ticket-resolution.md` from the nine ADDED requirements in `requirements/ticket-resolution.md`, with `## Decisions` distilled from `design.md`
+- Finished: local-merge into `claude/compassionate-bose-d06f8d` (fast-forward, per how units 3 and 4 landed)
+- Workspace: worktree left at `.worktrees/port-wayfinder-siblings` (branch `port-wayfinder-siblings`) — it cannot be removed from inside itself; teardown runs from the main checkout
