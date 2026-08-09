@@ -1,5 +1,5 @@
 ---
-status: shipping
+status: shipped
 ---
 
 # Fork wayfinder into Hamilton

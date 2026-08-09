@@ -15,3 +15,10 @@
 ## Review: Full diff (Task 1 + Task 2) — 2026-08-09
 
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Finish — 2026-08-09
+- Preconditions: tree clean, tests green (24/24), build exit 0, review approved
+- Specs synced: `wayfinder` updated — `blocked_by` wording reconciled from "comma-separated ticket slugs" to YAML list of ticket numbers; `type` row qualified as `(ticket)`; `map.md` carries `status` only stated explicitly; contributor-facing `CONTRIBUTING.md` home documented in the `### Map mechanics` section; two-homes decision added to `## Decisions`
+- Finished: local-merge into `port-wayfinder-siblings` (worked in place — work was already on the target branch; unit-10 worktree torn down, branch deleted)
+- Workspace: worked in place on `port-wayfinder-siblings`; unit-10 worktree at `/Users/caio.cavalcante/personal/hamilton/.worktrees/unit-10-map-mechanics-contract` removed, branch `unit-10-map-mechanics-contract` deleted
+- Map status flipped to `shipped` (last unit — destination reached); route top-level and §10 status flipped to `shipped`

@@ -33,16 +33,16 @@ Format details live in the installed templates, not in the skill body. The skill
 
 ### Map mechanics
 
-The file-native contract for map artifacts. This is the swappable surface — a future tracker backend changes this section and nothing else in the skill.
+The file-native contract for map artifacts. This is the swappable surface — a future tracker backend changes this section and nothing else in the skill, together with the self-contained `## Map mechanics` section in `CONTRIBUTING.md` that serves contributors. The two sections document the same contract for different audiences (agent runtime vs human contributor); consolidating them is a deliberate future effort.
 
 | frontmatter field | valid values |
 |---|---|
-| `type` | `research` / `prototype` / `grilling` / `task` |
+| `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
 | `status` (ticket) | `open` / `claimed` / `resolved` |
 | `status` (map) | `open` / `cleared` / `shipping` / `shipped` |
-| `blocked_by` | comma-separated ticket slugs |
+| `blocked_by` | YAML list of ticket numbers (`[]`, `[01]`, `[01, 04, 06, 09]`) |
 
-A map lives at `.hamilton/maps/<effort>/` holding `map.md`, a `tickets/` directory of `NN-slug.md` files numbered from `01`, and — once the map clears — `route.md`. Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge. Claiming a ticket sets its status to `claimed` as a signal of intent; it does not affect frontier calculation — a claimed ticket is still open, not resolved.
+`map.md` carries `status` only — no `type` — matching the map template; a map's role is determined by its filename, not a frontmatter type. A map lives at `.hamilton/maps/<effort>/` holding `map.md`, a `tickets/` directory of `NN-slug.md` files numbered from `01`, and — once the map clears — `route.md`. Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge. Claiming a ticket sets its status to `claimed` as a signal of intent; it does not affect frontier calculation — a claimed ticket is still open, not resolved.
 
 ## Behavior
 
@@ -89,3 +89,4 @@ A map lives at `.hamilton/maps/<effort>/` holding `map.md`, a `tickets/` directo
 - **The skill points at templates, never reproduces them.** The templates are the single source of truth for each artifact's shape; restating them in the skill body would duplicate that truth. The skill orients the agent to what each artifact is and when to create it; the template fixes what it looks like.
 - **Original `NOTICE`, no provenance line.** The skill text is original — no upstream prose is copied, and ideas and methodologies are not copyrightable. The MIT license does not require attribution for an independent implementation. The root `NOTICE` carries the repo-level upstream attribution; the per-skill `NOTICE` follows the root's own-work copyright pattern.
 - **One capability, bounded against two neighbours.** `glossary` defines what a term means (what a map is); `ticket-resolution` defines how each ticket type is resolved and where its artifacts land; `wayfinder` owns how the map is charted and worked — the processes, the lifecycle, and the file-native mechanics.
+- **Two homes for the mechanics contract.** The `## Map mechanics` contract lives in the skill (agent-facing, loaded at runtime) and in `CONTRIBUTING.md` (contributor-facing, self-contained and swappable). They serve different audiences and are not a copy; a future tracker backend swaps both. Consolidating them — making the skill point at `CONTRIBUTING.md` as the single source — is a deliberate future effort that touches the skill.

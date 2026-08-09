@@ -1,6 +1,6 @@
 # Route — Fork wayfinder into Hamilton
 
-Status: pending
+Status: shipped
 
 The map is cleared. What follows is the handoff: ten change-sized units, each running the SDD loop
 once — `hamilton-propose → plan → code → review → finish-work`.
@@ -258,7 +258,7 @@ the decision, not an oversight — resist widening it while editing.
 
 ### 10. Convert the map's own files to the mechanics contract
 
-Status: pending
+Status: shipped
 Depends on: 3
 Backed by: [Map mechanics in files](tickets/04-map-mechanics-in-files.md)
 
