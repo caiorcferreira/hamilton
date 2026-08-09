@@ -18,8 +18,8 @@ Three shapes serve the pre-pipeline wayfinding stage. Their frontmatter is a par
 
 | template | frontmatter | body |
 |----------|-------------|------|
-| `wayfinder/map.md` | `status`: `open` \| `cleared` | the sections Destination, Notes, Decisions so far, Not yet specified, Out of scope — in that order, and no sixth |
-| `wayfinder/ticket.md` | `type`: `grilling` \| `research` \| `prototype` \| `task`; `status`: `open` \| `resolved`; `blocked_by`: a list of ticket numbers | a `## Question` section |
+| `wayfinder/map.md` | `status`: `open` \| `cleared` \| `shipping` \| `shipped` | the sections Destination, Notes, Decisions so far, Not yet specified, Out of scope — in that order, and no sixth |
+| `wayfinder/ticket.md` | `type`: `grilling` \| `research` \| `prototype` \| `task`; `status`: `open` \| `claimed` \| `resolved`; `blocked_by`: a list of ticket numbers | a `## Question` section |
 | `wayfinder/route.md` | none | a preamble, then `## Units`, each unit carrying its name, a `Status` of `pending` \| `in-progress` \| `shipped`, its dependencies, links to the decisions backing it, and a goal paragraph |
 
 A map links its route from Destination once one exists; the route does not earn a section of its own. A ticket templates only the question — the answer is appended when the ticket resolves, so there is no empty Answer heading to invert that order. The route carries no frontmatter and no route-level status, because the effort's lifecycle belongs to the map.

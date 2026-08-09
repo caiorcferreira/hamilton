@@ -80,7 +80,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `changes-requested`, invoke `hamilton-grilling` with the findings as content and
    "every finding is validated" as the exit condition, before writing the report. A
    false positive can be rejected; where a finding offers several fixes, the author
-   picks one. Unattended, name the next step and return.
+   picks one. Unattended, skip the validation; the report is written from the unvalidated findings, and the handoff names the next step.
 7. **Write the report** — the numbered format below — printed to chat **and** persisted to
    `critique.md` in the change directory, written from the findings that survived
    validation.
