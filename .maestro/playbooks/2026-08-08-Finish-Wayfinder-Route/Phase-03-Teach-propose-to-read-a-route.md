@@ -78,6 +78,18 @@ Give `hamilton-propose` map-aware entrypoint logic: when pointed at a map folder
 
   **Gates green.** `bun run build` → exit 0; `bun --bun vitest run` → 24/24 pass (3 files). `skills/` is not bundled, so the prose edit does not affect the gates (unit-7 precedent). Diff is two hunks, +11/−14 against the coder's tip `ae87e81`; steps 4–10 and all surrounding sections remain byte-identical.
 
-- [ ] Run `hamilton-finish-work` with the **`local-merge`** strategy, merging the unit's branch back into **`port-wayfinder-siblings`** (not `main`), from the `port-wayfinder-siblings` worktree. Tear down the unit worktree after the merge; confirm the spec sync and `progress.md` finish entry ride into `port-wayfinder-siblings`.
+- [x] Run `hamilton-finish-work` with the **`local-merge`** strategy, merging the unit's branch back into **`port-wayfinder-siblings`** (not `main`), from the `port-wayfinder-siblings` worktree. Tear down the unit worktree after the merge; confirm the spec sync and `progress.md` finish entry ride into `port-wayfinder-siblings`.
+
+  **Finish-work complete — 0 images analyzed.** Ran the full `hamilton-finish-work` process from the `port-wayfinder-siblings` worktree (the merge target). Preconditions all held on the `unit-08-propose-reads-route` branch: working tree clean, `bun run build` exit 0, `bun --bun vitest run` 24/24 pass (3 files), review verdict `approved` (0 blocking), all plan tasks implemented.
+
+  **Spec sync — `propose` created (first-time tracking).** No `.hamilton/specs/propose.md` existed; the 5 ADDED map-aware-entrypoint requirements were distilled into the canonical skeleton (`## Overview` / `## Contract` / `## Behavior` + Examples / `## Invariants` / `## Decisions`) at altitude per `references/spec-altitude.md`. The route-from-working-tree invariant was lifted to the effect ("MUST NEVER reach for the default branch's copy") rather than the `git show`/`git checkout` enumeration — matching the lift the skill's own `writing-great-skills` pass already applied. Committed at `d2734d9` on the unit branch.
+
+  **Finish entry recorded** in `progress.md` (craft-pass entry + `## Finish — 2026-08-09` block) and committed at `c27f9fc` on the unit branch **before** the merge, so it rode into the base branch with the rest of the change.
+
+  **local-merge.** `git merge --no-ff unit-08-propose-reads-route` into `port-wayfinder-siblings` → merge commit `1b256e8` (8 files, +546/−4). Brings in the change artifacts (`proposal.md`, `design.md`, `requirements/propose.md`, `plan.md`, `review.md`, `progress.md`), the canonical spec (`.hamilton/specs/propose.md`), and the entrypoint edit (`skills/hamilton-propose/SKILL.md`). Confirmed the spec sync and the `progress.md` finish entry are present at `HEAD` on `port-wayfinder-siblings`. Merge-commit pattern matches unit-7's `f82f859`.
+
+  **Teardown.** `git worktree remove .worktrees/unit-08-propose-reads-route` (exit 0) — the nested worktree is gone (`git worktree list` no longer lists it). Local `unit-08-propose-reads-route` branch deleted (merged into HEAD; `git branch -D`, matching unit-7's delete-local-leave-remote precedent — `origin/unit-08-propose-reads-route` remains).
+
+  **Gates re-run on the merged `port-wayfinder-siblings` tree** as a sanity check: `bun run build` exit 0; `bun --bun vitest run` 24/24 pass (3 files). (The formal route-status-flip + gate verification is the next task.) Next step: flip `### 8.` status to `shipped` in `route.md` and run the gates — task 9.
 
 - [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 8.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
