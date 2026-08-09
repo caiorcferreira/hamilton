@@ -221,7 +221,7 @@ end-to-end afterwards, not just the diff.
 
 ### 8. Teach propose to read a route
 
-Status: pending
+Status: shipped
 Depends on: 6, 7
 Backed by: [Boundary with hamilton-propose and hamilton-critique](tickets/09-boundary-with-propose-and-critique.md),
 [Where map artifacts live relative to per-unit worktrees](tickets/13-map-artifacts-and-worktrees.md)

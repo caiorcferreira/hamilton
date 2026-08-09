@@ -92,4 +92,8 @@ Give `hamilton-propose` map-aware entrypoint logic: when pointed at a map folder
 
   **Gates re-run on the merged `port-wayfinder-siblings` tree** as a sanity check: `bun run build` exit 0; `bun --bun vitest run` 24/24 pass (3 files). (The formal route-status-flip + gate verification is the next task.) Next step: flip `### 8.` status to `shipped` in `route.md` and run the gates — task 9.
 
-- [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 8.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
+- [x] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 8.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass.
+
+  **Unit 8 shipped — 0 images analyzed.** Confirmed the unit-08 work merged into `port-wayfinder-siblings` via merge commit `1b256e8` (`git log --oneline` shows it at `HEAD~1`), bringing in `skills/hamilton-propose/SKILL.md` (+19/-4), `.hamilton/specs/propose.md` (first-time canonical spec), and the change artifacts under `.hamilton/changes/2026-08-09-propose-reads-route/`. Flipped the `### 8.` section's `Status:` line from `pending` → `shipped` in `.hamilton/maps/hamilton-wayfinder/route.md` (only that one token changed; `Depends on: 6, 7` and the rest of the section untouched). The status flip rides this branch, satisfying ticket 13's "status flips ride the unit's own branch" rule.
+
+  **Gates green on `port-wayfinder-siblings` at HEAD.** `bun run build` → exit 0; `bun --bun vitest run` → 24/24 pass (3 files). Unit 8 is fully shipped. Route units 9 and 10 remain `pending`; this phase (Phase 03) is complete.
