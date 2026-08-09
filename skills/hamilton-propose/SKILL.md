@@ -43,8 +43,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Principles
 
-- **Collaborate.** Refine through dialogue — ask one question at a time, prefer
-  multiple-choice, and confirm each section before moving on.
+- **Collaborate.** Refine through dialogue — confirm each section before moving on.
 - **High-level first.** Start from the user's goal; draft, then elaborate together.
 - **YAGNI.** Cut unnecessary scope from every artifact.
 - **Explore alternatives.** Offer 2–3 approaches with trade-offs and a recommendation
@@ -91,10 +90,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
    Invariants / Decisions) rather than contradicting it. If the request spans several independent
    subsystems, stop and help decompose it first — one change per spec.
-4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria — one
-   question at a time, multiple-choice when you can. Direct them at the requester (a person,
-   or the calling agent). When no one can answer, make the reasonable choice and record it
-   as an assumption. Do not start drafting until the intent is clear.
+4. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
+   the requester (a person, or the calling agent). Attended, invoke `hamilton-grilling`
+   with those questions as content and "intent is clear" as the exit condition.
+   Unattended, record a reasonable choice as an assumption.
 5. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements.
@@ -124,9 +123,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    relevant section documents, then write a MODIFIED requirement that names the behavior it
    changes clearly enough for finish-work to locate the spec section, and states the *whole* new
    behavior (not just the diff).
-7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it with
-   their trade-offs. Lead with your recommendation and why, and get the requester's choice
-   (or, unattended, pick the recommended one and record the reasoning).
+7. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it
+   with their trade-offs and a recommendation. Attended, invoke `hamilton-grilling` with
+   the approaches as content and "an approach is chosen" as the exit condition.
+   Unattended, pick the recommended approach and record the reasoning.
 8. **Write the design (how).** From the chosen approach, write `design.md`: context,
    decisions (with the alternatives considered), architecture, testing strategy, risks, and
    any change-specific boundaries. As you shape the architecture and components, apply
@@ -146,9 +146,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
    not pass the gate with a silent smell — a weak coder cannot recover quality the design
    did not encode.
-10. **Get approval.** Present the artifacts for review; revise and re-review affected
-   artifacts on request. Running unattended, record open questions. Do not pass the gate
-   until approved.
+10. **Get approval.** Present the artifacts for review. Attended, invoke
+    `hamilton-grilling` with the revision feedback as content and "artifacts approved"
+    as the exit condition. Unattended, record open questions. Do not pass the gate
+    until approved.
 
 ## Output
 
@@ -172,7 +173,7 @@ digraph hamilton_propose {
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
-    "Ask clarifying questions\n(one at a time)" [shape=box];
+    "Ask clarifying questions" [shape=box];
     "Proposal — why\n(problem, goals, capabilities)" [shape=box];
     "Requirements — what\n(SRS delta per capability)" [shape=box];
     "Propose 2–3 approaches\n(trade-offs + recommendation)" [shape=box];
@@ -183,14 +184,14 @@ digraph hamilton_propose {
 
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
-    "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";
-    "Ask clarifying questions\n(one at a time)" -> "Proposal — why\n(problem, goals, capabilities)";
+    "Explore context (read-only)" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Proposal — why\n(problem, goals, capabilities)";
     "Proposal — why\n(problem, goals, capabilities)" -> "Requirements — what\n(SRS delta per capability)";
     "Requirements — what\n(SRS delta per capability)" -> "Propose 2–3 approaches\n(trade-offs + recommendation)";
     "Propose 2–3 approaches\n(trade-offs + recommendation)" -> "Design — how\n(chosen approach -> design.md)";
     "Design — how\n(chosen approach -> design.md)" -> "Self-review each artifact";
     "Self-review each artifact" -> "Approved?";
-    "Approved?" -> "Ask clarifying questions\n(one at a time)" [label="changes requested"];
+    "Approved?" -> "Ask clarifying questions" [label="changes requested"];
     "Approved?" -> "Ready for hamilton-plan" [label="approved"];
 }
 ```
