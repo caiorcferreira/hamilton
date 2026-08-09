@@ -112,4 +112,12 @@ Refactor `hamilton-propose` and `hamilton-critique` so their one-question-at-a-t
 
   Committed to `port-wayfinder-siblings` and pushed to origin. Next step: verify the unit shipped (task 10) — route status reads `shipped`, gates green.
 
-- [ ] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 7.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass. No test asserts on skill content (per ticket 12), but the gates must stay green.
+- [x] Verify the unit shipped: in `.hamilton/maps/hamilton-wayfinder/route.md` the `### 7.` section's `Status:` line now reads `shipped`. Run the repo gates — `bun run build` and `bun --bun vitest run` — and confirm both pass. No test asserts on skill content (per ticket 12), but the gates must stay green.
+
+  **Verified shipped — 0 images analyzed.** Unit 7 confirmed shipped in `port-wayfinder-siblings`:
+  - **Route status:** `.hamilton/maps/hamilton-wayfinder/route.md` line 193 = `### 7. Refactor propose and critique onto hamilton-grilling`, line 195 = `Status: shipped` (the status line directly under the unit 7 header). Units 1–6 also read `shipped`; units 8–10 remain `pending` (out of scope for this phase).
+  - **`bun run build`:** exit 0 (`tsc -p tsconfig.json` clean).
+  - **`bun --bun vitest run`:** 24/24 tests pass across 3 files (duration 280ms), exit 0.
+  - **No skill-content assertions** (per ticket 12) — gates are the only bar, and both are green.
+
+  Phase 02 complete: propose and critique now delegate their one-question-at-a-time dialogue to `hamilton-grilling`, and all tasks in this phase document are checked off. No further tasks remain in this document.
