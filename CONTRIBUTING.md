@@ -13,6 +13,7 @@ or CLI commands must include corresponding documentation updates.
 | New/changed CLI command, flag, or argument | `docs/skills.md` (setup reference) |
 | New/changed artifact template in `bundle/templates/` | `docs/sdd-framework.md` |
 | New/changed wayfinder artifact template in `bundle/templates/wayfinder/` | `docs/skills.md` |
+| New/changed map artifacts in `.hamilton/maps/` | `docs/skills.md` |
 | New/changed guideline in `bundle/guidelines/` | `docs/tutorials/custom-guidelines.md` |
 | Changes to what `hamilton setup` installs | `docs/modes.md` or `README.md` |
 

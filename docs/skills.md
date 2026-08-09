@@ -21,7 +21,8 @@ init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──
                           review requests changes → code
 ```
 
-Seven skills. `hamilton-init` runs once per project. `hamilton-propose` is the optional heavyweight
+Six core skills in fixed sequence, plus an optional pre-change planning stage (wayfinder).
+`hamilton-init` runs once per project. `hamilton-propose` is the optional heavyweight
 front door — a tactical change skips it and starts at `hamilton-plan`, the one required step. The
 `code` and `review` steps loop until the review passes. `hamilton-orchestrate` is a driver that runs
 the whole plan (code + review over every task) in one session using subagents. `hamilton-critique`
@@ -74,6 +75,24 @@ Prepares an existing repository for the pipeline.
   `.hamilton/` workspace (`specs/`, `changes/`).
 - **Notes:** read-only exploration first; idempotent; never clobbers an existing `AGENTS.md`.
 - Source: [`skills/hamilton-init/SKILL.md`](../skills/hamilton-init/SKILL.md)
+
+### `hamilton-wayfinder` — chart the route before a change *(optional pre-change planning stage)*
+
+Charts a map of decision tickets for a goal too big for one session, then works them one at a time
+until the way to the destination is clear. The map plans the way; the doing comes later, one change
+at a time.
+
+- **When:** before `hamilton-propose`, for a goal too big for one change session — one that needs
+  its way found before the SDD loop begins.
+- **Inputs:** a complex goal; the project's `AGENTS.md`.
+- **Produces:** a map at `.hamilton/maps/<effort>/` (`map.md`, `tickets/`, and `route.md` once the
+  map clears) — a static handoff listing the change-sized units in order, each pointing at the
+  decisions backing it.
+- **Notes:** use wayfinder to break a complex goal into clear, realizable units. Use
+  `hamilton-propose` to transform each route unit into a concrete change spec ready for autonomous
+  implementation. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
+  [`NOTICE`](../NOTICE) for the full legal credit.
+- Source: [`skills/hamilton-wayfinder/SKILL.md`](../skills/hamilton-wayfinder/SKILL.md)
 
 ### `hamilton-propose` — idea → proposal, requirements, design *(step 1, optional)*
 
