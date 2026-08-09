@@ -43,8 +43,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Principles
 
-- **Collaborate.** Refine through dialogue — ask one question at a time, prefer
-  multiple-choice, and confirm each section before moving on.
+- **Collaborate.** Refine through dialogue — confirm each section before moving on.
 - **High-level first.** Start from the user's goal; draft, then elaborate together.
 - **YAGNI.** Cut unnecessary scope from every artifact.
 - **Explore alternatives.** Offer 2–3 approaches with trade-offs and a recommendation
@@ -175,7 +174,7 @@ digraph hamilton_propose {
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
-    "Ask clarifying questions\n(one at a time)" [shape=box];
+    "Ask clarifying questions" [shape=box];
     "Proposal — why\n(problem, goals, capabilities)" [shape=box];
     "Requirements — what\n(SRS delta per capability)" [shape=box];
     "Propose 2–3 approaches\n(trade-offs + recommendation)" [shape=box];
@@ -186,14 +185,14 @@ digraph hamilton_propose {
 
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
-    "Explore context (read-only)" -> "Ask clarifying questions\n(one at a time)";
-    "Ask clarifying questions\n(one at a time)" -> "Proposal — why\n(problem, goals, capabilities)";
+    "Explore context (read-only)" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Proposal — why\n(problem, goals, capabilities)";
     "Proposal — why\n(problem, goals, capabilities)" -> "Requirements — what\n(SRS delta per capability)";
     "Requirements — what\n(SRS delta per capability)" -> "Propose 2–3 approaches\n(trade-offs + recommendation)";
     "Propose 2–3 approaches\n(trade-offs + recommendation)" -> "Design — how\n(chosen approach -> design.md)";
     "Design — how\n(chosen approach -> design.md)" -> "Self-review each artifact";
     "Self-review each artifact" -> "Approved?";
-    "Approved?" -> "Ask clarifying questions\n(one at a time)" [label="changes requested"];
+    "Approved?" -> "Ask clarifying questions" [label="changes requested"];
     "Approved?" -> "Ready for hamilton-plan" [label="approved"];
 }
 ```
