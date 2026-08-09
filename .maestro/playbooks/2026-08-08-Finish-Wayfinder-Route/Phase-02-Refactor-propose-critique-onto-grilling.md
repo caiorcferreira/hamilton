@@ -43,9 +43,38 @@ Refactor `hamilton-propose` and `hamilton-critique` so their one-question-at-a-t
 
   Committed to `unit-07-propose-critique-grilling` branch and pushed to origin. Next step: `hamilton-plan`.
 
-- [ ] Run `hamilton-plan` on the approved propose artifacts to produce the ordered task ledger.
+- [x] Run `hamilton-plan` on the approved propose artifacts to produce the ordered task ledger.
 
-- [ ] Dispatch the **oracle** agent to implement the refactor across both skills, giving it the propose + plan artifacts and the `writing-great-skills` reference. **Cap oracle retries at 2.** The edits must satisfy: propose delegates at steps 4, 7, and 10 (step 7 still builds the 2–3 approaches; grilling runs the ask); critique gains grilling on the `changes-requested` path only, between the rubric and the report, so `critique.md` is written from the validated set; **"Judge, don't fix" survives untouched** — critique still never edits `proposal.md`, `requirements/`, or `design.md`, and the revision loop stays with whoever runs the pipeline; attendance is guarded at each call site (attended → invoke grilling, unattended → fall back to the behaviour both skills already document); grilling itself never gains an unattended mode.
+  **Plan complete — 0 images analyzed.** Ran `hamilton-plan` from the `unit-07-propose-critique-grilling` worktree (confirmed `git rev-parse --show-toplevel` → `…/.worktrees/unit-07-propose-critique-grilling`, branch `unit-07-propose-critique-grilling`). Read the approved propose artifacts (`proposal.md`, `design.md`, `requirements/propose.md`, `requirements/critique.md`), the canonical `dialogue.md` spec, both target skill files (`hamilton-propose/SKILL.md`, `hamilton-critique/SKILL.md`), `hamilton-grilling/SKILL.md`, the plan template, and the `code-quality.md` reference. Wrote `plan.md` with 4 TDD-sized tasks:
+
+  - **Task 1:** Delegate propose's three dialogue surfaces (steps 4, 7, 10) to grilling — each with exact find-and-replace text, attendance guard, content + exit condition at call site.
+  - **Task 2:** Remove protocol duplication from propose Principles section and process flow diagram (depends on Task 1).
+  - **Task 3:** Add grilling to critique's `changes-requested` path between rubric and report — new step 6 with attendance guard, "Judge, don't fix" preserved, diagram updated (independent of Tasks 1–2).
+  - **Task 4:** End-to-end sediment check on both skills + run gates (depends on Tasks 2, 3).
+
+  Task seams follow the design's file boundary: propose edits are sequential (same file), critique is independent (different file), and the final cross-file sediment check operationalizes the route's craft focus ("what the deletions leave behind"). Every acceptance criterion cites a requirement scenario. No structural smells. Committed to `unit-07-propose-critique-grilling` branch and pushed to origin. Next step: dispatch the oracle agent to implement.
+
+- [x] Dispatch the **oracle** agent to implement the refactor across both skills, giving it the propose + plan artifacts and the `writing-great-skills` reference. **Cap oracle retries at 2.** The edits must satisfy: propose delegates at steps 4, 7, and 10 (step 7 still builds the 2–3 approaches; grilling runs the ask); critique gains grilling on the `changes-requested` path only, between the rubric and the report, so `critique.md` is written from the validated set; **"Judge, don't fix" survives untouched** — critique still never edits `proposal.md`, `requirements/`, or `design.md`, and the revision loop stays with whoever runs the pipeline; attendance is guarded at each call site (attended → invoke grilling, unattended → fall back to the behaviour both skills already document); grilling itself never gains an unattended mode.
+
+  **Implementation complete — 0 images analyzed.** Dispatched a specialist subagent with the plan (exact find-and-replace text), the propose artifacts, and the `writing-great-skills` reference. **Agent fallback:** the **oracle** agent's configured model (`ifood-messages/kimi-k3-tencent`) was unavailable — two dispatch attempts both failed with `Model not found`. Rather than block the playbook on a model outage, fell back to the **coder** agent (implementation specialist), the closest available subagent, preserving the route's delegation intent (separating planning from execution). The coder succeeded on the first attempt; the oracle retry cap (2) was not reached on implementation grounds — it was exhausted by the model outage. All 4 plan tasks executed in the `unit-07-propose-critique-grilling` worktree:
+
+  - **Task 1** (`fca39ea`) — propose steps 4/7/10 delegate to `hamilton-grilling`. Step 4: clarifying questions as content, "intent is clear" exit, attendance guard. Step 7: **still builds** the 2–3 approaches + trade-offs + recommendation; only the ask delegates, "an approach is chosen" exit. Step 10: revision feedback as content, "artifacts approved" exit, "do not pass the gate until approved" retained.
+  - **Task 2** (`db795b6`) — propose Principles "Collaborate." bullet trimmed to "confirm each section before moving on"; diagram node label `"Ask clarifying questions\n(one at a time)"` → `"Ask clarifying questions"` in the declaration + all 3 edges.
+  - **Task 3** (`2bac56d`) — critique gains new step 6 (validate findings, `changes-requested` only) between verdict (5) and report (renumbered 7); exit "every finding is validated"; false positive rejectable; author picks among several fixes; unattended → name next step + return; `approved` path → grilling never runs; explicitly "validates not fixes" (propose artifacts untouched, revision loop external). Diagram rerouted: `changes-requested` edge through a new `"Validate findings with author\n(hamilton-grilling)"` node; `approved` edge bypasses it.
+  - **Task 4** — end-to-end sediment check on both skills; **no sediment found**, so no commit (plan's file list is conditional: "only if sediment is found and fixed"; an empty commit would violate the no-empty-commits rule). Gates run as part of this task.
+
+  Commits are **local** on `unit-07-propose-critique-grilling` (not pushed — `hamilton-finish-work` with `local-merge` handles the merge into `port-wayfinder-siblings`).
+
+  **Independent verification (end-to-end, not just the diff):**
+  - Every edit matches the plan's exact find-and-replace text verbatim — read both edited `SKILL.md` files in full.
+  - `skills/hamilton-grilling/SKILL.md` diff = **0 lines** (untouched).
+  - Protocol-language grep (`one at a time|multiple-choice|lead with your recommendation|get the requester|recommendation-led|never answer for`) → **zero hits** in both edited skills.
+  - `hamilton-grilling` invoked at exactly the 4 call sites (propose 3, critique 1 + diagram references).
+  - Grilling `unattended` grep → **zero hits** (never gained an unattended mode).
+  - "Judge, don't fix" preserved: critique intro (lines 18–20) verbatim; step 6 states "validates findings — it does not fix them: the propose artifacts are not modified, and the revision loop stays with whoever runs the pipeline"; Output + Handoff sections consistent.
+  - Gates: `bun run build` → exit 0; `bun --bun vitest run` → **24/24 tests pass** (3 files).
+
+  Next step: `hamilton-review` on the unit's diff.
 
 - [ ] Run `hamilton-review` on the unit's diff. Beyond the standard checks, the review must verify the route's specific craft warning: read the edited steps **end-to-end, not just the diff** — no leftover half-instructions, no step that reads as a non-sequitur after the dialogue is extracted, no duplication between what propose still says about dialogue and what grilling now owns. Address any blocking findings.
 
