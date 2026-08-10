@@ -5,7 +5,7 @@ description: Build and sharpen a project's domain model. Use when the user wants
 
 # Domain Modeling
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* the glossary for vocabulary is not this skill — that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. Before writing or updating the glossary, first read the canonical `.hamilton/specs/glossary.md` for the project's committed language, then read the current map's working `glossary.md` for the effort's in-progress terms. Reading both is fundamental — you cannot sharpen a model you haven't read. This skill is for when you're changing the model, not just consuming it.
 
 ## File structure
 

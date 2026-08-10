@@ -29,21 +29,22 @@ _Avoid_: Client, buyer, account
 - **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
 - **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
 
-## Single vs multi-context repos
+<!--
+  Single vs multi-context repos — guidance for the skill, not part of the template output.
 
-**Single context (most repos):** One `glossary.md` at `.hamilton/specs/`.
+  Single context (most repos): One glossary.md at .hamilton/specs/.
 
-**Multiple contexts:** Each effort under `.hamilton/maps/` keeps its own working
-`glossary.md` — the current effort's scratch language only. Only the **current**
-effort's working `glossary.md` is ever read; you never read another effort's
-working glossary. When an effort closes, its resolved terms fold up into the
-canonical `.hamilton/specs/glossary.md`, which is the accumulated language the
-project has committed to.
+  Multiple contexts: Each effort under .hamilton/maps/ keeps its own working
+  glossary.md — the current effort's scratch language only. Only the current
+  effort's working glossary.md is ever read; you never read another effort's
+  working glossary. When an effort closes, its resolved terms fold up into the
+  canonical .hamilton/specs/glossary.md, which is the accumulated language the
+  project has committed to.
 
-The skill infers which structure applies:
+  The skill infers which structure applies:
+  - If this effort's glossary.md exists, read it for this effort's working language — no other effort's glossary is read
+  - If only .hamilton/specs/glossary.md exists, single context
+  - If this effort has no glossary.md, create one lazily when the first term is resolved
 
-- If this effort's `glossary.md` exists, read it for this effort's working language — no other effort's glossary is read
-- If only `.hamilton/specs/glossary.md` exists, single context
-- If this effort has no `glossary.md`, create one lazily when the first term is resolved
-
-When both exist, infer which one the current topic relates to. If unclear, ask.
+  When both exist, infer which one the current topic relates to. If unclear, ask.
+-->

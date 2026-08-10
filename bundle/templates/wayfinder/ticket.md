@@ -21,7 +21,10 @@ blocked_by: []
 
 ## Answer
 
-<!-- hint: the resolution — the decision and its reasoning; appended when the ticket closes -->
+<!-- hint: the resolution — the decision and its reasoning; appended when the ticket closes.
+     This section is authoritative: if a later ticket supersedes this decision, update this
+     section to reflect the current truth and move the old answer to "Outdated decisions".
+     Leaving a superseded answer here is an inconsistency. -->
 
 ## Outdated decisions
 
