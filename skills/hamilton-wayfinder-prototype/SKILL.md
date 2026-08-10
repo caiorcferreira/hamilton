@@ -1,6 +1,6 @@
 ---
 name: hamilton-wayfinder-prototype
-description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, explore what a UI should look like, or probe any aspect of a system's behavior with disposable code.
+description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, compare structural alternatives for a system, or probe any aspect of behavior with disposable code.
 ---
 
 # Prototype
