@@ -12,6 +12,8 @@ or CLI commands must include corresponding documentation updates.
 |------------------|---------------|
 | New/changed CLI command, flag, or argument | `docs/skills.md` (setup reference) |
 | New/changed artifact template in `bundle/templates/` | `docs/sdd-framework.md` |
+| New/changed wayfinder artifact template in `bundle/templates/wayfinder/` | `docs/skills.md` |
+| New/changed map artifacts in `.hamilton/maps/` | `docs/skills.md` |
 | New/changed guideline in `bundle/guidelines/` | `docs/tutorials/custom-guidelines.md` |
 | Changes to what `hamilton setup` installs | `docs/modes.md` or `README.md` |
 
@@ -22,3 +24,57 @@ or CLI commands must include corresponding documentation updates.
 3. **Use the existing format.** Tables, code blocks, and section structures in each doc file are consistent -- follow them.
 4. **Update the README.** If a change affects the quick-start flow or what the CLI does, update `README.md`.
 5. **No stale content.** When deprecating or removing a feature, remove its documentation in the same changeset. Do not leave `(deprecated)` notes -- cut cleanly.
+
+## Licensing and attribution
+
+Hamilton is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file as the sole carrier of upstream attribution. The `SKILL.md` body carries no provenance or attribution text at all — it is a context cost paid on every skill load.
+
+The licence text must appear in the sibling `NOTICE` rather than in `references/`, which in this repo is content the agent reads into context on every invocation.
+
+### Per-skill NOTICE template
+
+When forking a skill, create a `NOTICE` file in the skill directory by copying the template below, substituting the upstream skill and project names, and placing it at `skills/<skill>/NOTICE`:
+
+```
+This skill is adapted from the "<upstream skill name>" skill in
+<upstream project> (<upstream project URL>), used under the MIT License.
+Modifications and additions are Copyright 2026 Caio Ferreira, licensed
+under the Apache License, Version 2.0.
+
+Original work:
+
+  MIT License
+  
+  Copyright (c) 2026 Matt Pocock
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+```
+
+## Map mechanics
+
+This section is the file-native frontmatter contract for map artifacts under `.hamilton/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/hamilton-wayfinder/SKILL.md`, and no other content in this file needs to change.
+
+| Frontmatter field | Valid values |
+|-------------------|--------------|
+| `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
+| `status` (ticket) | `open` / `claimed` / `resolved` |
+| `status` (map) | `open` / `cleared` / `shipping` / `shipped` |
+| `blocked_by` | YAML list of ticket numbers: `[]` for none, `[01]` for one, `[01, 04, 06, 09]` for several |
+
+Ticket frontmatter is `type`, `status`, `blocked_by`, in that order. `map.md` carries `status` only — no `type` — matching the map template. The map lifecycle is `cleared` → `shipping` → `shipped` once the route is written (ticket 06's three-stage lifecycle, superseding ticket 04's `open`/`cleared` for maps).

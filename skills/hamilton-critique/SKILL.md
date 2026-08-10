@@ -76,8 +76,14 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `references/code-quality.md`, scaled to the change, and capture the outcome as a Quality
    Lens table (one row per principle you exercised).
 5. **Decide a verdict:** `approved` or `changes-requested`.
-6. **Write the report** — the numbered format below — printed to chat **and** persisted to
-   `critique.md` in the change directory.
+6. **Validate findings with the author (changes-requested only).** When the verdict is
+   `changes-requested`, invoke `hamilton-grilling` with the findings as content and
+   "every finding is validated" as the exit condition, before writing the report. A
+   false positive can be rejected; where a finding offers several fixes, the author
+   picks one. Unattended, skip the validation; the report is written from the unvalidated findings, and the handoff names the next step.
+7. **Write the report** — the numbered format below — printed to chat **and** persisted to
+   `critique.md` in the change directory, written from the findings that survived
+   validation.
 
 ## Review dimensions
 
@@ -123,7 +129,7 @@ Verdict: approved | changes-requested — <one line>
 1. **[Critical]** <title>
    - Where: <artifact:loc>, <artifact:loc>
    - Problem: <what is wrong and why>
-   - Fix: <what to change; sub-number 1./2. when there are options>
+   - Fix: <what to change; sub-number 1./2. when there are options, marking the author's choice>
 2. **[Significant]** <title>
    - Where: ...
    - Problem: ...
@@ -174,6 +180,7 @@ digraph hamilton_critique {
     "Review across dimensions\n(consistency, coherence, references, cleanup)" [shape=box];
     "Apply code-quality rubric\n(-> Quality Lens)" [shape=box];
     "Verdict?" [shape=diamond];
+    "Validate findings with author\n(hamilton-grilling)" [shape=box];
     "Write numbered findings" [shape=box];
     "State what was verified" [shape=box];
     "Write critique.md + print to chat" [shape=doublecircle];
@@ -182,7 +189,8 @@ digraph hamilton_critique {
     "Ground every reference\n(verify code exists; nothing uses removed code)" -> "Review across dimensions\n(consistency, coherence, references, cleanup)";
     "Review across dimensions\n(consistency, coherence, references, cleanup)" -> "Apply code-quality rubric\n(-> Quality Lens)";
     "Apply code-quality rubric\n(-> Quality Lens)" -> "Verdict?";
-    "Verdict?" -> "Write numbered findings" [label="changes-requested"];
+    "Verdict?" -> "Validate findings with author\n(hamilton-grilling)" [label="changes-requested"];
+    "Validate findings with author\n(hamilton-grilling)" -> "Write numbered findings";
     "Verdict?" -> "State what was verified" [label="approved"];
     "Write numbered findings" -> "Write critique.md + print to chat";
     "State what was verified" -> "Write critique.md + print to chat";
