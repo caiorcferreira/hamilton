@@ -74,28 +74,32 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    Before entering the unit, verify each of its `Depends on:` units is `shipped` **and** its
    work is reachable from the base branch; if a dependency is finished but unmerged, stop and
    ask the user — merge it, or deliberately branch from its branch.
-2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation: if
-   you are already in a linked worktree (`git rev-parse --git-dir` differs from
-   `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the
-   repo's default branch), work in place. Otherwise create a worktree on a new branch, both
-   named for the change, under the git-ignored `.worktrees/` directory. If
-   `.worktrees/<title>` or branch `<title>` already exists, stop and ask — resume it, or pick
-   a suffixed name; never silently reuse it:
+2. **Ensure an isolated workspace — then confirm you are inside it.** Run
+   `~/.hamilton/scripts/hamilton-isolate.sh --check`; its last line is the verdict.
+   `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
+   in place. `isolated: no` means create one:
 
    ```bash
-   git worktree add .worktrees/<title> -b <title>
-   cd .worktrees/<title>
-   git rev-parse --show-toplevel   # MUST print the .worktrees/<title> path
+   ~/.hamilton/scripts/hamilton-isolate.sh <title>   # last line: the new worktree's path
+   cd <that path>
+   ~/.hamilton/scripts/hamilton-isolate.sh --verify <title>
    ```
+
+   If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the script is not
+   installed (`hamilton setup` has not run), do the same by hand: you are isolated if
+   `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
+   in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
+   `git worktree add .worktrees/<title> -b <title>` under the git-ignored `.worktrees/`
+   directory, `cd` in, and confirm `git rev-parse --show-toplevel` ends in `.worktrees/<title>`.
 
    Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
    shell and every file tool rooted in the original checkout. You must `cd` into the worktree and
-   then **verify the switch took effect** before creating any files: run
-   `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
-   proceed to step 3 until it does.** If you skip this check you will silently write every
-   artifact on the default branch — the exact failure this step exists to prevent. From here on,
-   the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
-   the original checkout.
+   then **verify the switch took effect** before creating any files. **Do not proceed to step 3
+   until `--verify` succeeds.** If you skip this check you will silently write every artifact on
+   the default branch — the exact failure this step exists to prevent. From here on, the change
+   directory and every artifact are created **inside** `.worktrees/<title>/`, never in the
+   original checkout.
 
    In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
    copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's

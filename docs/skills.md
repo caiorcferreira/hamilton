@@ -41,14 +41,15 @@ it uses the richer upstream artifact when present, and otherwise works from the 
 
 Assisted mode needs two things in place:
 
-1. **Artifact templates**, installed once with the CLI:
+1. **Artifact templates and helper scripts**, installed once with the CLI:
 
    ```bash
    bun run install-local     # build + symlink the `hamilton` CLI
-   hamilton setup            # installs bundle/templates/ → ~/.hamilton/templates/
+   hamilton setup            # installs bundle/{templates,guidelines,scripts}/ → ~/.hamilton/
    ```
 
-   The skills read the installed templates from `~/.hamilton/templates/<name>.md`.
+   The skills read the installed templates from `~/.hamilton/templates/<name>.md`, and call the
+   helper scripts at `~/.hamilton/scripts/<name>.sh` (see [Helper scripts](#helper-scripts)).
 
 2. **The skills available to your coding agent.** The pipeline skills live in `skills/hamilton-*/`.
    Make them discoverable to your agent — for Claude Code, copy or symlink the `skills/hamilton-*`
@@ -249,6 +250,31 @@ artifacts live under the project's `.hamilton/` directory:
 history, with requirements written as deltas (ADDED / MODIFIED / REMOVED / RENAMED). When the change
 finishes, those deltas are folded into `specs/`, the project's consolidated, always-current
 requirements truth.
+
+## Helper scripts
+
+`hamilton setup` installs four scripts to `~/.hamilton/scripts/`, executable, from the repository's
+`bundle/scripts/`. They exist to make the pipeline's *mechanical* steps deterministic — the recipes
+an agent would otherwise re-derive from prose on every run, and occasionally get wrong.
+
+| Script | Does | Called by |
+|--------|------|-----------|
+| `hamilton-isolate.sh` | Check whether the workspace is isolated (`--check`), create a worktree + branch (`<title>`), or confirm the `cd` landed (`--verify <title>`) | `propose`, `plan`, `code`, `orchestrate`, `finish-work` |
+| `hamilton-diff-package.sh` | Record BASE before an implementer runs (`--record`), then build the reviewer's diff package for that range, or for `merge-base(default)..HEAD` (`--whole-change`) | `orchestrate` |
+| `hamilton-precondition-check.sh` | Run the five finish-work gates — clean tree, tests, tasks done, reviews approved, whole-change review not stale — in one call | `finish-work` |
+| `hamilton-change-context.sh` | Summarise a change directory: which artifacts exist, task standings, latest verdict per scope (`--all` for one line per change) | `plan`, `code`, `review`, `critique`, `orchestrate`, `finish-work` |
+
+Three properties hold across all four:
+
+- **Optional.** Every skill that calls a script also states the manual recipe beside it, so a skill
+  runs end to end when `hamilton setup` has not been run. The scripts speed the pipeline up; they are
+  not a dependency of it.
+- **Plain text out, result last.** Each prints human-readable lines and puts the load-bearing value —
+  the verdict, the path, the range — on the **last** line, so a caller reads `tail -1`. Exit codes
+  carry the same answer: `0` yes/success, `1` no/failed, `2` usage or environment error.
+- **Judgment stays in the skill.** They move recipes, never decisions. `hamilton-precondition-check.sh`
+  reports which gates failed and fails closed on anything it cannot parse; whether a failure is
+  waivable is still the skill's call, and the user's.
 
 ## The code–review loop
 

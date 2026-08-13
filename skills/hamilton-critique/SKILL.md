@@ -67,9 +67,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Establish scope.** Read every propose artifact present (`proposal.md`,
-   `requirements/`, `design.md`) and the canonical specs the change builds on. Note which
-   capabilities are new vs modified vs removed — the removed set drives the cleanup check.
+1. **Establish scope.** Run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to
+   learn which propose artifacts are present and which capabilities the change carries (list
+   the directory yourself if the script is not installed), then read every one of them
+   (`proposal.md`, `requirements/`, `design.md`) and the canonical specs the change builds on.
+   Note which capabilities are new vs modified vs removed — the removed set drives the cleanup
+   check.
 2. **Ground every reference in the codebase.** This is the load-bearing step. For each
    type, function, file, or code example the artifacts cite, read the real code and confirm
    it exists with the shape claimed — signatures, return types, field names, table names.

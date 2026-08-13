@@ -57,15 +57,32 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 
 ## Process
 
-1. **Check preconditions.** All must hold; if any fails, stop and report — finish nothing:
+1. **Check preconditions.** Run the gate:
+
+   ```bash
+   ~/.hamilton/scripts/hamilton-precondition-check.sh \
+     --change-dir <change-dir> --test-cmd '<the test command from AGENTS.md>'
+   ```
+
+   Pass `--whole-change-waived` only when the user has explicitly waived the whole-change
+   review. The script prints one line per gate and closes with `gate: open` or
+   `gate: closed (N failing)`; if it exits non-zero, **stop and report its output verbatim** —
+   finish nothing. That output is the blocking report; do not paraphrase it or re-derive the
+   failures yourself.
+
+   If the script is not installed (`hamilton setup` has not run), check the same five things by
+   hand — all must hold:
    - The working tree is clean (no uncommitted changes).
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
-   - In `review.md`, every task's latest verdict is `approved`, and a `whole change` review
-     newer than the last code commit is `approved` — all with no unaddressed blocking items.
-     Per-task approvals alone never open the gate: to finish without a whole-change review,
-     the user must say so explicitly, and the waiver is recorded in the finish entry.
-2. **Sync specs — distill and translate.** Fold the change into the canonical
+   - In `review.md`, every task's latest verdict is `approved`, with no unaddressed blocking items.
+   - A `whole change` review newer than the last code commit is `approved`. Per-task approvals
+     alone never open the gate: to finish without a whole-change review, the user must say so
+     explicitly, and the waiver is recorded in the finish entry.
+2. **Sync specs — distill and translate.** First see what you have to distill from:
+   `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` lists which artifacts exist and
+   names the capabilities under `requirements/` (list the directory yourself if the script is
+   not installed). Then fold the change into the canonical
    `.hamilton/specs/<capability>.md`, working from each `requirements/<capability>.md` delta and
    drawing rationale, decisions, and reusable patterns from `design.md` and `proposal.md`. The
    content *set* comes from these deliberate change artifacts — never invent canonical content
@@ -113,11 +130,13 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    move on: check the diff's touched capabilities against `.hamilton/specs/`. If the change
    alters behavior a spec documents, write the delta retroactively and fold it — or flag it
    and stop. A tactical change that skips ceremony must not let the specs drift.
-3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
-   `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
-   disclose them, and on local-merge remove it. If you are not in a worktree (working in place
-   on a dedicated branch), there is nothing to tear down. Decide the strategy now (from the
-   input, the project default, or by asking), so the finish entry can record it.
+3. **Detect the workspace.** Run `~/.hamilton/scripts/hamilton-isolate.sh --check`: its `mode:`
+   line reads `linked-worktree` or `in-place-branch`, and `root:` and `branch:` give you the
+   path and branch to disclose. On `linked-worktree` plus local-merge, you will also remove it;
+   `in-place-branch` means there is nothing to tear down. Without the script, read the same
+   facts from `git rev-parse --git-dir` versus `--git-common-dir` (a worktree),
+   `git rev-parse --show-toplevel`, and `git rev-parse --abbrev-ref HEAD`. Decide the strategy
+   now (from the input, the project default, or by asking), so the finish entry can record it.
 4. **Record.** Append a finish entry to `progress.md` (format below), stating the chosen strategy
    and the intended workspace outcome, and commit it **before finishing** — and, if you are in a
    worktree, before any local-merge teardown — so it merges into the base branch with the rest of

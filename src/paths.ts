@@ -15,6 +15,10 @@ export function templatesDir(): string {
   return Path.join(hamiltonHome(), "templates")
 }
 
+export function scriptsDir(): string {
+  return Path.join(hamiltonHome(), "scripts")
+}
+
 export function settingsPath(): string {
   return Path.join(hamiltonHome(), "settings.yaml")
 }
@@ -23,7 +27,8 @@ export function ensureHamiltonHome(): void {
   const dirs = [
     hamiltonHome(),
     templatesDir(),
-    guidelinesDir()
+    guidelinesDir(),
+    scriptsDir()
   ]
   for (const dir of dirs) {
     if (!Fs.existsSync(dir)) {
