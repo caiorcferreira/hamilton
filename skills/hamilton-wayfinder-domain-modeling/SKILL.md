@@ -67,13 +67,13 @@ The glossary should be totally devoid of implementation details. Do not treat th
 
 ### Record decisions
 
-Every decision is captured in the resolving ticket's `## Answer`. For most decisions the verdict alone is enough; record the full *why* — context, alternatives considered, and the reason for the choice — only when all three are true:
+Every decision is captured in the resolving ticket's `## Answer`. Record the full *why* — context, alternatives considered, and the reason for the choice — when **any** of these holds:
 
 1. **Hard to reverse** — the cost of changing your mind later is meaningful
 2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
-If any criterion is missing, the verdict alone suffices.
+Even when none holds, record at least one line of alternatives — "chose X over Y because Z". A verdict alone is reserved for decisions with no real alternative.
 
 ## Process flow
 
