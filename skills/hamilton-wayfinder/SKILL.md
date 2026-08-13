@@ -10,7 +10,7 @@ Some goals are too big for one agent session — not because the work is hard, b
 
 ## The map
 
-The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). The installed template provides the format; the skill fixes when to create it.
+The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). Notes holds standing context — the domain in one line and durable preferences; terminology belongs in the glossary, decisions in tickets. The installed template provides the format; the skill fixes when to create it.
 
 ## Ticket types
 

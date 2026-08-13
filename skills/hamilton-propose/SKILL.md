@@ -78,7 +78,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    you are already in a linked worktree (`git rev-parse --git-dir` differs from
    `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the
    repo's default branch), work in place. Otherwise create a worktree on a new branch, both
-   named for the change, under the git-ignored `.worktrees/` directory:
+   named for the change, under the git-ignored `.worktrees/` directory. If
+   `.worktrees/<title>` or branch `<title>` already exists, stop and ask — resume it, or pick
+   a suffixed name; never silently reuse it:
 
    ```bash
    git worktree add .worktrees/<title> -b <title>

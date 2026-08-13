@@ -43,7 +43,8 @@
 ## Tasks
 
 <!-- Numbered for stable reference (hamilton-code is pointed at "Task 3").
-     Independent tasks may run in parallel — express ordering via "Depends on". -->
+     "Depends on" expresses ordering; execution is serial — implementers share a
+     working tree. -->
 
 ### Task 1: <imperative title>
 

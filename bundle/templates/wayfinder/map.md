@@ -21,7 +21,8 @@ status: open
 
 ## Notes
 
-<!-- hint: domain, the skills every session should consult, standing preferences -->
+<!-- hint: standing context every session needs — the domain in one line, plus durable
+     preferences. Terminology belongs in the glossary; decisions belong in tickets. -->
 
 ## Decisions so far
 

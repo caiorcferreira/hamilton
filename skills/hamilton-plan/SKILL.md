@@ -84,7 +84,8 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    default branch), work in place. Otherwise derive a kebab-case title from the change (its
    existing directory name, the selected unit's name in map-aware mode, or the request on the
    minimal path) and create a worktree on a new branch, both named for the change, under the
-   git-ignored `.worktrees/` directory:
+   git-ignored `.worktrees/` directory. If `.worktrees/<title>` or branch `<title>` already
+   exists, stop and ask — resume it, or pick a suffixed name; never silently reuse it:
 
    ```bash
    git worktree add .worktrees/<title> -b <title>

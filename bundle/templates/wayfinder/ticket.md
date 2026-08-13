@@ -8,7 +8,7 @@
 -->
 
 ---
-type: grilling
+type: <research|prototype|grilling|task>
 status: open
 blocked_by: []
 ---

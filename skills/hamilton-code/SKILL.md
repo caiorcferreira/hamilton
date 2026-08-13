@@ -53,7 +53,9 @@ Plus:
 3. **Execute the steps in order,** exactly as written, running the tests and commands each
    step specifies.
 4. **Verify.** Run the task's Verify command, then the full test suite and the
-   build/typecheck. All must pass.
+   build/typecheck. All must pass. In a large repo, `AGENTS.md` may scope the per-task rule —
+   task verify plus the affected area's tests per task, full suite at finish-work; the full
+   suite per task stays the default.
 5. **Check acceptance.** Confirm each acceptance criterion is met. List any that are not and
    resolve them by re-running the relevant step — or stop and report if blocked.
 6. **Code-quality self-review.** Check your diff against the checklist below; fix what you
