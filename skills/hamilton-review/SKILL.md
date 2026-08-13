@@ -83,7 +83,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 ## Review file
 
 Write the verdict and feedback to `.hamilton/changes/<change>/review.md`, following the
-`~/.hamilton/templates/review.md` format, newest pass at the bottom:
+`~/.hamilton/templates/review.md` format, newest pass at the bottom. `<scope reviewed>` is
+machine-checkable — exactly `Task <N>` for a task diff, or `whole change` for the change's
+full diff against its base; finish-work's gate reads these values:
 
 ```
 ## <scope reviewed> — <YYYY-MM-DD>

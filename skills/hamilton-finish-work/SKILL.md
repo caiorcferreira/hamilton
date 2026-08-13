@@ -61,7 +61,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    - The working tree is clean (no uncommitted changes).
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
-   - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
+   - In `review.md`, every task's latest verdict is `approved`, and a `whole change` review
+     newer than the last code commit is `approved` — all with no unaddressed blocking items.
+     Per-task approvals alone never open the gate: to finish without a whole-change review,
+     the user must say so explicitly, and the waiver is recorded in the finish entry.
 2. **Sync specs — distill and translate.** Fold the change into the canonical
    `.hamilton/specs/<capability>.md`, working from each `requirements/<capability>.md` delta and
    drawing rationale, decisions, and reusable patterns from `design.md` and `proposal.md`. The
@@ -144,7 +147,7 @@ Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/p
 
 ```
 ## Finish — <YYYY-MM-DD>
-- Preconditions: tree clean, tests green, review approved
+- Preconditions: tree clean, tests green, reviews approved (whole change) | whole-change review waived by user
 - Specs synced: <capabilities created/updated>, or none
 - Finished: local-merge into <base> | pull request <url> | no-op
 - Workspace: worktree <path> removed | worktree left at <path> (branch <branch>) | worked in place
@@ -163,7 +166,7 @@ the user is never left guessing which workspace holds the change.
 
 ```dot
 digraph hamilton_finish_work {
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" [shape=box];
+    "Check preconditions\n(clean tree, tests green,\ntasks done, reviews approved\nincl. whole change)" [shape=box];
     "Passed?" [shape=diamond];
     "Stop and report blocker" [shape=box];
     "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
@@ -175,7 +178,7 @@ digraph hamilton_finish_work {
     "no-op\n(leave worktree + branch)" [shape=box];
     "Disclose final workspace state" [shape=doublecircle];
 
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" -> "Passed?";
+    "Check preconditions\n(clean tree, tests green,\ntasks done, reviews approved\nincl. whole change)" -> "Passed?";
     "Passed?" -> "Stop and report blocker" [label="no"];
     "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
     "Sync requirement deltas\ninto .hamilton/specs/" -> "Detect workspace\n(worktree or in-place) + strategy";
