@@ -31,6 +31,8 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth for each
   capability. Read them to tell new capabilities from modified ones, and to keep the proposal
   and requirements consistent with the conventions and decisions already committed.
+- The project's glossary (`.hamilton/specs/glossary.md`), when present — the committed
+  ubiquitous language; use its terms in every artifact.
 - Project standards (`AGENTS.md`).
 
 ## References
