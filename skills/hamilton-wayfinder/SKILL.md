@@ -58,7 +58,7 @@ Resolve at most one ticket per session — with the exception of research ticket
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order, points at the decisions backing each, and does not restate them. An implementer follows the links back to the tickets, which keeps the source of truth in one place. Write it from the installed template at `~/.hamilton/templates/wayfinder/route.md`.
+When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Write it from the installed template at `~/.hamilton/templates/wayfinder/route.md`.
 
 The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units flow through the SDD loop, and shipped when the last unit lands. Each unit runs the SDD loop once — propose, plan, code, review, finish-work — and flips its own status on its own branch, so the flip ships with the work it marks.
 
@@ -67,6 +67,8 @@ The map then moves through its lifecycle: open while charting and working, clear
 This section is the contract between the wayfinder methodology and its file-native implementation — the only place mechanics are defined. The rest of the skill refers to concepts; a future backend swaps this section and verifies in one pass that nothing above it names a field, a path, or a branching rule.
 
 **Frontmatter.** Every ticket and the map carry YAML frontmatter. Tickets use `type:` (`research` / `prototype` / `grilling` / `task`), `status:` (`open` / `claimed` / `resolved`), and `blocked_by:` (a list of ticket numbers). The map uses `status:` (`open` / `cleared` / `shipping` / `shipped`).
+
+**Route units.** Each unit in `route.md` carries a `Status:` line with values `pending` / `in-progress` / `shipped`. The executing process flips it (see The route).
 
 **File layout.** A map lives at `.hamilton/maps/<effort>/` — an undated slug that is the effort's identity — holding `map.md`, `route.md` once the map clears, and `tickets/NN-slug.md` numbered from `01`.
 
