@@ -46,7 +46,7 @@ Charting is one session's work and resolves no tickets — it names the destinat
 
 Working is the loop that clears the map one ticket at a time.
 
-1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead.
+1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
 2. **Choose the frontier ticket.** Take the first open, unblocked, unclaimed ticket in order.
 3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
 4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
