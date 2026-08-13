@@ -89,6 +89,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    artifact on the default branch — the exact failure this step exists to prevent. From here on,
    the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
    the original checkout.
+
+   In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
+   copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
+   `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding
+   (step 3). The claim rides the branch, so it ships with the work it marks.
 3. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 4. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and

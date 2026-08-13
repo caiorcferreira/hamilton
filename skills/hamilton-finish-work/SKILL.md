@@ -111,7 +111,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 4. **Record.** Append a finish entry to `progress.md` (format below), stating the chosen strategy
    and the intended workspace outcome, and commit it **before finishing** — and, if you are in a
    worktree, before any local-merge teardown — so it merges into the base branch with the rest of
-   the change.
+   the change. If the change is route-backed — a `Route unit` field in `proposal.md` or in
+   plan.md's Overview — also flip that unit's `Status:` to `shipped` in the map's `route.md`, and,
+   if every other unit is already `shipped`, flip the map's `status:` to `shipped`; commit the
+   flips with the finish entry and record them there.
 5. **Finish per strategy.**
    - **local-merge:** merge the change branch into the base branch following the project's
      workflow (e.g. squash), then remove the worktree (`git worktree remove <path>`) and delete
@@ -143,6 +146,7 @@ Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/p
 - Specs synced: <capabilities created/updated>, or none
 - Finished: local-merge into <base> | pull request <url> | no-op
 - Workspace: worktree <path> removed | worktree left at <path> (branch <branch>) | worked in place
+- Route: unit <N> shipped (map shipped) | unit <N> shipped | not route-backed
 ```
 
 ## Output
@@ -162,7 +166,7 @@ digraph hamilton_finish_work {
     "Stop and report blocker" [shape=box];
     "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
     "Detect workspace\n(worktree or in-place) + strategy" [shape=box];
-    "Record finish entry in progress.md\n(commit inside worktree)" [shape=box];
+    "Record finish entry + route flips\n(commit inside worktree)" [shape=box];
     "Finish per strategy" [shape=diamond];
     "local-merge into base\n(then remove worktree + branch)" [shape=box];
     "open pull/merge request\n(leave worktree + branch)" [shape=box];
@@ -173,8 +177,8 @@ digraph hamilton_finish_work {
     "Passed?" -> "Stop and report blocker" [label="no"];
     "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
     "Sync requirement deltas\ninto .hamilton/specs/" -> "Detect workspace\n(worktree or in-place) + strategy";
-    "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry in progress.md\n(commit inside worktree)";
-    "Record finish entry in progress.md\n(commit inside worktree)" -> "Finish per strategy";
+    "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry + route flips\n(commit inside worktree)";
+    "Record finish entry + route flips\n(commit inside worktree)" -> "Finish per strategy";
     "Finish per strategy" -> "local-merge into base\n(then remove worktree + branch)";
     "Finish per strategy" -> "open pull/merge request\n(leave worktree + branch)";
     "Finish per strategy" -> "no-op\n(leave worktree + branch)";
