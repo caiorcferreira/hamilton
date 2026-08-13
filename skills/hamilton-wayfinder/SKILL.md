@@ -17,7 +17,7 @@ The map is an **index**, not a store — it carries just enough to orient every 
 Every ticket has a type that promises how it gets answered, and each type delegates to a skill:
 
 - **research** (AFK) — a background investigation. Delegate to `hamilton-wayfinder-research`, which reads primary sources and writes cited findings under the map.
-- **prototype** (HITL) — throwaway code that answers one design question. Delegate to `hamilton-wayfinder-prototype`.
+- **prototype** (HITL) — a throwaway artifact that answers one design question. Delegate to `hamilton-wayfinder-prototype`.
 - **grilling** (HITL) — one-question-at-a-time dialogue that sharpens the decision and the effort's vocabulary. Run `hamilton-grilling`, with `hamilton-wayfinder-domain-modeling` sharpening terms as the dialogue moves.
 - **task** (HITL or AFK) — manual work that unblocks a decision. Drive it directly where you can, or hand the human a precise checklist.
 
