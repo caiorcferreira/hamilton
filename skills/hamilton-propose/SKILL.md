@@ -69,6 +69,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    scan the `### N.` units in order for the first whose `Status:` line reads `pending`, and
    derive the title from that unit's name (the heading text after `### N.`); if no unit is
    `pending`, stop and tell the user that every unit is already in-progress or shipped.
+   Before entering the unit, verify each of its `Depends on:` units is `shipped` **and** its
+   work is reachable from the base branch; if a dependency is finished but unmerged, stop and
+   ask the user — merge it, or deliberately branch from its branch.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation: if
    you are already in a linked worktree (`git rev-parse --git-dir` differs from
    `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the
