@@ -35,6 +35,8 @@ creates a change directory — this skill operates only on `.hamilton/specs/`.
   - reformat → one or more existing spec files, or the whole `.hamilton/specs/` directory.
   - from-code → the application (optionally scoped to a subsystem or a named capability).
 - The project's existing `.hamilton/specs/` — to avoid duplication and reuse capability names.
+- The project's glossary (`.hamilton/specs/glossary.md`), when present — the committed
+  ubiquitous language; name capabilities and concepts in its terms.
 - Project standards (`AGENTS.md`) — for the git workflow and any domain vocabulary.
 
 If the mode is not given, infer it: an existing off-format spec as the target means reformat; a

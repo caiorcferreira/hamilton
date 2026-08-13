@@ -55,9 +55,9 @@ When the user uses vague or overloaded terms, propose a precise canonical term. 
 
 When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
 
-### Cross-reference with code
+### Cross-reference with the source of truth
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
+When the user states how something works, check whether the artifact of record — the codebase, the existing deck, prior published docs, the data — agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
 
 ### Update the glossary inline
 
@@ -67,13 +67,13 @@ The glossary should be totally devoid of implementation details. Do not treat th
 
 ### Record decisions
 
-Every decision is captured in the resolving ticket's `## Answer`. For most decisions the verdict alone is enough; record the full *why* — context, alternatives considered, and the reason for the choice — only when all three are true:
+Every decision is captured in the resolving ticket's `## Answer`. Record the full *why* — context, alternatives considered, and the reason for the choice — when **any** of these holds:
 
 1. **Hard to reverse** — the cost of changing your mind later is meaningful
 2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
-If any criterion is missing, the verdict alone suffices.
+Even when none holds, record at least one line of alternatives — "chose X over Y because Z". A verdict alone is reserved for decisions with no real alternative.
 
 ## Process flow
 
@@ -85,7 +85,7 @@ digraph hamilton_wayfinder_domain_modeling {
     "Fuzzy or overloaded?" [shape=diamond];
     "Propose precise canonical term" [shape=box];
     "Stress-test with concrete scenarios" [shape=box];
-    "Cross-reference with code" [shape=box];
+    "Cross-reference with source of truth" [shape=box];
     "Resolved?" [shape=diamond];
     "Update glossary inline\n+ record decision in ticket ## Answer" [shape=doublecircle];
 
@@ -96,8 +96,8 @@ digraph hamilton_wayfinder_domain_modeling {
     "Fuzzy or overloaded?" -> "Propose precise canonical term" [label="yes"];
     "Fuzzy or overloaded?" -> "Stress-test with concrete scenarios" [label="no"];
     "Propose precise canonical term" -> "Stress-test with concrete scenarios";
-    "Stress-test with concrete scenarios" -> "Cross-reference with code";
-    "Cross-reference with code" -> "Resolved?";
+    "Stress-test with concrete scenarios" -> "Cross-reference with source of truth";
+    "Cross-reference with source of truth" -> "Resolved?";
     "Resolved?" -> "Update glossary inline\n+ record decision in ticket ## Answer" [label="yes"];
     "Resolved?" -> "Stress-test with concrete scenarios" [label="no"];
 }

@@ -28,6 +28,11 @@ back; that loop is driven by whoever runs the pipeline, not by this skill.
   code example — must be checked against the real repository, not taken on trust.
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth each
   MODIFIED capability builds on.
+- The change's `Route unit` field (in the proposal's header), if present — follow it to the
+  route unit's `Backed by:` tickets; their Answers are committed decisions the artifacts
+  must honor.
+- The project's glossary (`.hamilton/specs/glossary.md`), when present — the committed
+  ubiquitous language the artifacts must use.
 - Project standards (`AGENTS.md`): idioms, ubiquitous language, boundaries.
 
 ## References
@@ -92,7 +97,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   no step depends on a branch the design says can't happen.
 - **Semantic coherence:** One term per concept across all artifacts (ubiquitous language).
   Names match the domain and the codebase; a struct, table, model, and file that refer to
-  the same thing agree on how it is spelled and pluralized.
+  the same thing agree on how it is spelled and pluralized. Check terms against the canonical
+  glossary (`.hamilton/specs/glossary.md`) when present — a term that conflicts with the
+  glossary is a located finding.
 - **Code-reference validity:** Every referenced type/function/file/example exists in the
   codebase with the claimed signature and shape. No phantom references; no example that
   contradicts the real API it stands on.

@@ -45,19 +45,24 @@ Plus:
 
 ## Process
 
-1. **Load the task** from whichever input form was given. Read its Acceptance, any cited
+1. **Confirm the workspace.** You must be off the repo's default branch, and the change
+   directory you were handed must resolve under the current worktree root
+   (`git rev-parse --show-toplevel`); otherwise stop and report.
+2. **Load the task** from whichever input form was given. Read its Acceptance, any cited
    design/requirements sections, and the project standards. Do not look at other tasks.
-2. **Execute the steps in order,** exactly as written, running the tests and commands each
+3. **Execute the steps in order,** exactly as written, running the tests and commands each
    step specifies.
-3. **Verify.** Run the task's Verify command, then the full test suite and the
-   build/typecheck. All must pass.
-4. **Check acceptance.** Confirm each acceptance criterion is met. List any that are not and
+4. **Verify.** Run the task's Verify command, then the full test suite and the
+   build/typecheck. All must pass. In a large repo, `AGENTS.md` may scope the per-task rule —
+   task verify plus the affected area's tests per task, full suite at finish-work; the full
+   suite per task stays the default.
+5. **Check acceptance.** Confirm each acceptance criterion is met. List any that are not and
    resolve them by re-running the relevant step — or stop and report if blocked.
-5. **Code-quality self-review.** Check your diff against the checklist below; fix what you
+6. **Code-quality self-review.** Check your diff against the checklist below; fix what you
    find.
-6. **Record progress.** Append an entry to the change directory's `progress.md` (format
+7. **Record progress.** Append an entry to the change directory's `progress.md` (format
    below).
-7. **Commit** using the task's Commit message and the project's git workflow. The commit must
+8. **Commit** using the task's Commit message and the project's git workflow. The commit must
    include the change-directory updates — `progress.md` and any other artifact under
    `.hamilton/changes/<change>/` you touched — alongside the code. Leave nothing in the change
    directory uncommitted before you finish; run `git status` to confirm the tree is clean.
@@ -118,6 +123,7 @@ anything is unresolved, state it plainly.
 
 ```dot
 digraph hamilton_code {
+    "Confirm workspace\n(off default branch, in worktree)" [shape=box];
     "Load task\n(by reference or inline)" [shape=box];
     "Execute steps in order (as written)" [shape=box];
     "Verify\n(task verify + full suite + build)" [shape=box];
@@ -126,6 +132,7 @@ digraph hamilton_code {
     "Record progress.md entry" [shape=box];
     "Commit\n(code + change-dir updates)" [shape=doublecircle];
 
+    "Confirm workspace\n(off default branch, in worktree)" -> "Load task\n(by reference or inline)";
     "Load task\n(by reference or inline)" -> "Execute steps in order (as written)";
     "Execute steps in order (as written)" -> "Verify\n(task verify + full suite + build)";
     "Verify\n(task verify + full suite + build)" -> "Acceptance met?";

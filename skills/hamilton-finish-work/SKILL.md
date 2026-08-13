@@ -17,6 +17,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
   `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
   `design.md`, and `requirements/` where present.
+- The `Route unit` field in `proposal.md` (or plan.md's Overview), when the change executes a
+  route unit — step 4 uses it to flip the unit's status.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and
@@ -59,7 +61,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    - The working tree is clean (no uncommitted changes).
    - The full test suite and the build/typecheck pass.
    - Every task in `plan.md` is implemented (per `progress.md`).
-   - The latest verdict in `review.md` is `approved`, with no unaddressed blocking items.
+   - In `review.md`, every task's latest verdict is `approved`, and a `whole change` review
+     newer than the last code commit is `approved` — all with no unaddressed blocking items.
+     Per-task approvals alone never open the gate: to finish without a whole-change review,
+     the user must say so explicitly, and the waiver is recorded in the finish entry.
 2. **Sync specs — distill and translate.** Fold the change into the canonical
    `.hamilton/specs/<capability>.md`, working from each `requirements/<capability>.md` delta and
    drawing rationale, decisions, and reusable patterns from `design.md` and `proposal.md`. The
@@ -103,6 +108,11 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    the source rather than observing inputs and outputs, it is too low — lift it or drop it.
    Reserve `MUST`/`NEVER` for `## Invariants`. The canonical spec states what the capability
    guarantees, not how one commit achieved it. Commit the spec update following the git workflow.
+
+   When the change has no `requirements/` deltas (the minimal path), do not record "none" and
+   move on: check the diff's touched capabilities against `.hamilton/specs/`. If the change
+   alters behavior a spec documents, write the delta retroactively and fold it — or flag it
+   and stop. A tactical change that skips ceremony must not let the specs drift.
 3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
    `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
    disclose them, and on local-merge remove it. If you are not in a worktree (working in place
@@ -111,7 +121,10 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
 4. **Record.** Append a finish entry to `progress.md` (format below), stating the chosen strategy
    and the intended workspace outcome, and commit it **before finishing** — and, if you are in a
    worktree, before any local-merge teardown — so it merges into the base branch with the rest of
-   the change.
+   the change. If the change is route-backed — a `Route unit` field in `proposal.md` or in
+   plan.md's Overview — also flip that unit's `Status:` to `shipped` in the map's `route.md`, and,
+   if every other unit is already `shipped`, flip the map's `status:` to `shipped`; commit the
+   flips with the finish entry and record them there.
 5. **Finish per strategy.**
    - **local-merge:** merge the change branch into the base branch following the project's
      workflow (e.g. squash), then remove the worktree (`git worktree remove <path>`) and delete
@@ -139,10 +152,11 @@ Append to `.hamilton/changes/<change>/progress.md` (see `~/.hamilton/templates/p
 
 ```
 ## Finish — <YYYY-MM-DD>
-- Preconditions: tree clean, tests green, review approved
+- Preconditions: tree clean, tests green, reviews approved (whole change) | whole-change review waived by user
 - Specs synced: <capabilities created/updated>, or none
 - Finished: local-merge into <base> | pull request <url> | no-op
 - Workspace: worktree <path> removed | worktree left at <path> (branch <branch>) | worked in place
+- Route: unit <N> shipped (map shipped) | unit <N> shipped | not route-backed
 ```
 
 ## Output
@@ -157,24 +171,24 @@ the user is never left guessing which workspace holds the change.
 
 ```dot
 digraph hamilton_finish_work {
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" [shape=box];
+    "Check preconditions\n(clean tree, tests green,\ntasks done, reviews approved\nincl. whole change)" [shape=box];
     "Passed?" [shape=diamond];
     "Stop and report blocker" [shape=box];
     "Sync requirement deltas\ninto .hamilton/specs/" [shape=box];
     "Detect workspace\n(worktree or in-place) + strategy" [shape=box];
-    "Record finish entry in progress.md\n(commit inside worktree)" [shape=box];
+    "Record finish entry + route flips\n(commit inside worktree)" [shape=box];
     "Finish per strategy" [shape=diamond];
     "local-merge into base\n(then remove worktree + branch)" [shape=box];
     "open pull/merge request\n(leave worktree + branch)" [shape=box];
     "no-op\n(leave worktree + branch)" [shape=box];
     "Disclose final workspace state" [shape=doublecircle];
 
-    "Check preconditions\n(clean tree, tests green,\ntasks done, review approved)" -> "Passed?";
+    "Check preconditions\n(clean tree, tests green,\ntasks done, reviews approved\nincl. whole change)" -> "Passed?";
     "Passed?" -> "Stop and report blocker" [label="no"];
     "Passed?" -> "Sync requirement deltas\ninto .hamilton/specs/" [label="yes"];
     "Sync requirement deltas\ninto .hamilton/specs/" -> "Detect workspace\n(worktree or in-place) + strategy";
-    "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry in progress.md\n(commit inside worktree)";
-    "Record finish entry in progress.md\n(commit inside worktree)" -> "Finish per strategy";
+    "Detect workspace\n(worktree or in-place) + strategy" -> "Record finish entry + route flips\n(commit inside worktree)";
+    "Record finish entry + route flips\n(commit inside worktree)" -> "Finish per strategy";
     "Finish per strategy" -> "local-merge into base\n(then remove worktree + branch)";
     "Finish per strategy" -> "open pull/merge request\n(leave worktree + branch)";
     "Finish per strategy" -> "no-op\n(leave worktree + branch)";

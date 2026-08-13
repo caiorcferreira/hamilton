@@ -2,9 +2,9 @@
   Route — the handoff from a cleared map to the SDD loop.
   Produced by: hamilton-wayfinder
   Lives at: .hamilton/maps/<effort>/route.md
-  Written once when the map clears; it points at the decisions that back each
-  unit and does not restate them. Each unit runs the SDD loop once and flips
-  its own status on its own branch.
+  Written once when the map clears. Each unit states its backing decisions'
+  outcomes in one line each; reasoning stays in the tickets. The process that
+  executes a unit flips its status on its own branch.
   Delete this comment block and every inline hint comment before finalizing.
 -->
 
@@ -20,7 +20,10 @@
 Status: pending
 Depends on: —
 Backed by: [<ticket title>](tickets/NN-slug.md)
+Decisions:
+- Decided: <outcome in one line> ([<ticket title>](tickets/NN-slug.md))
 
-<!-- hint: the goal, as a paragraph rather than one line, so the context a proposer
-     needs survives. Orientation, not specification — the backing tickets hold the
-     detail. -->
+<!-- hint: the goal as a paragraph, then one Decisions line per backing decision
+     stating its outcome. Reasoning, context, and alternatives stay in the ticket —
+     the Decisions lines are the drill-down entry points. Status values:
+     pending / in-progress / shipped. -->

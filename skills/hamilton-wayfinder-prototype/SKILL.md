@@ -5,7 +5,7 @@ description: Build a throwaway prototype to answer a design question. Use when t
 
 # Prototype
 
-A prototype is **throwaway code that answers a question**. The question decides the shape.
+A prototype is **a throwaway artifact that answers one design question** — in software, disposable code; elsewhere, a strawman draft, a mock deck section, a one-page scenario sketch. The question decides the shape.
 
 ## Pick the shape
 
@@ -13,6 +13,8 @@ First identify the *question* — from the user's prompt, the surrounding code, 
 
 - **"Does this logic / state model feel right?"** — the question has a logic or state-model feel. You want to push real cases through a model and see where it breaks.
 - **"What should this look like?"** — the question is about appearance, layout, or structure. You want to generate alternatives and compare them side by side.
+
+Outside software the same two flavours apply — "does this argument structure hold?" vs. "which of these three outlines lands?".
 
 Then pick a throwaway shape appropriate to the project's *domain and stack* — the shape that lets someone push the real cases and see the state change with the least ceremony:
 
@@ -30,21 +32,21 @@ The two flavours produce very different artifacts — getting this wrong wastes 
 3. **No persistence by default.** State lives in memory. Persistence is the thing the prototype is _checking_, not something it should depend on. If the question explicitly involves a database, hit a scratch DB or a local file with a clear "PROTOTYPE — wipe me" name.
 4. **Skip the polish.** No tests, no error handling beyond what makes the prototype _runnable_, no abstractions. The point is to learn something fast.
 5. **Surface the state.** After every action or variant switch, print or render the full relevant state so the user can see what changed.
-6. **Capture it when done.** Fold any validated decision into the real code, then capture the prototype itself as a **primary source**: commit it to a throwaway branch, out of main, and leave a context pointer to that branch in the resolving ticket's body. Capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The main branch keeps only the validated decision.
+6. **Capture it when done.** Fold any validated decision into the real artifact, then capture the prototype itself as a **primary source**: commit it to a throwaway branch, out of main, and leave a context pointer to that branch in the resolving ticket's body. Capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The main branch keeps only the validated decision.
 
 ## Process flow
 
 ```dot
 digraph hamilton_wayfinder_prototype {
-    "Identify the question\n(logic/state vs. appearance)" [shape=box];
+    "Identify the question\n(logic/structure vs. appearance)" [shape=box];
     "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" [shape=box];
     "Build throwaway\n(trivial to run, surface state, no persistence)" [shape=box];
     "Hand over to user" [shape=box];
-    "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)" [shape=doublecircle];
+    "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)" [shape=doublecircle];
 
-    "Identify the question\n(logic/state vs. appearance)" -> "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)";
+    "Identify the question\n(logic/structure vs. appearance)" -> "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)";
     "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" -> "Build throwaway\n(trivial to run, surface state, no persistence)";
     "Build throwaway\n(trivial to run, surface state, no persistence)" -> "Hand over to user";
-    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)";
+    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)";
 }
 ```

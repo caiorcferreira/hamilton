@@ -37,7 +37,8 @@ It does not create templates: the artifact templates are global, installed at
    - **Testing** — the framework, where tests live, how to run them, coverage expectations.
    - **Project structure** — where source, tests, and docs live.
    - **Code style** — naming and formatting rules, plus one short real example from the code.
-   - **Git workflow** — branch naming, commit format, pull-request conventions.
+   - **Git workflow** — branch naming, commit format, pull-request conventions, and the
+     default finish strategy (`local-merge` or `pull-request`) `hamilton-finish-work` reads.
    - **Boundaries** — three tiers: Always / Ask first / Never (e.g. "Never commit secrets").
 3. **Scaffold `.hamilton/`.**
    - `specs/` — canonical capability truth (starts empty).

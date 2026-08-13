@@ -3,6 +3,8 @@
   Lives at: .hamilton/changes/<change>/review.md
   Written by the review step each pass: the verdict plus located, actionable feedback the
   coder acts on. Newest pass at the bottom. progress.md keeps the one-line timeline.
+  <scope reviewed> is machine-checkable: exactly "Task <N>" or "whole change" —
+  finish-work's gate reads these values.
 -->
 
 # Review: <Change Title>

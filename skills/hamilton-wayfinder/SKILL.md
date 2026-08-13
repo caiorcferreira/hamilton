@@ -10,18 +10,32 @@ Some goals are too big for one agent session — not because the work is hard, b
 
 ## The map
 
-The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). The installed template provides the format; the skill fixes when to create it.
+The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). Notes holds standing context — the domain in one line and durable preferences; terminology belongs in the glossary, decisions in tickets. The installed template provides the format; the skill fixes when to create it.
 
 ## Ticket types
 
 Every ticket has a type that promises how it gets answered, and each type delegates to a skill:
 
 - **research** (AFK) — a background investigation. Delegate to `hamilton-wayfinder-research`, which reads primary sources and writes cited findings under the map.
-- **prototype** (HITL) — throwaway code that answers one design question. Delegate to `hamilton-wayfinder-prototype`.
+- **prototype** (HITL) — a throwaway artifact that answers one design question. Delegate to `hamilton-wayfinder-prototype`.
 - **grilling** (HITL) — one-question-at-a-time dialogue that sharpens the decision and the effort's vocabulary. Run `hamilton-grilling`, with `hamilton-wayfinder-domain-modeling` sharpening terms as the dialogue moves.
 - **task** (HITL or AFK) — manual work that unblocks a decision. Drive it directly where you can, or hand the human a precise checklist.
 
 A planning ticket resolves only through live exchange with a human. The agent puts each decision to the human and waits — it never stands in for the human's side of the dialogue. Hamilton's three-tier attendance model (Always / Ask first / Never) governs SDD execution downstream, not this planning stage.
+
+## Skill dispatch
+
+Load a skill by reading its SKILL.md (or via the Skill tool) — never act in a skill's spirit without loading it.
+
+| Situation | Load | Write back before closing |
+| --- | --- | --- |
+| Charting: name the destination, map the frontier | `hamilton-grilling` + `hamilton-wayfinder-domain-modeling`, both before the first question | Destination and Notes in the map; working glossary terms |
+| Grilling ticket | `hamilton-grilling` + `hamilton-wayfinder-domain-modeling`, both before the first question | Ticket `## Answer`; glossary updates; map gist |
+| Prototype ticket | `hamilton-wayfinder-prototype` | Ticket `## Answer` + pointer to the prototype branch; map gist |
+| Research ticket | `hamilton-wayfinder-research` (background agent) | Findings file + ticket pointer; on return, ticket `## Answer` + map gist (work loop step 1) |
+| Task ticket | none — drive directly, or hand the human a checklist | Ticket `## Answer`; map gist |
+
+Every grilling invocation supplies content and an exit condition (see grilling's Invocation contract).
 
 ## Fog of war
 
@@ -46,20 +60,21 @@ Charting is one session's work and resolves no tickets — it names the destinat
 
 Working is the loop that clears the map one ticket at a time.
 
-1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead.
-2. **Choose the frontier ticket.** Take the first open, unblocked, unclaimed ticket in order.
+1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
+2. **Choose the frontier ticket.** Take the first ticket on the frontier (defined in Map mechanics).
 3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
 4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
 5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
-6. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
+6. **Consistency pass.** Scan the map's Decisions so far for gists the new resolution contradicts. For each, open that ticket, move its old Answer to `## Outdated decisions` with a link to the superseding ticket, write the current truth into `## Answer`, and rewrite its gist line in the map. If the route exists, update the affected unit's decision line as well.
+7. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
 
 Resolve at most one ticket per session — with the exception of research tickets, which run in the background and do not consume the session's focus.
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order, points at the decisions backing each, and does not restate them. An implementer follows the links back to the tickets, which keeps the source of truth in one place. Write it from the installed template at `~/.hamilton/templates/wayfinder/route.md`.
+When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`.
 
-The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units flow through the SDD loop, and shipped when the last unit lands. Each unit runs the SDD loop once — propose, plan, code, review, finish-work — and flips its own status on its own branch, so the flip ships with the work it marks.
+The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units are executed, and shipped when the last unit lands. Each unit is executed by whatever downstream process the effort uses. The process that starts a unit flips it `pending → in-progress` on its own branch; the process that completes it flips it `in-progress → shipped`, so the flip ships with the work it marks. The process starting the first unit flips the map `cleared → shipping`; the process shipping the last unit flips the map `shipping → shipped`.
 
 ## Map mechanics
 
@@ -67,9 +82,13 @@ This section is the contract between the wayfinder methodology and its file-nati
 
 **Frontmatter.** Every ticket and the map carry YAML frontmatter. Tickets use `type:` (`research` / `prototype` / `grilling` / `task`), `status:` (`open` / `claimed` / `resolved`), and `blocked_by:` (a list of ticket numbers). The map uses `status:` (`open` / `cleared` / `shipping` / `shipped`).
 
+**Route units.** Each unit in `route.md` carries a `Status:` line with values `pending` / `in-progress` / `shipped`. The executing process flips it (see The route).
+
+**Frontier.** The frontier is the set of tickets with `status: open` — excluding `claimed` and `resolved` — whose every `blocked_by` entry is resolved, taken in file order. "Open" always names the status value; use "unresolved" for any ticket not yet resolved.
+
 **File layout.** A map lives at `.hamilton/maps/<effort>/` — an undated slug that is the effort's identity — holding `map.md`, `route.md` once the map clears, and `tickets/NN-slug.md` numbered from `01`.
 
-**Claiming.** Setting a ticket's `status:` to `claimed` is a signal of intent: it tells a reader the ticket is in hand. It does not affect frontier calculation — a claimed ticket is still open, not resolved — and it does not prevent a collision; concurrent sessions collide through git, and the claim is how a reader sees the ticket is already being worked.
+**Claiming.** Setting a ticket's `status:` to `claimed` signals intent: it tells a reader the ticket is in hand and removes the ticket from the frontier. It does not prevent a collision — concurrent sessions collide through git; the claim is how a reader sees the ticket is already being worked.
 
 **Branching.** Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge, so the flip ships with the work it marks. Between merges the route lags on the default branch; that staleness is accepted, not a defect.
 
@@ -82,25 +101,27 @@ digraph hamilton_wayfinder {
     "Fog ahead?" [shape=diamond];
     "Stop — no map needed" [shape=doublecircle];
     "Create map + tickets\n(fire research in parallel)" [shape=box];
-    "Load map" [shape=box];
-    "Open unblocked ticket?" [shape=diamond];
-    "Write route\n(closing act)" [shape=doublecircle];
+    "Load map\n(+ absorb returned research)" [shape=box];
+    "Frontier ticket available?" [shape=diamond];
+    "Fold glossary + write route\n(closing act)" [shape=doublecircle];
     "Claim ticket" [shape=box];
     "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
     "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
+    "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
 
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
     "Map frontier breadth-first" -> "Fog ahead?";
     "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
     "Fog ahead?" -> "Create map + tickets\n(fire research in parallel)" [label="fog exists"];
-    "Create map + tickets\n(fire research in parallel)" -> "Load map";
-    "Load map" -> "Open unblocked ticket?";
-    "Open unblocked ticket?" -> "Write route\n(closing act)" [label="frontier empty"];
-    "Open unblocked ticket?" -> "Claim ticket" [label="next ticket"];
+    "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research)";
+    "Load map\n(+ absorb returned research)" -> "Frontier ticket available?";
+    "Frontier ticket available?" -> "Fold glossary + write route\n(closing act)" [label="frontier empty"];
+    "Frontier ticket available?" -> "Claim ticket" [label="next ticket"];
     "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
     "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
-    "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Graduate fog / close out-of-scope";
-    "Graduate fog / close out-of-scope" -> "Load map";
+    "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
+    "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
+    "Graduate fog / close out-of-scope" -> "Load map\n(+ absorb returned research)";
 }
 ```

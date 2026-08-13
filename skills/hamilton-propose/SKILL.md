@@ -31,6 +31,8 @@ In `.hamilton/changes/<YYYY-MM-DD-title>/`, using the templates at `~/.hamilton/
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth for each
   capability. Read them to tell new capabilities from modified ones, and to keep the proposal
   and requirements consistent with the conventions and decisions already committed.
+- The project's glossary (`.hamilton/specs/glossary.md`), when present — the committed
+  ubiquitous language; use its terms in every artifact.
 - Project standards (`AGENTS.md`).
 
 ## References
@@ -69,11 +71,16 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    scan the `### N.` units in order for the first whose `Status:` line reads `pending`, and
    derive the title from that unit's name (the heading text after `### N.`); if no unit is
    `pending`, stop and tell the user that every unit is already in-progress or shipped.
+   Before entering the unit, verify each of its `Depends on:` units is `shipped` **and** its
+   work is reachable from the base branch; if a dependency is finished but unmerged, stop and
+   ask the user — merge it, or deliberately branch from its branch.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation: if
    you are already in a linked worktree (`git rev-parse --git-dir` differs from
    `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the
    repo's default branch), work in place. Otherwise create a worktree on a new branch, both
-   named for the change, under the git-ignored `.worktrees/` directory:
+   named for the change, under the git-ignored `.worktrees/` directory. If
+   `.worktrees/<title>` or branch `<title>` already exists, stop and ask — resume it, or pick
+   a suffixed name; never silently reuse it:
 
    ```bash
    git worktree add .worktrees/<title> -b <title>
@@ -89,6 +96,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    artifact on the default branch — the exact failure this step exists to prevent. From here on,
    the change directory and every artifact are created **inside** `.worktrees/<title>/`, never in
    the original checkout.
+
+   In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
+   copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
+   `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding
+   (step 3). The claim rides the branch, so it ships with the work it marks.
 3. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 4. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
@@ -106,7 +118,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    Unattended, record a reasonable choice as an assumption.
 6. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
-   existing names). The Capabilities list is the contract into the requirements.
+   existing names). The Capabilities list is the contract into the requirements. In
+   map-aware mode, fill the header's `Route unit` field with the route path and unit
+   number — it is the provenance link every downstream step follows back to the map.
 
    **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
    capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so
@@ -181,7 +195,7 @@ reviewed and approved, ready for `hamilton-plan`.
 ```dot
 digraph hamilton_propose {
     "Goal discovery\n(title + map-aware route read)" [shape=box];
-    "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
     "Ask clarifying questions" [shape=box];
@@ -193,8 +207,8 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
-    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree if on default branch)";
-    "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
+    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)";
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Proposal — why\n(problem, goals, capabilities)";

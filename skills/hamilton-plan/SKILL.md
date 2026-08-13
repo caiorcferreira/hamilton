@@ -70,12 +70,22 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation first:
+1. **Detect map-aware mode.** If the request points at a `.hamilton/maps/<effort>/` folder
+   containing a `route.md`, enter map-aware mode: read `route.md` from the current working
+   tree, scan the `### N.` units in order for the first whose `Status:` line reads `pending`,
+   and derive the change title from that unit's name; if no unit is `pending`, stop and tell
+   the user every unit is already in-progress or shipped. Before entering the unit, verify
+   each of its `Depends on:` units is `shipped` **and** its work is reachable from the base
+   branch; if a dependency is finished but unmerged, stop and ask the user — merge it, or
+   deliberately branch from its branch. Otherwise proceed on the ordinary path.
+2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation first:
    if you are already in a linked worktree (`git rev-parse --git-dir` differs from
    `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the repo's
    default branch), work in place. Otherwise derive a kebab-case title from the change (its
-   existing directory name, or from the request on the minimal path) and create a worktree on a
-   new branch, both named for the change, under the git-ignored `.worktrees/` directory:
+   existing directory name, the selected unit's name in map-aware mode, or the request on the
+   minimal path) and create a worktree on a new branch, both named for the change, under the
+   git-ignored `.worktrees/` directory. If `.worktrees/<title>` or branch `<title>` already
+   exists, stop and ask — resume it, or pick a suffixed name; never silently reuse it:
 
    ```bash
    git worktree add .worktrees/<title> -b <title>
@@ -87,36 +97,45 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    shell and every file tool rooted in the original checkout. You must `cd` into the worktree
    and then **verify the switch took effect** before doing anything else: run
    `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
-   proceed to step 2 until it does.** If you skip this check you will silently plan and write on
+   proceed to step 3 until it does.** If you skip this check you will silently plan and write on
    the default branch — the exact failure this step exists to prevent.
 
    From here on, every path in this skill is relative to that worktree root: the change directory,
    all code you explore, and `plan.md` are created **inside** `.worktrees/<title>/`, never in the
    original checkout. When in doubt, use the absolute worktree path returned by
    `git rev-parse --show-toplevel` as the base for file operations.
-2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
+
+   In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
+   copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
+   `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding. The
+   claim rides the branch, so it ships with the work it marks.
+3. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
+4. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
-   project standards (commands, structure, style, boundaries). The specs carry the conventions
+   project standards (commands, structure, style, boundaries). If a `Route unit` field is
+   present (in the proposal's header, or in this plan's Overview), follow it to the unit's
+   `Backed by:` tickets and treat their Answers as committed decisions the plan must honor.
+   In map-aware mode, write the `Route unit` line (route path + unit number) into the plan's
+   Overview yourself — it is the provenance link finish-work uses to flip the unit's status. The specs carry the conventions
    and decisions already committed for those capabilities — follow them so the plan stays
    consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
    your primary source of existing behavior; write a two-line why/what for the Overview.
-4. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
+5. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
-5. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
+6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
    independent tasks can run in parallel. Prefer more small tasks over few large ones. Cut
    the seams along the design's boundaries so each task lands one cohesive unit — a task you
    cannot describe without "and" is usually two.
-6. **Specify each task.** For every task capture: files (created / modified / deleted),
+7. **Specify each task.** For every task capture: files (created / modified / deleted),
    acceptance criteria (testable; cite the requirement scenario when one exists — and cover
    the error/edge behavior, not just the happy path), steps (write failing test → implement
    → verify), a verify command with its expected result, and a commit message. Where a step
    includes a code snippet, make it model the clean shape from `references/code-quality.md`;
    the coder copies it verbatim.
-7. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
+8. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
-8. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
+9. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
    into the change directory.
 
 ## Task-sizing heuristics
@@ -125,12 +144,26 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 - If a task needs more than one independent test to prove it, consider splitting it.
 - A task whose title contains "and" is often two tasks.
 
+## Re-plan mode
+
+When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
+re-enter this skill in re-plan mode: read `plan.md` and `progress.md`, then amend the plan.
+
+- Tasks `progress.md` marks done are frozen — leave them untouched.
+- Renumber nothing: stable task ids are what the code step and orchestrate dispatch by.
+- Append new tasks; mark abandoned ones explicitly — `(abandoned — superseded by Task N)` in
+  the title — instead of deleting them.
+- Record the reason for the amendment in the plan's Overview.
+
+Re-plan mode is the one sanctioned way `plan.md` changes after coding begins; every other
+skill treats the plan as read-only.
+
 ## Self-review
 
 Before finishing, confirm:
 
 - You are inside the intended worktree, not the default branch: `git rev-parse --show-toplevel`
-  ends in `.worktrees/<title>` (or you were legitimately working in place per step 1), and
+  ends in `.worktrees/<title>` (or you were legitimately working in place per step 2), and
   `plan.md` was written under that root.
 - Every task is independently verifiable, with a concrete verify command.
 - Each task's Steps are explicit enough to follow with no further design.
@@ -158,7 +191,7 @@ the plan ships to the code.
 
 Close by orienting the user, not by silently stopping.
 
-- **Disclose the workspace.** If step 1 created a worktree for this change, state its path
+- **Disclose the workspace.** If step 2 created a worktree for this change, state its path
   (`.worktrees/<title>`) and branch — `plan.md`, and all the code to come, live there, not in
   the original checkout. If you were already isolated and worked in place, name that branch.
 - **Name the next step.** `plan.md` is the handoff contract; what follows is `hamilton-code`
@@ -171,8 +204,9 @@ Close by orienting the user, not by silently stopping.
 
 ```dot
 digraph hamilton_plan {
+    "Detect map-aware mode\n(select first pending unit)" [shape=box];
     "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
-    "Locate / create change dir" [shape=box];
+    "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)" [shape=box];
     "Gather context\n(upstream artifacts + canonical specs + standards)" [shape=box];
     "Explore code (read-only)" [shape=box];
     "Decompose into TDD-sized tasks" [shape=box];
@@ -182,8 +216,9 @@ digraph hamilton_plan {
     "Auto-reflect + record assumptions" [shape=box];
     "Write plan.md + self-review" [shape=doublecircle];
 
-    "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir";
-    "Locate / create change dir" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
+    "Detect map-aware mode\n(select first pending unit)" -> "Ensure isolated workspace\n(worktree if on default branch)";
+    "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)";
+    "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
     "Gather context\n(upstream artifacts + canonical specs + standards)" -> "Explore code (read-only)";
     "Explore code (read-only)" -> "Decompose into TDD-sized tasks";
     "Decompose into TDD-sized tasks" -> "Specify each task\n(files, acceptance, steps, verify, commit)";
