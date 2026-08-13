@@ -51,7 +51,8 @@ Working is the loop that clears the map one ticket at a time.
 3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
 4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
 5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
-6. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
+6. **Consistency pass.** Scan the map's Decisions so far for gists the new resolution contradicts. For each, open that ticket, move its old Answer to `## Outdated decisions` with a link to the superseding ticket, write the current truth into `## Answer`, and rewrite its gist line in the map. If the route exists, update the affected unit's decision line as well.
+7. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
 
 Resolve at most one ticket per session — with the exception of research tickets, which run in the background and do not consume the session's focus.
 
@@ -88,6 +89,7 @@ digraph hamilton_wayfinder {
     "Claim ticket" [shape=box];
     "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
     "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
+    "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
 
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
@@ -100,7 +102,8 @@ digraph hamilton_wayfinder {
     "Open unblocked ticket?" -> "Claim ticket" [label="next ticket"];
     "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
     "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
-    "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Graduate fog / close out-of-scope";
+    "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
+    "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
     "Graduate fog / close out-of-scope" -> "Load map";
 }
 ```

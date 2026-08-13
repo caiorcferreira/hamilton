@@ -11,7 +11,7 @@ If a *fact* can be found by exploring the environment (filesystem, tools, etc.),
 
 Do not act on it until I confirm we have reached a shared understanding.
 
-A ticket's `## Answer` section is authoritative — it must always reflect the current decision, not a historical one. If grilling reveals that a later ticket supersedes an earlier ticket's decision, the earlier ticket's Answer must be updated to reflect the current truth (and the old answer moved to its `## Outdated decisions` section). Leaving a superseded answer in place is an inconsistency that must be fixed.
+If the user reverses an earlier recorded decision, update the artifact that records it to state the current truth — never leave the stale version standing.
 
 ## Process flow
 
