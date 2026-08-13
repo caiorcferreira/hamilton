@@ -154,7 +154,8 @@ skill's own directory — they are co-located with this SKILL.md.
   blocker. If it is missing context, provide it and re-dispatch with the same model. If the
   task needs more reasoning, re-dispatch with a more capable model. If the task is too large,
   it is a plan defect — escalate to the user rather than improvising a split (this skill does
-  not edit `plan.md`). Never force the same model to retry with nothing changed.
+  not edit `plan.md`); the remedy is `hamilton-plan` in re-plan mode. Never force the same
+  model to retry with nothing changed.
 - **Asks a question before or during work:** answer clearly and completely, then let it
   proceed. Do not rush it into implementation.
 

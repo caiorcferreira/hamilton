@@ -143,6 +143,20 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 - If a task needs more than one independent test to prove it, consider splitting it.
 - A task whose title contains "and" is often two tasks.
 
+## Re-plan mode
+
+When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
+re-enter this skill in re-plan mode: read `plan.md` and `progress.md`, then amend the plan.
+
+- Tasks `progress.md` marks done are frozen — leave them untouched.
+- Renumber nothing: stable task ids are what the code step and orchestrate dispatch by.
+- Append new tasks; mark abandoned ones explicitly — `(abandoned — superseded by Task N)` in
+  the title — instead of deleting them.
+- Record the reason for the amendment in the plan's Overview.
+
+Re-plan mode is the one sanctioned way `plan.md` changes after coding begins; every other
+skill treats the plan as read-only.
+
 ## Self-review
 
 Before finishing, confirm:
