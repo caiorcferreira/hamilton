@@ -78,26 +78,31 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    each of its `Depends on:` units is `shipped` **and** its work is reachable from the base
    branch; if a dependency is finished but unmerged, stop and ask the user — merge it, or
    deliberately branch from its branch. Otherwise proceed on the ordinary path.
-2. **Ensure an isolated workspace — then confirm you are inside it.** Detect isolation first:
-   if you are already in a linked worktree (`git rev-parse --git-dir` differs from
-   `--git-common-dir`, and you are not in a submodule) or on a dedicated branch (not the repo's
-   default branch), work in place. Otherwise derive a kebab-case title from the change (its
-   existing directory name, the selected unit's name in map-aware mode, or the request on the
-   minimal path) and create a worktree on a new branch, both named for the change, under the
-   git-ignored `.worktrees/` directory. If `.worktrees/<title>` or branch `<title>` already
-   exists, stop and ask — resume it, or pick a suffixed name; never silently reuse it:
+2. **Ensure an isolated workspace — then confirm you are inside it.** Run
+   `~/.hamilton/scripts/hamilton-isolate.sh --check`; its last line is the verdict.
+   `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
+   in place. `isolated: no` means derive a kebab-case title from the change (its existing
+   directory name, the selected unit's name in map-aware mode, or the request on the minimal
+   path) and create one:
 
    ```bash
-   git worktree add .worktrees/<title> -b <title>
-   cd .worktrees/<title>
-   git rev-parse --show-toplevel   # MUST print the .worktrees/<title> path
+   ~/.hamilton/scripts/hamilton-isolate.sh <title>   # last line: the new worktree's path
+   cd <that path>
+   ~/.hamilton/scripts/hamilton-isolate.sh --verify <title>
    ```
+
+   If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the script is not
+   installed (`hamilton setup` has not run), do the same by hand: you are isolated if
+   `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
+   in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
+   `git worktree add .worktrees/<title> -b <title>` under the git-ignored `.worktrees/`
+   directory, `cd` in, and confirm `git rev-parse --show-toplevel` ends in `.worktrees/<title>`.
 
    Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
    shell and every file tool rooted in the original checkout. You must `cd` into the worktree
-   and then **verify the switch took effect** before doing anything else: run
-   `git rev-parse --show-toplevel` and confirm the output ends in `.worktrees/<title>`. **Do not
-   proceed to step 3 until it does.** If you skip this check you will silently plan and write on
+   and then **verify the switch took effect** before doing anything else. **Do not proceed to
+   step 3 until `--verify` succeeds.** If you skip this check you will silently plan and write on
    the default branch — the exact failure this step exists to prevent.
 
    From here on, every path in this skill is relative to that worktree root: the change directory,
@@ -110,7 +115,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding. The
    claim rides the branch, so it ships with the work it marks.
 3. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
-4. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
+4. **Gather context.** When the change directory already holds artifacts — the rich path, or a
+   re-plan — open with `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to see which
+   exist, how large they are, and where the tasks and reviews stand, then read in full only what
+   it says is there. (If the script is not installed, list the directory instead.) On the minimal
+   path, where the directory is new and empty, skip straight to the reading.
+   Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
    project standards (commands, structure, style, boundaries). If a `Route unit` field is
    present (in the proposal's header, or in this plan's Overview), follow it to the unit's
@@ -147,7 +157,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 ## Re-plan mode
 
 When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
-re-enter this skill in re-plan mode: read `plan.md` and `progress.md`, then amend the plan.
+re-enter this skill in re-plan mode: read `plan.md` and `progress.md` for the task/outcome
+standings — `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` summarises them in one
+call — then amend the plan.
 
 - Tasks `progress.md` marks done are frozen — leave them untouched.
 - Renumber nothing: stable task ids are what the code step and orchestrate dispatch by.

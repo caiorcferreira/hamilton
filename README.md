@@ -7,10 +7,10 @@ structure to AI-assisted coding — carrying a change from idea to merge through
 spec-driven steps that any coding agent can follow.
 
 Hamilton is now a **simple CLI that sets up templates**: `hamilton setup` installs the
-spec-driven-development artifact templates and coding guidelines into `~/.hamilton/`, which the
-Assisted skills read. The Autonomous workflow engine and Ambient memory layer were removed in
-0.3.0; the last full-feature state is preserved on the `archive/full-feature-pre-cleanup` branch
-and the `pre-cleanup-0.2.1` tag.
+spec-driven-development artifact templates, coding guidelines, and skill helper scripts into
+`~/.hamilton/`, which the Assisted skills read. The Autonomous workflow engine and Ambient memory
+layer were removed in 0.3.0; the last full-feature state is preserved on the
+`archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
 
 ## Install
 
@@ -39,12 +39,13 @@ and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
 ~/.hamilton/
   templates/     # SDD artifact templates (plan.md, design.md, proposal.md, ...)
   guidelines/    # coding guidelines (general, golang, typescript)
+  scripts/       # helper scripts the skills call (isolate, diff-package, ...)
   settings.yaml  # default settings
 ```
 
 ```bash
 hamilton setup        # bootstrap ~/.hamilton/ (idempotent)
-hamilton setup --force  # re-copy templates and guidelines, reset settings
+hamilton setup --force  # re-copy templates, guidelines, and scripts; reset settings
 hamilton --help
 ```
 
@@ -65,6 +66,10 @@ on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton
 `~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
 `.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
 heavyweight front door (`propose`) is optional; the only required step is `plan`.
+
+Several steps also call a helper script from `~/.hamilton/scripts/` — creating a worktree, building a
+diff package, running the finish-work gate. Those are accelerators, not dependencies: every reference
+carries the manual recipe alongside it, so a skill still runs end to end without `hamilton setup`.
 
 ### Artifacts
 
@@ -106,7 +111,7 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 bun install
 bun run build                  # compile TypeScript
 bun run install-local          # symlink to ~/.local/bin/
-hamilton setup                 # install bundle/templates/ + bundle/guidelines/ → ~/.hamilton/
+hamilton setup                 # install bundle/{templates,guidelines,scripts}/ → ~/.hamilton/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/hamilton-*/ — copy or symlink them into a

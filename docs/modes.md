@@ -38,5 +38,8 @@ The code and skills live in:
   `hamilton setup`.
 - `bundle/guidelines/` — coding guidelines, installed to `~/.hamilton/guidelines/` by
   `hamilton setup`.
+- `bundle/scripts/` — the helper scripts the skills call, installed executable to
+  `~/.hamilton/scripts/` by `hamilton setup`. Every skill that calls one also states the manual
+  recipe, so the pipeline still runs without them.
 - a project's `.hamilton/` — per-project specs and change artifacts, created by the `hamilton-init`
   skill.

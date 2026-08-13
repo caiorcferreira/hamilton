@@ -45,11 +45,19 @@ Plus:
 
 ## Process
 
-1. **Confirm the workspace.** You must be off the repo's default branch, and the change
-   directory you were handed must resolve under the current worktree root
-   (`git rev-parse --show-toplevel`); otherwise stop and report.
-2. **Load the task** from whichever input form was given. Read its Acceptance, any cited
-   design/requirements sections, and the project standards. Do not look at other tasks.
+1. **Confirm the workspace.** Run
+   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`. Its last line
+   must read `isolated: yes`; anything else — the default branch, a detached HEAD, or a change
+   directory that does not resolve under the current worktree root — means stop and report its
+   output. If the script is not installed (`hamilton setup` has not run), check by hand: you
+   must be off the repo's default branch, and the change directory you were handed must resolve
+   under `git rev-parse --show-toplevel`.
+2. **Load the task** from whichever input form was given. If you were handed a change directory
+   but not the task text, run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` first
+   to see which artifacts exist (list the directory yourself if the script is not installed), so
+   you open only the ones the task cites rather than all of them.
+   Read its Acceptance, any cited design/requirements sections, and the project standards.
+   Do not look at other tasks.
 3. **Execute the steps in order,** exactly as written, running the tests and commands each
    step specifies.
 4. **Verify.** Run the task's Verify command, then the full test suite and the

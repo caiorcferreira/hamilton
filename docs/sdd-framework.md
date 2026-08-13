@@ -202,10 +202,13 @@ by the agent deciding and recording the reasoning.
 
 ## Concrete implementation
 
-Three locations hold the framework:
+Four locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
   to `~/.hamilton/templates/` by `hamilton setup`.
+- `bundle/scripts/` — the optional helper scripts the skills call for their mechanical steps,
+  installed to `~/.hamilton/scripts/` by the same command. Every call site carries the manual
+  recipe too, so the framework does not depend on them.
 - `skills/hamilton-*/` — the six pipeline skills, each a self-contained `SKILL.md`.
 - a project's `.hamilton/` — the per-project specs and change artifacts, created by
   `hamilton-init`.

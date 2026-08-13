@@ -20,6 +20,13 @@ const TEMPLATE_FILES = [
 
 const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md", "wayfinder/route.md"]
 
+const SCRIPT_FILES = [
+  "hamilton-change-context.sh",
+  "hamilton-diff-package.sh",
+  "hamilton-isolate.sh",
+  "hamilton-precondition-check.sh"
+]
+
 describe("setupHamilton", () => {
   let tmpHome: string
   const originalHome = process.env.HOME
@@ -42,6 +49,7 @@ describe("setupHamilton", () => {
     expect(Fs.existsSync(home)).toBe(true)
     expect(Fs.existsSync(Path.join(home, "templates"))).toBe(true)
     expect(Fs.existsSync(Path.join(home, "guidelines"))).toBe(true)
+    expect(Fs.existsSync(Path.join(home, "scripts"))).toBe(true)
   })
 
   it("copies artifact templates", async () => {
@@ -64,6 +72,27 @@ describe("setupHamilton", () => {
     }
   })
 
+  it("copies helper scripts", async () => {
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts")
+    for (const file of SCRIPT_FILES) {
+      expect(Fs.existsSync(Path.join(scriptsBase, file))).toBe(true)
+    }
+  })
+
+  it("installs helper scripts as executable", async () => {
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+
+    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts")
+    for (const file of SCRIPT_FILES) {
+      const mode = Fs.statSync(Path.join(scriptsBase, file)).mode
+      expect(mode & 0o111).toBe(0o111)
+    }
+  })
+
   it("copies guideline manifests", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     expect(Exit.isSuccess(exit)).toBe(true)
@@ -77,9 +106,18 @@ describe("setupHamilton", () => {
   it("returns installed template filenames", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     if (Exit.isSuccess(exit)) {
-      expect(exit.value).toContain("plan.md")
-      expect(exit.value).toContain("wayfinder/map.md")
-      expect(exit.value.length).toBeGreaterThan(0)
+      expect(exit.value.templates).toContain("plan.md")
+      expect(exit.value.templates).toContain("wayfinder/map.md")
+      expect(exit.value.templates.length).toBeGreaterThan(0)
+    } else {
+      expect.unreachable("Expected success")
+    }
+  })
+
+  it("returns installed script filenames", async () => {
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value.scripts).toEqual(SCRIPT_FILES)
     } else {
       expect.unreachable("Expected success")
     }

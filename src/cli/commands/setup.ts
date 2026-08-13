@@ -3,7 +3,7 @@ import { Console, Data, Effect, Exit } from "effect"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
 import * as Yaml from "yaml"
-import { ensureHamiltonHome, guidelinesDir, settingsPath, templatesDir } from "../../paths.js"
+import { ensureHamiltonHome, guidelinesDir, scriptsDir, settingsPath, templatesDir } from "../../paths.js"
 import { resolveBundleRoot } from "../bundle-root.js"
 
 export class SetupError extends Data.TaggedError("SetupError")<{
@@ -42,6 +42,35 @@ function copyTemplates(bundleRoot: string, options?: { force?: boolean }): Effec
       .filter((name) => Fs.statSync(Path.join(destTemplates, name)).isFile())
       .map((name) => name.split(Path.sep).join("/"))
       .sort()
+  })
+}
+
+function copyScripts(bundleRoot: string, options?: { force?: boolean }): Effect.Effect<string[], SetupError> {
+  return Effect.gen(function* () {
+    const srcDir = Path.join(bundleRoot, "scripts")
+    if (!Fs.existsSync(srcDir)) return []
+
+    const destScripts = scriptsDir()
+
+    return yield* Effect.try({
+      try: () => {
+        Fs.cpSync(srcDir, destScripts, { recursive: true, force: true })
+
+        const names = (Fs.readdirSync(destScripts, { recursive: true }) as string[])
+          .filter((name) => Fs.statSync(Path.join(destScripts, name)).isFile())
+          .map((name) => name.split(Path.sep).join("/"))
+          .sort()
+
+        // cpSync preserves whatever mode the checkout carried; the skills invoke
+        // these directly, so make the executable bit unconditional.
+        for (const name of names) {
+          Fs.chmodSync(Path.join(destScripts, name), 0o755)
+        }
+
+        return names
+      },
+      catch: (e) => new SetupError({ message: `Failed to copy scripts: ${String(e)}` })
+    })
   })
 }
 
@@ -102,7 +131,12 @@ function writeDefaultSettings(modelAliases?: Record<string, string>): Effect.Eff
   })
 }
 
-export function setupHamilton(options?: { force?: boolean }): Effect.Effect<string[], SetupError> {
+export interface SetupResult {
+  templates: string[]
+  scripts: string[]
+}
+
+export function setupHamilton(options?: { force?: boolean }): Effect.Effect<SetupResult, SetupError> {
   return Effect.gen(function* () {
     yield* Effect.try({
       try: () => ensureHamiltonHome(),
@@ -116,10 +150,11 @@ export function setupHamilton(options?: { force?: boolean }): Effect.Effect<stri
     })
 
     const templates = yield* copyTemplates(bundleRoot, options)
+    const scripts = yield* copyScripts(bundleRoot, options)
     yield* copyGuidelineManifests(bundleRoot, options)
     yield* writeDefaultSettings()
 
-    return templates
+    return { templates, scripts }
   })
 }
 
@@ -132,11 +167,15 @@ export const setupCommand = Command.make("setup", { force }, ({ force }) =>
       yield* Console.error(`Setup failed: ${String(result.cause)}`)
       return
     }
-    const templates = Exit.getOrElse(result, () => [] as string[])
+    const { templates, scripts } = Exit.getOrElse(result, () => ({ templates: [], scripts: [] }) as SetupResult)
     yield* Console.log("Hamilton set up successfully.")
     yield* Console.log(`Installed ${templates.length} templates.`)
     for (const name of templates) {
       yield* Console.log(`  ${name}`)
     }
+    yield* Console.log(`Installed ${scripts.length} scripts.`)
+    for (const name of scripts) {
+      yield* Console.log(`  ${name}`)
+    }
   })
-).pipe(Command.withDescription("Bootstrap Hamilton directories and install templates"))
+).pipe(Command.withDescription("Bootstrap Hamilton directories and install templates and scripts"))

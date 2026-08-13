@@ -66,8 +66,11 @@ Subagent:
 - `[.hamilton/changes/<change>/]` — the change directory.
 - `[N]` — the task under review (omit for the final whole-branch review).
 - `[BASE_SHA]` — for a task, the BASE recorded before the implementer ran; for the final
-  review, `git merge-base <default-branch> HEAD`. Never `HEAD~1`.
+  review, the merge-base with the default branch. Never `HEAD~1`. Both are printed on the
+  `range:` line of the diff package.
 - `[HEAD_SHA]` — current commit.
-- `[DIFF_FILE]` — the uniquely named diff package the controller wrote (`git diff --stat` +
-  `git diff -U10` for the range).
+- `[DIFF_FILE]` — the diff package: the last line of
+  `~/.hamilton/scripts/hamilton-diff-package.sh --change-dir <change-dir>` for a task, or
+  `--whole-change` for the final review. Without the script, a uniquely named file the
+  controller wrote holding `git diff --stat` + `git diff -U10` for the range.
 - `[REPORT_FILE]` — the implementer's report file for this task.

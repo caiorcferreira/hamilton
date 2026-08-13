@@ -77,14 +77,19 @@ skill's own directory — they are co-located with this SKILL.md.
 ## Process
 
 1. **Verify an isolated workspace.** `hamilton-plan` normally leaves you in a worktree or on
-   a dedicated branch. Confirm it: if `git rev-parse --git-dir` differs from
-   `--git-common-dir` (a linked worktree) or you are on a branch other than the repo's
-   default, proceed. If you are on the default branch, **stop and ask** — never start
-   dispatching implementers onto `main`/`master` without explicit consent.
-2. **Load the plan and resume point.** Read `plan.md` for the task list, the Overview's
-   context, and the Global Constraints / Quality notes. Read `progress.md`: any task with
-   `Outcome: done` is complete — do not re-dispatch it. Resume at the first task not marked
-   done.
+   a dedicated branch. Confirm it with
+   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`: a last line of
+   `isolated: yes` means proceed. If it reports `isolated: no`, **stop and ask** — never start
+   dispatching implementers onto `main`/`master` without explicit consent. If the script is not
+   installed (`hamilton setup` has not run), check by hand: `git rev-parse --git-dir` differing
+   from `--git-common-dir` (a linked worktree), or a branch other than the repo's default.
+2. **Load the plan and resume point.** Open with
+   `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` for the artifact inventory and
+   the per-task standing, then read `plan.md` for the task list, the Overview's context, and the
+   Global Constraints / Quality notes. Read `progress.md`: any task with `Outcome: done` is
+   complete — do not re-dispatch it. Resume at the first task not marked done. (If the script is
+   not installed, read `plan.md` and `progress.md` directly; the standings are the same, they
+   just cost more to obtain.)
 3. **Populate your todo tool from the plan.** Before dispatching anything, create one todo
    entry per task in `plan.md`, in plan order, using your coding agent's own todo/task-list
    tool (name and shape vary by agent — use whichever one you have), plus one trailing entry
@@ -100,16 +105,22 @@ skill's own directory — they are co-located with this SKILL.md.
    clean, proceed without comment.
 5. **Per task, in order** (skipping tasks already `done`):
    1. **Mark the task's todo entry in-progress.** Update it before dispatching, not after.
-   2. **Record BASE** = current `HEAD` (`git rev-parse HEAD`). This is the diff base for the
-      task — never `HEAD~1`, which drops all but the last commit of a multi-commit task.
+   2. **Record BASE** = current `HEAD`:
+      `~/.hamilton/scripts/hamilton-diff-package.sh --record --change-dir <change-dir>`. This is
+      the diff base for the task — never `HEAD~1`, which drops all but the last commit of a
+      multi-commit task. The script stores it in the change directory, so it survives a
+      compaction of your context; without the script, record `git rev-parse HEAD` and keep it
+      somewhere durable yourself.
    3. **Dispatch the implementer** (see `references/implementer-prompt.md`): a fresh subagent
       whose whole job is to run `hamilton-code` on this task, by reference — the change
       directory path and the task id. Give it a one-line scene-setting note, the interfaces
       or decisions from earlier tasks it needs, and the report-file path. Nothing more.
    4. **Handle its status** (see **Handling implementer status**). If it asks a question,
       answer completely before it proceeds.
-   5. **Package the diff.** Record `HEAD` and write the task's diff to a uniquely named
-      scratch file (see **File handoffs**).
+   5. **Package the diff.** Run
+      `~/.hamilton/scripts/hamilton-diff-package.sh --change-dir <change-dir>`; it reads the
+      BASE recorded in 5.2, writes the diff to a scratch file, and prints that path on its last
+      line (see **File handoffs**).
    6. **Dispatch the reviewer** (see `references/reviewer-prompt.md`): a fresh subagent that
       runs `hamilton-review` on the task's diff, with the binding constraints copied verbatim
       from the plan. It judges only; it returns a verdict and located feedback.
@@ -125,10 +136,12 @@ skill's own directory — they are co-located with this SKILL.md.
       `progress.md`, before moving to the next task — the todo list should never lag the
       ledger.
 6. **Broad whole-branch review.** After the last task, mark the trailing "whole-branch
-   review" todo entry in-progress, then dispatch one `hamilton-review` subagent over the
-   entire branch diff (`git merge-base <default-branch> HEAD`..`HEAD`), with the whole
-   change's requirements and design as context. This is the merge gate the per-task passes
-   are not.
+   review" todo entry in-progress, then build the branch-wide package with
+   `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change` — it resolves the default
+   branch, diffs from the merge-base, and prints the path — and dispatch one `hamilton-review`
+   subagent over it, with the whole change's requirements and design as context. Without the
+   script, package `git merge-base <default-branch> HEAD`..`HEAD` by hand. This is the merge
+   gate the per-task passes are not.
 7. **Fix the final review as one wave.** If it returns findings, dispatch **one**
    `hamilton-code` subagent with the complete findings list — not one fixer per finding — then
    re-review the affected range. Leave the "whole-branch review" todo entry in-progress until
@@ -193,10 +206,12 @@ change directory, appended by every `hamilton-code` run.
 Everything you paste into a dispatch, and everything a subagent prints back, stays resident
 in your context for the rest of the session. Move bulk artifacts as files:
 
-- **Diff package:** before dispatching a reviewer, write the task's diff to a uniquely named
-  scratch file — `git diff --stat BASE..HEAD` and `git diff -U10 BASE..HEAD` redirected into
-  one file (e.g. under the system temp dir) — and pass the reviewer the path. Use the BASE
-  you recorded before the implementer ran; never `HEAD~1`.
+- **Diff package:** before dispatching a reviewer, run
+  `~/.hamilton/scripts/hamilton-diff-package.sh --change-dir <change-dir>` and pass the reviewer
+  the path on its last line. It uses the BASE recorded before the implementer ran, and refuses
+  to run at all if none was recorded — never `HEAD~1`. Without the script, redirect
+  `git diff --stat BASE..HEAD` and `git diff -U10 BASE..HEAD` into one uniquely named scratch
+  file (e.g. under the system temp dir) yourself.
 - **Report file:** name each subagent's report file after its task and put the path in the
   dispatch. The subagent writes its full report there and returns only status, commits, a
   one-line test summary, and concerns.

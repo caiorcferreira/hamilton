@@ -49,9 +49,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Establish intent.** Read `plan.md` (and cited `design.md` / `requirements/`) for what
-   the work was meant to do and its acceptance criteria. Read `progress.md` for what the
-   coder did and any flagged deviations.
+1. **Establish intent.** Open with `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>`
+   to see which artifacts exist and how prior passes have voted, so you open only what bears on
+   this scope (list the directory yourself if the script is not installed). Then read `plan.md`
+   (and cited `design.md` / `requirements/`) for what the work was meant to do and its
+   acceptance criteria, and `progress.md` for what the coder did and any flagged deviations.
 2. **Inspect the diff.** Read the changes under review in full.
 3. **Review across dimensions** (checklist below), applying the structural rubric in
    `references/code-quality.md` scaled to the size of the change.

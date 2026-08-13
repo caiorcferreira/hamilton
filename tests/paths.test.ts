@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { hamiltonHome, templatesDir, guidelinesDir, settingsPath } from "../src/paths.js"
+import { hamiltonHome, templatesDir, guidelinesDir, scriptsDir, settingsPath } from "../src/paths.js"
 
 describe("paths", () => {
   const originalHome = process.env.HOME
@@ -26,6 +26,10 @@ describe("paths", () => {
 
   it("guidelinesDir returns ~/.hamilton/guidelines", () => {
     expect(guidelinesDir()).toBe("/tmp/test-home/.hamilton/guidelines")
+  })
+
+  it("scriptsDir returns ~/.hamilton/scripts", () => {
+    expect(scriptsDir()).toBe("/tmp/test-home/.hamilton/scripts")
   })
 
   it("settingsPath returns ~/.hamilton/settings.yaml", () => {
