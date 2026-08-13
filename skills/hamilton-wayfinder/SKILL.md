@@ -23,6 +23,20 @@ Every ticket has a type that promises how it gets answered, and each type delega
 
 A planning ticket resolves only through live exchange with a human. The agent puts each decision to the human and waits — it never stands in for the human's side of the dialogue. Hamilton's three-tier attendance model (Always / Ask first / Never) governs SDD execution downstream, not this planning stage.
 
+## Skill dispatch
+
+Load a skill by reading its SKILL.md (or via the Skill tool) — never act in a skill's spirit without loading it.
+
+| Situation | Load | Write back before closing |
+| --- | --- | --- |
+| Charting: name the destination, map the frontier | `hamilton-grilling` + `hamilton-wayfinder-domain-modeling`, both before the first question | Destination and Notes in the map; working glossary terms |
+| Grilling ticket | `hamilton-grilling` + `hamilton-wayfinder-domain-modeling`, both before the first question | Ticket `## Answer`; glossary updates; map gist |
+| Prototype ticket | `hamilton-wayfinder-prototype` | Ticket `## Answer` + pointer to the prototype branch; map gist |
+| Research ticket | `hamilton-wayfinder-research` (background agent) | Findings file + ticket pointer; on return, ticket `## Answer` + map gist (work loop step 1) |
+| Task ticket | none — drive directly, or hand the human a checklist | Ticket `## Answer`; map gist |
+
+Every grilling invocation supplies content and an exit condition (see grilling's Invocation contract).
+
 ## Fog of war
 
 Not every decision can be stated sharply at the start. The fog of war is the dim view ahead — decisions you can tell are coming but cannot yet pin down, because they hang on questions still open. It lives in the map's Not yet specified, deliberately uncharted. The test separating fog from a ticket is whether the question can be stated precisely now, not whether it can be answered now. When a resolution makes a foggy question specifiable, the fog graduates: it clears from Not yet specified and becomes a new ticket.
