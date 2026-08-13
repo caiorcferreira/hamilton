@@ -88,9 +88,13 @@ at a time.
 - **Produces:** a map at `.hamilton/maps/<effort>/` (`map.md`, `tickets/`, and `route.md` once the
   map clears) — a static handoff listing the change-sized units in order, each pointing at the
   decisions backing it.
-- **Notes:** use wayfinder to break a complex goal into clear, realizable units. Use
-  `hamilton-propose` to transform each route unit into a concrete change spec ready for autonomous
-  implementation. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
+- **Notes:** use wayfinder to break a complex goal into clear, realizable units. The wayfinder
+  skill itself names no SDD step — it defines an abstract executing-process contract, and the SDD
+  skills implement it for software: `hamilton-propose` (spec-worthy units) or `hamilton-plan`
+  (tactical units) starts a unit and flips it `in-progress` (flipping the map to `shipping` on the
+  first unit), and `hamilton-finish-work` flips the unit `shipped` (and the map, on the last unit).
+  A non-code effort — a presentation, an RFC, a strategy — binds its own executing process to the
+  same contract. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
   [`NOTICE`](../NOTICE) for the full legal credit.
 - Source: [`skills/hamilton-wayfinder/SKILL.md`](../skills/hamilton-wayfinder/SKILL.md)
 
