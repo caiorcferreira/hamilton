@@ -47,7 +47,7 @@ Charting is one session's work and resolves no tickets — it names the destinat
 Working is the loop that clears the map one ticket at a time.
 
 1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
-2. **Choose the frontier ticket.** Take the first open, unblocked, unclaimed ticket in order.
+2. **Choose the frontier ticket.** Take the first ticket on the frontier (defined in Map mechanics).
 3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
 4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
 5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
@@ -70,9 +70,11 @@ This section is the contract between the wayfinder methodology and its file-nati
 
 **Route units.** Each unit in `route.md` carries a `Status:` line with values `pending` / `in-progress` / `shipped`. The executing process flips it (see The route).
 
+**Frontier.** The frontier is the set of tickets with `status: open` — excluding `claimed` and `resolved` — whose every `blocked_by` entry is resolved, taken in file order. "Open" always names the status value; use "unresolved" for any ticket not yet resolved.
+
 **File layout.** A map lives at `.hamilton/maps/<effort>/` — an undated slug that is the effort's identity — holding `map.md`, `route.md` once the map clears, and `tickets/NN-slug.md` numbered from `01`.
 
-**Claiming.** Setting a ticket's `status:` to `claimed` is a signal of intent: it tells a reader the ticket is in hand. It does not affect frontier calculation — a claimed ticket is still open, not resolved — and it does not prevent a collision; concurrent sessions collide through git, and the claim is how a reader sees the ticket is already being worked.
+**Claiming.** Setting a ticket's `status:` to `claimed` signals intent: it tells a reader the ticket is in hand and removes the ticket from the frontier. It does not prevent a collision — concurrent sessions collide through git; the claim is how a reader sees the ticket is already being worked.
 
 **Branching.** Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge, so the flip ships with the work it marks. Between merges the route lags on the default branch; that staleness is accepted, not a defect.
 
@@ -86,7 +88,7 @@ digraph hamilton_wayfinder {
     "Stop — no map needed" [shape=doublecircle];
     "Create map + tickets\n(fire research in parallel)" [shape=box];
     "Load map" [shape=box];
-    "Open unblocked ticket?" [shape=diamond];
+    "Frontier ticket available?" [shape=diamond];
     "Write route\n(closing act)" [shape=doublecircle];
     "Claim ticket" [shape=box];
     "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
@@ -99,9 +101,9 @@ digraph hamilton_wayfinder {
     "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
     "Fog ahead?" -> "Create map + tickets\n(fire research in parallel)" [label="fog exists"];
     "Create map + tickets\n(fire research in parallel)" -> "Load map";
-    "Load map" -> "Open unblocked ticket?";
-    "Open unblocked ticket?" -> "Write route\n(closing act)" [label="frontier empty"];
-    "Open unblocked ticket?" -> "Claim ticket" [label="next ticket"];
+    "Load map" -> "Frontier ticket available?";
+    "Frontier ticket available?" -> "Write route\n(closing act)" [label="frontier empty"];
+    "Frontier ticket available?" -> "Claim ticket" [label="next ticket"];
     "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
     "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
