@@ -97,7 +97,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 2. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 3. **Gather context.** Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
-   project standards (commands, structure, style, boundaries). The specs carry the conventions
+   project standards (commands, structure, style, boundaries). If a `Route unit` field is
+   present (in the proposal's header, or in this plan's Overview), follow it to the unit's
+   `Backed by:` tickets and treat their Answers as committed decisions the plan must honor. The specs carry the conventions
    and decisions already committed for those capabilities — follow them so the plan stays
    consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
    your primary source of existing behavior; write a two-line why/what for the Overview.

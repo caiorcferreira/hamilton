@@ -111,7 +111,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    Unattended, record a reasonable choice as an assumption.
 6. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
-   existing names). The Capabilities list is the contract into the requirements.
+   existing names). The Capabilities list is the contract into the requirements. In
+   map-aware mode, fill the header's `Route unit` field with the route path and unit
+   number — it is the provenance link every downstream step follows back to the map.
 
    **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
    capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so

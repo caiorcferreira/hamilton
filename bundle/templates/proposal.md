@@ -8,12 +8,13 @@
 
 # Proposal: <Change Title>
 
-| Field   | Value                              |
-|---------|------------------------------------|
-| Change  | <YYYY-MM-DD-change-title>          |
-| Status  | draft / approved / implemented     |
-| Author  | <name or agent>                    |
-| Created | <YYYY-MM-DD>                       |
+| Field      | Value                                                        |
+|------------|--------------------------------------------------------------|
+| Change     | <YYYY-MM-DD-change-title>                                    |
+| Status     | draft / approved / implemented                               |
+| Author     | <name or agent>                                              |
+| Created    | <YYYY-MM-DD>                                                 |
+| Route unit | <.hamilton/maps/<effort>/route.md — unit N; omit unless map-aware> |
 
 ## Why
 

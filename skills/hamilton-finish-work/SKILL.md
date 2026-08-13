@@ -17,6 +17,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
 - The change directory path (`.hamilton/changes/<change>/`): `plan.md`, `progress.md`,
   `review.md`, and — as the material distilled into the canonical specs — `proposal.md`,
   `design.md`, and `requirements/` where present.
+- The `Route unit` field in `proposal.md` (or plan.md's Overview), when the change executes a
+  route unit — step 4 uses it to flip the unit's status.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's default or ask.
 - Project standards (`AGENTS.md`): test/build commands, git workflow, branch and

@@ -29,6 +29,7 @@
 ## Overview
 
 - Change: <this plan's change directory, .hamilton/changes/<change>/>
+- Route unit: <.hamilton/maps/<effort>/route.md — unit N; omit unless the change executes a route unit>
 - Goal: <1–2 sentences — what this plan delivers and why>
 - Test: `<command that runs the test suite>`
 - Build / typecheck: `<command>`

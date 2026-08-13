@@ -28,6 +28,9 @@ back; that loop is driven by whoever runs the pipeline, not by this skill.
   code example — must be checked against the real repository, not taken on trust.
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth each
   MODIFIED capability builds on.
+- The change's `Route unit` field (in the proposal's header), if present — follow it to the
+  route unit's `Backed by:` tickets; their Answers are committed decisions the artifacts
+  must honor.
 - Project standards (`AGENTS.md`): idioms, ubiquitous language, boundaries.
 
 ## References
