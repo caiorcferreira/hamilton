@@ -108,6 +108,11 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    the source rather than observing inputs and outputs, it is too low — lift it or drop it.
    Reserve `MUST`/`NEVER` for `## Invariants`. The canonical spec states what the capability
    guarantees, not how one commit achieved it. Commit the spec update following the git workflow.
+
+   When the change has no `requirements/` deltas (the minimal path), do not record "none" and
+   move on: check the diff's touched capabilities against `.hamilton/specs/`. If the change
+   alters behavior a spec documents, write the delta retroactively and fold it — or flag it
+   and stop. A tactical change that skips ceremony must not let the specs drift.
 3. **Detect the workspace.** If you are in a worktree — `git rev-parse --git-dir` differs from
    `--git-common-dir` — note its path (`git rev-parse --show-toplevel`) and branch; you will
    disclose them, and on local-merge remove it. If you are not in a worktree (working in place
