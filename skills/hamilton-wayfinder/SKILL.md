@@ -101,9 +101,9 @@ digraph hamilton_wayfinder {
     "Fog ahead?" [shape=diamond];
     "Stop — no map needed" [shape=doublecircle];
     "Create map + tickets\n(fire research in parallel)" [shape=box];
-    "Load map" [shape=box];
+    "Load map\n(+ absorb returned research)" [shape=box];
     "Frontier ticket available?" [shape=diamond];
-    "Write route\n(closing act)" [shape=doublecircle];
+    "Fold glossary + write route\n(closing act)" [shape=doublecircle];
     "Claim ticket" [shape=box];
     "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
     "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
@@ -114,14 +114,14 @@ digraph hamilton_wayfinder {
     "Map frontier breadth-first" -> "Fog ahead?";
     "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
     "Fog ahead?" -> "Create map + tickets\n(fire research in parallel)" [label="fog exists"];
-    "Create map + tickets\n(fire research in parallel)" -> "Load map";
-    "Load map" -> "Frontier ticket available?";
-    "Frontier ticket available?" -> "Write route\n(closing act)" [label="frontier empty"];
+    "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research)";
+    "Load map\n(+ absorb returned research)" -> "Frontier ticket available?";
+    "Frontier ticket available?" -> "Fold glossary + write route\n(closing act)" [label="frontier empty"];
     "Frontier ticket available?" -> "Claim ticket" [label="next ticket"];
     "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
     "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
     "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
-    "Graduate fog / close out-of-scope" -> "Load map";
+    "Graduate fog / close out-of-scope" -> "Load map\n(+ absorb returned research)";
 }
 ```

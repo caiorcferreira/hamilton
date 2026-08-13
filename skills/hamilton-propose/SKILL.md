@@ -195,7 +195,7 @@ reviewed and approved, ready for `hamilton-plan`.
 ```dot
 digraph hamilton_propose {
     "Goal discovery\n(title + map-aware route read)" [shape=box];
-    "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" [shape=box];
     "Set up change dir" [shape=box];
     "Explore context (read-only)" [shape=box];
     "Ask clarifying questions" [shape=box];
@@ -207,8 +207,8 @@ digraph hamilton_propose {
     "Approved?" [shape=diamond];
     "Ready for hamilton-plan" [shape=doublecircle];
 
-    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree if on default branch)";
-    "Ensure isolated workspace\n(worktree if on default branch)" -> "Set up change dir";
+    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)";
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" -> "Set up change dir";
     "Set up change dir" -> "Explore context (read-only)";
     "Explore context (read-only)" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Proposal — why\n(problem, goals, capabilities)";

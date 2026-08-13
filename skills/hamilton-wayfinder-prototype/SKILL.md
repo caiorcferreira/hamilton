@@ -42,11 +42,11 @@ digraph hamilton_wayfinder_prototype {
     "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" [shape=box];
     "Build throwaway\n(trivial to run, surface state, no persistence)" [shape=box];
     "Hand over to user" [shape=box];
-    "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)" [shape=doublecircle];
+    "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)" [shape=doublecircle];
 
     "Identify the question\n(logic/structure vs. appearance)" -> "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)";
     "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" -> "Build throwaway\n(trivial to run, surface state, no persistence)";
     "Build throwaway\n(trivial to run, surface state, no persistence)" -> "Hand over to user";
-    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real code; rest to throwaway branch)";
+    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)";
 }
 ```
