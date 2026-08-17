@@ -90,15 +90,30 @@ drift into confusing overlap.
   own status file stays a live option for ticket 03. Risks accepted: no Bun job in LangGraph's CI
   at all (Hamilton owns its own compile smoke test), a custom checkpointer to maintain, and
   macOS arm64 as the only tested platform.
+- [The kernel seam](tickets/02-kernel-seam.md) — **Config binds at construction;
+  `run({ prompt, cwd, signal })` → `{ outcome, exitCode, sessionId?, usage? }`, streaming to a
+  construction-time sink.** Non-reliance boundary: kernels may commit, topologies must be correct
+  either way and ensure a clean tree before the next iteration; the commit sweep is
+  topology-chosen, with git plumbing in its own module. Topologies read truth from repo state,
+  never agent self-reports; `sessionId` is forensic only. v1 kernels: `claude -p` and
+  `opencode run`. Selection: `--kernel` flag → `loop.defaultKernel` in settings → fallback, with
+  per-kernel opaque config blocks. Preflight (existence + executability only) runs foreground,
+  before detach.
+- [Usage extraction from `opencode run`](tickets/13-opencode-usage-extraction.md) — **Yes, the
+  opencode kernel can populate `usage?`: parse the documented `--format json` NDJSON stream,
+  summing `cost` and `tokens` over `step_finish` events** (which also yields the `sessionID`
+  the default format never prints). opencode prices cost itself via models.dev; zero cost with
+  nonzero tokens means unpriced → leave `costUsd` unset. `opencode export` and the SQLite DB
+  are fallbacks only. One convention to fix at implementation, consistent across kernels:
+  whether `inputTokens` includes cache read/write. Verified against opencode v1.18.8.
 
 ## Not yet specified
 
 - **Testing a process-spawning subsystem at the integration level.** Ticket 11 covers the strategy;
-  what remains foggy is whether the loop needs a fake kernel binary committed to the repo, and
-  whether any test may spawn a real agent. Depends on the kernel seam (02).
-- **Cost and token observability.** Whether a run records spend per iteration, and whether that is
-  even knowable across heterogeneous external kernels. Hangs on the kernel seam (02) — some agent
-  CLIs report usage, some do not.
+  what remains foggy is whether any test may spawn a real agent. Sharpened by 02: the seam is an
+  in-process interface, so unit-level tests can fake a kernel without any committed binary — a fake
+  *binary* is only in question for tests exercising real subprocess spawning, which is ticket 11's
+  call together with the run-directory dependency (03).
 - **Concurrency.** More than one loop running at once, in the same repo or across repos: locking,
   run-id collision, whether a second `hamilton loop` in a dirty worktree is refused. Hangs on the
   run directory layout (03).

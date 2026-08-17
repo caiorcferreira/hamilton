@@ -22,6 +22,15 @@ branching, and when the loop stops. Topologies are code, not configuration — t
 the reason LangGraph is in the stack rather than a config parser. v1 ships two: `ralph` and `sdd`.
 *Provisional — fixed by ticket 08.*
 
+**runner** — The topology-agnostic supervisor around a loop run: it spawns detached, owns the run
+directory, enforces the run's limits, answers `status` and `kill` from another process, and selects
+the kernel the graph will call. It is the one part of the loop that does not vary — where a kernel
+varies by *which agent tool* does the work and a topology varies by *what work sequence* is being
+done, there is exactly one runner. Its scope is process supervision, not utility: shared concerns
+like git plumbing live in modules of their own rather than accreting onto it.
+*Provisional — fixed by tickets 03 and 05; its boundary against git plumbing fixed by
+[ticket 02](tickets/02-kernel-seam.md).*
+
 **gate** — A check run between iterations that rejects unacceptable work: tests, typecheck, lint,
 build. Huntley's "backpressure". A gate's failure is a signal to the topology, not necessarily a
 reason to stop the run. *Provisional — fixed by tickets 05 and 06.*
@@ -29,10 +38,14 @@ reason to stop the run. *Provisional — fixed by tickets 05 and 06.*
 ## Execution
 
 **kernel** — The interchangeable thing that executes one iteration's agent invocation. Borrowed
-from Jupyter's sense: a swappable execution backend behind a stable seam. A kernel receives a
-prompt and a working directory and produces an exit status; everything about *how* it does the work
-— its tools, permissions, file editing, model — belongs to the kernel, not to Hamilton. v1 ships
-external subprocess kernels only. *Provisional — fixed by ticket 02.*
+from Jupyter's sense: a swappable execution backend behind a stable seam. Configuration (model,
+permissions, env overlay, log sink) binds at construction; per call, a kernel receives a prompt, a
+working directory, and an abort signal, streams its transcript to the sink, and returns a
+normalized outcome (`completed` / `failed` / `aborted`) with optional session id and usage.
+Everything about *how* it does the work belongs to the kernel, not to Hamilton; a kernel never
+decides when the loop stops, and topologies never depend on what a kernel did or did not commit.
+v1 ships external subprocess kernels only: `claude -p` and `opencode run`.
+(Resolved by [The kernel seam](tickets/02-kernel-seam.md))
 
 **external kernel** — A kernel that shells out to a coding-agent CLI (`claude -p`, `opencode run`).
 Brings its own tools, permission model, and git handling. Fresh context is structural: it is a new
