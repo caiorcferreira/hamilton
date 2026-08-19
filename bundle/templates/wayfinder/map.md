@@ -10,7 +10,10 @@
 
 ---
 status: open
+branch:
 ---
+
+<!-- hint: branch names the branch the effort works from and merges back into, set at map creation -->
 
 # <Effort Name>
 
@@ -23,6 +26,12 @@ status: open
 
 <!-- hint: standing context every session needs — the domain in one line, plus durable
      preferences. Terminology belongs in the glossary; decisions belong in tickets. -->
+
+## Operation rules
+
+<!-- hint: prescriptive, per-session-binding rules on how working sessions operate
+     (e.g. commit after resolving a ticket, delegate a job class to a named subagent),
+     may be empty, and distinguished from Notes' orienting context. -->
 
 ## Decisions so far
 

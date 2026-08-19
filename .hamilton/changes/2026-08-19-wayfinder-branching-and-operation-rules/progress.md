@@ -33,3 +33,16 @@
   - Deleted: none
 - Verified: `bun --bun vitest run tests/cli/setup.test.ts` → 15/15 passed; `bun --bun vitest run` → 98/98 passed; `bun run build` → clean
 - Notes: Added `hamilton-prototype-branch.sh` to the expected-scripts list in tests/cli/setup.test.ts in alphabetical order (5th script). Updated docs/skills.md: changed "four scripts" to "five scripts", updated "Three properties hold across all four" to "Three properties hold across all five", and added the table row describing the script's functionality and called-by relationship to `wayfinder-prototype`.
+
+## Review: Task 2 — 2026-08-19
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 3: Add branch field and Operation rules section to the map template — 2026-08-19
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `bundle/templates/wayfinder/map.md`
+  - Deleted: none
+- Verified: `grep -n "branch:\|Operation rules" bundle/templates/wayfinder/map.md` → both present (lines 13 and 30), Operation rules positioned between Notes and Decisions so far; `bun --bun vitest run` → 98/98 passed; `bun run build` → clean
+- Notes: Added `branch:` field to frontmatter (line 13) with explanatory hint comment after the frontmatter block. Inserted `## Operation rules` section (line 30) with detailed hint comment explaining its purpose (prescriptive, per-session-binding rules) and distinguishing it from Notes. Preserved the template's idiom: HTML comment block, YAML frontmatter, inline `<!-- hint: ... -->` comments for sections, delete-before-finalizing convention. All sections now in required order: Destination, Notes, Operation rules, Decisions so far, Not yet specified, Out of scope.
