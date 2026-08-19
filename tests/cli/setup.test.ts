@@ -24,7 +24,8 @@ const SCRIPT_FILES = [
   "hamilton-change-context.sh",
   "hamilton-diff-package.sh",
   "hamilton-isolate.sh",
-  "hamilton-precondition-check.sh"
+  "hamilton-precondition-check.sh",
+  "hamilton-prototype-branch.sh"
 ]
 
 describe("setupHamilton", () => {

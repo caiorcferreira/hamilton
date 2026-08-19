@@ -253,7 +253,7 @@ requirements truth.
 
 ## Helper scripts
 
-`hamilton setup` installs four scripts to `~/.hamilton/scripts/`, executable, from the repository's
+`hamilton setup` installs five scripts to `~/.hamilton/scripts/`, executable, from the repository's
 `bundle/scripts/`. They exist to make the pipeline's *mechanical* steps deterministic — the recipes
 an agent would otherwise re-derive from prose on every run, and occasionally get wrong.
 
@@ -263,8 +263,9 @@ an agent would otherwise re-derive from prose on every run, and occasionally get
 | `hamilton-diff-package.sh` | Record BASE before an implementer runs (`--record`), then build the reviewer's diff package for that range, or for `merge-base(default)..HEAD` (`--whole-change`) | `orchestrate` |
 | `hamilton-precondition-check.sh` | Run the five finish-work gates — clean tree, tests, tasks done, reviews approved, whole-change review not stale — in one call | `finish-work` |
 | `hamilton-change-context.sh` | Summarise a change directory: which artifacts exist, task standings, latest verdict per scope (`--all` for one line per change) | `plan`, `code`, `review`, `critique`, `orchestrate`, `finish-work` |
+| `hamilton-prototype-branch.sh` | Create/resume `prototype/<map-name>/<ticket-name>` from the current branch (`<map> <ticket>`, `--standalone <slug>`) or confirm the checkout landed (`--verify <branch>`) | `wayfinder-prototype` |
 
-Three properties hold across all four:
+Three properties hold across all five:
 
 - **Optional.** Every skill that calls a script also states the manual recipe beside it, so a skill
   runs end to end when `hamilton setup` has not been run. The scripts speed the pipeline up; they are
