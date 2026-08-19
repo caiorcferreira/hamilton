@@ -82,3 +82,9 @@
 - Changed: modified `skills/hamilton-wayfinder/SKILL.md`
 - Verified: `grep -n "MUST\|Shipping rules\|ceiling" skills/hamilton-wayfinder/SKILL.md` → imperative dispatch, shipping-rules instruction, and same-session wording all present; `bun --bun vitest run` → 8 files, 98 tests passed; `bun run build` → clean
 - Notes: "Skill dispatch"'s intro sentence now reads "A skill MUST be loaded... before any work in its spirit begins". Work-loop step 1 ("Load the map") now also reads the map's `branch:` and Operation rules, stating the session applies each rule to the actions it covers, with the commit-after-resolution and subagent-delegation examples. Step 3 ("Claim it") now states claiming is the start of resolution, not a stopping point — the claiming session resolves the ticket, never a later one. Step 4 ("Resolve it") is now imperative: the resolving skill MUST be loaded before any resolution work, and for a prototype ticket no prototype code exists before `hamilton-wayfinder-prototype` is loaded and its branch gate has run (the gate's mechanics stay in the prototype skill, not duplicated here). The one-ticket-per-session sentence gained "This is a ceiling, not a deferral: the ticket you claim is the ticket you resolve, now." "The route" section now instructs filling the route's `## Shipping rules` section from the map's `branch:` field (merge-back target) plus shipping-relevant Operation rules. The process-flow digraph's work-loop/route nodes were relabeled to match ("Claim ticket\n(start of resolution, same session)", "Load resolving skill, then resolve by type...", "Fold glossary + write route\n+ Shipping rules (closing act)"). Charting and Map mechanics sections (Task 6's territory) were left untouched.
+
+## Review: Task 7 — 2026-08-19
+- Verdict: approved (blocking: 0, suggestions: 1) — see review.md
+
+## Review: whole change — 2026-08-19
+- Verdict: approved (blocking: 0, suggestions: 5) — see review.md

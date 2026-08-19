@@ -315,3 +315,107 @@ already written in the working tree before this task started, not Task 6 product
   the exact phrase — but aligning the two would tighten the prose's internal consistency.
 
 No blocking issues.
+
+## Task 7 — 2026-08-19
+
+Verdict: approved
+
+Verified against plan.md Task 7 and requirements/wayfinder.md (ADDED "Working sessions obey
+operation rules"; MODIFIED "Ticket-type dispatch is imperative", "A claimed ticket resolves
+in the claiming session", "The route carries shipping rules"). Diff (commit `ac4374c` vs base
+`d828485`) touches exactly `skills/hamilton-wayfinder/SKILL.md` plus this change directory's
+`progress.md`/`review.md` bookkeeping — the latter two carry the prior Task 6 review pass,
+already written in the working tree before this task started, not Task 7 production content
+(matches the review brief's note). No other files changed; nothing outside git.
+
+- **Skill dispatch intro** (SKILL.md:27): rewritten to "A skill MUST be loaded — its SKILL.md
+  read, or invoked via the Skill tool — before any work in its spirit begins; never act in a
+  skill's spirit without loading it first." Satisfies the plan's "same MUST framing" bullet
+  and requirements/wayfinder.md scenario "Dispatch precedes work for every type".
+- **Work-loop step 1** (SKILL.md:64): now reads "Read the frontmatter's `branch:` and the
+  Operation rules section too, and apply each rule to the actions it covers as the session
+  proceeds — a commit-after-resolution rule produces a commit when a ticket resolves; a
+  subagent-delegation rule routes the named job to the named subagent rather than doing it
+  inline." Matches the plan's acceptance bullet verbatim in substance and covers both
+  requirements/wayfinder.md scenarios ("Commit-after-resolution rule", "Subagent-delegation
+  rule").
+- **Step 3 "Claim it"** (SKILL.md:66): gains "Claiming is the start of resolution, not a
+  stopping point — the session that claims a ticket resolves it, never a later one." Matches
+  requirements/wayfinder.md "A claimed ticket resolves in the claiming session" scenario
+  "Claim and resolve in one session".
+- **Step 4 "Resolve it"** (SKILL.md:67): rewritten to "The skill the ticket's type promises
+  (see Skill dispatch) MUST be loaded before any resolution work begins — resolving a typed
+  ticket without loading its skill is a contract violation. For a prototype ticket
+  specifically, no prototype code exists before `hamilton-wayfinder-prototype` is loaded and
+  its branch gate has run." Satisfies the plan's imperative-per-type bullet and
+  requirements/wayfinder.md scenario "Prototype ticket dispatch"; the "(SKILL.md read, or
+  Skill tool)" clause the plan's bullet also names is carried by the cross-referenced Skill
+  dispatch intro rather than repeated — reasonable, not a gap, since the two sentences sit two
+  lines apart and Skill dispatch is the section step 4 explicitly points to.
+- **One-ticket-per-session sentence** (SKILL.md:70): gains "This is a ceiling, not a
+  deferral: the ticket you claim is the ticket you resolve, now." — verbatim per the plan's
+  suggested wording; the research exemption clause immediately preceding it is preserved
+  unchanged.
+- **"The route"** (SKILL.md:72): gains "...filling its `## Shipping rules` section from the
+  map's `branch:` field — the merge-back target — plus any Operation rules that concern
+  shipping, so the route stays self-contained for downstream processes that never open the
+  map." Matches requirements/wayfinder.md "The route carries shipping rules" scenario "Route
+  written from a cleared map"; verified `bundle/templates/wayfinder/route.md` (Task 4) already
+  carries the `## Shipping rules` section this instruction fills.
+- **Process-flow digraph** (SKILL.md:110-129): three nodes and their edges relabeled —
+  `"Claim ticket\n(start of resolution, same session)"`, `"Load resolving skill, then resolve
+  by type\n(...)"`, `"Fold glossary + write route\n+ Shipping rules (closing act)"` — node
+  names and edge references stay consistent (no orphaned references), reflecting the
+  imperative resolve step and shipping-rules route writing per the plan's last bullet.
+- **Scope discipline**: confirmed via `git diff` that "The map" section, "Chart the map"
+  steps, and `## Map mechanics` (Task 6's regions) are byte-identical to the base revision —
+  no regression. `CONTRIBUTING.md` is untouched, correctly, since Task 7 has no mechanics-home
+  work. Task type coverage for `task` tickets remains intact via the unmodified Skill dispatch
+  table row ("Task ticket | none — drive directly...").
+- Cross-checked the implementer's report
+  (`/private/tmp/claude-502/.../scratchpad/task-7-report.md`) against the diff — every claimed
+  edit location and wording matches what's on disk; no discrepancies.
+- Test/build claims (98/98 passed, clean build) not independently re-run per review
+  instructions — plausible given the change is prose-only with no code paths touched, and the
+  task's own plan.md Verify step is a `grep`, not the suite.
+
+### Suggestions
+
+- [skills/hamilton-wayfinder/SKILL.md:66] The new sentence "the session that claims a ticket
+  resolves it, never a later one" reads in tension with the (pre-existing, unchanged) research
+  exception: research tickets are claimed, dispatched to a background agent, and resolved only
+  when a *later* session's step 1 absorbs the returned findings. The exception is stated at
+  the one-ticket-per-session sentence and implicit in step 1's "check for returned research",
+  but step 3 itself states the same-session rule with no research carve-out. Not a
+  contradiction the plan asked to resolve (the plan's acceptance bullet specifies this exact
+  wording with no exception clause), and existing readers already navigate the same tension
+  elsewhere in the file — but a parenthetical ("— research tickets aside, which resolve when
+  their background findings return —") at this exact spot would close the ambiguity for a
+  literal reader landing on step 3 alone.
+
+No blocking issues.
+
+## whole change — 2026-08-19
+
+Verdict: approved
+
+Final whole-branch review of `536a07a..ac4374c` (diff package read in full: 7 task commits, 17 files, +1202/−27). Judged as one body of work against proposal.md's six improvements, the three requirements deltas, design.md's decisions and constraints, and cross-file consistency the per-task reviews could not see.
+
+Verified:
+
+- **All six proposal improvements land end to end.** (1) Map `branch:` field: template frontmatter + hint (`bundle/templates/wayfinder/map.md:13-15`), charting step 5 sets it with the detached-HEAD fallback (`skills/hamilton-wayfinder/SKILL.md:56`), Map mechanics defines it with the legacy default-branch fallback (SKILL.md:84), `CONTRIBUTING.md:78,81` mirrors both, work-loop step 1 reads it, The route consumes it. (2) Prototype branch gate: script (`bundle/scripts/hamilton-prototype-branch.sh`, 3 modes, exit 0/1/2, last-line contract) + 8 behavior tests + `## Branch gate` section with script call, `--verify`, resumed semantics, manual fallback, and "No prototype code exists before this gate has run" (`skills/hamilton-wayfinder-prototype/SKILL.md:28-37`). (3) Operation rules: asked at charting step 4, recorded in the map's new section, read and applied in work-loop step 1 with both required examples. (4) Imperative dispatch: MUST framing in Skill dispatch intro and work-loop step 4, prototype-specific no-code-before-load-and-gate clause. (5) Route `## Shipping rules`: template section between preamble and Units with the required seeded-from-`branch:`-and-operation-rules hint; The route instructs filling it. (6) Same-session resolution: step 3 "claiming is the start of resolution... never a later one" + "a ceiling, not a deferral" sentence. Every scenario in requirements/{artifact-templates,ticket-resolution,wayfinder}.md traces to landed text.
+- **Cross-file naming and vocabulary are consistent.** `prototype/<map-name>/<ticket-name>` and `--standalone <slug>` / `<question-slug>` agree across script usage text, prototype skill, docs/skills.md table row, and requirements; "Operation rules" is the section name everywhere (lowercase only in generic prose, correctly); docs/skills.md's `wayfinder-prototype` "Called by" value follows the table's existing drop-the-`hamilton-`-prefix convention; the map's frontmatter order (`status` then `branch`) agrees across template, skill mechanics paragraph, and CONTRIBUTING.md prose.
+- **Wayfinder invariants hold.** Mechanics are *defined* only in `## Map mechanics` (and mirrored in CONTRIBUTING.md — both homes changed in the same commit, `d828485`, per the lockstep constraint); templates are pointed at, never reproduced (the skill's six-section gloss describes shape, the template provides format — the pre-existing pattern); both process-flow digraphs are valid dot — every edge endpoint matches a declared quoted node label exactly, no orphaned nodes — and their node text matches the prose steps (gate between "Pick the shape" and "Build throwaway"; "Ask for operation rules" on the fog path before map creation).
+- **Boundaries respected.** `hamilton-isolate.sh` untouched; frontier/claim semantics, ticket types, and map lifecycle values byte-identical to base; no source-code changes beyond the new script and its test plus the one-line setup-test list addition.
+- **Script and tests.** The script's contract matches the sibling idiom (`set -uo pipefail`, `usage`/`die`/`require_repo`, plain text out, load-bearing last line, exit 0/1/2); the 8 tests assert observable state (branch via `git branch --show-current`, `mode` field, last line, dirty-file survival, exit codes) in temp repos with no mocks, and would fail on regression.
+- Cannot verify from diff alone: the 98/98 test / clean-build claims (not re-run per review instructions; plausible — six of seven commits are prose/template-only) and the installed copies at `~/.hamilton/` (updated only on next `hamilton setup`, as proposal.md's Impact notes).
+
+### Suggestions
+
+- [skills/hamilton-wayfinder/SKILL.md:13 + bundle/templates/wayfinder/map.md:33 vs SKILL.md:55 + requirements/wayfinder.md] "job class" ("The map" gloss, map-template hint) vs "class of jobs" (charting step 4, both requirements passages). Cosmetic; the requirements' phrase is the majority form — align the two "job class" spots to "class of jobs" when the file is next touched. (Carried up from the Task 6 review; the whole-change view shows the drift also spans the template.)
+- [skills/hamilton-wayfinder/SKILL.md:65] Step 3's "the session that claims a ticket resolves it, never a later one" carries no research carve-out, while the budget sentence five lines down and requirements/wayfinder.md's "ceiling... (research excepted)" both have one — research tickets legitimately resolve when a later session's step 1 absorbs returned findings. The wording is exactly what the plan mandated, so this is a plan/requirements-level tension, not a coder defect; a short parenthetical at step 3 would close it for a literal reader. (Carried up from the Task 7 review.)
+- [skills/hamilton-wayfinder/SKILL.md:66] Step 4's "The skill the ticket's type promises (see Skill dispatch) MUST be loaded" lacks the qualifier requirements/wayfinder.md uses ("any type *with a resolving skill*") — a `task` ticket's dispatch row is "none", so the literal MUST has no referent for that type. The cross-referenced table disambiguates in practice; adding "where the type names one" would remove the need to cross-reference.
+- [skills/hamilton-wayfinder/SKILL.md:82] The Map mechanics intro's claim that "nothing above it names a field, a path, or a branching rule" moves further from true: charting step 5, work-loop step 1, and The route now name `branch:` above the section (paths, `## Answer`, and lifecycle values were already named above it pre-change). The references were mandated verbatim by the plan (plan/design issue, not the coder's); a future change should either soften that intro sentence to "defines" rather than "names", or route the upstream references through concept language.
+- [tests/scripts/prototype-branch.test.ts:97] Inline `require("node:os")` amid ESM `import` statements — works under vitest's interop and the suite passes, but importing `node:os` at the top like the file's other `node:` imports would match the codebase idiom.
+
+No blocking issues. Next step: `hamilton-finish-work` (all 7 tasks done, all task reviews and this whole-change review approved).
