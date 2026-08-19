@@ -10,7 +10,7 @@ Some goals are too big for one agent session — not because the work is hard, b
 
 ## The map
 
-The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Five sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). Notes holds standing context — the domain in one line and durable preferences; terminology belongs in the glossary, decisions in tickets. The installed template provides the format; the skill fixes when to create it.
+The map is an **index**, not a store — it carries just enough to orient every session and points at the tickets that hold the detail. Six sections fix its shape: **Destination** (what reaching the end looks like), **Notes** (domain and standing preferences), **Operation rules** (per-session-binding instructions on how working sessions operate), **Decisions so far** (one line per resolved ticket, each linking back), **Not yet specified** (the fog), and **Out of scope** (work ruled beyond the destination). Notes holds standing context — the domain in one line and durable preferences; terminology belongs in the glossary, decisions in tickets. Operation rules holds prescriptive rules instead — e.g. commit after resolving a ticket, delegate a job class to a named subagent — and may be left empty. The installed template provides the format; the skill fixes when to create it.
 
 ## Ticket types
 
@@ -52,9 +52,10 @@ Charting is one session's work and resolves no tickets — it names the destinat
 1. **Name the destination.** Run a `hamilton-grilling` session to fix what reaching the end of the map looks like — the spec, decision, or change the effort is finding its way to.
 2. **Map the frontier breadth-first.** Grill across the whole space, surfacing open decisions and first takeable steps.
 3. **Check for fog.** If breadth-first grilling surfaces no fog, the way is already clear for one session — stop and tell the user a map is not needed.
-4. **Create the map.** Write it from the installed template at `~/.hamilton/templates/wayfinder/map.md`, with Destination and Notes filled in, Decisions so far empty, and the fog sketched into Not yet specified.
-5. **Create the tickets that can be specified now.** Write each from the installed template at `~/.hamilton/templates/wayfinder/ticket.md`, then wire each ticket's blocking dependencies in a second pass once the set exists.
-6. **Fire research in parallel.** For any research tickets, dispatch `hamilton-wayfinder-research` subagents so the reading happens in the background while charting continues.
+4. **Ask for operation rules.** Ask the user for standing per-effort instructions on how working sessions operate — e.g. commit after resolving a ticket, delegate a class of jobs to a named subagent. The user may decline; the map's Operation rules section is then left empty.
+5. **Create the map.** Write it from the installed template at `~/.hamilton/templates/wayfinder/map.md`, with `branch:` set to the branch the charting session is on — the branch the effort works from and merges back into (on a detached HEAD, record the repository's default branch and tell the user) — Destination and Notes filled in, Operation rules holding whatever the user gave in the previous step, Decisions so far empty, and the fog sketched into Not yet specified.
+6. **Create the tickets that can be specified now.** Write each from the installed template at `~/.hamilton/templates/wayfinder/ticket.md`, then wire each ticket's blocking dependencies in a second pass once the set exists.
+7. **Fire research in parallel.** For any research tickets, dispatch `hamilton-wayfinder-research` subagents so the reading happens in the background while charting continues.
 
 ## Work through the map
 
@@ -80,7 +81,7 @@ The map then moves through its lifecycle: open while charting and working, clear
 
 This section is the contract between the wayfinder methodology and its file-native implementation — the only place mechanics are defined. The rest of the skill refers to concepts; a future backend swaps this section and verifies in one pass that nothing above it names a field, a path, or a branching rule.
 
-**Frontmatter.** Every ticket and the map carry YAML frontmatter. Tickets use `type:` (`research` / `prototype` / `grilling` / `task`), `status:` (`open` / `claimed` / `resolved`), and `blocked_by:` (a list of ticket numbers). The map uses `status:` (`open` / `cleared` / `shipping` / `shipped`).
+**Frontmatter.** Every ticket and the map carry YAML frontmatter. Tickets use `type:` (`research` / `prototype` / `grilling` / `task`), `status:` (`open` / `claimed` / `resolved`), and `blocked_by:` (a list of ticket numbers). The map uses `status:` (`open` / `cleared` / `shipping` / `shipped`) and `branch:` (the branch the effort works from and merges back into, set at map creation; a map created before this field falls back to the repository's default branch).
 
 **Route units.** Each unit in `route.md` carries a `Status:` line with values `pending` / `in-progress` / `shipped`. The executing process flips it (see The route).
 
@@ -100,6 +101,7 @@ digraph hamilton_wayfinder {
     "Map frontier breadth-first" [shape=box];
     "Fog ahead?" [shape=diamond];
     "Stop — no map needed" [shape=doublecircle];
+    "Ask for operation rules" [shape=box];
     "Create map + tickets\n(fire research in parallel)" [shape=box];
     "Load map\n(+ absorb returned research)" [shape=box];
     "Frontier ticket available?" [shape=diamond];
@@ -113,7 +115,8 @@ digraph hamilton_wayfinder {
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
     "Map frontier breadth-first" -> "Fog ahead?";
     "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
-    "Fog ahead?" -> "Create map + tickets\n(fire research in parallel)" [label="fog exists"];
+    "Fog ahead?" -> "Ask for operation rules" [label="fog exists"];
+    "Ask for operation rules" -> "Create map + tickets\n(fire research in parallel)";
     "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research)";
     "Load map\n(+ absorb returned research)" -> "Frontier ticket available?";
     "Frontier ticket available?" -> "Fold glossary + write route\n(closing act)" [label="frontier empty"];

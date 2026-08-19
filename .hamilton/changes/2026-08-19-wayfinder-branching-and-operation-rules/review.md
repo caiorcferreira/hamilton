@@ -179,3 +179,65 @@ no other file changed, matching the binding constraint.
   plausible given the change is template-text-only with no code paths touched.
 
 No blocking issues, no suggestions.
+
+## Task 5 — 2026-08-19
+
+Verdict: approved
+
+Verified against plan.md Task 5 and requirements/ticket-resolution.md (ADDED "Prototype work
+is branch-gated" scenarios, MODIFIED "Prototype capture at close"); diff (commit `f56f1c7`)
+confined to `skills/hamilton-wayfinder-prototype/SKILL.md` plus this change's own
+`progress.md`/`review.md` bookkeeping (the latter two are noted pre-existing content from an
+earlier Task 4 review pass folded into this commit, not Task 5 production content, per the
+review brief):
+
+- `## Branch gate` (SKILL.md:28) sits between "Pick the shape" (ends ~line 26) and "Rules that
+  apply to every prototype" (line 39) — the required position. States plainly up front: "No
+  prototype code exists before this gate has run."
+- Map-ticket form: `~/.hamilton/scripts/hamilton-prototype-branch.sh <map-name> <ticket-name>`
+  with `<map-name>` = effort slug, `<ticket-name>` = ticket file's `NN-slug` (SKILL.md:32) —
+  matches the requirement's naming exactly. Standalone form:
+  `--standalone <question-slug>` (SKILL.md:33) — matches "Standalone invocation" scenario.
+- "Either call's last line is the branch name; confirm the switch took effect with
+  `--verify <that branch>` before writing anything" (SKILL.md:35) — matches plan's "the last
+  line is the branch to confirm with `--verify`". Also states `mode: resumed` means picking up
+  earlier work, matching the design's resume-not-error decision.
+- Manual fallback (SKILL.md:37): `git switch -c prototype/<map-name>/<ticket-name>` (or
+  `git switch prototype/<map-name>/<ticket-name>` if the branch already exists), explicitly
+  named as "the pattern hamilton-propose already uses for isolate" — cross-checked against
+  `skills/hamilton-propose/SKILL.md`'s isolate step (script primary, `--verify`, then a
+  by-hand fallback with same names/order when the script isn't installed): the structural
+  pattern matches. The plan's acceptance text and the design's Error Handling table both only
+  specify the manual fallback for the map-ticket form (not standalone), so the diff's identical
+  scope there is not a gap against this task's stated acceptance.
+- Rule 6 "Capture it when done" (SKILL.md:46) rewritten to commit-and-return: commit
+  outstanding work on the `prototype/...` branch, switch back to the starting branch, fold the
+  validated decision into the real artifact there ("not the prototype branch"), keep the
+  ticket-body branch pointer and the `## Answer` verdict capture — matches the MODIFIED
+  requirement's language almost verbatim ("commits any outstanding prototype work on that
+  branch and returns to the branch the session started from... folded into the real artifact
+  on the working branch; the prototype branch keeps only the throwaway"). No stale references
+  to the old "commit it to a throwaway branch... out of main" phrasing remain anywhere else in
+  the file (grepped for "throwaway branch", only the rewritten rule 6 line matches).
+- Process-flow digraph: new box node `"Branch gate\n(create/resume prototype/<map>/<ticket>,
+  verify)"` inserted with edges `"Pick the shape" -> "Branch gate" -> "Build throwaway"`
+  (SKILL.md:54,60-61), and the terminal doublecircle relabeled `"Commit + return\n(commit on
+  prototype branch; fold validated decision into real artifact on starting branch)"` — graph is
+  well-formed, no orphaned nodes, edges fully rewired.
+- Task's own verify command reproduced independently:
+  `grep -n "prototype-branch\|Branch gate\|prototype/<" skills/hamilton-wayfinder-prototype/SKILL.md`
+  → identical output to the implementer's report (gate section, both script-call forms, verify
+  call, digraph nodes/edges).
+- Scope: `git diff --stat` for this commit touches only
+  `skills/hamilton-wayfinder-prototype/SKILL.md` (21 lines, +17/-4) plus the change directory's
+  `progress.md` and `review.md` — no `hamilton-isolate.sh`, no frontier/claim/ticket-type/map
+  files, no other skill or template touched. Matches plan's Files list and the binding
+  constraint that only this skill file (plus change-dir bookkeeping) may change for this task.
+- Cross-checked the implementer's report
+  (`/private/tmp/claude-502/.../scratchpad/task-5-report.md`) against the diff — its line
+  numbers, quoted text, and verify output all match what's on disk; no discrepancies between
+  claimed and actual changes.
+- Test/build claims (98/98, clean build) not independently re-run per review instructions;
+  plausible given the change is prose-only with no code paths touched.
+
+No blocking issues, no suggestions.
