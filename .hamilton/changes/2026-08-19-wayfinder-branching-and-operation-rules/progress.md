@@ -55,3 +55,12 @@
 - Changed: modified `bundle/templates/wayfinder/route.md`
 - Verified: `grep -n "Shipping rules\|## Units" bundle/templates/wayfinder/route.md` → Shipping rules (line 16) before Units (line 23); `bun run build` → clean; `bun --bun vitest run` → 8 files, 98 tests passed
 - Notes: Added `## Shipping rules` section with inline hint explaining how units will be shipped, including branch merge-back target (seeded from map's `branch:` field), commit/merge/PR conventions, and shipping-relevant operation rules. Template idiom preserved (HTML comments, delete-before-finalizing idiom). No frontmatter added per acceptance criteria.
+
+## Review: Task 4 — 2026-08-19
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 5: Gate the prototype skill on the prototype branch — 2026-08-19
+- Outcome: done
+- Changed: modified `skills/hamilton-wayfinder-prototype/SKILL.md`
+- Verified: `grep -n "prototype-branch\|Branch gate\|prototype/<" skills/hamilton-wayfinder-prototype/SKILL.md` → gate section, script call, and branch format all present; `bun --bun vitest run` → 8 files, 98 tests passed; `bun run build` → clean
+- Notes: Added a `## Branch gate` section between "Pick the shape" and "Rules that apply to every prototype", instructing the create/resume/verify calls to `~/.hamilton/scripts/hamilton-prototype-branch.sh` for both the map-ticket and `--standalone` cases, with the manual `git switch -c` fallback matching hamilton-propose's isolate pattern, and the "no prototype code before this gate" rule stated plainly. Rewrote rule 6 ("Capture it when done") to commit-and-return: commit outstanding prototype work on the `prototype/...` branch, switch back to the starting branch, and fold the validated decision into the real artifact there — no longer "move to a throwaway branch" as a closing act, since the branch gate already put the code on its own branch from the start. Updated the process-flow digraph with a "Branch gate" node between "Pick the shape" and "Build throwaway", and relabeled the terminal node "Commit + return" to match the new closing shape.
