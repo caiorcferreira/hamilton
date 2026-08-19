@@ -241,3 +241,77 @@ review brief):
   plausible given the change is prose-only with no code paths touched.
 
 No blocking issues, no suggestions.
+
+## Task 6 — 2026-08-19
+
+Verdict: approved
+
+Verified against plan.md Task 6 and requirements/wayfinder.md (ADDED "Map records its working
+branch" and "Charting asks for operation rules"); diff (commit `d828485`) touches only
+`skills/hamilton-wayfinder/SKILL.md`, `CONTRIBUTING.md`, plus this change directory's
+`progress.md`/`review.md` bookkeeping — the latter two carry the prior Task 5 review pass,
+already written in the working tree before this task started, not Task 6 production content
+(matches the review brief's note).
+
+- "The map" (SKILL.md:13): "Five sections" → "Six sections", **Operation rules** added to the
+  bulleted list between Notes and Decisions so far with a one-line gloss
+  ("per-session-binding instructions on how working sessions operate"), and a trailing
+  sentence distinguishes it from Notes ("holds prescriptive rules instead — e.g. commit after
+  resolving a ticket, delegate a job class to a named subagent — and may be left empty").
+  Matches the template's section order and hint text (`bundle/templates/wayfinder/map.md`)
+  and satisfies the plan's "skill's description matches the template" bullet.
+- "Chart the map" gains a new step 4, "Ask for operation rules" (SKILL.md:55), before map
+  creation, with the required commit-after-resolution and subagent-delegation examples and
+  explicit "may decline... left empty" language — matches requirements/wayfinder.md scenario
+  "Rules are solicited at map creation" (asked before map creation, section present-and-empty
+  when declined). Old step 4 ("Create the map") renumbers to step 5 (SKILL.md:56) to make
+  room; the plan's acceptance bullet literally names "step 4" for the branch clause, but that
+  quote is the pre-edit step number, and the plan's own second bullet explicitly allows the
+  operation-rules ask to land "as its own numbered step before map creation" — which
+  necessarily bumps map creation down a slot. The requirements scenarios name no step numbers,
+  only ordering ("after the destination is named" / "before map creation"), both of which
+  hold. Not a deviation in substance.
+- Step 5 ("Create the map", SKILL.md:56) states `branch:` is set to "the branch the charting
+  session is on — the branch the effort works from and merges back into", handles the
+  detached-HEAD edge case ("record the repository's default branch and tell the user"), and
+  notes Operation rules is filled from step 4's output — covers requirements/wayfinder.md
+  scenario "Charting records the branch" and design.md's edge-case table row verbatim in
+  substance.
+- `## Map mechanics` frontmatter paragraph (SKILL.md:84) documents `branch:` — meaning and
+  legacy fallback ("a map created before this field falls back to the repository's default
+  branch") — matching requirements/wayfinder.md scenario "A pre-existing map lacks the
+  field". `CONTRIBUTING.md`'s `## Map mechanics` table (line 78) and prose (line 81) gain the
+  matching `branch` (map) row and the same legacy-fallback sentence, in the *same commit* as
+  the skill edit (`git show d828485 --stat` confirms both files land together) — satisfies the
+  design's "Always: update both mechanics homes... in the same commit" constraint. Field
+  ordering is consistent across all three homes (template frontmatter, skill paragraph,
+  CONTRIBUTING.md prose): `status` then `branch`.
+- Process-flow digraph (SKILL.md:104,118-119): new box node `"Ask for operation rules"`
+  wired `"Fog ahead?" -[fog exists]-> "Ask for operation rules" -> "Create map + tickets..."`,
+  replacing the old direct edge — graph well-formed, no orphaned nodes.
+- Scope: `git show d828485 --name-only` touches exactly
+  `skills/hamilton-wayfinder/SKILL.md`, `CONTRIBUTING.md`, and this change directory's
+  `progress.md`/`review.md` — no other file. Confirmed the untouched sections stayed
+  untouched: "Skill dispatch" (SKILL.md:26-38), "Work through the map" (SKILL.md:60-72), and
+  "The route" (SKILL.md:74-78) are byte-identical to the base revision; their digraph nodes
+  ("Resolve by type...", "Fold glossary + write route...") are unchanged text — confirms
+  Task 7's territory was left alone, matching the binding scope constraint.
+- Verify commands reproduced independently:
+  `grep -n "branch" skills/hamilton-wayfinder/SKILL.md CONTRIBUTING.md | grep -i "map\|merge"`
+  and `grep -n "Operation rules" skills/hamilton-wayfinder/SKILL.md` — output matches the
+  implementer's report exactly (same lines, same text).
+- Cross-checked the implementer's report
+  (`/private/tmp/claude-502/.../scratchpad/task-6-report.md`) against the diff — line numbers,
+  quoted text, and verify output all match what's on disk; no discrepancies between claimed
+  and actual changes.
+- Test/build claims (98/98, clean build) not independently re-run per review instructions;
+  plausible given the change is prose-only with no code paths touched.
+
+### Suggestions
+
+- [skills/hamilton-wayfinder/SKILL.md:13,55] "The map" glosses the section as "delegate a
+  **job class** to a named subagent" while step 4 phrases the same example as "delegate a
+  **class of jobs** to a named subagent". Cosmetic only — no requirement or scenario turns on
+  the exact phrase — but aligning the two would tighten the prose's internal consistency.
+
+No blocking issues.

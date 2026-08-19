@@ -25,7 +25,7 @@ A planning ticket resolves only through live exchange with a human. The agent pu
 
 ## Skill dispatch
 
-Load a skill by reading its SKILL.md (or via the Skill tool) — never act in a skill's spirit without loading it.
+A skill MUST be loaded — its SKILL.md read, or invoked via the Skill tool — before any work in its spirit begins; never act in a skill's spirit without loading it first.
 
 | Situation | Load | Write back before closing |
 | --- | --- | --- |
@@ -61,19 +61,19 @@ Charting is one session's work and resolves no tickets — it names the destinat
 
 Working is the loop that clears the map one ticket at a time.
 
-1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
+1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Read the frontmatter's `branch:` and the Operation rules section too, and apply each rule to the actions it covers as the session proceeds — a commit-after-resolution rule produces a commit when a ticket resolves; a subagent-delegation rule routes the named job to the named subagent rather than doing it inline. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
 2. **Choose the frontier ticket.** Take the first ticket on the frontier (defined in Map mechanics).
-3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked.
-4. **Resolve it.** Delegate to the skill the ticket's type promises: research, prototype, grilling with domain modeling, or drive a task directly.
+3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked. Claiming is the start of resolution, not a stopping point — the session that claims a ticket resolves it, never a later one.
+4. **Resolve it.** The skill the ticket's type promises (see Skill dispatch) MUST be loaded before any resolution work begins — resolving a typed ticket without loading its skill is a contract violation. For a prototype ticket specifically, no prototype code exists before `hamilton-wayfinder-prototype` is loaded and its branch gate has run.
 5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
 6. **Consistency pass.** Scan the map's Decisions so far for gists the new resolution contradicts. For each, open that ticket, move its old Answer to `## Outdated decisions` with a link to the superseding ticket, write the current truth into `## Answer`, and rewrite its gist line in the map. If the route exists, update the affected unit's decision line as well.
 7. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
 
-Resolve at most one ticket per session — with the exception of research tickets, which run in the background and do not consume the session's focus.
+Resolve at most one ticket per session — with the exception of research tickets, which run in the background and do not consume the session's focus. This is a ceiling, not a deferral: the ticket you claim is the ticket you resolve, now.
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`.
+When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`, filling its `## Shipping rules` section from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
 
 The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units are executed, and shipped when the last unit lands. Each unit is executed by whatever downstream process the effort uses. The process that starts a unit flips it `pending → in-progress` on its own branch; the process that completes it flips it `in-progress → shipped`, so the flip ships with the work it marks. The process starting the first unit flips the map `cleared → shipping`; the process shipping the last unit flips the map `shipping → shipped`.
 
@@ -105,9 +105,9 @@ digraph hamilton_wayfinder {
     "Create map + tickets\n(fire research in parallel)" [shape=box];
     "Load map\n(+ absorb returned research)" [shape=box];
     "Frontier ticket available?" [shape=diamond];
-    "Fold glossary + write route\n(closing act)" [shape=doublecircle];
-    "Claim ticket" [shape=box];
-    "Resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
+    "Fold glossary + write route\n+ Shipping rules (closing act)" [shape=doublecircle];
+    "Claim ticket\n(start of resolution, same session)" [shape=box];
+    "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
     "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
     "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
@@ -119,10 +119,10 @@ digraph hamilton_wayfinder {
     "Ask for operation rules" -> "Create map + tickets\n(fire research in parallel)";
     "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research)";
     "Load map\n(+ absorb returned research)" -> "Frontier ticket available?";
-    "Frontier ticket available?" -> "Fold glossary + write route\n(closing act)" [label="frontier empty"];
-    "Frontier ticket available?" -> "Claim ticket" [label="next ticket"];
-    "Claim ticket" -> "Resolve by type\n(research / prototype / grilling+modeling / task)";
-    "Resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
+    "Frontier ticket available?" -> "Fold glossary + write route\n+ Shipping rules (closing act)" [label="frontier empty"];
+    "Frontier ticket available?" -> "Claim ticket\n(start of resolution, same session)" [label="next ticket"];
+    "Claim ticket\n(start of resolution, same session)" -> "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)";
+    "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
     "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
     "Graduate fog / close out-of-scope" -> "Load map\n(+ absorb returned research)";
