@@ -46,3 +46,12 @@
   - Deleted: none
 - Verified: `grep -n "branch:\|Operation rules" bundle/templates/wayfinder/map.md` → both present (lines 13 and 30), Operation rules positioned between Notes and Decisions so far; `bun --bun vitest run` → 98/98 passed; `bun run build` → clean
 - Notes: Added `branch:` field to frontmatter (line 13) with explanatory hint comment after the frontmatter block. Inserted `## Operation rules` section (line 30) with detailed hint comment explaining its purpose (prescriptive, per-session-binding rules) and distinguishing it from Notes. Preserved the template's idiom: HTML comment block, YAML frontmatter, inline `<!-- hint: ... -->` comments for sections, delete-before-finalizing convention. All sections now in required order: Destination, Notes, Operation rules, Decisions so far, Not yet specified, Out of scope.
+
+## Review: Task 3 — 2026-08-19
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 4: Add Shipping rules section to the route template — 2026-08-19
+- Outcome: done
+- Changed: modified `bundle/templates/wayfinder/route.md`
+- Verified: `grep -n "Shipping rules\|## Units" bundle/templates/wayfinder/route.md` → Shipping rules (line 16) before Units (line 23); `bun run build` → clean; `bun --bun vitest run` → 8 files, 98 tests passed
+- Notes: Added `## Shipping rules` section with inline hint explaining how units will be shipped, including branch merge-back target (seeded from map's `branch:` field), commit/merge/PR conventions, and shipping-relevant operation rules. Template idiom preserved (HTML comments, delete-before-finalizing idiom). No frontmatter added per acceptance criteria.
