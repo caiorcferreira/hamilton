@@ -55,6 +55,18 @@ The work loop's map-loading step SHALL read the map's `Operation rules` section,
 - WHEN the map's Operation rules direct a class of jobs to a specific subagent and the session encounters such a job
 - THEN the session dispatches that job to the named subagent rather than doing it inline
 
+### Requirement: Task tickets unblock decisions
+
+A `task` ticket SHALL be created only when a named decision cannot be made until the work is done. Work that could wait until shipping SHALL NOT be ticketed — the decision SHALL instead be recorded (ticket `## Answer` + map gist) and applied during shipping via the route.
+
+- Priority: must
+- Rationale: shipping-deferrable work has been proposed as a `task` ticket, spending frontier ceremony on work with no decision to unblock; the guardrail keeps `task` scoped to work the map's frontier actually depends on.
+
+#### Scenario: Shipping-deferrable work is not ticketed
+
+- WHEN work could wait until shipping without blocking any named decision
+- THEN it is not created as a `task` ticket — the decision is recorded (ticket `## Answer` + map gist) and applied during shipping via the route
+
 ## MODIFIED Requirements
 
 ### Requirement: Ticket-type dispatch is imperative

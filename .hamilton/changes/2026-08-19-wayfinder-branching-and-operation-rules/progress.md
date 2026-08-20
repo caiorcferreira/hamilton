@@ -95,3 +95,15 @@
 - Finished: pull request https://github.com/caiorcferreira/hamilton/pull/39
 - Workspace: worktree left at /Users/caio.cavalcante/personal/hamilton.wayfinder-gpt-optimization (branch wayfinder-gpt-optimization)
 - Route: not route-backed
+
+## Fix wave — 2026-08-20
+- Outcome: done
+- Findings addressed (adjudicated whole-change review suggestions):
+  1. "job class" -> "class of jobs" aligned in `skills/hamilton-wayfinder/SKILL.md` ("The map" section) and `bundle/templates/wayfinder/map.md` (Operation rules hint).
+  2. Work-loop step 3 rephrased: claiming is never a handoff — the claiming session takes the ticket as far as its type allows (HITL resolves in-session; research dispatches now and resolves when its findings return). The nearby "ceiling, not a deferral" sentence and the digraph's claim node/edges were harmonized to match; the same scoping was mirrored in `.hamilton/specs/wayfinder.md`'s Behavior "Working" sentence, its same-session invariant, and the corresponding Examples bullet.
+  3. Task-type guardrail added: SKILL.md step 4's MUST-load sentence now reads "where the type names one" (no empty referent for `task` tickets); the `task` ticket-type bullet gained the unblocking test (legitimate only when a named decision can't be made until the work is done; shipping-deferrable work is recorded as a decision instead). The same guardrail was added to `.hamilton/specs/wayfinder.md` as an invariant plus an Examples bullet, and a matching ADDED requirement ("Task tickets unblock decisions") was appended to `requirements/wayfinder.md`.
+  4. Map mechanics intro softened: "nothing above it names a field..." -> "nothing above it defines a field...".
+  5. `tests/scripts/prototype-branch.test.ts`'s inline `require("node:os")` hoisted to a top-level `import * as Os from "node:os"`, matching the file's existing `node:` import style.
+- Changed: modified `skills/hamilton-wayfinder/SKILL.md`, `bundle/templates/wayfinder/map.md`, `.hamilton/specs/wayfinder.md`, `.hamilton/changes/2026-08-19-wayfinder-branching-and-operation-rules/requirements/wayfinder.md`, `tests/scripts/prototype-branch.test.ts`
+- Verified: `bun --bun vitest run` -> 8 files, 98 tests passed; `bun run build` -> clean
+- Notes: no structural reshuffling; `hamilton-isolate.sh`, frontier/claim mechanics values, the ticket-type enum, and map lifecycle values were left untouched. `CONTRIBUTING.md` was checked and does not carry the "job class" or "names a field" phrasing, so no change was needed there.

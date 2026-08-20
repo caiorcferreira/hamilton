@@ -30,7 +30,7 @@ branch:
 ## Operation rules
 
 <!-- hint: prescriptive, per-session-binding rules on how working sessions operate
-     (e.g. commit after resolving a ticket, delegate a job class to a named subagent),
+     (e.g. commit after resolving a ticket, delegate a class of jobs to a named subagent),
      may be empty, and distinguished from Notes' orienting context. -->
 
 ## Decisions so far

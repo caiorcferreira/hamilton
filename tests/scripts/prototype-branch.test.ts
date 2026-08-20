@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
+import * as Os from "node:os"
 import * as Path from "node:path"
 import { run, git, makeRepo, write, cleanupRepos, field } from "./helpers.js"
 
@@ -92,7 +93,7 @@ describe("hamilton-prototype-branch.sh usage and environment errors", () => {
   })
 
   it("exits 2 outside a git repository", () => {
-    const dir = Fs.mkdtempSync(Path.join(Fs.realpathSync(require("node:os").tmpdir()), "hamilton-nogit-"))
+    const dir = Fs.mkdtempSync(Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"))
     try {
       const result = run(SCRIPT, ["payments-redesign", "03-storage-model"], dir)
       expect(result.status).toBe(2)
