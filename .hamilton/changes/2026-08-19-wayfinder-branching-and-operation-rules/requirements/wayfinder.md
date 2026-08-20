@@ -88,7 +88,7 @@ A ticket's `type` frontmatter field decides which skill resolves it: `research` 
 
 ### Requirement: A claimed ticket resolves in the claiming session
 
-The work loop claims a ticket and then resolves it within the same session: claiming marks the start of resolution, not a stopping point. The one-ticket-per-session budget SHALL be read as a ceiling of one ticket resolved per session (research excepted), never as a requirement to defer resolution to a later session. A `prototype` ticket claimed in a session SHALL have its prototype built in that session, human present.
+The work loop claims a ticket and then carries it forward in the same session: claiming marks the start of resolution, never a handoff — the claiming session SHALL take the ticket as far as its type allows, a HITL ticket resolving in that session and a research ticket being dispatched then, resolving when its findings return. The one-ticket-per-session budget SHALL be read as a ceiling of one ticket resolved per session (research excepted), never as a requirement to defer resolution to a later session. A `prototype` ticket claimed in a session SHALL have its prototype built in that session, human present.
 
 - Priority: must
 - Rationale: sessions have misread the budget as "claim now, resolve next session" ("It is a prototype ticket and must be resolved through hamilton-wayfinder-prototype; I'll proceed with that in the next session"), leaving claimed tickets stranded.

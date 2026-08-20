@@ -107,3 +107,6 @@
 - Changed: modified `skills/hamilton-wayfinder/SKILL.md`, `bundle/templates/wayfinder/map.md`, `.hamilton/specs/wayfinder.md`, `.hamilton/changes/2026-08-19-wayfinder-branching-and-operation-rules/requirements/wayfinder.md`, `tests/scripts/prototype-branch.test.ts`
 - Verified: `bun --bun vitest run` -> 8 files, 98 tests passed; `bun run build` -> clean
 - Notes: no structural reshuffling; `hamilton-isolate.sh`, frontier/claim mechanics values, the ticket-type enum, and map lifecycle values were left untouched. `CONTRIBUTING.md` was checked and does not carry the "job class" or "names a field" phrasing, so no change was needed there.
+
+## Review: Fix wave — 2026-08-20
+- Verdict: approved (blocking: 0, suggestions: 3) — see review.md
