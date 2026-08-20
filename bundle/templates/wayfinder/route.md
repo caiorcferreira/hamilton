@@ -13,6 +13,13 @@
 <!-- hint: the preamble — the constants that would otherwise repeat on every unit
      below, stated once. What the route is, and any standing rule every unit inherits. -->
 
+## Shipping rules
+
+<!-- hint: how the units will be shipped — the branch units merge back into
+     (seeded from the map's `branch:` field), commit and merge/PR conventions,
+     and any standing shipping constraint every unit inherits, including
+     shipping-relevant operation rules carried over from the map. -->
+
 ## Units
 
 ### 1. <Unit name>

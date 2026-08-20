@@ -25,6 +25,17 @@ Then pick a throwaway shape appropriate to the project's *domain and stack* — 
 
 The two flavours produce very different artifacts — getting this wrong wastes the whole prototype. If the question is genuinely ambiguous and the user isn't reachable, default to the shape that best matches the surrounding code (a backend module → a logic/script shape; a page or component → a UI shape) and state the assumption at the top of the prototype.
 
+## Branch gate
+
+Before any prototype artifact is written, create or resume the prototype branch from the current branch. **No prototype code exists before this gate has run.**
+
+- Resolving a map ticket: `~/.hamilton/scripts/hamilton-prototype-branch.sh <map-name> <ticket-name>`, where `<map-name>` is the effort's slug and `<ticket-name>` is the ticket file's `NN-slug`. This creates (or resumes) `prototype/<map-name>/<ticket-name>` and switches to it.
+- Invoked standalone, with no map ticket in play: `~/.hamilton/scripts/hamilton-prototype-branch.sh --standalone <question-slug>`, creating or resuming `prototype/<question-slug>`.
+
+Either call's last line is the branch name; confirm the switch took effect with `~/.hamilton/scripts/hamilton-prototype-branch.sh --verify <that branch>` before writing anything. If the script reports `mode: resumed`, an earlier session already started this prototype — pick up where it left off rather than starting over.
+
+If the script is not installed (`hamilton setup` has not run), do the same by hand — the pattern hamilton-propose already uses for isolate: `git switch -c prototype/<map-name>/<ticket-name>` (or `git switch prototype/<map-name>/<ticket-name>` if the branch already exists), same naming, same order.
+
 ## Rules that apply to every prototype
 
 1. **Throwaway from day one, and clearly marked as such.** Locate the prototype code close to where it will actually be used (next to the module, page, or pipeline it's prototyping for) so context is obvious — but name it so a casual reader can see it's a prototype, not production. Follow whatever conventions the project already uses for throwaway artifacts; don't invent a new top-level structure.
@@ -32,7 +43,7 @@ The two flavours produce very different artifacts — getting this wrong wastes 
 3. **No persistence by default.** State lives in memory. Persistence is the thing the prototype is _checking_, not something it should depend on. If the question explicitly involves a database, hit a scratch DB or a local file with a clear "PROTOTYPE — wipe me" name.
 4. **Skip the polish.** No tests, no error handling beyond what makes the prototype _runnable_, no abstractions. The point is to learn something fast.
 5. **Surface the state.** After every action or variant switch, print or render the full relevant state so the user can see what changed.
-6. **Capture it when done.** Fold any validated decision into the real artifact, then capture the prototype itself as a **primary source**: commit it to a throwaway branch, out of main, and leave a context pointer to that branch in the resolving ticket's body. Capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The main branch keeps only the validated decision.
+6. **Capture it when done.** The branch gate already put the prototype on its own branch, so closing is commit-and-return, not move-off: commit any outstanding prototype work on the `prototype/...` branch, then switch back to the branch the session started from. Fold any validated decision into the real artifact there — the branch you returned to, not the prototype branch. Leave a context pointer to the `prototype/...` branch in the resolving ticket's body, and capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The prototype branch stays reachable, holding only the throwaway; the working branch it was gated off never carried prototype code at all.
 
 ## Process flow
 
@@ -40,13 +51,15 @@ The two flavours produce very different artifacts — getting this wrong wastes 
 digraph hamilton_wayfinder_prototype {
     "Identify the question\n(logic/structure vs. appearance)" [shape=box];
     "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" [shape=box];
+    "Branch gate\n(create/resume prototype/<map>/<ticket>, verify)" [shape=box];
     "Build throwaway\n(trivial to run, surface state, no persistence)" [shape=box];
     "Hand over to user" [shape=box];
-    "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)" [shape=doublecircle];
+    "Commit + return\n(commit on prototype branch; fold validated decision into real artifact on starting branch)" [shape=doublecircle];
 
     "Identify the question\n(logic/structure vs. appearance)" -> "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)";
-    "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" -> "Build throwaway\n(trivial to run, surface state, no persistence)";
+    "Pick the shape\n(domain-aware: frontend guide or domain-appropriate throwaway)" -> "Branch gate\n(create/resume prototype/<map>/<ticket>, verify)";
+    "Branch gate\n(create/resume prototype/<map>/<ticket>, verify)" -> "Build throwaway\n(trivial to run, surface state, no persistence)";
     "Build throwaway\n(trivial to run, surface state, no persistence)" -> "Hand over to user";
-    "Hand over to user" -> "Capture answer + prototype\n(fold validated decision into real artifact; rest to throwaway branch)";
+    "Hand over to user" -> "Commit + return\n(commit on prototype branch; fold validated decision into real artifact on starting branch)";
 }
 ```

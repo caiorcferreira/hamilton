@@ -13,8 +13,9 @@ rather than inside either. A map spans several changes and outlives all of them,
 ephemeral-per-change nor durable-per-capability. It lives at `.hamilton/maps/<effort>/` under an
 undated slug — the effort name is its identity, the way a capability name is in `specs/` — and holds
 `map.md`, a `tickets/` directory, and, once the map clears, `route.md`. The map body is an index,
-not a store: it carries Destination, Notes, Decisions so far, Not yet specified, and Out of scope,
-gisting each resolved decision in one line and linking the ticket that holds the detail. A cleared
+not a store: it carries Destination, Notes, Operation rules, Decisions so far, Not yet specified,
+and Out of scope, gisting each resolved decision in one line and linking the ticket that holds the
+detail; its frontmatter records the branch the effort works from and merges back into. A cleared
 map stays in place, neither deleted nor archived.
 ([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md))
 
@@ -33,7 +34,8 @@ resolution, and the map records only a one-line gist pointing back.
 
 **route** — A static handoff document written once at map close, listing change-sized units in order
 with their dependencies. Each unit carries a name, a goal paragraph, links to the decisions backing
-it, and its ordering against the other units. The route points and does not restate — an implementer
+it, and its ordering against the other units; a Shipping rules section states how the units ship —
+the merge-back branch and any standing shipping constraints. The route points and does not restate — an implementer
 follows the decision links back to the map's tickets, which keeps the source of truth in one place.
 It is written as a closing act after every ticket is resolved rather than grown incrementally, and it
 carries a per-unit status field so it tracks which units have shipped.
