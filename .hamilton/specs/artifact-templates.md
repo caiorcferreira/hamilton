@@ -18,11 +18,11 @@ Three shapes serve the pre-pipeline wayfinding stage. Their frontmatter is a par
 
 | template | frontmatter | body |
 |----------|-------------|------|
-| `wayfinder/map.md` | `status`: `open` \| `cleared` \| `shipping` \| `shipped` | the sections Destination, Notes, Decisions so far, Not yet specified, Out of scope — in that order, and no sixth |
+| `wayfinder/map.md` | `status`: `open` \| `cleared` \| `shipping` \| `shipped`; `branch`: the branch the effort works from and merges back into, set at map creation | the sections Destination, Notes, Operation rules, Decisions so far, Not yet specified, Out of scope — in that order, and no seventh |
 | `wayfinder/ticket.md` | `type`: `grilling` \| `research` \| `prototype` \| `task`; `status`: `open` \| `claimed` \| `resolved`; `blocked_by`: a list of ticket numbers | a `## Question` section |
-| `wayfinder/route.md` | none | a preamble, then `## Units`, each unit carrying its name, a `Status` of `pending` \| `in-progress` \| `shipped`, its dependencies, links to the decisions backing it, and a goal paragraph |
+| `wayfinder/route.md` | none | a preamble, then `## Shipping rules` — how the units will be shipped: the branch they merge back into (seeded from the map's `branch`), commit and merge/PR conventions, and any standing constraint every unit's shipping inherits — then `## Units`, each unit carrying its name, a `Status` of `pending` \| `in-progress` \| `shipped`, its dependencies, links to the decisions backing it, and a goal paragraph |
 
-A map links its route from Destination once one exists; the route does not earn a section of its own. A ticket templates only the question — the answer is appended when the ticket resolves, so there is no empty Answer heading to invert that order. The route carries no frontmatter and no route-level status, because the effort's lifecycle belongs to the map.
+A map links its route from Destination once one exists; the route does not earn a section of its own. The map's Operation rules section holds prescriptive, per-session-binding rules on how working sessions operate and may be empty; its hints distinguish it from Notes, which holds orienting context. A ticket templates only the question — the answer is appended when the ticket resolves, so there is no empty Answer heading to invert that order. The route carries no frontmatter and no route-level status, because the effort's lifecycle belongs to the map; its Shipping rules section is what keeps the route self-contained for processes that never open the map.
 
 ### The template idiom
 
