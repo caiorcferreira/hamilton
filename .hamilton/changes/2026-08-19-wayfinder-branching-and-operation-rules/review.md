@@ -419,3 +419,13 @@ Verified:
 - [tests/scripts/prototype-branch.test.ts:97] Inline `require("node:os")` amid ESM `import` statements — works under vitest's interop and the suite passes, but importing `node:os` at the top like the file's other `node:` imports would match the codebase idiom.
 
 No blocking issues. Next step: `hamilton-finish-work` (all 7 tasks done, all task reviews and this whole-change review approved).
+
+## Suggestion adjudication — 2026-08-20
+
+User rulings on the whole-change review's five non-blocking suggestions (recorded only; no fixes applied yet):
+
+1. "job class" vs "class of jobs" — **accepted**: align the two "job class" spots (SKILL.md:13, map template hint) to "class of jobs".
+2. Research carve-out at work-loop step 3 — **approach under discussion**; orchestrator's recommendation: add a parenthetical at step 3 ("the one exception is a research ticket, whose resolution completes when its background investigation returns — the claiming session still dispatches it immediately") and mirror the carve-out in the wayfinder spec's same-session invariant.
+3. MUST-load referent for `task` tickets — **superseded by a larger question**: the user is considering removing the `task` ticket type (possibly replacing it with a "mechanical-decision" type for recording work deferred to shipping). Orchestrator's counter-analysis recorded in conversation: keep `task` for decision-unblocking manual work; deferred-shipping notes belong to Not yet specified / the route's units and Shipping rules, and foregone-conclusion decisions can land in Decisions so far without ticket ceremony. Any removal is a vocabulary change deserving its own change (template enum, both mechanics homes, spec, glossary, dispatch table). Decision pending.
+4. Map mechanics intro overclaim — **accepted**: soften "names a field, a path, or a branching rule" to "defines".
+5. Inline `require("node:os")` in prototype-branch.test.ts — **accepted**: hoist to a top-level `node:` import.
