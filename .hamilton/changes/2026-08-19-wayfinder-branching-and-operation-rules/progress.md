@@ -88,3 +88,10 @@
 
 ## Review: whole change — 2026-08-19
 - Verdict: approved (blocking: 0, suggestions: 5) — see review.md
+
+## Finish — 2026-08-20
+- Preconditions: tree clean, tests green, reviews approved (whole change)
+- Specs synced: wayfinder, ticket-resolution, artifact-templates updated; glossary drift fixed (map sections, route shipping rules)
+- Finished: pull request https://github.com/caiorcferreira/hamilton/pull/39
+- Workspace: worktree left at /Users/caio.cavalcante/personal/hamilton.wayfinder-gpt-optimization (branch wayfinder-gpt-optimization)
+- Route: not route-backed
