@@ -1,6 +1,6 @@
 ---
 type: grilling
-status: claimed
+status: open
 blocked_by: []
 ---
 
