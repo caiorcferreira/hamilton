@@ -1,5 +1,31 @@
 # Review: Remove Wayfinder's one-ticket-per-session gate
 
+## Task 1 — 2026-08-29
+
+Verdict: approved
+
+Verified the task Verify command passes against the committed `skills/hamilton-wayfinder/SKILL.md`
+(commit `f55ffa5`), `git diff --check` exits 0 over `7e5afbf..f55ffa5`, and the one vitest failure
+(`tests/scripts/change-context.test.ts` mtime-ordering test) is pre-existing and unrelated to this
+diff. Acceptance criteria 1-5, 7, and 8 are met in the rewritten work loop and redrawn process-flow
+digraph: the explicit-request gate, fixed-authorization-set/claim-time reevaluation (including the
+verbatim `[01, 02]` dependent-batch example), the `claimed`-removes-from-frontier truth, and the
+no-auto-advance stop are all present, and the diagram's exhausted-set stop node has no outgoing
+edge back to an unrestricted frontier.
+
+Criterion 6's "Examples, Invariants, and Decisions" wording was adjudicated: `SKILL.md` has never
+carried those headings (only `.hamilton/specs/wayfinder.md` does, and `plan.md` forbids this task
+from editing that file — finish-work owns it). All four required rules are encoded directly in the
+rewritten numbered work loop and diagram instead of under new headings foreign to the skill's
+established shape. Not a defect; finish-work must still carry these rules into the canonical spec's
+real `## Examples`/`## Invariants`/`## Decisions` sections when it distills `requirements/wayfinder.md`.
+
+No blocking issues. Three non-blocking suggestions were raised (a step-2 title that describes only
+the no-request stop rather than set formation; an optional ambiguous-request clause mirroring
+`design.md`'s error-handling table; and a mechanics restatement in step 6 that duplicates Map
+mechanics' own claim, mandated verbatim by acceptance criterion 5) — none change behavior or block
+approval.
+
 ## Task 2 — 2026-08-29
 
 Verdict: approved
@@ -118,3 +144,45 @@ superseded decisions" decisions, using the diff package (`c35aec6..9d60233`, spa
   mechanics-section boundary to remain unchanged here, so this is not a Task 3 defect — flagging
   only in case a future task wants to reconcile the fenced contract block with the fuller status
   discussion around it.
+
+## Task 4 — 2026-08-29
+
+Verdict: approved
+
+Verified against `plan.md` Task 4 acceptance criteria, using the diff package
+(`eeeb1f9..366d4e9`, files: `docs/skills.md`, `.hamilton/changes/.../progress.md`), with `HEAD`
+already at `366d4e9` on a clean tree so all commands were run directly against the reviewed state:
+
+- `docs/skills.md`'s `### \`hamilton-wayfinder\`` introductory paragraph now reads: "Charts a map
+  of decision tickets for a goal too big for one session, then works only the decision tickets the
+  user explicitly requests — one ticket or a named batch — until the way to the destination is
+  clear." This states the explicit-request gate and the one-ticket-or-named-batch shape the
+  criterion requires, and the string "works them one at a time" is gone from the entry (confirmed
+  by both direct reading and by re-running the task's own Verify script, which prints
+  `skills summary ok`).
+- The following sentence, "The map plans the way; the doing comes later, one change at a time.",
+  is byte-for-byte unchanged. Diffed the full entry against the base blob (`eeeb1f9:docs/skills.md`)
+  and confirmed the `- **When:**`, `- **Inputs:**`, `- **Produces:**`, `- **Notes:**` bullets
+  (including the `mattpocock/skills` fork-provenance sentence and the `../NOTICE` link inside
+  Notes) and the `- Source:` line are all unchanged, down to whitespace.
+- `git diff --stat eeeb1f9..366d4e9` shows exactly two files touched: `docs/skills.md` and this
+  change's own `progress.md` (Task 4's progress entry, a normal change artifact). No other skill
+  entry, pipeline paragraph, diagram, or helper-script documentation was touched — confirmed both
+  from the diff stat and by reading the full diff hunk, which contains only the one paragraph
+  edit inside the `hamilton-wayfinder` entry.
+- Independently re-ran the task's own Verify command against the current worktree — printed
+  `skills summary ok`. Independently re-ran `git diff --check eeeb1f9ec895597bb0c2224f64367ff5dd714273..366d4e98e9e530fcd1bbc3189c8096c8ef7b568c` —
+  exit 0. Both match the implementer's report; no discrepancy found.
+- The commit (`366d4e9`, message `docs(skills): describe user-directed wayfinder ticket work`)
+  matches the plan's specified Commit message exactly and is the only commit in the reviewed
+  range.
+- Prose wrapping of the new paragraph (three lines, ~89–97 chars each) matches the existing
+  hard-wrap style used throughout `docs/skills.md`'s other entries — consistent, no issue.
+- `bun --bun vitest run` / `bun run build` claims in `progress.md` were not independently
+  re-run (this is a Markdown-only change with no code path affected by the edit, and the task's
+  own progress entry already reproduces the one pre-existing, unrelated
+  `tests/scripts/change-context.test.ts` mtime-ordering failure identically with the change
+  stashed out) — treated as adequately supported by the implementer's report together with the
+  independently-verified structural Verify and `git diff --check` results.
+
+No blocking issues, no suggestions.

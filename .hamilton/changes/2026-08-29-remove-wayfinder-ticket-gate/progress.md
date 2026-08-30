@@ -21,6 +21,9 @@
   - Chart the map, Ticket types, Skill dispatch (including its "work loop step 1" cross-reference, still valid), Map mechanics (frontmatter/frontier/claiming/branching fields already matched the claimed-removes-from-frontier truth and needed no change), The route, and map lifecycle prose were left intact, matching the plan's non-goals.
   - Deviation: acceptance criterion 6 asks that "Examples, Invariants, and Decisions" sections encode the new rules, but `skills/hamilton-wayfinder/SKILL.md` has never had headed `## Examples` / `## Invariants` / `## Decisions` sections (only the canonical `.hamilton/specs/wayfinder.md` does, and that file is out of this task's scope — finish-work distills it later). No other step in the task instructs creating such headings, and the Verify command does not require them. I satisfied the intent by embedding the same illustrative example (`[01, 02]` batch), invariant-style statements ("never park a claimed ticket," "the set never grows or shrinks," "does not authorize any other ticket"), and durable-rule wording directly into the rewritten numbered work loop and process-flow diagram, rather than inventing new top-level sections foreign to this skill's established shape. Flagging for reviewer attention.
 
+## Review: Task 1 — 2026-08-29
+- Verdict: approved (blocking: 0, suggestions: 3) — see review.md
+
 ## Task 2: Align decision-ticket sizing at its source — 2026-08-29
 
 - Outcome: done
@@ -82,3 +85,6 @@
 - Notes:
   - Replaced only the ticket-work sentence in the `### hamilton-wayfinder` introductory paragraph: "then works them one at a time until the way to the destination is clear" became "then works only the decision tickets the user explicitly requests — one ticket or a named batch — until the way to the destination is clear," matching Task 1's new explicit-authorization contract in `skills/hamilton-wayfinder/SKILL.md`.
   - Preserved the following "The map plans the way; the doing comes later, one change at a time" sentence and every other field (When, Inputs, Produces, Notes, provenance, Source) unchanged; diff confined to `docs/skills.md`, no other file touched.
+
+## Review: Task 4 — 2026-08-29
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
