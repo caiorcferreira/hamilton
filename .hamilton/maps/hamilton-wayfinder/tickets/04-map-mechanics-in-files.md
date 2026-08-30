@@ -46,7 +46,7 @@ question is which parts of it Hamilton adopts verbatim and which it changes.
 
 ## Answer
 
-Maps and tickets use **YAML frontmatter** with three fields: `type`, `status`, and `blocked_by`. Tickets drop claiming; maps use `Status: cleared` when done. The `## Map mechanics` section documents the frontmatter contract so a future tracker backend can swap it in.
+Maps and tickets use **YAML frontmatter** with three fields: `type`, `status`, and `blocked_by`. Claiming is kept: setting a ticket's status to `claimed` removes it from the frontier while leaving it unresolved. Maps use `Status: cleared` when done. The `## Map mechanics` section documents the frontmatter contract so a future tracker backend can swap it in.
 
 ### Field syntax: YAML frontmatter
 
@@ -66,11 +66,11 @@ Loose `Key: value` lines (upstream's convention) are only in this map so far, no
 
 Upstream claims to prevent concurrent sessions from stepping on each other in a shared tracker. File-based maps in git have the same need but different enforcement: git merge conflicts surface collisions. A `Status:` field does not prevent collision, but it signals intent — someone reading `Status: claimed` sees the ticket is being actively worked. Keep it.
 
-But claiming does not change the frontier calculation: a claimed ticket is still open, not unblocked or resolved.
+Claiming removes the ticket from the frontier: setting `status: claimed` takes it out of frontier eligibility so another request cannot select or start the same ticket, while the ticket itself remains unresolved until its `## Answer` is recorded and its status becomes `resolved`.
 
-### Status values: open, resolved for tickets; open, cleared for maps
+### Status values: open, claimed, resolved for tickets; open, cleared for maps
 
-**Tickets:** `Status: open` or `Status: resolved`. Out-of-scope tickets are also `resolved` — closed-ness is unambiguous. No directory separation; one `tickets/` directory. YAML makes status queryable without walking the tree.
+**Tickets:** `Status: open`, `Status: claimed`, or `Status: resolved`. A claimed ticket is unresolved but outside the frontier. Out-of-scope tickets are also `resolved` — closed-ness is unambiguous. No directory separation; one `tickets/` directory. YAML makes status queryable without walking the tree.
 
 **Maps:** `Status: open` or `Status: cleared`. When all frontier tickets are resolved, the map itself closes.
 
@@ -96,5 +96,17 @@ This goes into `CONTRIBUTING.md` or a dedicated `MECHANICS.md` in `.hamilton/map
 
 - All existing map and ticket files need a one-time conversion from loose lines to YAML frontmatter
 - The `## Map mechanics` section becomes a living spec document, not part of individual tickets
-- Claiming is kept but does not affect frontier calculation
+- Claiming is kept: it removes a ticket from the frontier while leaving it unresolved
 - The clearing marker (`Status: cleared`) applies to `map.md` itself, not individual tickets
+
+## Outdated decisions
+
+### Claiming and frontier calculation
+
+The original mechanics decision held that claiming did not affect frontier calculation, treating a claimed ticket as still part of the frontier:
+
+> But claiming does not change the frontier calculation: a claimed ticket is still open, not unblocked or resolved.
+
+> Claiming is kept but does not affect frontier calculation
+
+Superseded by [`requirements/wayfinder.md`](../../../changes/2026-08-29-remove-wayfinder-ticket-gate/requirements/wayfinder.md), which makes `claimed` remove a ticket from the frontier while leaving it unresolved. Claim signaling and git-collision behavior described above remain current.

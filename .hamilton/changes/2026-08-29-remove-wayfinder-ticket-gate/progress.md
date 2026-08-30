@@ -42,3 +42,23 @@
 
 ## Review: Task 2 — 2026-08-29
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Task 3: Correct the claim/frontier source decision — 2026-08-29
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md`
+  - Deleted: none
+- Verified:
+  - Pre-edit: task Verify command → failed as expected (`AssertionError`; no `## Outdated decisions` section existed yet and the old frontier assertions were still in the current Answer)
+  - `python3 -c '...claim/frontier decision ok...'` (task Verify) → `claim/frontier decision ok`
+  - `git diff --check` → exit 0
+  - `bun --bun vitest run` → 97/98 passing; the one failure (`tests/scripts/change-context.test.ts` mtime-ordering test) reproduces identically with this change stashed out, confirming it is pre-existing and unrelated to this task
+  - `bun run build` → passes clean
+- Notes:
+  - Corrected the `## Answer` summary, `### Claiming stays`, `### Status values`, and the matching Consequences bullet to the current truth: setting `status: claimed` removes a ticket from the frontier while leaving it unresolved, and claiming remains a non-enforcing active-work signal that does not prevent git collisions. `### Status values` now lists `open`, `claimed`, `resolved` for tickets (previously omitted `claimed`); the maps status discussion (`open`/`cleared`) is untouched.
+  - Appended one `## Outdated decisions` section with a named subsection ("Claiming and frontier calculation") that preserves both superseded sentences verbatim — "But claiming does not change the frontier calculation: a claimed ticket is still open, not unblocked or resolved." and "Claiming is kept but does not affect frontier calculation" — and links `../../../changes/2026-08-29-remove-wayfinder-ticket-gate/requirements/wayfinder.md` as the superseding contract, noting claim signaling and git-collision behavior remain current.
+  - Left the embedded `## Map mechanics` contract block (the `status:` — `open`, `resolved`. Maps only: `cleared` line inside the fenced example) untouched, per the design's "mechanics-section boundary... remain unchanged" acceptance criterion and the task's explicit scope boundary (no frontmatter-mechanics edits); the task's own Verify script only checks the `### Status values` subsection, not this fenced block.
+  - Diff is confined to the single target file; `CONTRIBUTING.md`, frontmatter syntax, `blocked_by` meaning, and every other consequence bullet are unchanged.
+  - Pre-task housekeeping: found `progress.md`'s Task 2 review entry and `review.md` already present but uncommitted in the worktree (left over from a prior `hamilton-review` pass on Task 2, commit `c35aec6`). Committed them separately first (`9976f50`, `chore(wayfinder-change): record Task 2 review verdict`) before starting Task 3's own edit, so this task's commit stays confined to Task 3's own work.
