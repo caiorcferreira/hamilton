@@ -39,3 +39,6 @@
   - Appended one `## Outdated decisions` section to ticket 01 with a named subsection quoting the exact superseded sentence ("One file is one agent session's working target, so a session opens exactly what it claims.") and linking `../../../changes/2026-08-29-remove-wayfinder-ticket-gate/requirements/wayfinder.md` as the superseding contract, explicitly noting that file-per-ticket layout, numbering, identity, and reading order remain current.
   - Updated only the glossary's **decision ticket** paragraph to the same current definition, preserving its existing source link to ticket 01 and every other glossary entry untouched.
   - Kept both edited passages on this file's established hard-wrapped-paragraph style (confirmed against the precedent commit `42339a1` for `## Outdated decisions` sections in map/ticket files), rather than the unwrapped flowing-prose style used in `skills/hamilton-wayfinder/SKILL.md` and this change's own `requirements/`/`design.md` — the quoted superseded sentence itself is kept on one unbroken line so the Verify script's literal substring match holds regardless of wrap.
+
+## Review: Task 2 — 2026-08-29
+- Verdict: approved (blocking: 0, suggestions: 0) — see review.md
