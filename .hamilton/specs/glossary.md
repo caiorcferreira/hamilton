@@ -59,8 +59,8 @@ is whether the question can be stated precisely now — not whether it can be an
 **claim** — A signal, recorded on a ticket's status, that the ticket is being actively worked.
 Claiming survives the move from a shared tracker to files, where concurrent sessions collide through
 git rather than through assignees: the status does not prevent a collision, but it tells a reader the
-ticket is already in hand. It changes nothing else about the ticket — a claimed ticket is still open,
-not resolved.
+ticket is already in hand. Claiming removes the ticket from the frontier, so another request cannot
+select or start it, while the ticket itself stays unresolved until its `## Answer` is recorded.
 ([Map mechanics in files](../maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md))
 
 ## From map to code

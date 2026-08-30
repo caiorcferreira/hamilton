@@ -91,3 +91,20 @@
 
 ## Review: whole change — 2026-08-29
 - Verdict: changes-requested (blocking: 1, suggestions: 4) — see review.md
+
+## Whole-branch review fix — 2026-08-29
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/specs/glossary.md`
+  - Deleted: none
+- Verified:
+  - `bun --bun vitest run` → 97/98 passing; the one failure (`tests/scripts/change-context.test.ts` mtime-ordering test) reproduces identically and is pre-existing, unrelated to this fix
+  - `bun run build` (`tsc -p tsconfig.json`) → passes clean
+  - `git diff --check` → exit 0
+  - Searched `.hamilton/specs/glossary.md` for lingering "does not" / "changes nothing" / "still open, not resolved" phrasing near **claim**: the only remaining "does not" hits are the unrelated **route** entry ("the route points and does not restate") and the **claim** entry's own, intentionally-preserved "the status does not prevent a collision" sentence — no contradictory phrasing remains
+- Notes:
+  - Addresses the whole-branch review's one blocking finding (see `review.md`, "whole change — 2026-08-29"): the canonical glossary's **claim** entry still asserted "It changes nothing else about the ticket — a claimed ticket is still open, not resolved," restating the claim-does-not-affect-frontier position this change retires. That sentence contradicted design.md's "Claimed means unresolved but outside the frontier" decision, requirements/wayfinder.md's "Claimed tickets leave the frontier without resolving" requirement, the glossary's own **frontier** entry ("open, unblocked, unclaimed"), `skills/hamilton-wayfinder/SKILL.md`, and ticket 04's already-corrected "### Claiming stays" section — and it violated `SKILL.md`'s vocabulary rule reserving "open" for the status value and "unresolved" for any ticket not yet resolved.
+  - Replaced the entry's last sentence with: "Claiming removes the ticket from the frontier, so another request cannot select or start it, while the ticket itself stays unresolved until its `## Answer` is recorded." — matching ticket 04's corrected wording and the **frontier** entry. Left the entry's collision/intent sentences ("the status does not prevent a collision, but it tells a reader the ticket is already in hand") and every other glossary entry untouched, per the fix's explicit scope boundary.
+  - This closes a plan gap surfaced only by the final whole-branch review: none of Tasks 1-4 scoped this glossary entry for editing (Task 2 scoped only the **decision ticket** paragraph), so this addendum is not a re-litigation of any task's own acceptance criteria.
