@@ -26,10 +26,11 @@ of its own, since the route is the destination made concrete.
 ([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md))
 
 **decision ticket** — One question whose resolution is a decision, held in its own file at
-`tickets/NN-slug.md` and numbered from `01`. One file is one agent session's working target, so a
-session opens exactly what it claims; the numbers give stable identity and reading order, and the
-slugs make links legible. The body states the question, the answer is appended under `## Answer` on
-resolution, and the map records only a one-line gist pointing back.
+`tickets/NN-slug.md` and numbered from `01`. One file is one ticket-sized working target: a session
+opens each ticket it explicitly claims and may work several in file order when the user authorizes a
+batch; the numbers give stable identity and reading order, and the slugs make links legible. The
+body states the question, the answer is appended under `## Answer` on resolution, and the map
+records only a one-line gist pointing back.
 ([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md))
 
 **route** — A static handoff document written once at map close, listing change-sized units in order
