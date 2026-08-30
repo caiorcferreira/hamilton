@@ -26,11 +26,14 @@ of its own, since the route is the destination made concrete.
 ([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md))
 
 **decision ticket** — One question whose resolution is a decision, held in its own file at
-`tickets/NN-slug.md` and numbered from `01`. One file is one agent session's working target, so a
-session opens exactly what it claims; the numbers give stable identity and reading order, and the
-slugs make links legible. The body states the question, the answer is appended under `## Answer` on
-resolution, and the map records only a one-line gist pointing back.
-([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md))
+`tickets/NN-slug.md` and numbered from `01`. One file is one ticket-sized working target: a session
+opens each ticket it explicitly claims and may work several in file order when the user authorizes a
+batch; the numbers give stable identity and reading order, and the slugs make links legible. The
+body states the question, the answer is appended under `## Answer` on resolution, and the map
+records only a one-line gist pointing back.
+([Map artifact layout](../maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md) for the
+file-per-ticket layout, numbering, and reading order; explicit-claim, batch-authorized working
+target per [`wayfinder`](wayfinder.md#decisions))
 
 **route** — A static handoff document written once at map close, listing change-sized units in order
 with their dependencies. Each unit carries a name, a goal paragraph, links to the decisions backing
@@ -58,9 +61,10 @@ is whether the question can be stated precisely now — not whether it can be an
 **claim** — A signal, recorded on a ticket's status, that the ticket is being actively worked.
 Claiming survives the move from a shared tracker to files, where concurrent sessions collide through
 git rather than through assignees: the status does not prevent a collision, but it tells a reader the
-ticket is already in hand. It changes nothing else about the ticket — a claimed ticket is still open,
-not resolved.
-([Map mechanics in files](../maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md))
+ticket is already in hand. Claiming removes the ticket from the frontier, so another request cannot
+select or start it, while the ticket itself stays unresolved until its `## Answer` is recorded.
+([Map mechanics in files](../maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md) for claim
+signaling and git-collision behavior; the frontier-removal effect per [`wayfinder`](wayfinder.md#decisions))
 
 ## From map to code
 

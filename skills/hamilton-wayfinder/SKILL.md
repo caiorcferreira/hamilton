@@ -1,12 +1,12 @@
 ---
 name: hamilton-wayfinder
-description: Chart a map of decision tickets for a goal too big for one session, then work them one at a time until the way to the destination is clear.
+description: Chart a map of decision tickets for a goal too big for one session, then work the tickets the user explicitly authorizes until the way to the destination is clear.
 disable-model-invocation: true
 ---
 
 ## Opening
 
-Some goals are too big for one agent session — not because the work is hard, but because the way to the end is not yet clear. Wayfinding finds that way before the work begins: chart a **map** of the decisions standing between here and the **destination**, then work them one **ticket** at a time until the **frontier** is empty and the **fog of war** ahead has lifted. The map plans the way; the doing comes later, one change at a time.
+Some goals are too big for one agent session — not because the work is hard, but because the way to the end is not yet clear. Wayfinding finds that way before the work begins: chart a **map** of the decisions standing between here and the **destination**, then work the **tickets** the user explicitly authorizes until the **frontier** is empty and the **fog of war** ahead has lifted. The map plans the way; the doing comes later, one change at a time.
 
 ## The map
 
@@ -59,17 +59,19 @@ Charting is one session's work and resolves no tickets — it names the destinat
 
 ## Work through the map
 
-Working is the loop that clears the map one ticket at a time.
+Working resolves only the tickets an explicit user request authorizes — invoking Wayfinder or loading the map is orientation, not authorization, and never starts a ticket on its own.
 
-1. **Load the map.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Read the frontmatter's `branch:` and the Operation rules section too, and apply each rule to the actions it covers as the session proceeds — a commit-after-resolution rule produces a commit when a ticket resolves; a subagent-delegation rule routes the named job to the named subagent rather than doing it inline. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This work is exempt from the one-ticket-per-session budget.
-2. **Choose the frontier ticket.** Take the first ticket on the frontier (defined in Map mechanics).
-3. **Claim it.** Mark the ticket in hand before any work begins, so a reader knows it is being worked. Claiming is the start of resolution, not a handoff: the claiming session immediately takes the ticket as far as its type allows — a HITL ticket resolves in this session; a research ticket is dispatched now and resolves when its findings return.
-4. **Resolve it.** The skill the ticket's type promises (see Skill dispatch) MUST be loaded before any resolution work, where the type names one — resolving a typed ticket without loading its skill is a contract violation. For a prototype ticket specifically, no prototype code exists before `hamilton-wayfinder-prototype` is loaded and its branch gate has run.
-5. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
-6. **Consistency pass.** Scan the map's Decisions so far for gists the new resolution contradicts. For each, open that ticket, move its old Answer to `## Outdated decisions` with a link to the superseding ticket, write the current truth into `## Answer`, and rewrite its gist line in the map. If the route exists, update the affected unit's decision line as well.
-7. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope.
-
-Resolve at most one ticket per session — with the exception of research tickets, which run in the background and do not consume the session's focus. This is a ceiling, not a deferral: never park a claimed ticket — take it as far as its type allows before the session ends.
+1. **Load the map and absorb returned research.** Read its low-resolution view to orient: the destination, the decisions already made, and the fog still ahead. Read the frontmatter's `branch:` and the Operation rules section too, and apply each rule to the actions it covers as the session proceeds — a commit-after-resolution rule produces a commit when a ticket resolves; a subagent-delegation rule routes the named job to the named subagent rather than doing it inline. Then check for returned research: for each completed investigation, distill the findings into its ticket's `## Answer`, link the findings file from the ticket body, mark the ticket resolved, and gist it to the map. This absorbs a research ticket that was already explicitly authorized and dispatched — continuation of that prior authorization, not a new one — and does not authorize any other ticket.
+2. **Establish the fixed authorization set, or stop.** If the user has not explicitly requested ticket work, report the orientation or the current frontier and stop: no ticket is claimed and no status changes. Invoking Wayfinder or loading the map does not authorize ticket work — an explicit user request is required before any ticket starts.
+3. **Resolve the request into identifiers.** For a request naming one ticket, or naming several as a batch, resolve each named identifier against the map; report and exclude any identifier that does not resolve to a ticket, without substituting another one. For a request for the current next frontier ticket, select the first open, unblocked, unclaimed ticket in file order; if none exists, report that no frontier ticket is available and stop without claiming or starting anything.
+4. **Form the fixed authorization set.** The resolved ticket — one named ticket, the selected next-frontier ticket, or the remaining members of a named batch — becomes the session's fixed authorization set for the rest of this loop. Order a batch by the map's ticket file order, regardless of the order named in the request; the set never grows or shrinks afterward.
+5. **Reread the next member at its turn.** Reread its current `status:` and every `blocked_by:` ticket's status immediately before its turn — state can have changed since an earlier authorized member resolved.
+6. **Claim an eligible member, or report and skip.** A member is eligible only when it is then `open`, unblocked, and unclaimed. Claim it — mark it in hand before any work begins, which removes the ticket from the frontier while leaving it unresolved. Report and skip, without substitution, a member that is resolved, claimed, or still blocked at its turn. A member blocked when requested stays authorized: in batch `[01, 02]`, ticket `02` blocked only by unresolved `01` becomes eligible and runs at its later turn once authorized `01` clears that blocker. Claiming is the start of resolution, not a handoff: the claiming session immediately takes an eligible member as far as its type allows — a HITL ticket resolves in this session; a research ticket is dispatched now and resolves when its findings return.
+7. **Resolve it.** The skill the ticket's type promises (see Skill dispatch) MUST be loaded before any resolution work, where the type names one — resolving a typed ticket without loading its skill is a contract violation. For a prototype ticket specifically, no prototype code exists before `hamilton-wayfinder-prototype` is loaded and its branch gate has run.
+8. **Record the answer.** Append the resolution under a `## Answer` heading in the ticket, mark the ticket resolved, and append a one-line gist to the map's Decisions so far with a link back to the ticket.
+9. **Consistency pass.** Scan the map's Decisions so far for gists the new resolution contradicts. For each, open that ticket, move its old Answer to `## Outdated decisions` with a link to the superseding ticket, write the current truth into `## Answer`, and rewrite its gist line in the map. If the route exists, update the affected unit's decision line as well.
+10. **Graduate or close.** If the resolution makes new tickets specifiable, create them and clear the graduated fog from Not yet specified. If it reveals a ticket sits beyond the destination, close the ticket and leave one line in Out of scope. A ticket this creates or newly unblocks is never started in this session unless it was already a member of the fixed authorization set.
+11. **Advance only within the fixed set, or stop.** Return to step 5 for the next member of the fixed authorization set. When the set is exhausted, stop and wait for another explicit request — never claim or start a ticket outside the set, however eligible it has since become. Never park a claimed ticket along the way — take it as far as its type allows before the session ends. When this resolution leaves every ticket on the map resolved, the map clears and the route is written per The route below, as the existing closing act — writing it is a closing act, not authorization to start another ticket.
 
 ## The route
 
@@ -103,28 +105,51 @@ digraph hamilton_wayfinder {
     "Stop — no map needed" [shape=doublecircle];
     "Ask for operation rules" [shape=box];
     "Create map + tickets\n(fire research in parallel)" [shape=box];
-    "Load map\n(+ absorb returned research)" [shape=box];
-    "Frontier ticket available?" [shape=diamond];
-    "Fold glossary + write route\n+ Shipping rules (closing act)" [shape=doublecircle];
-    "Claim ticket\n(start of resolution, not a handoff)" [shape=box];
+    "Load map\n(+ absorb returned research —\ncontinuation, not new authorization)" [shape=box];
+    "Ticket work explicitly requested?" [shape=diamond];
+    "Report orientation/frontier — stop" [shape=doublecircle];
+    "Resolve named identifiers\n(report + exclude unknown)\nor select next frontier ticket" [shape=box];
+    "Next frontier requested but none available?" [shape=diamond];
+    "Report no frontier ticket available — stop" [shape=doublecircle];
+    "Form fixed authorization set\n(ordered by ticket file order)" [shape=box];
+    "Authorized member remains?" [shape=diamond];
+    "Stop — wait for next explicit request" [shape=doublecircle];
+    "Reread member at its turn\n(status + blockers)" [shape=box];
+    "Member eligible now?\n(open, unblocked, unclaimed)" [shape=diamond];
+    "Report + skip member\n(no substitution)" [shape=box];
+    "Claim ticket\n(removes it from the frontier, stays unresolved)" [shape=box];
     "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)" [shape=box];
     "Record answer in ## Answer\n+ gist in map Decisions so far" [shape=box];
     "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
+    "Every ticket on the map resolved?" [shape=diamond];
+    "Fold glossary + write route\n+ Shipping rules (closing act)" [shape=doublecircle];
 
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
     "Map frontier breadth-first" -> "Fog ahead?";
     "Fog ahead?" -> "Stop — no map needed" [label="no fog"];
     "Fog ahead?" -> "Ask for operation rules" [label="fog exists"];
     "Ask for operation rules" -> "Create map + tickets\n(fire research in parallel)";
-    "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research)";
-    "Load map\n(+ absorb returned research)" -> "Frontier ticket available?";
-    "Frontier ticket available?" -> "Fold glossary + write route\n+ Shipping rules (closing act)" [label="frontier empty"];
-    "Frontier ticket available?" -> "Claim ticket\n(start of resolution, not a handoff)" [label="next ticket"];
-    "Claim ticket\n(start of resolution, not a handoff)" -> "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)";
+    "Create map + tickets\n(fire research in parallel)" -> "Load map\n(+ absorb returned research —\ncontinuation, not new authorization)";
+    "Load map\n(+ absorb returned research —\ncontinuation, not new authorization)" -> "Ticket work explicitly requested?";
+    "Ticket work explicitly requested?" -> "Report orientation/frontier — stop" [label="no"];
+    "Ticket work explicitly requested?" -> "Resolve named identifiers\n(report + exclude unknown)\nor select next frontier ticket" [label="yes"];
+    "Resolve named identifiers\n(report + exclude unknown)\nor select next frontier ticket" -> "Next frontier requested but none available?";
+    "Next frontier requested but none available?" -> "Report no frontier ticket available — stop" [label="yes"];
+    "Next frontier requested but none available?" -> "Form fixed authorization set\n(ordered by ticket file order)" [label="no"];
+    "Form fixed authorization set\n(ordered by ticket file order)" -> "Authorized member remains?";
+    "Authorized member remains?" -> "Stop — wait for next explicit request" [label="no — set exhausted"];
+    "Authorized member remains?" -> "Reread member at its turn\n(status + blockers)" [label="yes"];
+    "Reread member at its turn\n(status + blockers)" -> "Member eligible now?\n(open, unblocked, unclaimed)";
+    "Member eligible now?\n(open, unblocked, unclaimed)" -> "Report + skip member\n(no substitution)" [label="no"];
+    "Report + skip member\n(no substitution)" -> "Authorized member remains?";
+    "Member eligible now?\n(open, unblocked, unclaimed)" -> "Claim ticket\n(removes it from the frontier, stays unresolved)" [label="yes"];
+    "Claim ticket\n(removes it from the frontier, stays unresolved)" -> "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)";
     "Load resolving skill, then resolve by type\n(research / prototype / grilling+modeling / task)" -> "Record answer in ## Answer\n+ gist in map Decisions so far";
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
     "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
-    "Graduate fog / close out-of-scope" -> "Load map\n(+ absorb returned research)";
+    "Graduate fog / close out-of-scope" -> "Every ticket on the map resolved?";
+    "Every ticket on the map resolved?" -> "Fold glossary + write route\n+ Shipping rules (closing act)" [label="yes"];
+    "Every ticket on the map resolved?" -> "Authorized member remains?" [label="no"];
 }
 ```
