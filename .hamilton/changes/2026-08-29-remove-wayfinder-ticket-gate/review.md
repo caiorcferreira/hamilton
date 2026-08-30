@@ -186,3 +186,99 @@ already at `366d4e9` on a clean tree so all commands were run directly against t
   independently-verified structural Verify and `git diff --check` results.
 
 No blocking issues, no suggestions.
+
+## whole change — 2026-08-29
+
+Verdict: changes-requested
+
+Reviewed the full branch diff `7e5afbf..d6bbc7b` (7 commits, 12 files, all Markdown) against
+`proposal.md`, `design.md`, `requirements/wayfinder.md`, and `plan.md`'s "Done when" criteria,
+with attention to cross-surface contradictions a per-task review could not see.
+
+Independently re-verified on the final HEAD (`d6bbc7b`, clean tree):
+
+- `bun run build` (`tsc -p tsconfig.json`) → exit 0.
+- `git diff --check` → exit 0.
+- `bun --bun vitest run` → 97/98 passing. The one failure
+  (`tests/scripts/change-context.test.ts` > "lists every change, most recently touched first")
+  is pre-existing: I exported the base tree at `7e5afbf` to a scratch directory and reproduced
+  the identical assertion failure there. The branch touches no `.ts` or `.sh` file, so it cannot
+  be the cause. `plan.md`'s "`bun --bun vitest run` passes" line is therefore not literally
+  satisfied, but not by anything this branch did.
+- Diff scope is confined to the permitted set: `skills/hamilton-wayfinder/SKILL.md`,
+  `docs/skills.md`, `.hamilton/specs/glossary.md`, tickets 01 and 04, and this change's own
+  artifacts. No template, `CONTRIBUTING.md`, TypeScript, dependency, or unrelated map file is
+  touched. `.hamilton/specs/wayfinder.md` is correctly left to `hamilton-finish-work`.
+- Unrelated one-question-at-a-time / one-change-at-a-time / ticket-sizing language is preserved
+  (verified: tickets 08 and 12, `docs/skills.md`'s "one change at a time", the ticket template).
+- End-to-end the skill, `docs/skills.md`, ticket 01, ticket 04, and the glossary's **decision
+  ticket** and **frontier** entries now agree on explicit authorization, fixed-set/claim-time
+  eligibility, ticket file order, and `claimed` leaving the frontier while unresolved. The two
+  `## Outdated decisions` sections quote their superseded sentences verbatim, are internally
+  consistent with their own current Answers and with each other, and their relative links to
+  `requirements/wayfinder.md` resolve (`hamilton-finish-work` does not delete the change
+  directory, so they stay valid after merge).
+
+One blocking contradiction remains, on a surface `plan.md`'s "Done when" names explicitly.
+
+### Blocking
+
+- [`.hamilton/specs/glossary.md`:59-64] The canonical glossary's **claim** entry still ends
+  "It changes nothing else about the ticket — a claimed ticket is still open, not resolved."
+  This is the claim-does-not-affect-frontier assertion this change retires, restated in the
+  glossary's own words: it is a near-verbatim echo of ticket 04's now-superseded sentence
+  ("a claimed ticket is still open, not unblocked or resolved"), and the entry sources itself to
+  `../maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md` — the very file Task 3 just
+  corrected to say the opposite. It contradicts, on the same active surface, the glossary's own
+  **frontier** entry ("The open, unblocked, **unclaimed** tickets"), `SKILL.md`:90/94, ticket
+  04's corrected `### Claiming stays` and Consequences, and `requirements/wayfinder.md`'s
+  "Claimed tickets leave the frontier without resolving". It also breaks the vocabulary rule
+  `SKILL.md`:90 states ("'Open' always names the status value; use 'unresolved' for any ticket
+  not yet resolved") by using "open" to mean unresolved. Change the final sentence to the
+  current truth — claiming removes the ticket from the frontier so another request cannot select
+  or start it, while the ticket itself stays unresolved until its `## Answer` is recorded and its
+  status becomes `resolved` — and leave the preceding collision/intent sentences unchanged, since
+  claim signaling and git-collision behavior are still current.
+  (violates: `plan.md` "Done when" — "Active truth in the skill, glossary, docs summary, and
+  current Answers contains no ... claim-does-not-affect-frontier assertion"; `design.md` Testing
+  Strategy — "Search ... `.hamilton/specs/glossary.md` ... for the removed ...
+  claiming-does-not-affect-frontier rules. The only surviving old statements must be under the
+  source tickets' `## Outdated decisions` sections"; `proposal.md` Goals — all named surfaces
+  "describe the same ... claimed-frontier behavior".)
+
+  Note this is a plan/design gap, not a coder error. `plan.md` Task 2 scoped the glossary edit to
+  "only the glossary's **decision ticket** paragraph ... retaining ... all unrelated glossary
+  content", so no task authorized touching **claim**; a coder following Task 2 verbatim could not
+  have caught it. Fixing it needs Task 2's acceptance/steps widened (or a small fifth task added)
+  to cover the **claim** entry. `.hamilton/specs/glossary.md` is already inside the branch's
+  permitted file set, so no design or proposal change is required. Whether the old glossary
+  sentence also needs preserving is answered by `design.md`: `## Outdated decisions` preservation
+  is required for *source tickets* only — the glossary is canonical reference content and is
+  corrected in place, exactly as the **decision ticket** entry was.
+
+### Suggestions
+
+- [`.hamilton/maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md`:97] The fenced
+  `## Map mechanics` contract block inside `### Map mechanics section: the stable contract` still
+  reads `` `status:` — Ticket status: `open`, `resolved`. Maps only: `cleared` ``, while
+  `### Status values` two subsections above now lists `open`, `claimed`, `resolved`. The base
+  file was self-consistent here (both listed two values); this change corrected one and not the
+  other, so ticket 04's current Answer now contradicts itself. Impact is low — `CONTRIBUTING.md`:76,
+  the block's real destination, already carries all three values, and `SKILL.md`'s Map mechanics
+  is authoritative and correct — and `plan.md` Task 3 explicitly required the mechanics-section
+  boundary to stay unchanged, so this is deliberately out of scope. Worth a one-word reconciliation
+  in a later change (or alongside the blocking glossary fix, if the driver widens scope).
+- [`.hamilton/maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md`:64-73 vs
+  `04-map-mechanics-in-files.md`:100-113] The two `## Outdated decisions` sections use different
+  shapes for the same job: ticket 01 quotes inline ("This ticket originally stated: \"...\"") and
+  labels its link with the full relative path; ticket 04 uses `>` blockquotes and labels its link
+  `requirements/wayfinder.md`. Both are correct and both verify; aligning on one shape would make
+  the convention easier to follow next time.
+- [`skills/hamilton-wayfinder/SKILL.md`:65] Step 2's title, "Establish the fixed authorization
+  set, or stop", describes work that actually happens in steps 3-4; the step itself only handles
+  the no-request stop. Already raised in the Task 1 review and still worth retitling (e.g. "Stop
+  unless ticket work was explicitly requested").
+- [`docs/skills.md`:81-83] The summary names two of the three authorization shapes ("one ticket or
+  a named batch") and omits the explicit next-frontier request. This matches `plan.md` Task 4's
+  acceptance wording exactly, so it is not a defect; mentioning the third shape would make the
+  user-facing summary a complete mirror of the contract.

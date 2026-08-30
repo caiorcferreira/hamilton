@@ -88,3 +88,6 @@
 
 ## Review: Task 4 — 2026-08-29
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Review: whole change — 2026-08-29
+- Verdict: changes-requested (blocking: 1, suggestions: 4) — see review.md
