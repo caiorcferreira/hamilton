@@ -79,9 +79,9 @@ Prepares an existing repository for the pipeline.
 
 ### `hamilton-wayfinder` — chart the route before a change *(optional pre-change planning stage)*
 
-Charts a map of decision tickets for a goal too big for one session, then works them one at a time
-until the way to the destination is clear. The map plans the way; the doing comes later, one change
-at a time.
+Charts a map of decision tickets for a goal too big for one session, then works only the decision
+tickets the user explicitly requests — one ticket or a named batch — until the way to the
+destination is clear. The map plans the way; the doing comes later, one change at a time.
 
 - **When:** before `hamilton-propose`, for a goal too big for one change session — one that needs
   its way found before the SDD loop begins.

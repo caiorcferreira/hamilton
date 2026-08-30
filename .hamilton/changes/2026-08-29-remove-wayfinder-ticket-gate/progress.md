@@ -65,3 +65,20 @@
 
 ## Review: Task 3 — 2026-08-29
 - Verdict: approved (blocking: 0, suggestions: 1) — see review.md
+
+## Task 4: Update the Wayfinder skills-reference summary — 2026-08-29
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `docs/skills.md`
+  - Deleted: none
+- Verified:
+  - Pre-edit: task Verify command → failed as expected (`AssertionError`; entry still said "works them one at a time" and lacked "explicitly requests"/"named batch")
+  - `python3 -c '...skills summary ok...'` (task Verify) → `skills summary ok`
+  - `git diff --check` → exit 0
+  - `bun --bun vitest run` → 97/98 passing; the one failure (`tests/scripts/change-context.test.ts` mtime-ordering test) reproduces identically with this change stashed out, confirming it is pre-existing and unrelated to this task
+  - `bun run build` (`tsc -p tsconfig.json`) → passes clean
+- Notes:
+  - Replaced only the ticket-work sentence in the `### hamilton-wayfinder` introductory paragraph: "then works them one at a time until the way to the destination is clear" became "then works only the decision tickets the user explicitly requests — one ticket or a named batch — until the way to the destination is clear," matching Task 1's new explicit-authorization contract in `skills/hamilton-wayfinder/SKILL.md`.
+  - Preserved the following "The map plans the way; the doing comes later, one change at a time" sentence and every other field (When, Inputs, Produces, Notes, provenance, Source) unchanged; diff confined to `docs/skills.md`, no other file touched.
