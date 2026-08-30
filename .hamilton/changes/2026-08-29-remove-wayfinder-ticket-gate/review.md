@@ -282,3 +282,63 @@ One blocking contradiction remains, on a surface `plan.md`'s "Done when" names e
   a named batch") and omits the explicit next-frontier request. This matches `plan.md` Task 4's
   acceptance wording exactly, so it is not a defect; mentioning the third shape would make the
   user-facing summary a complete mirror of the contract.
+
+## whole change — 2026-08-29
+
+Verdict: approved
+
+Re-review of the whole-branch merge gate after the fix wave. Reviewed the full branch diff
+`7e5afbf..2ec8ba7` (9 commits, 12 files, all Markdown) from the diff package against
+`proposal.md`, `design.md`, `requirements/wayfinder.md`, and `plan.md`'s "Done when" criteria.
+`HEAD` is at `2ec8ba7` on a clean tree, so every command below was run against the reviewed state.
+
+**The prior pass's one blocking finding is resolved.** `.hamilton/specs/glossary.md`:59-64's
+**claim** entry now ends "Claiming removes the ticket from the frontier, so another request cannot
+select or start it, while the ticket itself stays unresolved until its `## Answer` is recorded."
+The retired claim-does-not-affect-frontier assertion is gone from that entry, and the replacement
+agrees with: the glossary's own **frontier** entry ("The open, unblocked, unclaimed tickets");
+`SKILL.md`'s Map mechanics **Frontier** ("`status: open` — excluding `claimed` and `resolved`")
+and **Claiming** ("removes the ticket from the frontier") and work-loop step 6; ticket 04's
+corrected `### Claiming stays`, `### Status values`, and Consequences; and
+`requirements/wayfinder.md`'s "Claimed tickets leave the frontier without resolving". It also now
+honors `SKILL.md`'s vocabulary rule — it says "unresolved", not "still open".
+
+**No scope creep in the fix.** `git show 2ec8ba7` touches exactly two files: the glossary (a 2-line
+replacement, +2/-2) and this change's `progress.md` (the addendum). The full branch diff of
+`.hamilton/specs/glossary.md` (+13/-6 across the whole branch) contains exactly two changed
+entries — **decision ticket** (Task 2) and **claim** (this fix). The **claim** entry's
+collision/intent sentences and its ticket-04 source link are byte-identical to the base; no other
+glossary entry, heading, or link is touched.
+
+**"Done when" re-verified at `2ec8ba7`:**
+
+- `bun --bun vitest run` → 97/98. The single failure is the same pre-existing, unrelated
+  `tests/scripts/change-context.test.ts` > "lists every change, most recently touched first"
+  mtime-ordering assertion the prior pass reproduced at the base tree `7e5afbf`. The branch
+  touches no `.ts`, `.sh`, or config file, so it cannot be the cause. Accepted.
+- `bun run build` (`tsc -p tsconfig.json`) → exit 0.
+- `git diff --check 7e5afbf..2ec8ba7` → exit 0; `git status --porcelain` → empty (clean tree).
+- All four per-task Verify commands re-run at HEAD → `wayfinder contract ok`,
+  `decision-ticket vocabulary ok`, `claim/frontier decision ok`, `skills summary ok`.
+- Diff scope confined to the permitted set: `skills/hamilton-wayfinder/SKILL.md`, `docs/skills.md`,
+  `.hamilton/specs/glossary.md`, tickets 01 and 04, and this change's own artifacts. No template,
+  `CONTRIBUTING.md`, TypeScript, dependency, or unrelated map file. `.hamilton/specs/wayfinder.md`
+  is correctly left untouched for `hamilton-finish-work`.
+- Branch-wide contradiction search for implicit-first-frontier-start, one-ticket-per-session,
+  one-file-per-session, and claim-does-not-affect-frontier phrasings across all `*.md`: the only
+  surviving occurrences outside `.hamilton/changes/` are (a) tickets 01:135 and 04:108,110, each
+  under its own `## Outdated decisions` heading with a resolving relative link, exactly as
+  `design.md` requires, and (b) `.hamilton/specs/wayfinder.md`:46,52 — the canonical spec that
+  `plan.md` explicitly reserves for `hamilton-finish-work` to distill from
+  `requirements/wayfinder.md`. Active truth in the skill, glossary, docs summary, and both current
+  Answers is clean.
+- Unrelated one-question-at-a-time / one-change-at-a-time / "too big for one agent session"
+  framing and the ticket template's sizing hint are preserved, per `design.md`'s scope decision.
+
+Holistic pass over the whole branch found no new issue. The three non-blocking suggestions from the
+prior pass that remain open (ticket 04's mechanics-block status-value list, the two differing
+`## Outdated decisions` shapes, `SKILL.md` step 2's title, and `docs/skills.md`'s two-of-three
+authorization shapes) are unchanged and remain non-blocking and out of the plan's scope; none is
+re-raised.
+
+This change is ready for `hamilton-finish-work`.
