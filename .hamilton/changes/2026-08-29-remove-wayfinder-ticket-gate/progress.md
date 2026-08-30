@@ -111,3 +111,11 @@
 
 ## Review: whole change — 2026-08-29
 - Verdict: approved (blocking: 0, suggestions: 0) — see review.md
+
+## Finish — 2026-08-30
+- Preconditions: tree clean, tasks 4/4 implemented, reviews approved (whole change fresh at `1b67d61`). Tests: 97/98 passing — the one failure (`tests/scripts/change-context.test.ts` > "lists every change, most recently touched first", an mtime-ordering assertion) reproduces identically on a fresh clone of `main` with no branch changes applied, confirming it is pre-existing and unrelated; user confirmed proceeding on this evidence. Build (`bun run build`) passes clean.
+- Specs synced: `.hamilton/specs/wayfinder.md` — Overview, Map mechanics, Working behavior, Examples, Invariants, and Decisions distilled from `requirements/wayfinder.md` (commit `5fe08dc`).
+- Version: bumped `package.json`/`src/index.ts` 0.8.0 → 0.8.1 (patch: docs/skill-contract-only change, no CLI-observable behavior change) (commit `188fb9b`).
+- Finished: pull request (opened after this entry's commit)
+- Workspace: worktree left at `/home/caio/workspace/personal/hamilton/.worktrees/remove-wayfinder-ticket-gate` (branch `remove-wayfinder-ticket-gate`)
+- Route: not route-backed
