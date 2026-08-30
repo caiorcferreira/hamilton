@@ -62,3 +62,6 @@
   - Left the embedded `## Map mechanics` contract block (the `status:` — `open`, `resolved`. Maps only: `cleared` line inside the fenced example) untouched, per the design's "mechanics-section boundary... remain unchanged" acceptance criterion and the task's explicit scope boundary (no frontmatter-mechanics edits); the task's own Verify script only checks the `### Status values` subsection, not this fenced block.
   - Diff is confined to the single target file; `CONTRIBUTING.md`, frontmatter syntax, `blocked_by` meaning, and every other consequence bullet are unchanged.
   - Pre-task housekeeping: found `progress.md`'s Task 2 review entry and `review.md` already present but uncommitted in the worktree (left over from a prior `hamilton-review` pass on Task 2, commit `c35aec6`). Committed them separately first (`9976f50`, `chore(wayfinder-change): record Task 2 review verdict`) before starting Task 3's own edit, so this task's commit stays confined to Task 3's own work.
+
+## Review: Task 3 — 2026-08-29
+- Verdict: approved (blocking: 0, suggestions: 1) — see review.md
