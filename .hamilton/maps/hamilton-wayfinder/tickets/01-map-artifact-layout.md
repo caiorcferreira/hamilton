@@ -66,10 +66,9 @@ efforts could collide.
 ### Ticket files
 
 One file per ticket at `tickets/NN-slug.md`, numbered from `01` — upstream's local-markdown
-convention adopted as-is. One file is one ticket-sized working target: a session opens each ticket
-it explicitly claims, and may work several authorized targets in ticket file order. Numbers give
-stable identity and reading order; slugs make links legible; the frontier is a single `grep` across
-the directory.
+convention adopted as-is. One file is one agent session's working target, so a session opens exactly
+what it claims. Numbers give stable identity and reading order; slugs make links legible; the
+frontier is a single `grep` across the directory.
 
 Rejected: a single `tickets.md` with one section per ticket (two concurrent sessions editing
 different tickets would collide on one file, which is exactly what claiming exists to prevent, and
@@ -127,14 +126,3 @@ life of the map.
   slug and `tickets/NN-slug.md`. The provisional guess is now the convention; nothing moves.
 - The fog patch **"Existing skills' awareness"** is half-cleared. The `hamilton-init` half is
   decided; whether `hamilton-propose` should mention an upstream map remains fog.
-
-## Outdated decisions
-
-### Ticket sizing was a one-file-per-session rule
-
-This ticket originally stated: "One file is one agent session's working target, so a session opens exactly what it claims."
-Superseded by [`../../../changes/2026-08-29-remove-wayfinder-ticket-gate/requirements/wayfinder.md`](../../../changes/2026-08-29-remove-wayfinder-ticket-gate/requirements/wayfinder.md),
-which makes explicit user authorization the ticket-start boundary: a session opens each ticket it
-explicitly claims and may work several in file order when the user authorizes a batch. The
-file-per-ticket layout, numbering, stable identity, and reading order this ticket settled remain
-current.

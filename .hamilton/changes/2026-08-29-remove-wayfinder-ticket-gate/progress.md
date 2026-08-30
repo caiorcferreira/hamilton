@@ -119,3 +119,42 @@
 - Finished: pull request (opened after this entry's commit)
 - Workspace: worktree left at `/home/caio/workspace/personal/hamilton/.worktrees/remove-wayfinder-ticket-gate` (branch `remove-wayfinder-ticket-gate`)
 - Route: not route-backed
+
+## PR review fix — 2026-08-30
+
+- Outcome: done
+- Changed:
+  - Created: none
+  - Modified: `.hamilton/specs/glossary.md`
+  - Reverted (to their pre-change, `main` content): `.hamilton/maps/hamilton-wayfinder/tickets/01-map-artifact-layout.md`, `.hamilton/maps/hamilton-wayfinder/tickets/04-map-mechanics-in-files.md`
+  - Deleted: none
+- Notes:
+  - Two live reviewer comments on PR #40 (caiorcferreira, at `f0e243e`) objected to Task 2's and
+    Task 3's edits to tickets 01 and 04: "This file should not have been changed. Previous maps are
+    kept for historic record, so new decisions should not change what was decided back there." Per
+    that convention — the same one `## Outdated decisions` sections were meant to respect but, by
+    editing the ticket's current `## Answer` at all, did not — both tickets are reverted to their
+    exact pre-change content, including removing the `## Outdated decisions` sections Task 2 and
+    Task 3 added. This retracts those two tasks' ticket-file edits; their glossary-facing outcome
+    (below) and Task 1's skill behavior are unaffected.
+  - `.hamilton/specs/glossary.md`'s **decision ticket** and **claim** entries keep the current,
+    corrected definitions (ticket-sized working target with explicit-claim, batch authorization;
+    claiming removes a ticket from the frontier) — this is canonical, maintained reference content,
+    not a historic ticket. Since tickets 01 and 04 no longer state these definitions themselves,
+    each entry's citation now attributes the layout/mechanics rationale to the ticket as before and
+    the corrected current rule to [`wayfinder`](../specs/wayfinder.md#decisions) instead of implying
+    the ticket's own prose says it.
+  - No behavior change: explicit authorization as the start gate, fixed-batch claim-time eligibility,
+    no automatic advancement, and claimed tickets sitting outside the frontier remain exactly as
+    Task 1 implemented and `.hamilton/specs/wayfinder.md` already documents. The version bump
+    (`188fb9b`) stands.
+  - `plan.md`'s Task 2 and Task 3 file lists, acceptance criteria, and Verify scripts — and the
+    "Done when" bullet naming tickets 01/04 in the confined diff — describe the state before this
+    fix and are superseded by this entry; see `plan.md`'s closing amendment.
+- Verified:
+  - `bun --bun vitest run` → 97/98 passing; the one failure (`tests/scripts/change-context.test.ts`
+    mtime-ordering assertion) reproduces identically and is pre-existing, unrelated to this fix
+  - `bun run build` → passes clean
+  - `git diff --check` → exit 0
+  - `git diff main...HEAD` → neither `01-map-artifact-layout.md` nor `04-map-mechanics-in-files.md`
+    appears in the diff

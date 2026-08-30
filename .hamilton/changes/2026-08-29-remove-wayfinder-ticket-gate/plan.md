@@ -104,3 +104,13 @@
 - `bun --bun vitest run` passes; `bun run build` passes; `git diff --check` is clean.
 - All per-task and whole-change review feedback has been addressed and the latest whole-change verdict is approved.
 - During `hamilton-finish-work`, `requirements/wayfinder.md` is distilled into `.hamilton/specs/wayfinder.md`, aligning its Overview, Working behavior, Examples, Invariants, Decisions, and claimed-ticket frontier mechanics without copying delta-form headings into the canonical spec.
+
+## Amendment — 2026-08-30
+
+Live PR review on #40 objected to Task 2 and Task 3 editing tickets 01 and 04 (historic decision
+record). Both tickets are reverted to their pre-change content — see `progress.md`'s "PR review fix
+— 2026-08-30" entry for the detail. Task 2's and Task 3's file lists, acceptance criteria, and Verify
+scripts above, and the "Done when" bullet naming tickets 01 and 04 in the confined diff, describe the
+state before this amendment and no longer match the final diff: the implementation diff is now
+confined to `skills/hamilton-wayfinder/SKILL.md`, `docs/skills.md`, `.hamilton/specs/glossary.md`,
+and change artifacts. The glossary's current definitions and Task 1's skill behavior are unaffected.
