@@ -157,6 +157,33 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
   })
 
+  it("recognizes an indented legacy task pass in root review", () => {
+    const repo = makeRepo()
+    const review = LEGACY_TASK_REVIEW.replace("## Task 1", "   ## Task 1")
+    const dir = seed(repo, "add-auth", splitFiles({ "review.md": review }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(field(result, "reviews")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
+  it("rejects a table separator with fewer than three hyphens per cell", () => {
+    const repo = makeRepo()
+    const progress = ROOT_PROGRESS.replace("|---|---|---|", "|-|-|-|")
+    const dir = seed(repo, "add-auth", splitFiles({ "progress.md": progress }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
   it.each([
     ["task", `## Task 1: Add the auth | session — 2026-08-15
 
@@ -212,6 +239,7 @@ Outcome: completed
     ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
+    ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],
     ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
     ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
     ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],
@@ -363,10 +391,45 @@ Outcome: completed
     expect(split).toContain("1/2")
   })
 
+  it("lists an indented root task review as unsupported and continues", () => {
+    const repo = makeRepo()
+    const review = LEGACY_TASK_REVIEW.replace("## Task 1", "   ## Task 1")
+    seed(repo, "legacy-review-change", splitFiles({ "review.md": review }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const legacy = result.lines.find((line) => line.startsWith("legacy-review-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(legacy).toMatch(/^legacy-review-change\s+legacy-unsupported\s/)
+    expect(legacy).not.toContain("1/2")
+    expect(legacy).not.toContain("approved")
+    expect(split).toMatch(/^split-change\s+split\s/)
+  })
+
+  it("lists a short table separator as unsupported and continues", () => {
+    const repo = makeRepo()
+    const progress = ROOT_PROGRESS.replace("|---|---|---|", "|-|-|-|")
+    seed(repo, "short-separator-change", splitFiles({ "progress.md": progress }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const legacy = result.lines.find((line) => line.startsWith("short-separator-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(legacy).toMatch(/^short-separator-change\s+legacy-unsupported\s/)
+    expect(legacy).not.toContain("1/2")
+    expect(legacy).not.toContain("approved")
+    expect(split).toMatch(/^split-change\s+split\s/)
+  })
+
   it.each([
     ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
+    ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],
     ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
     ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
     ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],

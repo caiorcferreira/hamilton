@@ -70,13 +70,21 @@ fmt_date() {
 }
 
 first_header() {
-  strip_comments "$1" | grep -m1 '^#' | sed 's/^#\{1,\} *//'
+  strip_comments "$1" | sed -n '/^ \{0,3\}#/ { s/^ \{0,3\}#\{1,\} *//; p; q; }'
 }
 
 plan_tasks() {
   strip_comments "$1" | awk '
-    /^### Task [1-9][0-9]*:/ {
-      line = $0
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    {
+      line = normalize_atx($0)
+      if (line !~ /^### Task [1-9][0-9]*:/) next
       sub(/^### /, "", line)
       id = line
       sub(/:.*/, "", id)
@@ -89,8 +97,10 @@ plan_tasks() {
   '
 }
 
+TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
+
 root_rows() {
-  strip_comments "$1" | awk '
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
     function trim(value) {
       sub(/^[ \t]+/, "", value)
       sub(/[ \t]+$/, "", value)
@@ -136,7 +146,7 @@ root_rows() {
       next
     }
     found && separator {
-      if ($0 !~ /^[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*$/) {
+      if ($0 !~ table_separator_re) {
         invalid = 1
         exit
       }
@@ -155,13 +165,20 @@ root_rows() {
 }
 
 has_only_root_ledger_shape() {
-  strip_comments "$1" | awk '
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
     {
       line = $0
       sub(/\r$/, "", line)
       if (line ~ /^[ \t]*$/) next
       if (!heading) {
-        if (line ~ /^# Progress:/) heading = 1
+        if (normalize_atx(line) ~ /^# Progress:/) heading = 1
         else invalid = 1
         next
       }
@@ -171,7 +188,7 @@ has_only_root_ledger_shape() {
         next
       }
       if (!separator) {
-        if (line ~ /^[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*$/) separator = 1
+        if (line ~ table_separator_re) separator = 1
         else invalid = 1
         next
       }
@@ -188,59 +205,69 @@ escape_table_title() {
 latest_outcome() {
   local file="$1" task="$2" title="$3"
   strip_comments "$file" | awk -v task="$task" -v title="$title" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
     function close_attempt() {
       if (active && outcome_count != 1) invalid = 1
       active = 0
       outcome_count = 0
     }
-    /^# / {
-      if (title_seen || active || attempt_seen) {
+    {
+      line = normalize_atx($0)
+      if (line ~ /^# /) {
+        if (title_seen || active || attempt_seen) {
+          close_attempt()
+          latest = ""
+          invalid = 1
+        }
+        title_seen = 1
+        next
+      }
+      if (line ~ /^## /) {
+        close_attempt()
+        latest = ""
+        attempt_seen = 1
+        heading = line
+        sub(/^## /, "", heading)
+        sub(/\r$/, "", heading)
+        suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        if (heading !~ (suffix "$")) {
+          invalid = 1
+          next
+        }
+        sub(suffix "$", "", heading)
+        if (heading != task ": " title) {
+          invalid = 1
+          next
+        }
+        active = 1
+        next
+      }
+      if (line ~ /^###+[ \t]/) {
         close_attempt()
         latest = ""
         invalid = 1
-      }
-      title_seen = 1
-      next
-    }
-    /^## / {
-      close_attempt()
-      latest = ""
-      attempt_seen = 1
-      heading = $0
-      sub(/^## /, "", heading)
-      sub(/\r$/, "", heading)
-      suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-      if (heading !~ (suffix "$")) {
-        invalid = 1
         next
       }
-      sub(suffix "$", "", heading)
-      if (heading != task ": " title) {
-        invalid = 1
-        next
+      if ($0 ~ /^[ \t]*-?[ \t]*Outcome:/) {
+        if (!active) {
+          latest = ""
+          invalid = 1
+          next
+        }
+        value = $0
+        sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        outcome_count++
+        if (outcome_count != 1) invalid = 1
+        if (value != "done" && value != "blocked") invalid = 1
+        latest = value
       }
-      active = 1
-      next
-    }
-    /^###+[ \t]/ {
-      close_attempt()
-      latest = ""
-      invalid = 1
-      next
-    }
-    /^[ \t]*-?[ \t]*Outcome:/ {
-      if (!active) {
-        latest = ""
-        invalid = 1
-        next
-      }
-      value = $0
-      sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
-      sub(/[ \t\r]+$/, "", value)
-      outcome_count++
-      if (outcome_count != 1) invalid = 1
-      if (value != "done" && value != "blocked") invalid = 1
-      latest = value
     }
     END {
       close_attempt()
@@ -313,7 +340,7 @@ ledger_counts() {
 }
 
 has_task_review_pass() {
-  strip_comments "$1" | grep -Eq '^## Task [1-9][0-9]*([ :]|$)'
+  strip_comments "$1" | grep -Eq '^ {0,3}## Task [1-9][0-9]*([ :]|$)'
 }
 
 format_of() {
