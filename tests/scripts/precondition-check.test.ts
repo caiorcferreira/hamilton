@@ -11,14 +11,33 @@ const PLAN = `# Plan: add auth
 
 ## Tasks
 
-### Task 1: Add the auth module
+### Task 1: Add the auth | session
 
-- Files: src/auth.ts
+### Task 2: Wire it into the router
 `
 
 const PROGRESS = `# Progress: add auth
 
-## Task 1: Add the auth module — 2026-08-13
+| Task | Status | Progress |
+|---|---|---|
+| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |
+| Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |
+`
+
+const TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
+
+## Attempt 1 — 2026-08-13
+
+- Outcome: blocked
+
+## Attempt 2 — 2026-08-14
+
+- Outcome: done
+`
+
+const TASK_TWO_PROGRESS = `# Task Progress: Task 2 — Wire it into the router
+
+## Attempt 1 — 2026-08-14
 
 - Outcome: done
 `
@@ -26,6 +45,10 @@ const PROGRESS = `# Progress: add auth
 const REVIEW = `# Review: add auth
 
 ## Task 1 — 2026-08-13
+
+Verdict: approved
+
+## Task 2 — 2026-08-13
 
 Verdict: approved
 
@@ -37,15 +60,19 @@ Verdict: approved
 interface Artifacts {
   plan?: string
   progress?: string
-  /** null omits review.md entirely. */
+  taskOneProgress?: string | null
+  taskTwoProgress?: string | null
   review?: string | null
 }
 
-/** Seed and commit a change directory whose gates all pass unless overridden. */
 function seedChange(repo: string, artifacts: Artifacts = {}): string {
   const dir = makeChangeDir(repo, "add-auth")
   Fs.writeFileSync(Path.join(dir, "plan.md"), artifacts.plan ?? PLAN)
   Fs.writeFileSync(Path.join(dir, "progress.md"), artifacts.progress ?? PROGRESS)
+  const taskOneProgress = artifacts.taskOneProgress === undefined ? TASK_ONE_PROGRESS : artifacts.taskOneProgress
+  const taskTwoProgress = artifacts.taskTwoProgress === undefined ? TASK_TWO_PROGRESS : artifacts.taskTwoProgress
+  if (taskOneProgress !== null) write(repo, ".hamilton/changes/add-auth/tasks/task-1/progress.md", taskOneProgress)
+  if (taskTwoProgress !== null) write(repo, ".hamilton/changes/add-auth/tasks/task-2/progress.md", taskTwoProgress)
   const review = artifacts.review === undefined ? REVIEW : artifacts.review
   if (review !== null) Fs.writeFileSync(Path.join(dir, "review.md"), review)
   commitAll(repo, "record the change artifacts")
@@ -65,7 +92,7 @@ describe("hamilton-precondition-check.sh", () => {
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain("[PASS] Clean tree")
-    expect(result.stdout).toContain("[PASS] Tasks (1/1 implemented)")
+    expect(result.stdout).toContain("[PASS] Tasks (2/2 implemented)")
     expect(result.stdout).toContain("[PASS] Reviews (all task scopes and whole change approved)")
     expect(result.stdout).not.toContain("[FAIL]")
     expect(result.lastLine).toBe("gate: open")
@@ -123,16 +150,138 @@ describe("hamilton-precondition-check.sh gate 2 — tests", () => {
 })
 
 describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
-  it("reads the latest outcome, not the first", () => {
+  it("fails when an active task row is missing", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      progress: PROGRESS.replace("| Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |\n", "")
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("[FAIL] Tasks")
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("missing")
+  })
+
+  it("fails when an active task row is duplicated", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      progress: `${PROGRESS}| Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |\n`
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("duplicate")
+  })
+
+  it("fails when the root ledger has an extra task row", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      progress: `${PROGRESS}| Task 3: Extra work | done | [details](tasks/task-3/progress.md) |\n`
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 3")
+    expect(result.stdout).toContain("extra")
+  })
+
+  it("fails when active task rows are reordered", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {
       progress: `# Progress: add auth
 
-## Task 1: Add the auth module — 2026-08-13
+| Task | Status | Progress |
+|---|---|---|
+| Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |
+| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |
+`
+    })
 
-- Outcome: done
+    const result = check(repo, dir)
 
-## Task 1: Add the auth module — 2026-08-14
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1")
+    expect(result.stdout).toContain("order")
+  })
+
+  it("fails when a task status is outside the four allowed values", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { progress: PROGRESS.replace("| done |", "| waiting |") })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1")
+    expect(result.stdout).toContain("invalid status: waiting")
+  })
+
+  it("fails when a task link does not exactly target its progress file", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      progress: PROGRESS.replace("tasks/task-2/progress.md", "tasks/task-1/progress.md")
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("wrong link")
+  })
+
+  it("fails when a linked task progress file is missing", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { taskTwoProgress: null })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("progress file is missing")
+  })
+
+  it("fails when a linked task progress heading declares another task", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      taskTwoProgress: TASK_TWO_PROGRESS.replace(
+        "# Task Progress: Task 2 — Wire it into the router",
+        "# Task Progress: Task 1 — Add the auth | session"
+      )
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("wrong task heading")
+  })
+
+  it.each(["pending", "in-progress", "blocked"])("fails when Task 2 is %s", (status) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      progress: PROGRESS.replace(
+        "| Task 2: Wire it into the router | done |",
+        `| Task 2: Wire it into the router | ${status} |`
+      ),
+      taskTwoProgress: TASK_TWO_PROGRESS.replace("- Outcome: done", "- Outcome: blocked")
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain(`status: ${status}`)
+  })
+
+  it("fails when a done row lacks latest done evidence", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      taskTwoProgress: `${TASK_TWO_PROGRESS}
+## Attempt 2 — 2026-08-15
 
 - Outcome: blocked
 `
@@ -141,59 +290,52 @@ describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
     const result = check(repo, dir)
 
     expect(result.status).toBe(1)
-    expect(result.stdout).toContain("[FAIL] Tasks (0/1 implemented — Task 1(blocked))")
+    expect(result.stdout).toContain("Task 2")
+    expect(result.stdout).toContain("latest Outcome: done evidence")
   })
 
-  it("fails a task with no progress entry at all", () => {
-    const repo = makeRepo()
-    const dir = seedChange(repo, { progress: "# Progress: add auth\n" })
-
-    const result = check(repo, dir)
-
-    expect(result.status).toBe(1)
-    expect(result.stdout).toContain("Task 1(no entry)")
-  })
-
-  it("skips abandoned tasks and counts them separately", () => {
+  it("skips abandoned plan tasks while retaining their history", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {
       plan: `# Plan: add auth
 
 ## Tasks
 
-### Task 1: Add the auth module
+### Task 1: Add the auth | session
 
-### Task 2: Add the audit log (abandoned — folded into Task 1)
-`
+### Task 2: Wire it into the router (abandoned — folded into Task 1)
+`,
+      progress: PROGRESS.replace("| Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |\n", ""),
+      taskTwoProgress: TASK_TWO_PROGRESS.replace("- Outcome: done", "- Outcome: blocked")
     })
 
     const result = check(repo, dir)
 
     expect(result.status).toBe(0)
     expect(result.stdout).toContain("[PASS] Tasks (1/1 implemented, 1 abandoned)")
+    expect(Fs.readFileSync(Path.join(dir, "tasks/task-2/progress.md"), "utf8")).toContain("Outcome: blocked")
   })
 
-  it("ignores task headers that appear inside the template's instructional comments", () => {
+  it("fails a planned legacy progress layout instead of interpreting it", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {
-      plan: `<!--
-  Tasks are written as:
-  ### Task 9: <imperative title>
--->
+      progress: `# Progress: add auth
 
-# Plan: add auth
+## Task 1: Add the auth | session — 2026-08-14
 
-## Tasks
+- Outcome: done
 
-### Task 1: Add the auth module
+## Task 2: Wire it into the router — 2026-08-14
+
+- Outcome: done
 `
     })
 
     const result = check(repo, dir)
 
-    // Task 9 exists only in the comment; counting it would fail an otherwise open gate.
-    expect(result.status).toBe(0)
-    expect(result.stdout).toContain("[PASS] Tasks (1/1 implemented)")
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1")
+    expect(result.stdout).toContain("legacy progress layout is unsupported")
   })
 })
 

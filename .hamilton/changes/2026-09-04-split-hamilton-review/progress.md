@@ -7,7 +7,7 @@
 | Task 3: Remove the legacy project-local template mirror | done | [details](tasks/task-3/progress.md) |
 | Task 4: Scope diff checkpoints to individual tasks | done | [details](tasks/task-4/progress.md) |
 | Task 5: Report split review freshness | done | [details](tasks/task-5/progress.md) |
-| Task 6: Enforce task ledger completion in the finish gate | pending | [details](tasks/task-6/progress.md) |
+| Task 6: Enforce task ledger completion in the finish gate | done | [details](tasks/task-6/progress.md) |
 | Task 7: Enforce split review gates | pending | [details](tasks/task-7/progress.md) |
 | Task 8: Implement the task-local execution lifecycle in skills | pending | [details](tasks/task-8/progress.md) |
 | Task 9: Add the task-scoped code-feedback skill | pending | [details](tasks/task-9/progress.md) |

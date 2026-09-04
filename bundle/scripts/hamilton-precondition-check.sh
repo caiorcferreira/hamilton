@@ -91,81 +91,323 @@ gate_tests() {
 
 # --------------------------------------------------------------- gate 3: tasks
 
-# "Task 3<TAB>abandoned|active" per plan task, in file order.
 plan_tasks() {
   strip_comments "$1" | awk '
-    /^### Task [0-9]+:/ {
-      match($0, /Task [0-9]+/)
-      id = substr($0, RSTART, RLENGTH)
-      state = (index(tolower($0), "(abandoned") > 0) ? "abandoned" : "active"
-      printf "%s\t%s\n", id, state
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    {
+      line = normalize_atx($0)
+      if (line !~ /^### Task [1-9][0-9]*:/) next
+      sub(/^### /, "", line)
+      id = line
+      sub(/:.*/, "", id)
+      title = line
+      sub(/^Task [1-9][0-9]*:[ \t]*/, "", title)
+      sub(/[ \t]+$/, "", title)
+      state = (index(tolower(title), "(abandoned") > 0) ? "abandoned" : "active"
+      printf "%s\t%s\t%s\n", id, title, state
     }
   '
 }
 
-# "Task 3<TAB>done" for the LATEST entry per task — progress appends newest at the
-# bottom, so a task that went blocked then done reads as done, and done then blocked
-# reads as blocked.
-progress_outcomes() {
-  strip_comments "$1" | awk '
-    /^## Task [0-9]+:/ {
-      match($0, /Task [0-9]+/)
-      current = substr($0, RSTART, RLENGTH)
+TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
+
+root_rows() {
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
+    function trim(value) {
+      sub(/^[ \t]+/, "", value)
+      sub(/[ \t]+$/, "", value)
+      return value
+    }
+    function emit_row(line,    value, i, character, cell, n, escaped) {
+      value = line
+      sub(/^[ \t]*\|[ \t]*/, "", value)
+      sub(/[ \t]*\|[ \t]*$/, "", value)
+      cell = ""
+      n = 0
+      escaped = 0
+      for (i = 1; i <= length(value); i++) {
+        character = substr(value, i, 1)
+        if (escaped) {
+          cell = cell "\\" character
+          escaped = 0
+        } else if (character == "\\") {
+          escaped = 1
+        } else if (character == "|") {
+          cells[++n] = trim(cell)
+          cell = ""
+        } else {
+          cell = cell character
+        }
+      }
+      if (escaped) cell = cell "\\"
+      cells[++n] = trim(cell)
+      if (n != 3) {
+        invalid = 1
+        return
+      }
+      printf "%s\t%s\t%s\n", cells[1], cells[2], cells[3]
+    }
+    $0 == "| Task | Status | Progress |" {
+      if (table_seen) {
+        invalid = 1
+        exit
+      }
+      table_seen = 1
+      found = 1
+      separator = 1
       next
     }
-    current != "" && /^[ \t]*-?[ \t]*Outcome:/ {
-      value = $0
-      sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
-      gsub(/[ \t\r]+$/, "", value)
-      outcome[current] = value
+    found && $0 ~ /^[ \t]*$/ {
+      found = 0
+      table_ended = 1
+      if (separator) invalid = 1
       next
     }
-    END { for (t in outcome) printf "%s\t%s\n", t, outcome[t] }
+    table_ended && $0 ~ /^[ \t]*\|/ {
+      invalid = 1
+      exit
+    }
+    found && separator {
+      if ($0 !~ table_separator_re) {
+        invalid = 1
+        exit
+      }
+      separator = 0
+      next
+    }
+    found && $0 ~ /^[ \t]*\|/ {
+      emit_row($0)
+      next
+    }
+    found && $0 !~ /^[ \t]*$/ {
+      found = 0
+    }
+    END { exit invalid }
+  '
+}
+
+has_only_root_ledger_shape() {
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line ~ /^[ \t]*$/) {
+        if (table) table_ended = 1
+        next
+      }
+      if (table_ended) {
+        invalid = 1
+        next
+      }
+      if (!heading) {
+        if (normalize_atx(line) ~ /^# Progress:/) heading = 1
+        else invalid = 1
+        next
+      }
+      if (!table) {
+        if (line == "| Task | Status | Progress |") table = 1
+        else invalid = 1
+        next
+      }
+      if (!separator) {
+        if (line ~ table_separator_re) separator = 1
+        else invalid = 1
+        next
+      }
+      if (line !~ /^[ \t]*\|/) invalid = 1
+    }
+    END { exit !(heading && table && separator && !invalid) }
+  '
+}
+
+escape_table_title() {
+  printf '%s' "$1" | sed 's/|/\\|/g'
+}
+
+task_progress_state() {
+  local file="$1" task="$2" title="$3"
+  strip_comments "$file" | awk -v task="$task" -v title="$title" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    function atx_level(value,    count, character) {
+      count = 0
+      while (substr(value, count + 1, 1) == "#") count++
+      if (count < 1 || count > 6) return 0
+      character = substr(value, count + 1, 1)
+      if (character != "" && character != " " && character != "\t") return 0
+      return count
+    }
+    function close_attempt() {
+      if (active && outcome_count != 1) invalid = 1
+      active = 0
+      outcome_count = 0
+    }
+    {
+      line = normalize_atx($0)
+      level = atx_level(line)
+      if (level == 1) {
+        if (title_seen || active || attempt_seen) {
+          close_attempt()
+          latest = ""
+          invalid = 1
+        }
+        heading = line
+        sub(/^#[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        if (heading != "Task Progress: " task " \342\200\224 " title) wrong_heading = 1
+        title_seen = 1
+        next
+      }
+      if (level == 2) {
+        close_attempt()
+        latest = ""
+        attempt_seen = 1
+        if (!title_seen) {
+          invalid = 1
+          next
+        }
+        heading = line
+        sub(/^##[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        if (heading ~ ("^Attempt [1-9][0-9]*" suffix "$")) {
+          active = 1
+          next
+        }
+        if (heading !~ (suffix "$")) {
+          invalid = 1
+          next
+        }
+        sub(suffix "$", "", heading)
+        if (heading != task ": " title) {
+          invalid = 1
+          next
+        }
+        active = 1
+        next
+      }
+      if (level > 0) {
+        close_attempt()
+        latest = ""
+        invalid = 1
+        next
+      }
+      if ($0 ~ /^[ \t]*-?[ \t]*Outcome:/) {
+        if (!active) {
+          latest = ""
+          invalid = 1
+          next
+        }
+        value = $0
+        sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        outcome_count++
+        if (outcome_count != 1) invalid = 1
+        if (value != "done" && value != "blocked") invalid = 1
+        latest = value
+      }
+    }
+    END {
+      close_attempt()
+      if (!title_seen) wrong_heading = 1
+      if (wrong_heading) print "wrong-heading"
+      else if (invalid) print "invalid"
+      else print latest
+    }
   '
 }
 
 gate_tasks() {
   local change_dir="$1"
   local plan="$change_dir/plan.md" progress="$change_dir/progress.md"
-  local total=0 done_count=0 abandoned=0 missing=""
+  local plans rows_text expected_text="" first_active="" total=0 done_count=0 abandoned=0
+  local id title state expected_task actual_task status link count index row expected_link task_file evidence suffix=""
 
   [ -f "$plan" ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
   [ -f "$progress" ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
 
-  local outcomes
-  outcomes=$(progress_outcomes "$progress")
-
-  local id state outcome
-  while IFS=$'\t' read -r id state; do
+  plans=$(plan_tasks "$plan")
+  while IFS=$'\t' read -r id title state; do
     [ -n "$id" ] || continue
     if [ "$state" = "abandoned" ]; then
       abandoned=$((abandoned + 1))
       continue
     fi
+    [ -n "$first_active" ] || first_active="$id"
     total=$((total + 1))
-    outcome=$(printf '%s\n' "$outcomes" | awk -F'\t' -v t="$id" '$1 == t { print $2 }' | tail -1)
-    if [ "$outcome" = "done" ]; then
-      done_count=$((done_count + 1))
-    elif [ -z "$outcome" ]; then
-      missing="$missing $id(no entry)"
-    else
-      missing="$missing $id($outcome)"
-    fi
+    expected_task="$id: $(escape_table_title "$title")"
+    expected_text="${expected_text}${expected_text:+$'\n'}$id"$'\t'"$expected_task"
   done <<EOF
-$(plan_tasks "$plan")
+$plans
 EOF
 
-  if [ "$total" -eq 0 ]; then
-    fail "Tasks (plan.md declares no tasks)"
-    return
-  fi
-  local suffix=""
+  [ "$total" -gt 0 ] || { fail "Tasks (plan.md declares no active tasks)"; return; }
+  has_only_root_ledger_shape "$progress" || { fail "Tasks ($first_active: legacy progress layout is unsupported)"; return; }
+  rows_text=$(root_rows "$progress") || { fail "Tasks ($first_active: invalid root task ledger)"; return; }
+
+  while IFS=$'\t' read -r id expected_task; do
+    [ -n "$id" ] || continue
+    count=$(printf '%s\n' "$rows_text" | awk -F'\t' -v task="$expected_task" '$1 == task { count++ } END { print count + 0 }')
+    [ "$count" -gt 0 ] || { fail "Tasks ($id: missing root ledger row)"; return; }
+    [ "$count" -eq 1 ] || { fail "Tasks ($id: duplicate root ledger row)"; return; }
+  done <<EOF
+$expected_text
+EOF
+
+  while IFS=$'\t' read -r actual_task status link; do
+    [ -n "$actual_task" ] || continue
+    id=$(printf '%s\n' "$expected_text" | awk -F'\t' -v task="$actual_task" '$2 == task { print $1 }')
+    [ -n "$id" ] || { fail "Tasks (${actual_task%%:*}: extra root ledger row)"; return; }
+  done <<EOF
+$rows_text
+EOF
+
+  index=0
+  while IFS=$'\t' read -r id expected_task; do
+    [ -n "$id" ] || continue
+    index=$((index + 1))
+    row=$(printf '%s\n' "$rows_text" | sed -n "${index}p")
+    IFS=$'\t' read -r actual_task status link <<<"$row"
+    [ "$actual_task" = "$expected_task" ] || { fail "Tasks ($id: root ledger row is out of plan order)"; return; }
+    case "$status" in
+      pending|in-progress|blocked|done) ;;
+      *) fail "Tasks ($id: invalid status: $status)"; return ;;
+    esac
+    expected_link="[details](tasks/task-${id#Task }/progress.md)"
+    [ "$link" = "$expected_link" ] || { fail "Tasks ($id: wrong link; expected $expected_link)"; return; }
+    task_file="$change_dir/tasks/task-${id#Task }/progress.md"
+    [ -f "$task_file" ] || { fail "Tasks ($id: progress file is missing)"; return; }
+    title=$(printf '%s\n' "$plans" | awk -F'\t' -v task="$id" '$1 == task { print $2; exit }')
+    evidence=$(task_progress_state "$task_file" "$id" "$title")
+    [ "$evidence" != "wrong-heading" ] || { fail "Tasks ($id: wrong task heading in progress file)"; return; }
+    [ "$evidence" != "invalid" ] || { fail "Tasks ($id: invalid task attempt evidence; latest Outcome: done evidence is required)"; return; }
+    [ "$status" = "done" ] || { fail "Tasks ($id status: $status)"; return; }
+    [ "$evidence" = "done" ] || { fail "Tasks ($id: done row lacks latest Outcome: done evidence)"; return; }
+    done_count=$((done_count + 1))
+  done <<EOF
+$expected_text
+EOF
+
   [ "$abandoned" -gt 0 ] && suffix=", $abandoned abandoned"
-  if [ "$done_count" -eq "$total" ]; then
-    pass "Tasks ($done_count/$total implemented$suffix)"
-  else
-    fail "Tasks ($done_count/$total implemented$suffix —$missing)"
-  fi
+  pass "Tasks ($done_count/$total implemented$suffix)"
 }
 
 # ------------------------------------------------------------- gate 4: reviews
@@ -251,8 +493,8 @@ gate_reviews() {
 
   # Every non-abandoned plan task needs a reviewed scope of its own.
   if [ -f "$plan" ]; then
-    local id state verdict
-    while IFS=$'\t' read -r id state; do
+    local id title state verdict
+    while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "abandoned" ] && continue
       verdict=$(latest_verdict "$sections" "$(printf '%s' "$id" | tr '[:upper:]' '[:lower:]')")
