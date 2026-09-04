@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
+import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 
 const templatesDir = Path.resolve(Path.dirname(fileURLToPath(import.meta.url)), "../../bundle/templates")
+const repositoryDir = Path.resolve(templatesDir, "../..")
 
 function readTemplate(name: string): string {
   return Fs.readFileSync(Path.join(templatesDir, name), "utf-8")
@@ -64,5 +66,19 @@ describe("split execution artifact templates", () => {
     expect(template).toContain("`finish.md`")
     expect(template).toContain("tasks/task-N/progress.md")
     expect(template).toContain("tasks/task-N/feedback.md")
+  })
+
+  it("keeps bundled templates as the only repository template source", () => {
+    const trackedMirror = execFileSync("git", ["ls-files", ".hamilton/templates/**"], {
+      cwd: repositoryDir,
+      encoding: "utf-8",
+    })
+
+    expect(trackedMirror).toBe("")
+    expect(Fs.existsSync(Path.join(templatesDir, "progress.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(templatesDir, "task-progress.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(templatesDir, "feedback.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(templatesDir, "review.md"))).toBe(true)
+    expect(Fs.existsSync(Path.join(templatesDir, "finish.md"))).toBe(true)
   })
 })
