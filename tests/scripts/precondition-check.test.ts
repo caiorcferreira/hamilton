@@ -344,6 +344,29 @@ describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
     expect(result.lastLine).toBe("gate: open")
   })
 
+  it("fails an empty ledger when the plan declares no recognizable tasks", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      plan: `# Plan: add auth
+
+## Tasks
+
+No tasks were declared.
+`,
+      progress: `# Progress: add auth
+
+| Task | Status | Progress |
+|---|---|---|
+`
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("[FAIL] Tasks (plan.md declares no recognizable tasks)")
+    expect(result.lastLine).toBe("gate: closed (1 failing)")
+  })
+
   it("fails a planned legacy progress layout instead of interpreting it", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {
