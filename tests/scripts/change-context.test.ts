@@ -19,27 +19,38 @@ const PLAN = `# Plan: add auth
 
 ## Tasks
 
-### Task 1: Add the auth module
+### Task 1: Add the auth | session
 
 ### Task 2: Wire it into the router
 `
 
-const PROGRESS = `# Progress: add auth
+const ROOT_PROGRESS = `# Progress: add auth
 
-## Task 1: Add the auth module — 2026-08-13
+| Task | Status | Progress |
+|---|---|---|
+| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |
+| Task 2: Wire it into the router | blocked | [details](tasks/task-2/progress.md) |
+`
+
+const TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
+
+## Task 1: Add the auth | session — 2026-08-13
+
+- Outcome: blocked
+
+## Task 1: Add the auth | session — 2026-08-14
 
 - Outcome: done
 `
 
+const TASK_TWO_PROGRESS = `# Task Progress: Task 2 — Wire it into the router
+
+## Task 2: Wire it into the router — 2026-08-14
+
+- Outcome: blocked
+`
+
 const REVIEW = `# Review: add auth
-
-## Task 1 — 2026-08-13
-
-Verdict: changes-requested
-
-## Task 1 — 2026-08-14
-
-Verdict: approved
 
 ## whole change — 2026-08-14
 
@@ -56,56 +67,69 @@ function seed(repo: string, slug: string, files: Record<string, string>): string
   return dir
 }
 
+function splitFiles(overrides: Record<string, string> = {}): Record<string, string> {
+  return {
+    "proposal.md": PROPOSAL,
+    "plan.md": PLAN,
+    "progress.md": ROOT_PROGRESS,
+    "tasks/task-1/progress.md": TASK_ONE_PROGRESS,
+    "tasks/task-2/progress.md": TASK_TWO_PROGRESS,
+    "review.md": REVIEW,
+    "requirements/auth.md": "# Auth\n",
+    ...overrides
+  }
+}
+
 describe("hamilton-change-context.sh <change-dir>", () => {
-  it("inventories the artifacts, tasks, and review verdicts", () => {
+  it("summarizes a validated split task ledger", () => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", {
-      "proposal.md": PROPOSAL,
-      "plan.md": PLAN,
-      "progress.md": PROGRESS,
-      "review.md": REVIEW,
-      "requirements/auth.md": "# Auth\n"
-    })
+    const dir = seed(repo, "add-auth", splitFiles())
 
     const result = run(SCRIPT, [dir], repo)
 
     expect(result.status).toBe(0)
     expect(field(result, "change")).toBe("add-auth")
     expect(field(result, "path")).toBe(dir)
+    expect(field(result, "format")).toBe("split")
     expect(field(result, "route-unit")).toBe(".hamilton/maps/auth/route.md — unit 2")
     expect(result.stdout).toMatch(/proposal\.md\s+present/)
-    expect(result.stdout).toMatch(/design\.md\s+absent/)
     expect(result.stdout).toMatch(/requirements\/\s+present\s+auth/)
     expect(field(result, "tasks")).toBe("1/2 done")
     expect(result.lastLine).toBe("summary: add-auth — 1/2 tasks done, whole change: approved")
   })
 
-  it("reports the latest verdict per scope", () => {
+  it("recognizes a pre-plan directory without requiring progress scaffolding", () => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", { "review.md": REVIEW })
+    const dir = seed(repo, "add-auth", { "proposal.md": PROPOSAL })
 
     const result = run(SCRIPT, [dir], repo)
 
-    // Task 1 was reviewed twice; the second pass governs.
-    expect(result.stdout).toContain("  Task 1: approved")
-    expect(result.stdout).toContain("  whole change: approved")
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("pre-plan")
+    expect(field(result, "tasks")).toBe("none declared")
+    expect(result.lastLine).toBe("summary: add-auth — pre-plan")
   })
 
-  it("counts abandoned tasks separately", () => {
+  it("labels a planned monolithic directory legacy-unsupported without inferring state", () => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", {
-      "plan.md": `# Plan: add auth
+      "plan.md": PLAN,
+      "progress.md": `# Progress: add auth
 
-### Task 1: Add the auth module
+## Task 1: Add the auth module — 2026-08-13
 
-### Task 2: Add the audit log (abandoned — folded into Task 1)
+- Outcome: done
 `,
-      "progress.md": PROGRESS
+      "review.md": REVIEW
     })
 
     const result = run(SCRIPT, [dir], repo)
 
-    expect(field(result, "tasks")).toBe("1/1 done (1 abandoned)")
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+    expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
   })
 
   it("discards an unfilled route-unit placeholder", () => {
@@ -122,21 +146,29 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(field(result, "route-unit")).toBeUndefined()
   })
 
-  it("reports an empty change without pretending it has tasks or reviews", () => {
+  it.each([
+    ["missing", { "progress.md": `# Progress: add auth\n\n| Task | Status | Progress |\n|---|---|---|\n| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n` }],
+    ["duplicate", { "progress.md": `${ROOT_PROGRESS}| Task 2: Wire it into the router | blocked | [details](tasks/task-2/progress.md) |\n` }],
+    ["extra", { "progress.md": `${ROOT_PROGRESS}| Task 3: Extra | pending | [details](tasks/task-3/progress.md) |\n` }],
+    ["reordered", { "progress.md": `# Progress: add auth\n\n| Task | Status | Progress |\n|---|---|---|\n| Task 2: Wire it into the router | blocked | [details](tasks/task-2/progress.md) |\n| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n` }],
+    ["wrong-link", { "progress.md": ROOT_PROGRESS.replace("tasks/task-2/progress.md", "tasks/task-1/progress.md") }],
+    ["wrong-task", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Task 2", "Task 1") }],
+    ["illegal-status", { "progress.md": ROOT_PROGRESS.replace("| blocked |", "| waiting |") }],
+    ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
+    ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }]
+  ])("reports %s split-ledger drift", (_name, overrides) => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", { "proposal.md": PROPOSAL })
+    const dir = seed(repo, "add-auth", splitFiles(overrides))
 
     const result = run(SCRIPT, [dir], repo)
 
-    expect(result.status).toBe(0)
-    expect(field(result, "tasks")).toBe("none declared")
-    expect(field(result, "reviews")).toBe("review.md absent")
-    expect(result.lastLine).toBe("summary: add-auth — 0/0 tasks done, whole change: not reviewed")
+    expect(result.status, result.stderr).toBe(2)
+    expect(result.stderr).toContain("task ledger:")
   })
 
-  it("discovers the change from a subdirectory of it", () => {
+  it("discovers a split change from a subdirectory", () => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", { "plan.md": PLAN, "requirements/auth.md": "# Auth\n" })
+    const dir = seed(repo, "add-auth", splitFiles())
 
     const result = run(SCRIPT, [], Path.join(dir, "requirements"))
 
@@ -164,33 +196,31 @@ describe("hamilton-change-context.sh <change-dir>", () => {
 })
 
 describe("hamilton-change-context.sh --all", () => {
-  it("lists every change, most recently touched first", () => {
+  it("lists split, pre-plan, and legacy changes in reverse modification order", () => {
     const repo = makeRepo()
-    const older = seed(repo, "older-change", { "plan.md": PLAN, "progress.md": PROGRESS })
-    seed(repo, "newer-change", { "plan.md": PLAN })
-
-    // Midday UTC so the local-time rendering lands on the same date either side of the meridian.
+    const legacy = seed(repo, "legacy-change", { "plan.md": PLAN, "progress.md": "# Progress\n" })
+    const split = seed(repo, "split-change", splitFiles())
+    const prePlan = seed(repo, "pre-plan-change", { "proposal.md": PROPOSAL })
     const stamp = new Date("2026-01-02T12:00:00Z")
-    Fs.utimesSync(Path.join(older, "plan.md"), stamp, stamp)
-    Fs.utimesSync(Path.join(older, "progress.md"), stamp, stamp)
+    Fs.utimesSync(Path.join(legacy, "plan.md"), stamp, stamp)
+    Fs.utimesSync(Path.join(legacy, "progress.md"), stamp, stamp)
+    for (const name of ["proposal.md", "plan.md", "progress.md", "review.md"]) {
+      Fs.utimesSync(Path.join(split, name), stamp, stamp)
+    }
+    Fs.utimesSync(Path.join(prePlan, "proposal.md"), new Date("2026-01-03T12:00:00Z"), new Date("2026-01-03T12:00:00Z"))
 
     const result = run(SCRIPT, ["--all"], repo)
 
     expect(result.status).toBe(0)
-    expect(result.lines[0]).toMatch(/^change\s+artifacts\s+tasks\s+whole change\s+last modified/)
-    expect(result.lines[1]).toContain("newer-change")
-    expect(result.lines[2]).toContain("older-change")
+    expect(result.lines[0]).toMatch(/^change\s+format\s+artifacts\s+tasks\s+whole change\s+last modified/)
+    expect(result.lines[1]).toContain("pre-plan-change")
+    expect(result.lines[1]).toContain("pre-plan")
+    expect(result.lines[2]).toContain("split-change")
+    expect(result.lines[2]).toContain("split")
     expect(result.lines[2]).toContain("1/2")
-    expect(result.lines[2]).toContain("2026-01-02")
-  })
-
-  it("shows a dash for a change with no whole-change verdict", () => {
-    const repo = makeRepo()
-    seed(repo, "add-auth", { "plan.md": PLAN })
-
-    const result = run(SCRIPT, ["--all"], repo)
-
-    expect(result.lines[1]).toMatch(/add-auth\s+plan\s+0\/2\s+-\s/)
+    expect(result.lines[3]).toContain("legacy-change")
+    expect(result.lines[3]).toContain("legacy-unsupported")
+    expect(result.lines[3]).toMatch(/\s-\s+-\s+2026-01-02$/)
   })
 
   it("exits 1 when there is no changes directory", () => {
@@ -212,9 +242,9 @@ describe("hamilton-change-context.sh --all", () => {
     expect(result.stderr).toContain("no changes under")
   })
 
-  it("takes no other arguments", () => {
+  it("takes no other arguments with --all", () => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", { "plan.md": PLAN })
+    const dir = seed(repo, "add-auth", splitFiles())
 
     const result = run(SCRIPT, ["--all", dir], repo)
 
