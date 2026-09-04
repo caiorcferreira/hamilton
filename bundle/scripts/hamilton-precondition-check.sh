@@ -4,15 +4,6 @@
 #
 #   hamilton-precondition-check.sh --change-dir <dir> --test-cmd '<command>' [--whole-change-waived]
 #
-# Gates, one line of output each:
-#   1 clean tree            git status --porcelain is empty
-#   2 tests                 --test-cmd exits 0
-#   3 tasks                 every non-abandoned plan task has a latest progress Outcome: done
-#   4 reviews               every task scope and "whole change" latest verdict is approved,
-#                           with no blocking items under an approved verdict
-#   5 review freshness      the commit that last touched review.md includes the commit that
-#                           last touched code — i.e. the whole-change review is not stale
-#
 # This script fails closed. Anything it cannot parse is a FAIL, never a PASS: a false
 # pass would launder an unreviewed change through the gate. It never infers the
 # whole-change waiver either — gate 5 is waived only when --whole-change-waived is
@@ -412,153 +403,301 @@ EOF
 
 # ------------------------------------------------------------- gate 4: reviews
 
-# "<scope><TAB><verdict><TAB><blocking count>" per review section, in file order.
-review_sections() {
-  strip_comments "$1" | awk '
-    function flush() {
-      if (scope != "") printf "%s\t%s\t%d\n", scope, verdict, blocking
+latest_review_pass() {
+  local file="$1" expected_heading="$2"
+  strip_comments "$file" | awk -v expected_heading="$expected_heading" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
     }
-    /^## / {
-      flush()
-      line = $0
-      sub(/^## /, "", line)
-      sub(/\r$/, "", line)
-      idx = index(line, " \342\200\224 ")           # em dash separator from the template
-      if (idx == 0) idx = index(line, " - ")
-      scope = (idx > 0) ? substr(line, 1, idx - 1) : line
-      gsub(/^[ \t]+|[ \t]+$/, "", scope)
-      scope = tolower(scope)
-      verdict = ""; blocking = 0; section = ""
-      next
+    function atx_level(value,    count, character) {
+      count = 0
+      while (substr(value, count + 1, 1) == "#") count++
+      if (count < 1 || count > 6) return 0
+      character = substr(value, count + 1, 1)
+      if (character != "" && character != " " && character != "\t") return 0
+      return count
     }
-    /^### / {
-      section = tolower($0)
-      sub(/^### /, "", section)
-      gsub(/[ \t\r]+$/, "", section)
-      next
+    function reset_pass() {
+      base = ""
+      head = ""
+      verdict = ""
+      base_count = 0
+      head_count = 0
+      verdict_count = 0
+      blocking_sections = 0
+      suggestion_sections = 0
+      blocking = 0
+      blocking_none = 0
+      cannot_verify = 0
+      section = ""
+      pass_valid = 1
     }
-    tolower($0) ~ /^verdict:/ {
-      value = $0
-      sub(/^[Vv]erdict:[ \t]*/, "", value)
-      gsub(/[ \t\r]+$/, "", value)
-      verdict = tolower(value)
-      next
+    {
+      raw = $0
+      sub(/\r$/, "", raw)
+      line = normalize_atx(raw)
+      level = atx_level(line)
+      if (level == 1) {
+        heading = line
+        sub(/^#[ \t]*/, "", heading)
+        heading_count++
+        if (heading != expected_heading) identity_valid = 0
+        next
+      }
+      if (level == 2) {
+        pass_seen = 1
+        reset_pass()
+        if (heading_count != 1 || !identity_valid) pass_valid = 0
+        heading = line
+        sub(/^##[ \t]*/, "", heading)
+        if (heading !~ /^Pass [1-9][0-9]* \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) pass_valid = 0
+        next
+      }
+      if (!pass_seen) {
+        if (raw !~ /^[ \t]*$/) outside_invalid = 1
+        next
+      }
+      if (level == 3) {
+        heading = line
+        sub(/^###[ \t]*/, "", heading)
+        if (heading == "Blocking") {
+          blocking_sections++
+          if (blocking_sections != 1 || suggestion_sections != 0 || base_count != 1 || head_count != 1 || verdict_count != 1) pass_valid = 0
+          section = "blocking"
+        } else if (heading == "Suggestions") {
+          suggestion_sections++
+          if (blocking_sections != 1 || suggestion_sections != 1) pass_valid = 0
+          section = "suggestions"
+        } else {
+          pass_valid = 0
+          section = "invalid"
+        }
+        next
+      }
+      if (level > 0) {
+        pass_valid = 0
+        next
+      }
+      lower = tolower(raw)
+      if (index(lower, "cannot verify from diff") > 0) cannot_verify = 1
+      if (raw ~ /^Base:/) {
+        if (section != "") pass_valid = 0
+        value = raw
+        sub(/^Base:[ \t]*/, "", value)
+        sub(/[ \t]+$/, "", value)
+        base = value
+        base_count++
+        next
+      }
+      if (raw ~ /^Head:/) {
+        if (section != "") pass_valid = 0
+        value = raw
+        sub(/^Head:[ \t]*/, "", value)
+        sub(/[ \t]+$/, "", value)
+        head = value
+        head_count++
+        next
+      }
+      if (raw ~ /^Verdict:/) {
+        if (section != "") pass_valid = 0
+        value = raw
+        sub(/^Verdict:[ \t]*/, "", value)
+        sub(/[ \t]+$/, "", value)
+        verdict = value
+        verdict_count++
+        next
+      }
+      if (section == "blocking" && raw ~ /^[ \t]*-[ \t]+/) {
+        value = lower
+        sub(/^[ \t]*-[ \t]+/, "", value)
+        sub(/[ \t]+$/, "", value)
+        if (value == "none" || value == "none.") blocking_none++
+        else blocking++
+        next
+      }
+      if ((section == "blocking" || section == "suggestions") && raw !~ /^[ \t]*$/ && raw !~ /^[ \t]*-[ \t]+/) pass_valid = 0
+      else if (section == "" && raw !~ /^[ \t]*$/) pass_valid = 0
     }
-    section == "blocking" && /^[ \t]*-[ \t]+/ { blocking++ }
-    END { flush() }
+    BEGIN { identity_valid = 1 }
+    END {
+      if (heading_count != 1 || !identity_valid || outside_invalid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || blocking_sections != 1 || suggestion_sections != 1 || (blocking > 0 && blocking_none > 0) || (verdict != "approved" && verdict != "changes-requested")) exit 1
+      printf "%s\t%s\t%s\t%d\t%d\n", verdict, base, head, blocking, cannot_verify
+    }
   '
 }
 
-# Sections are in file order and the newest pass is last, so the last verdict for a
-# scope is the one that governs.
-latest_verdict() {
-  printf '%s\n' "$1" | awk -F'\t' -v s="$2" '$1 == s { v = $2 } END { print v }'
+whole_review_pass() {
+  local file="$1" heading
+  heading=$(strip_comments "$file" | awk '
+    /^#[ \t]+Whole-branch Review:[ \t]+[^ \t]/ {
+      line = $0
+      sub(/^#[ \t]+/, "", line)
+      sub(/\r$/, "", line)
+      print line
+      exit
+    }
+  ')
+  [ -n "$heading" ] || return 1
+  latest_review_pass "$file" "$heading"
+}
+
+full_commit() {
+  local root="$1" commit="$2"
+  [[ "$commit" =~ ^[0-9a-f]{40}$|^[0-9a-f]{64}$ ]] || return 1
+  git -C "$root" cat-file -e "$commit^{commit}" 2>/dev/null
+}
+
+review_range_standing() {
+  local root="$1" base="$2" head="$3" required="$4"
+  if ! full_commit "$root" "$base" || ! full_commit "$root" "$head"; then
+    printf 'malformed\n'
+    return
+  fi
+  git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null || { printf 'malformed\n'; return; }
+  git -C "$root" merge-base --is-ancestor "$head" HEAD 2>/dev/null || { printf 'off-branch\n'; return; }
+  if [ -n "$required" ] && ! git -C "$root" merge-base --is-ancestor "$required" "$head" 2>/dev/null; then
+    printf 'stale\n'
+    return
+  fi
+  printf 'fresh\n'
+}
+
+latest_task_commit() {
+  local root="$1" path="$2"
+  git -C "$root" log -1 --format=%H HEAD -- "$path" 2>/dev/null
+}
+
+latest_material_commit() {
+  local root="$1" change_path="$2"
+  git -C "$root" log -1 --format=%H HEAD -- . \
+    ":(exclude)$change_path/progress.md" \
+    ":(exclude,glob)$change_path/tasks/task-*/progress.md" \
+    ":(exclude,glob)$change_path/tasks/task-*/feedback.md" \
+    ":(exclude)$change_path/review.md" \
+    ":(exclude)$change_path/finish.md" 2>/dev/null
 }
 
 gate_reviews() {
   local change_dir="$1"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
-  local problems=""
+  local root change_path problems=""
+  local id title state feedback parsed verdict base head blocking cannot_verify implementation standing
 
   [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
 
-  local sections
-  sections=$(review_sections "$review")
-  if [ -z "$sections" ]; then
-    fail "Reviews (review.md has no '## <scope> — <date>' sections)"
-    return
-  fi
+  root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || { fail "Reviews (change directory is not in a git repository)"; return; }
+  case "$change_dir" in
+    "$root"/*) change_path="${change_dir#"$root"/}" ;;
+    *) fail "Reviews (change directory is outside the repository)"; return ;;
+  esac
 
-  # Any scope that is not "Task <N>" or "whole change" is unparseable, and this
-  # gate does not pass on text it cannot classify.
-  local unknown
-  unknown=$(printf '%s\n' "$sections" | awk -F'\t' '
-    $1 !~ /^task [0-9]+$/ && $1 != "whole change" { print $1 }
-  ' | sort -u | tr '\n' ' ')
-  if [ -n "${unknown// /}" ]; then
-    fail "Reviews (unrecognised scope(s): ${unknown% })"
-    return
-  fi
-
-  # An approved verdict carrying blocking items contradicts itself, whichever
-  # pass it belongs to.
-  local contradictory
-  contradictory=$(printf '%s\n' "$sections" | awk -F'\t' '
-    $2 == "approved" && $3 > 0 { printf "%s(%d blocking) ", $1, $3 }
-  ')
-  if [ -n "$contradictory" ]; then
-    fail "Reviews (approved with unaddressed blocking items: ${contradictory% })"
-    return
-  fi
-
-  # Every non-abandoned plan task needs a reviewed scope of its own.
   if [ -f "$plan" ]; then
-    local id title state verdict
     while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "abandoned" ] && continue
-      verdict=$(latest_verdict "$sections" "$(printf '%s' "$id" | tr '[:upper:]' '[:lower:]')")
-      if [ -z "$verdict" ]; then
-        problems="$problems $id(never reviewed)"
-      elif [ "$verdict" != "approved" ]; then
-        problems="$problems $id(latest verdict: $verdict)"
+      feedback="$change_dir/tasks/task-${id#Task }/feedback.md"
+      if [ ! -s "$feedback" ]; then
+        problems="${problems}${problems:+; }$id(feedback missing)"
+        continue
       fi
+      parsed=$(latest_review_pass "$feedback" "Code Feedback: $id — $title") || {
+        problems="${problems}${problems:+; }$id(feedback malformed)"
+        continue
+      }
+      IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+      if [ "$verdict" != "approved" ]; then
+        problems="${problems}${problems:+; }$id(latest verdict: $verdict)"
+        continue
+      fi
+      if [ "$cannot_verify" -gt 0 ]; then
+        problems="${problems}${problems:+; }$id(unresolved cannot verify from diff)"
+        continue
+      fi
+      if [ "$blocking" -gt 0 ]; then
+        problems="${problems}${problems:+; }$id(approved with $blocking blocking item(s))"
+        continue
+      fi
+      implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${id#Task }/progress.md")
+      if [ -z "$implementation" ]; then
+        problems="${problems}${problems:+; }$id(feedback is stale)"
+        continue
+      fi
+      standing=$(review_range_standing "$root" "$base" "$head" "$implementation")
+      case "$standing" in
+        malformed) problems="${problems}${problems:+; }$id(review range is malformed)" ;;
+        off-branch) problems="${problems}${problems:+; }$id(review head is not on current branch)" ;;
+        stale) problems="${problems}${problems:+; }$id(feedback is stale)" ;;
+        fresh) ;;
+        *) problems="${problems}${problems:+; }$id(review range cannot be verified)" ;;
+      esac
     done <<EOF
 $(plan_tasks "$plan")
 EOF
   fi
 
-  local whole
-  whole=$(latest_verdict "$sections" "whole change")
-  if [ -z "$whole" ]; then
-    problems="$problems whole-change(never reviewed)"
-  elif [ "$whole" != "approved" ]; then
-    problems="$problems whole-change(latest verdict: $whole)"
+  parsed=$(whole_review_pass "$review") || {
+    problems="${problems}${problems:+; }whole-branch(review malformed)"
+    parsed=""
+  }
+  if [ -n "$parsed" ]; then
+    IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+    if [ "$verdict" != "approved" ]; then
+      problems="${problems}${problems:+; }whole-branch(latest verdict: $verdict)"
+    elif [ "$blocking" -gt 0 ]; then
+      problems="${problems}${problems:+; }whole-branch(approved with $blocking blocking item(s))"
+    else
+      standing=$(review_range_standing "$root" "$base" "$head" "")
+      case "$standing" in
+        malformed) problems="${problems}${problems:+; }whole-branch(review range is malformed)" ;;
+        off-branch) problems="${problems}${problems:+; }whole-branch(review head is not on current branch)" ;;
+        fresh) ;;
+        *) problems="${problems}${problems:+; }whole-branch(review range cannot be verified)" ;;
+      esac
+    fi
   fi
 
   if [ -n "$problems" ]; then
-    fail "Reviews ($(printf '%s' "${problems# }"))"
+    fail "Reviews ($problems)"
   else
-    pass "Reviews (all task scopes and whole change approved)"
+    pass "Reviews (all task feedback and whole-branch verdicts approved and current)"
   fi
 }
 
 # ----------------------------------------------------------- gate 5: freshness
 
-# Ancestry, not timestamps: the header dates in review.md are day-granularity and
-# cannot answer "is this review newer than the code?". A review commit that contains
-# the last code commit as an ancestor was necessarily made after it.
 gate_review_freshness() {
   local change_dir="$1" waiver="$2"
-  local root rel_review review_commit code_commit
+  local review="$change_dir/review.md" root change_path parsed verdict base head blocking cannot_verify standing material
 
+  [ -s "$review" ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
+  root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || { fail "Whole-branch review freshness (change directory is not in a git repository)"; return; }
+  case "$change_dir" in
+    "$root"/*) change_path="${change_dir#"$root"/}" ;;
+    *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
+  esac
+  parsed=$(whole_review_pass "$review") || { fail "Whole-branch review freshness (review malformed)"; return; }
+  IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+  standing=$(review_range_standing "$root" "$base" "$head" "")
+  case "$standing" in
+    malformed) fail "Whole-branch review freshness (review range is malformed)"; return ;;
+    off-branch) fail "Whole-branch review freshness (review head is not on current branch)"; return ;;
+    fresh) ;;
+    *) fail "Whole-branch review freshness (review range cannot be verified)"; return ;;
+  esac
+  material=$(latest_material_commit "$root" "$change_path")
+  [ -n "$material" ] || { fail "Whole-branch review freshness (no material commit exists on the current branch)"; return; }
   if [ "$waiver" = "yes" ]; then
-    waived "Whole-change review freshness (waived by the user; record this in the finish entry)"
+    waived "Whole-branch review freshness (material ancestry waived by the user; record this in the finish entry)"
     return
   fi
-
-  root=$(abs_dir "$(git rev-parse --show-toplevel)")
-  rel_review="${change_dir#"$root"/}/review.md"
-
-  review_commit=$(git -C "$root" log -1 --format=%H -- "$rel_review" 2>/dev/null)
-  code_commit=$(git -C "$root" log -1 --format=%H -- . ':(exclude).hamilton' 2>/dev/null)
-
-  if [ -z "$review_commit" ]; then
-    fail "Whole-change review freshness (review.md has never been committed)"
-    return
-  fi
-  if [ -z "$code_commit" ]; then
-    fail "Whole-change review freshness (no commit touches anything outside .hamilton/)"
-    return
-  fi
-  if [ "$review_commit" = "$code_commit" ]; then
-    pass "Whole-change review freshness (review.md and code landed in $(git -C "$root" rev-parse --short "$code_commit"))"
-    return
-  fi
-  if git -C "$root" merge-base --is-ancestor "$code_commit" "$review_commit"; then
-    pass "Whole-change review freshness (review $(git -C "$root" rev-parse --short "$review_commit") postdates code $(git -C "$root" rev-parse --short "$code_commit"))"
+  if git -C "$root" merge-base --is-ancestor "$material" "$head" 2>/dev/null; then
+    pass "Whole-branch review freshness (review head $(git -C "$root" rev-parse --short "$head") contains material $(git -C "$root" rev-parse --short "$material"))"
   else
-    fail "Whole-change review freshness (code $(git -C "$root" rev-parse --short "$code_commit") is newer than review $(git -C "$root" rev-parse --short "$review_commit") — re-review the whole change, or pass --whole-change-waived if the user waived it)"
+    fail "Whole-branch review freshness (review head $(git -C "$root" rev-parse --short "$head") does not contain material $(git -C "$root" rev-parse --short "$material") — re-review the whole change, or pass --whole-change-waived if the user waived it)"
   fi
 }
 

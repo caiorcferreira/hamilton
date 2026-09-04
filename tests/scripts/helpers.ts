@@ -87,6 +87,12 @@ export function commitAll(repo: string, message: string): string {
   return git(repo, "rev-parse", "HEAD")
 }
 
+export function commitPaths(repo: string, message: string, ...paths: string[]): string {
+  git(repo, "add", "--", ...paths)
+  git(repo, "commit", "-q", "-m", message, "--", ...paths)
+  return git(repo, "rev-parse", "HEAD")
+}
+
 /** Create `.hamilton/changes/<slug>/` and return its absolute path. */
 export function makeChangeDir(repo: string, slug: string): string {
   const dir = Path.join(repo, ".hamilton", "changes", slug)
