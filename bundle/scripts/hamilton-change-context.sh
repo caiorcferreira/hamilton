@@ -153,6 +153,10 @@ has_root_table() {
   strip_comments "$1" | grep -qx '| Task | Status | Progress |'
 }
 
+has_legacy_task_history() {
+  strip_comments "$1" | grep -Eq '^## Task [1-9][0-9]*:'
+}
+
 escape_table_title() {
   printf '%s' "$1" | sed 's/|/\\|/g'
 }
@@ -160,7 +164,15 @@ escape_table_title() {
 latest_outcome() {
   local file="$1" task="$2"
   strip_comments "$file" | awk -v task="$task" '
-    $0 ~ "^## " task ":" {
+    /^## Task [1-9][0-9]*:/ {
+      heading = $0
+      sub(/^## /, "", heading)
+      sub(/:.*/, "", heading)
+      if (heading != task) {
+        invalid = 1
+        active = 0
+        next
+      }
       active = 1
       outcome = ""
       next
@@ -175,7 +187,10 @@ latest_outcome() {
       sub(/[ \t\r]+$/, "", value)
       outcome = value
     }
-    END { print outcome }
+    END {
+      print outcome
+      exit invalid
+    }
   '
 }
 
@@ -191,7 +206,8 @@ validate_ledger() {
 
   mapfile -t plans < <(plan_tasks "$plan")
   rows_text=$(root_rows "$progress") || return 1
-  mapfile -t rows <<<"$rows_text"
+  rows=()
+  [ -z "$rows_text" ] || mapfile -t rows <<<"$rows_text"
   [ "${#plans[@]}" -gt 0 ] || { ledger_error "plan has no active task declarations"; return 1; }
   active=0
   for plan_row in "${plans[@]}"; do
@@ -216,7 +232,7 @@ validate_ledger() {
     task_file="$dir/tasks/task-${id#Task }/progress.md"
     [ -f "$task_file" ] || { ledger_error "$id progress file is missing"; return 1; }
     [ "$(first_header "$task_file")" = "Task Progress: $id — $title" ] || { ledger_error "$id progress heading does not match"; return 1; }
-    outcome=$(latest_outcome "$task_file" "$id")
+    outcome=$(latest_outcome "$task_file" "$id") || { ledger_error "$id progress contains another task attempt"; return 1; }
     [ "$status" != "done" ] || [ "$outcome" = "done" ] || { ledger_error "$id done row lacks latest Outcome: done evidence"; return 1; }
     index=$((index + 1))
   done
@@ -236,6 +252,7 @@ format_of() {
   local dir="$1" plan_row id title state
   [ -f "$dir/plan.md" ] || { printf 'pre-plan\n'; return; }
   [ -f "$dir/progress.md" ] && has_root_table "$dir/progress.md" || { printf 'legacy-unsupported\n'; return; }
+  has_legacy_task_history "$dir/progress.md" && { printf 'legacy-unsupported\n'; return; }
   while IFS=$'\t' read -r id title state; do
     [ "$state" = "active" ] || continue
     [ -f "$dir/tasks/task-${id#Task }/progress.md" ] || { printf 'legacy-unsupported\n'; return; }

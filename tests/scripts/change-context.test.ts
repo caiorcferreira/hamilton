@@ -132,6 +132,25 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
   })
 
+  it("labels mixed split and root task history legacy-unsupported", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({
+      "progress.md": `${ROOT_PROGRESS}
+## Task 1: Add the auth | session — 2026-08-15
+
+- Outcome: done
+`
+    }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+    expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
+  })
+
   it("discards an unfilled route-unit placeholder", () => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", {
@@ -155,7 +174,8 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     ["wrong-task", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Task 2", "Task 1") }],
     ["illegal-status", { "progress.md": ROOT_PROGRESS.replace("| blocked |", "| waiting |") }],
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
-    ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }]
+    ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
+    ["sibling-task-attempt", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 2: Wire it into the router — 2026-08-15\n\n- Outcome: blocked\n` }]
   ])("reports %s split-ledger drift", (_name, overrides) => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", splitFiles(overrides))
@@ -164,6 +184,30 @@ describe("hamilton-change-context.sh <change-dir>", () => {
 
     expect(result.status, result.stderr).toBe(2)
     expect(result.stderr).toContain("task ledger:")
+  })
+
+  it("supports an all-abandoned plan with an empty task ledger", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "retired-change", {
+      "plan.md": `# Plan: retired change
+
+## Tasks
+
+### Task 1: Retired work (abandoned — no longer needed)
+`,
+      "progress.md": `# Progress: retired change
+
+| Task | Status | Progress |
+|---|---|---|
+`
+    })
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(field(result, "format")).toBe("split")
+    expect(field(result, "tasks")).toBe("0/0 done")
+    expect(result.lastLine).toBe("summary: retired-change — 0/0 tasks done, whole change: not reviewed")
   })
 
   it("discovers a split change from a subdirectory", () => {
@@ -221,6 +265,28 @@ describe("hamilton-change-context.sh --all", () => {
     expect(result.lines[3]).toContain("legacy-change")
     expect(result.lines[3]).toContain("legacy-unsupported")
     expect(result.lines[3]).toMatch(/\s-\s+-\s+2026-01-02$/)
+  })
+
+  it("lists mixed root task history as legacy-unsupported and continues", () => {
+    const repo = makeRepo()
+    seed(repo, "mixed-change", splitFiles({
+      "progress.md": `${ROOT_PROGRESS}
+## Task 1: Add the auth | session — 2026-08-15
+
+- Outcome: done
+`
+    }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const mixed = result.lines.find((line) => line.startsWith("mixed-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(mixed).toContain("legacy-unsupported")
+    expect(mixed).not.toContain("1/2")
+    expect(split).toContain("split")
+    expect(split).toContain("1/2")
   })
 
   it("exits 1 when there is no changes directory", () => {

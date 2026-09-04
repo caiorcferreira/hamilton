@@ -17,3 +17,12 @@
 - Verified: `bun --bun vitest run` → 105 tests passed
 - Verified: `bun run build` → passed
 - Notes: Recovery self-review made physical latest task evidence authoritative by clearing any earlier outcome when a newer attempt begins; direct and `--all` output were inspected, including GNU/Linux modification-time ordering.
+
+## Task 1: Parse split change context — 2026-09-04
+
+- Outcome: done
+- Changed: created none; modified `bundle/scripts/hamilton-change-context.sh`, `tests/scripts/change-context.test.ts`; deleted none
+- Verified: `bun --bun vitest run tests/scripts/change-context.test.ts` → 24 tests passed
+- Verified: `bun --bun vitest run` → 109 tests passed
+- Verified: `bun run build` → passed
+- Notes: Addressed review feedback by rejecting mixed root task history as legacy in direct and inventory modes, rejecting sibling task attempt identities, and preserving an empty ledger for all-abandoned plans. The original scaffold checkpoint remains unchanged.
