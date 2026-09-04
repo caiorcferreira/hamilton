@@ -3,7 +3,7 @@
 | Task | Status | Progress |
 |---|---|---|
 | Task 1: Parse split change context | done | [details](tasks/task-1/progress.md) |
-| Task 2: Ship split pipeline artifact templates | pending | [details](tasks/task-2/progress.md) |
+| Task 2: Ship split pipeline artifact templates | done | [details](tasks/task-2/progress.md) |
 | Task 3: Remove the legacy project-local template mirror | pending | [details](tasks/task-3/progress.md) |
 | Task 4: Scope diff checkpoints to individual tasks | pending | [details](tasks/task-4/progress.md) |
 | Task 5: Report split review freshness | pending | [details](tasks/task-5/progress.md) |

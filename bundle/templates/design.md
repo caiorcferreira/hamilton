@@ -1,6 +1,6 @@
 <!--
   SDD — Design / "How"   (IEEE 1016-inspired, right-sized)
-  Produced by: hamilton-propose (step 1).
+  Produced by: hamilton-propose (step 1 of the seven-stage pipeline).
   Owns HOW the change is built. References proposal.md for why, requirements/ for what.
   Focus on architecture and the decisions behind it — NOT line-by-line code
   (that belongs in plan.md).
@@ -70,7 +70,8 @@
 ## Testing Strategy
 
 <!-- What will prove this works: unit vs integration boundaries, the key cases to
-     cover, and how verification runs. This feeds hamilton-code and hamilton-review. -->
+     cover, and how verification runs. This feeds hamilton-code, hamilton-code-feedback,
+     hamilton-review, and hamilton-finish-work. -->
 
 ## Constraints & Boundaries
 

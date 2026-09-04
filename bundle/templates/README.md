@@ -1,17 +1,20 @@
 # SDD artifact templates
 
-Templates for the spec-driven pipeline. Each maps to a well-known standard, taken
-in spirit (right-sized), not by conformance.
+Templates for the seven-stage spec-driven pipeline. Each maps to a well-known standard,
+taken in spirit (right-sized), not by conformance.
 
-| Template                 | Document        | Owns  | Standard (inspiration)   | Produced by          |
-|--------------------------|-----------------|-------|--------------------------|----------------------|
-| `proposal.md`            | PRD             | Why   | —                        | hamilton-propose     |
-| `requirements-change.md` | SRS (delta)     | What  | ISO/IEC/IEEE 29148       | hamilton-propose     |
-| `requirements-spec.md`   | SRS (canonical) | What  | ISO/IEC/IEEE 29148       | hamilton-finish-work |
-| `design.md`              | SDD             | How   | IEEE 1016                | hamilton-propose     |
-| `plan.md`                | Plan            | Steps | — (handoff contract)     | hamilton-plan        |
-| `progress.md`            | Progress        | Log      | — (execution ledger)  | hamilton-code        |
-| `review.md`              | Review          | Verdict  | — (review artifact)   | hamilton-review      |
+| Template | Document | Owns | Instance path | Produced or updated by |
+|---|---|---|---|---|
+| `proposal.md` | PRD | Why | `<change>/proposal.md` | hamilton-propose |
+| `requirements-change.md` | SRS (delta) | What | `<change>/requirements/<capability>.md` | hamilton-propose |
+| `requirements-spec.md` | SRS (canonical) | What | `.hamilton/specs/<capability>.md` | hamilton-finish-work |
+| `design.md` | SDD | How | `<change>/design.md` | hamilton-propose |
+| `plan.md` | Plan | Steps | `<change>/plan.md` | hamilton-plan |
+| `progress.md` | Task index | Current task status | `<change>/progress.md` | hamilton-plan / hamilton-code |
+| `task-progress.md` | Task Progress | Task execution history | `<change>/tasks/task-N/progress.md` | hamilton-code |
+| `feedback.md` | Code Feedback | Task feedback | `<change>/tasks/task-N/feedback.md` | hamilton-code-feedback |
+| `review.md` | Whole-branch Review | Whole-branch verdict | `<change>/review.md` | hamilton-review |
+| `finish.md` | Finish History | Finish attempts and outcomes | `<change>/finish.md` | hamilton-finish-work |
 
 The two SRS forms are the same content in two states: `requirements-change.md` is the
 delta a change proposes; `requirements-spec.md` is the consolidated truth it folds into.
@@ -19,22 +22,21 @@ delta a change proposes; `requirements-spec.md` is the consolidated truth it fol
 ## Required vs optional
 
 Only `plan.md` is required. `proposal.md`, `design.md`, and `requirements/` are
-optional: small or mechanical changes may start directly at `hamilton-plan`.
+optional: small or mechanical changes may start directly at hamilton-plan.
 
-Every downstream skill therefore degrades gracefully — it consumes the richer
-upstream artifact when present, and otherwise works from the raw change
-description. This is what makes "start anywhere" real.
+Every downstream stage consumes the richer upstream artifact when present, and otherwise
+works from the raw change description. This is what makes "start anywhere" real.
 
 ## Wayfinder templates
 
 These templates support wayfinding—the optional pre-change stage that clarifies a change's
 shape before committing to the SDD loop. They are not SDD pipeline artifacts.
 
-| Template          | Artifact         | Produced by      |
-|-------------------|------------------|------------------|
-| `wayfinder/map.md`       | Map              | hamilton-wayfinder |
-| `wayfinder/ticket.md`    | Decision ticket  | hamilton-wayfinder |
-| `wayfinder/route.md`     | Route            | hamilton-wayfinder |
+| Template | Artifact | Produced by |
+|---|---|---|
+| `wayfinder/map.md` | Map | hamilton-wayfinder |
+| `wayfinder/ticket.md` | Decision ticket | hamilton-wayfinder |
+| `wayfinder/route.md` | Route | hamilton-wayfinder |
 
 The artifacts these templates produce live under `.hamilton/maps/<effort>/`: `map.md` and
 `route.md` at the root, and decision tickets at `tickets/NN-slug.md`. Unlike `specs/` and
@@ -53,21 +55,27 @@ Per-project, under the project's `.hamilton/` directory (created by `hamilton-in
 
 ```
 .hamilton/
-  specs/                              # canonical capability truth (living)
-    <capability>.md                   # requirements-spec.md form — no delta markers
+  specs/
+    <capability>.md
   changes/
     <YYYY-MM-DD-change-title>/
-      proposal.md                     # optional (PRD)
-      design.md                       # optional (SDD)
-      requirements/                   # optional (SRS, delta form)
-        <capability>.md               # requirements-change.md form
-      plan.md                         # required
-      progress.md                     # execution ledger — what actually happened
-      review.md                       # review verdict + feedback (per pass)
+      proposal.md
+      design.md
+      requirements/
+        <capability>.md
+      plan.md
+      progress.md
+      tasks/
+        task-N/
+          progress.md
+          feedback.md
+      review.md
+      finish.md
 ```
 
-`plan.md` is authored up front; `progress.md` is written during implementation. Task
-completion lives in `progress.md`, not as a status field on the plan.
+`plan.md` is authored up front. The root `progress.md` is the current task index; each
+linked task progress file records implementation attempts. Task feedback is kept alongside
+task progress, while `review.md` and `finish.md` remain change-level artifacts.
 
 `requirements/*.md` inside a change use delta headers (ADDED / MODIFIED / REMOVED /
 RENAMED). `hamilton-finish-work` folds those deltas into the canonical

@@ -9,13 +9,16 @@ import { setupHamilton, buildSettingsYaml } from "../../src/cli/commands/setup.j
 const TEMPLATE_FILES = [
   "critique.md",
   "design.md",
+  "feedback.md",
+  "finish.md",
   "plan.md",
   "progress.md",
   "proposal.md",
   "README.md",
   "requirements-change.md",
   "requirements-spec.md",
-  "review.md"
+  "review.md",
+  "task-progress.md"
 ]
 
 const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md", "wayfinder/route.md"]
@@ -108,6 +111,9 @@ describe("setupHamilton", () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     if (Exit.isSuccess(exit)) {
       expect(exit.value.templates).toContain("plan.md")
+      expect(exit.value.templates).toContain("task-progress.md")
+      expect(exit.value.templates).toContain("feedback.md")
+      expect(exit.value.templates).toContain("finish.md")
       expect(exit.value.templates).toContain("wayfinder/map.md")
       expect(exit.value.templates.length).toBeGreaterThan(0)
     } else {
