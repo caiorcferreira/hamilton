@@ -126,6 +126,11 @@ root_rows() {
       printf "%s\t%s\t%s\n", cells[1], cells[2], cells[3]
     }
     $0 == "| Task | Status | Progress |" {
+      if (table_seen) {
+        invalid = 1
+        exit
+      }
+      table_seen = 1
       found = 1
       separator = 1
       next
@@ -181,23 +186,25 @@ escape_table_title() {
 }
 
 latest_outcome() {
-  local file="$1" task="$2"
-  strip_comments "$file" | awk -v task="$task" '
-    /^## Task [1-9][0-9]*:/ {
+  local file="$1" task="$2" title="$3"
+  strip_comments "$file" | awk -v task="$task" -v title="$title" '
+    /^## / {
+      active = 0
+      outcome = ""
       heading = $0
       sub(/^## /, "", heading)
-      sub(/:.*/, "", heading)
-      if (heading != task) {
+      sub(/\r$/, "", heading)
+      suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+      if (heading !~ (suffix "$")) {
         invalid = 1
-        active = 0
+        next
+      }
+      sub(suffix "$", "", heading)
+      if (heading != task ": " title) {
+        invalid = 1
         next
       }
       active = 1
-      outcome = ""
-      next
-    }
-    /^## / {
-      active = 0
       next
     }
     active && /^[ \t]*-?[ \t]*Outcome:/ {
@@ -220,25 +227,32 @@ ledger_error() {
 
 validate_ledger() {
   local dir="$1" plan="$dir/plan.md" progress="$dir/progress.md"
-  local -a plans rows
-  local index plan_row row rows_text id title state actual_task status link expected_task expected_link task_file outcome active
+  local plans rows_text index row id title state actual_task status link expected_task expected_link task_file outcome active row_count
 
-  mapfile -t plans < <(plan_tasks "$plan")
+  plans=$(plan_tasks "$plan")
   rows_text=$(root_rows "$progress") || return 1
-  rows=()
-  [ -z "$rows_text" ] || mapfile -t rows <<<"$rows_text"
-  [ "${#plans[@]}" -gt 0 ] || { ledger_error "plan has no active task declarations"; return 1; }
+  [ -n "$plans" ] || { ledger_error "plan has no active task declarations"; return 1; }
   active=0
-  for plan_row in "${plans[@]}"; do
-    IFS=$'\t' read -r id title state <<<"$plan_row"
+  while IFS=$'\t' read -r id title state; do
+    [ -n "$id" ] || continue
     [ "$state" = "active" ] && active=$((active + 1))
-  done
-  [ "${#rows[@]}" -eq "$active" ] || { ledger_error "root rows do not match active plan tasks"; return 1; }
+  done <<EOF
+$plans
+EOF
+  row_count=0
+  while IFS=$'\t' read -r actual_task status link; do
+    [ -n "$actual_task" ] || continue
+    row_count=$((row_count + 1))
+  done <<EOF
+$rows_text
+EOF
+  [ "$row_count" -eq "$active" ] || { ledger_error "root rows do not match active plan tasks"; return 1; }
   index=0
-  for plan_row in "${plans[@]}"; do
-    IFS=$'\t' read -r id title state <<<"$plan_row"
+  while IFS=$'\t' read -r id title state; do
+    [ -n "$id" ] || continue
     [ "$state" = "active" ] || continue
-    row="${rows[$index]}"
+    index=$((index + 1))
+    row=$(printf '%s\n' "$rows_text" | sed -n "${index}p")
     IFS=$'\t' read -r actual_task status link <<<"$row"
     expected_task="$id: $(escape_table_title "$title")"
     expected_link="[details](tasks/task-${id#Task }/progress.md)"
@@ -251,10 +265,11 @@ validate_ledger() {
     task_file="$dir/tasks/task-${id#Task }/progress.md"
     [ -f "$task_file" ] || { ledger_error "$id progress file is missing"; return 1; }
     [ "$(first_header "$task_file")" = "Task Progress: $id — $title" ] || { ledger_error "$id progress heading does not match"; return 1; }
-    outcome=$(latest_outcome "$task_file" "$id") || { ledger_error "$id progress contains another task attempt"; return 1; }
+    outcome=$(latest_outcome "$task_file" "$id" "$title") || { ledger_error "$id progress contains invalid task attempt sections"; return 1; }
     [ "$status" != "done" ] || [ "$outcome" = "done" ] || { ledger_error "$id done row lacks latest Outcome: done evidence"; return 1; }
-    index=$((index + 1))
-  done
+  done <<EOF
+$plans
+EOF
 }
 
 ledger_counts() {
@@ -267,10 +282,15 @@ ledger_counts() {
   printf '%s\t%s\n' "$done_count" "$total"
 }
 
+has_task_review_pass() {
+  strip_comments "$1" | grep -Eq '^## Task [1-9][0-9]*([ :]|$)'
+}
+
 format_of() {
   local dir="$1" plan_row id title state
   [ -f "$dir/plan.md" ] || { printf 'pre-plan\n'; return; }
   [ -f "$dir/progress.md" ] && has_only_root_ledger_shape "$dir/progress.md" || { printf 'legacy-unsupported\n'; return; }
+  [ ! -f "$dir/review.md" ] || ! has_task_review_pass "$dir/review.md" || { printf 'legacy-unsupported\n'; return; }
   while IFS=$'\t' read -r id title state; do
     [ "$state" = "active" ] || continue
     [ -f "$dir/tasks/task-${id#Task }/progress.md" ] || { printf 'legacy-unsupported\n'; return; }

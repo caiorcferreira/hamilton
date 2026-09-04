@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { run, makeRepo, makeChangeDir, cleanupRepos, field } from "./helpers.js"
+import { run, makeRepo, makeChangeDir, cleanupRepos, field, SCRIPTS_DIR } from "./helpers.js"
 
 const SCRIPT = "hamilton-change-context.sh"
 
@@ -51,6 +51,17 @@ const TASK_TWO_PROGRESS = `# Task Progress: Task 2 — Wire it into the router
 `
 
 const REVIEW = `# Review: add auth
+
+## whole change — 2026-08-14
+
+Verdict: approved
+`
+
+const LEGACY_TASK_REVIEW = `# Review: add auth
+
+## Task 1 — 2026-08-14
+
+Verdict: approved
 
 ## whole change — 2026-08-14
 
@@ -132,6 +143,20 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
   })
 
+  it("labels a split ledger with legacy task passes in root review legacy-unsupported", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({ "review.md": LEGACY_TASK_REVIEW }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(field(result, "reviews")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+    expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
+  })
+
   it.each([
     ["task", `## Task 1: Add the auth | session — 2026-08-15
 
@@ -182,8 +207,10 @@ Outcome: completed
     ["wrong-link", { "progress.md": ROOT_PROGRESS.replace("tasks/task-2/progress.md", "tasks/task-1/progress.md") }],
     ["wrong-task", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Task 2", "Task 1") }],
     ["illegal-status", { "progress.md": ROOT_PROGRESS.replace("| blocked |", "| waiting |") }],
+    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
     ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
+    ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["sibling-task-attempt", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 2: Wire it into the router — 2026-08-15\n\n- Outcome: blocked\n` }]
   ])("reports %s split-ledger drift", (_name, overrides) => {
     const repo = makeRepo()
@@ -193,6 +220,7 @@ Outcome: completed
 
     expect(result.status, result.stderr).toBe(2)
     expect(result.stderr).toContain("task ledger:")
+    expect(field(result, "tasks")).toBeUndefined()
   })
 
   it("supports an all-abandoned plan with an empty task ledger", () => {
@@ -245,6 +273,12 @@ Outcome: completed
 
     expect(result.status).toBe(2)
     expect(result.stderr).toContain("change dir does not exist")
+  })
+
+  it("avoids Bash 4 line-collection builtins", () => {
+    const source = Fs.readFileSync(Path.join(SCRIPTS_DIR, SCRIPT), "utf8")
+
+    expect(source).not.toMatch(/\b(?:mapfile|readarray)\b/)
   })
 })
 
@@ -304,6 +338,43 @@ Outcome: completed
     expect(mixed).toContain("legacy-unsupported")
     expect(mixed).not.toContain("1/2")
     expect(split).toContain("split")
+    expect(split).toContain("1/2")
+  })
+
+  it("lists legacy task passes in root review as unsupported and continues", () => {
+    const repo = makeRepo()
+    seed(repo, "legacy-review-change", splitFiles({ "review.md": LEGACY_TASK_REVIEW }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const legacy = result.lines.find((line) => line.startsWith("legacy-review-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(legacy).toMatch(/^legacy-review-change\s+legacy-unsupported\s/)
+    expect(legacy).not.toContain("1/2")
+    expect(legacy).not.toContain("approved")
+    expect(split).toContain("split")
+    expect(split).toContain("1/2")
+  })
+
+  it.each([
+    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
+    ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }]
+  ])("marks %s structural drift invalid and continues", (_kind, overrides) => {
+    const repo = makeRepo()
+    seed(repo, "invalid-change", splitFiles(overrides))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const invalid = result.lines.find((line) => line.startsWith("invalid-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(invalid).toMatch(/^invalid-change\s+invalid\s/)
+    expect(invalid).not.toContain("1/2")
+    expect(invalid).not.toContain("approved")
+    expect(split).toMatch(/^split-change\s+split\s/)
     expect(split).toContain("1/2")
   })
 
