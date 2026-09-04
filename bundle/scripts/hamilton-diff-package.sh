@@ -1,28 +1,14 @@
 #!/usr/bin/env bash
-#
-# hamilton-diff-package.sh — own per-task BASE bookkeeping and build the diff
-# packages a reviewer dispatch carries.
-#
-#   hamilton-diff-package.sh --record [--change-dir <dir>]        store BASE = current HEAD
-#   hamilton-diff-package.sh [--base <sha>] [--change-dir <dir>] [--out <file>]
-#   hamilton-diff-package.sh --whole-change [--out <file>]        merge-base <default>..HEAD
-#
-# BASE lives on disk, so it survives a compacted context — the failure the
-# "never HEAD~1" warning exists to prevent. Package mode never guesses a BASE:
-# with nothing recorded it fails and tells you to --record first.
-#
-# The last line of every mode is the load-bearing path.
-#
-# Exit: 0 success, 1 nothing recorded / empty range, 2 usage or environment error.
 
 set -uo pipefail
 
 usage() {
   cat <<'EOF'
 usage:
-  hamilton-diff-package.sh --record [--change-dir <dir>]        store BASE = current HEAD
-  hamilton-diff-package.sh [--base <sha>] [--change-dir <dir>] [--out <file>]
-  hamilton-diff-package.sh --whole-change [--out <file>]        merge-base <default>..HEAD
+  hamilton-diff-package.sh --record --task <N> [--change-dir <dir>]
+  hamilton-diff-package.sh --task <N> [--change-dir <dir>] [--out <file>]
+  hamilton-diff-package.sh --base <sha> [--change-dir <dir>] [--out <file>]
+  hamilton-diff-package.sh --whole-change [--out <file>]
 
 exit: 0 success, 1 nothing recorded / empty range, 2 usage or environment error
 EOF
@@ -42,15 +28,12 @@ repo_root() {
   abs_dir "$(git rev-parse --show-toplevel)"
 }
 
-# Walk up from CWD looking for a .hamilton/changes/<slug> directory. Never
-# guesses beyond that: with no match, the caller must pass --change-dir.
 discover_change_dir() {
   local dir
   dir=$(pwd -P)
   while [ "$dir" != "/" ]; do
     case "$dir" in
       */.hamilton/changes/*)
-        # Climb to the slug directory itself, not a subdirectory of it.
         while [ "$(basename "$(dirname "$dir")")" != "changes" ]; do
           dir=$(dirname "$dir")
         done
@@ -70,13 +53,10 @@ resolve_change_dir() {
     abs_dir "$given"
     return 0
   fi
-  resolved=$(discover_change_dir) \
-    || die "not inside a change directory — pass --change-dir <dir>"
+  resolved=$(discover_change_dir) || die "not inside a change directory — pass --change-dir <dir>"
   printf '%s\n' "$resolved"
 }
 
-# Prefer the remote's default branch: a long-lived local branch can lag behind
-# what the change will actually merge into.
 default_ref() {
   local ref candidate
   ref=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)
@@ -100,15 +80,11 @@ default_ref() {
   return 1
 }
 
-# Keep .base out of `git status`: it sits inside a change directory whose
-# artifacts are tracked, and an untracked file there would fail the finish gate.
 ensure_base_ignored() {
   local base_file="$1" root rel exclude_file
   root=$(repo_root)
   rel="${base_file#"$root"/}"
-
   git check-ignore -q "$base_file" 2>/dev/null && return 0
-
   exclude_file="$(git rev-parse --git-common-dir)/info/exclude"
   mkdir -p "$(dirname "$exclude_file")" || die "cannot create $(dirname "$exclude_file")"
   if [ -f "$exclude_file" ] && grep -qxF "$rel" "$exclude_file"; then
@@ -118,14 +94,23 @@ ensure_base_ignored() {
   printf 'ignored: added %s to %s\n' "$rel" "$exclude_file"
 }
 
+validate_task() {
+  local change_dir="$1" task="$2" plan
+  [[ "$task" =~ ^[1-9][0-9]*$ ]] || die "task must be an exact positive task number"
+  plan="$change_dir/plan.md"
+  [ -f "$plan" ] || die "task $task has no plan at $plan"
+  grep -qE "^### Task ${task}:" "$plan" || die "task $task is not active in $plan"
+}
+
+task_base_file() {
+  printf '%s/tasks/task-%s/.base\n' "$1" "$2"
+}
+
 write_package() {
   local base="$1" head="$2" label="$3" out="$4"
-
   if [ -z "$out" ]; then
-    out=$(mktemp "${TMPDIR:-/tmp}/hamilton-diff-${label}-XXXXXX") \
-      || die "cannot create a scratch file"
+    out=$(mktemp "${TMPDIR:-/tmp}/hamilton-diff-${label}-XXXXXX") || die "cannot create a scratch file"
   fi
-
   {
     printf '# Hamilton diff package\n'
     printf '# range: %s..%s\n' "$base" "$head"
@@ -134,78 +119,74 @@ write_package() {
     printf '\n## git diff -U10 %s..%s\n\n' "$base" "$head"
     git diff -U10 "$base..$head"
   } >"$out" || die "cannot write $out"
-
   printf 'range: %s..%s\n' "$base" "$head"
   printf 'files-changed: %s\n' "$(git diff --name-only "$base..$head" | wc -l | tr -d ' ')"
   printf '%s\n' "$out"
 }
 
 cmd_record() {
-  local change_dir="$1" resolved head base_file
+  local change_dir="$1" task="$2" resolved head base_file base
   resolved=$(resolve_change_dir "$change_dir") || exit $?
-  head=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
-  base_file="$resolved/.base"
-
-  printf '%s\n' "$head" >"$base_file" || die "cannot write $base_file"
+  validate_task "$resolved" "$task"
+  base_file=$(task_base_file "$resolved" "$task")
+  mkdir -p "$(dirname "$base_file")" || die "cannot create $(dirname "$base_file")"
+  if [ -f "$base_file" ]; then
+    base=$(tr -d '[:space:]' <"$base_file")
+  else
+    base=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
+    printf '%s\n' "$base" >"$base_file" || die "cannot write $base_file"
+  fi
   ensure_base_ignored "$base_file"
-
-  printf 'base: %s\n' "$head"
+  printf 'base: %s\n' "$base"
   printf '%s\n' "$base_file"
 }
 
 cmd_package() {
-  local base="$1" change_dir="$2" out="$3"
-  local resolved base_file head label
-
+  local base="$1" change_dir="$2" task="$3" out="$4"
+  local resolved base_file head label recorded="no"
   if [ -z "$base" ]; then
     resolved=$(resolve_change_dir "$change_dir") || exit $?
-    base_file="$resolved/.base"
+    validate_task "$resolved" "$task"
+    base_file=$(task_base_file "$resolved" "$task")
     if [ ! -f "$base_file" ]; then
-      printf 'error: no BASE recorded for %s — run --record before dispatching an implementer\n' \
-        "$resolved" >&2
+      printf 'error: no BASE recorded for Task %s — run --record before dispatching an implementer\n' "$task" >&2
       return 1
     fi
     base=$(tr -d '[:space:]' <"$base_file")
     [ -n "$base" ] || { printf 'error: %s is empty — re-run --record\n' "$base_file" >&2; return 1; }
-    label=$(basename "$resolved")
+    label="task-$task"
+    recorded="yes"
   else
     label="explicit-base"
   fi
-
-  git rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1 \
-    || die "BASE is not a commit in this repository: $base"
+  git rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1 || die "BASE is not a commit in this repository: $base"
   head=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
-
+  if [ "$recorded" = "yes" ] && ! git merge-base --is-ancestor "$base" "$head"; then
+    die "BASE is not an ancestor of HEAD: $base"
+  fi
   if [ "$(git rev-parse "$base^{commit}")" = "$head" ]; then
     printf 'error: BASE equals HEAD (%s) — nothing has been committed since --record\n' "$base" >&2
     return 1
   fi
-
   write_package "$base" "$head" "$label" "$out"
 }
 
 cmd_whole_change() {
   local out="$1" ref base head
   ref=$(default_ref) || die "cannot determine the default branch (no origin/HEAD, main, or master)"
-  base=$(git merge-base "$ref" HEAD 2>/dev/null) \
-    || die "cannot compute merge-base against $ref"
+  base=$(git merge-base "$ref" HEAD 2>/dev/null) || die "cannot compute merge-base against $ref"
   head=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
-
   if [ "$base" = "$head" ]; then
-    printf 'error: HEAD is at the merge-base with %s — this branch has no commits to review\n' \
-      "$ref" >&2
+    printf 'error: HEAD is at the merge-base with %s — this branch has no commits to review\n' "$ref" >&2
     return 1
   fi
-
   printf 'default-branch: %s\n' "$ref"
   write_package "$base" "$head" "whole-change" "$out"
 }
 
 main() {
   [ $# -gt 0 ] || { usage >&2; exit 2; }
-
-  local mode="package" base="" change_dir="" out=""
-
+  local mode="package" base="" change_dir="" task="" out=""
   while [ $# -gt 0 ]; do
     case "$1" in
       -h|--help) usage; exit 0 ;;
@@ -217,27 +198,35 @@ main() {
       --change-dir)
         [ $# -ge 2 ] || die "--change-dir requires a value"
         change_dir="$2"; shift 2 ;;
+      --task)
+        [ $# -ge 2 ] || die "--task requires a value"
+        task="$2"; shift 2 ;;
       --out)
         [ $# -ge 2 ] || die "--out requires a value"
         out="$2"; shift 2 ;;
       *) die "unknown argument: $1" ;;
     esac
   done
-
   repo_root >/dev/null
-
   case "$mode" in
     record)
       [ -z "$base" ] || die "--base is meaningless with --record"
-      cmd_record "$change_dir"
+      [ -n "$task" ] || die "--task is required with --record"
+      cmd_record "$change_dir" "$task"
       ;;
     whole-change)
       [ -z "$base" ] || die "--base is meaningless with --whole-change"
       [ -z "$change_dir" ] || die "--change-dir is meaningless with --whole-change"
+      [ -z "$task" ] || die "--task is meaningless with --whole-change"
       cmd_whole_change "$out"
       ;;
     package)
-      cmd_package "$base" "$change_dir" "$out"
+      if [ -n "$base" ]; then
+        [ -z "$task" ] || die "--task is meaningless with --base"
+      else
+        [ -n "$task" ] || die "--task is required when --base is not given"
+      fi
+      cmd_package "$base" "$change_dir" "$task" "$out"
       ;;
   esac
 }
