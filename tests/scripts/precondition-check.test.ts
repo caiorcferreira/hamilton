@@ -82,10 +82,16 @@ interface Artifacts {
   review?: string | null
 }
 
+function taskIsActive(plan: string, task: number): boolean {
+  const line = plan.split("\n").find((candidate) => candidate.startsWith(`### Task ${task}:`))
+  return line !== undefined && !line.toLowerCase().includes("(abandoned")
+}
+
 function seedChange(repo: string, artifacts: Artifacts = {}): string {
   const dir = makeChangeDir(repo, "add-auth")
   const base = git(repo, "rev-parse", "HEAD")
-  Fs.writeFileSync(Path.join(dir, "plan.md"), artifacts.plan ?? PLAN)
+  const plan = artifacts.plan ?? PLAN
+  Fs.writeFileSync(Path.join(dir, "plan.md"), plan)
   Fs.writeFileSync(Path.join(dir, "progress.md"), artifacts.progress ?? PROGRESS)
   const taskOneProgress = artifacts.taskOneProgress === undefined ? TASK_ONE_PROGRESS : artifacts.taskOneProgress
   const taskTwoProgress = artifacts.taskTwoProgress === undefined ? TASK_TWO_PROGRESS : artifacts.taskTwoProgress
@@ -98,10 +104,10 @@ function seedChange(repo: string, artifacts: Artifacts = {}): string {
     ? taskOneHead
     : commitPaths(repo, "implement task two", `${CHANGE_PATH}/tasks/task-2/progress.md`)
   const taskOneFeedback = artifacts.taskOneFeedback === undefined
-    ? feedback(1, "Add the auth | session", base, taskOneHead)
+    ? taskIsActive(plan, 1) ? feedback(1, "Add the auth | session", base, taskOneHead) : null
     : artifacts.taskOneFeedback
   const taskTwoFeedback = artifacts.taskTwoFeedback === undefined
-    ? feedback(2, "Wire it into the router", base, taskTwoHead)
+    ? taskIsActive(plan, 2) ? feedback(2, "Wire it into the router", base, taskTwoHead) : null
     : artifacts.taskTwoFeedback
   const wholeReview = artifacts.review === undefined ? review(base, taskTwoHead) : artifacts.review
   if (taskOneFeedback !== null) {
@@ -589,6 +595,34 @@ Verdict: approved
     expect(result.stdout).toContain("feedback malformed")
   })
 
+  it.each(["Blocking", "Suggestions"])("fails an empty %s section in task feedback", (section) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const content = feedback(1, "Add the auth | session", initialCommit(repo), taskCommit(repo, 1))
+      .replace(`### ${section}\n\n- None.`, `### ${section}\n`)
+    record(repo, `${CHANGE_PATH}/tasks/task-1/feedback.md`, content, "record empty task feedback section")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1(feedback malformed)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
+  it.each(["Blocking", "Suggestions"])("rejects None mixed with findings in task feedback %s", (section) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const content = feedback(1, "Add the auth | session", initialCommit(repo), taskCommit(repo, 1))
+      .replace(`### ${section}\n\n- None.`, `### ${section}\n\n- None.\n- [src/auth.ts:1] Finding.`)
+    record(repo, `${CHANGE_PATH}/tasks/task-1/feedback.md`, content, "record mixed task feedback section")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1(feedback malformed)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
   it("fails an inverted task feedback range", () => {
     const repo = makeRepo()
     const dir = seedChange(repo)
@@ -705,6 +739,34 @@ Verdict: approved
     expect(result.stdout).toContain("review malformed")
   })
 
+  it.each(["Blocking", "Suggestions"])("fails an empty %s section in whole-branch review", (section) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const content = review(initialCommit(repo), taskCommit(repo, 2))
+      .replace(`### ${section}\n\n- None.`, `### ${section}\n`)
+    record(repo, `${CHANGE_PATH}/review.md`, content, "record empty whole-branch review section")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("whole-branch(review malformed)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
+  it.each(["Blocking", "Suggestions"])("rejects None mixed with findings in whole-branch %s", (section) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const content = review(initialCommit(repo), taskCommit(repo, 2))
+      .replace(`### ${section}\n\n- None.`, `### ${section}\n\n- None.\n- [src/auth.ts:1] Finding.`)
+    record(repo, `${CHANGE_PATH}/review.md`, content, "record mixed whole-branch review section")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("whole-branch(review malformed)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
   it("fails when review.md is missing", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, { review: null })
@@ -744,6 +806,19 @@ describe("hamilton-precondition-check.sh gate 5 — review freshness", () => {
     const dir = seedChange(repo)
     write(repo, path, "material change\n")
     commitAll(repo, "make material change")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("[FAIL] Whole-branch review freshness")
+    expect(result.stdout).toContain("does not contain material")
+  })
+
+  it("treats noncanonical task-like feedback paths as material", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    write(repo, `${CHANGE_PATH}/tasks/task-not-a-task/feedback.md`, "# Not task feedback\n")
+    commitAll(repo, "record noncanonical task-like feedback")
 
     const result = check(repo, dir)
 

@@ -432,6 +432,8 @@ latest_review_pass() {
       suggestion_sections = 0
       blocking = 0
       blocking_none = 0
+      suggestions = 0
+      suggestions_none = 0
       cannot_verify = 0
       section = ""
       pass_valid = 1
@@ -511,12 +513,17 @@ latest_review_pass() {
         verdict_count++
         next
       }
-      if (section == "blocking" && raw ~ /^[ \t]*-[ \t]+/) {
+      if ((section == "blocking" || section == "suggestions") && raw ~ /^[ \t]*-[ \t]+/) {
         value = lower
         sub(/^[ \t]*-[ \t]+/, "", value)
         sub(/[ \t]+$/, "", value)
-        if (value == "none" || value == "none.") blocking_none++
-        else blocking++
+        if (section == "blocking") {
+          if (value == "none" || value == "none.") blocking_none++
+          else blocking++
+        } else {
+          if (value == "none" || value == "none.") suggestions_none++
+          else suggestions++
+        }
         next
       }
       if ((section == "blocking" || section == "suggestions") && raw !~ /^[ \t]*$/ && raw !~ /^[ \t]*-[ \t]+/) pass_valid = 0
@@ -524,7 +531,9 @@ latest_review_pass() {
     }
     BEGIN { identity_valid = 1 }
     END {
-      if (heading_count != 1 || !identity_valid || outside_invalid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || blocking_sections != 1 || suggestion_sections != 1 || (blocking > 0 && blocking_none > 0) || (verdict != "approved" && verdict != "changes-requested")) exit 1
+      if (heading_count != 1 || !identity_valid || outside_invalid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || blocking_sections != 1 || suggestion_sections != 1 || (verdict != "approved" && verdict != "changes-requested")) exit 1
+      if (blocking + blocking_none < 1 || suggestions + suggestions_none < 1) exit 1
+      if ((blocking_none > 0 && (blocking > 0 || blocking_none != 1)) || (suggestions_none > 0 && (suggestions > 0 || suggestions_none != 1))) exit 1
       printf "%s\t%s\t%s\t%d\t%d\n", verdict, base, head, blocking, cannot_verify
     }
   '
@@ -573,12 +582,26 @@ latest_task_commit() {
 
 latest_material_commit() {
   local root="$1" change_path="$2"
-  git -C "$root" log -1 --format=%H HEAD -- . \
-    ":(exclude)$change_path/progress.md" \
-    ":(exclude,glob)$change_path/tasks/task-*/progress.md" \
-    ":(exclude,glob)$change_path/tasks/task-*/feedback.md" \
-    ":(exclude)$change_path/review.md" \
-    ":(exclude)$change_path/finish.md" 2>/dev/null
+  local plan="$root/$change_path/plan.md" plans id title state
+  local -a exclusions=(
+    ":(exclude)$change_path/progress.md"
+    ":(exclude)$change_path/review.md"
+    ":(exclude)$change_path/finish.md"
+  )
+  if [ -f "$plan" ]; then
+    plans=$(plan_tasks "$plan")
+    while IFS=$'\t' read -r id title state; do
+      [ -n "$id" ] || continue
+      [ "$state" = "active" ] || continue
+      exclusions+=(
+        ":(exclude)$change_path/tasks/task-${id#Task }/progress.md"
+        ":(exclude)$change_path/tasks/task-${id#Task }/feedback.md"
+      )
+    done <<EOF
+$plans
+EOF
+  fi
+  git -C "$root" log -1 --format=%H HEAD -- . "${exclusions[@]}" 2>/dev/null
 }
 
 gate_reviews() {
