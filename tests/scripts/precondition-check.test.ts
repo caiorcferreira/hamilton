@@ -623,6 +623,29 @@ Verdict: approved
     expect(result.lastLine).toContain("gate: closed")
   })
 
+  it.each([
+    ["Blocking", "missing-period None", "- None"],
+    ["Blocking", "lowercase None", "- none."],
+    ["Blocking", "uppercase None", "- NONE."],
+    ["Blocking", "contentless bullet", "- "],
+    ["Suggestions", "missing-period None", "- None"],
+    ["Suggestions", "lowercase None", "- none."],
+    ["Suggestions", "uppercase None", "- NONE."],
+    ["Suggestions", "contentless bullet", "- "]
+  ])("rejects a %s %s marker", (section, _label, entry) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const content = feedback(1, "Add the auth | session", initialCommit(repo), taskCommit(repo, 1))
+      .replace(`### ${section}\n\n- None.`, `### ${section}\n\n${entry}`)
+    record(repo, `${CHANGE_PATH}/tasks/task-1/feedback.md`, content, "record invalid empty marker")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1(feedback malformed)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
   it("fails an inverted task feedback range", () => {
     const repo = makeRepo()
     const dir = seedChange(repo)

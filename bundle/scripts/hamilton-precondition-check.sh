@@ -514,14 +514,19 @@ latest_review_pass() {
         next
       }
       if ((section == "blocking" || section == "suggestions") && raw ~ /^[ \t]*-[ \t]+/) {
-        value = lower
+        value = raw
         sub(/^[ \t]*-[ \t]+/, "", value)
         sub(/[ \t]+$/, "", value)
+        marker = value
+        gsub(/[[:space:][:punct:]]/, "", marker)
+        marker = tolower(marker)
         if (section == "blocking") {
-          if (value == "none" || value == "none.") blocking_none++
+          if (raw == "- None.") blocking_none++
+          else if (marker == "" || marker == "none") pass_valid = 0
           else blocking++
         } else {
-          if (value == "none" || value == "none.") suggestions_none++
+          if (raw == "- None.") suggestions_none++
+          else if (marker == "" || marker == "none") pass_valid = 0
           else suggestions++
         }
         next
