@@ -132,14 +132,23 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.lastLine).toBe("summary: add-auth — legacy-unsupported")
   })
 
-  it("labels mixed split and root task history legacy-unsupported", () => {
-    const repo = makeRepo()
-    const dir = seed(repo, "add-auth", splitFiles({
-      "progress.md": `${ROOT_PROGRESS}
-## Task 1: Add the auth | session — 2026-08-15
+  it.each([
+    ["task", `## Task 1: Add the auth | session — 2026-08-15
 
 - Outcome: done
-`
+`],
+    ["review", `## Review: Task 1 — 2026-08-15
+
+Verdict: approved
+`],
+    ["finish", `## Finish — 2026-08-15
+
+Outcome: completed
+`]
+  ])("labels mixed split and root %s history legacy-unsupported", (_kind, history) => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({
+      "progress.md": `${ROOT_PROGRESS}\n${history}`
     }))
 
     const result = run(SCRIPT, [dir], repo)
@@ -267,14 +276,23 @@ describe("hamilton-change-context.sh --all", () => {
     expect(result.lines[3]).toMatch(/\s-\s+-\s+2026-01-02$/)
   })
 
-  it("lists mixed root task history as legacy-unsupported and continues", () => {
-    const repo = makeRepo()
-    seed(repo, "mixed-change", splitFiles({
-      "progress.md": `${ROOT_PROGRESS}
-## Task 1: Add the auth | session — 2026-08-15
+  it.each([
+    ["task", `## Task 1: Add the auth | session — 2026-08-15
 
 - Outcome: done
-`
+`],
+    ["review", `## Review: Task 1 — 2026-08-15
+
+Verdict: approved
+`],
+    ["finish", `## Finish — 2026-08-15
+
+Outcome: completed
+`]
+  ])("lists mixed root %s history as legacy-unsupported and continues", (_kind, history) => {
+    const repo = makeRepo()
+    seed(repo, "mixed-change", splitFiles({
+      "progress.md": `${ROOT_PROGRESS}\n${history}`
     }))
     seed(repo, "split-change", splitFiles())
 

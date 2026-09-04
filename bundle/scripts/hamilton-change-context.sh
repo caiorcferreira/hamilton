@@ -149,12 +149,31 @@ root_rows() {
   '
 }
 
-has_root_table() {
-  strip_comments "$1" | grep -qx '| Task | Status | Progress |'
-}
-
-has_legacy_task_history() {
-  strip_comments "$1" | grep -Eq '^## Task [1-9][0-9]*:'
+has_only_root_ledger_shape() {
+  strip_comments "$1" | awk '
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line ~ /^[ \t]*$/) next
+      if (!heading) {
+        if (line ~ /^# Progress:/) heading = 1
+        else invalid = 1
+        next
+      }
+      if (!table) {
+        if (line == "| Task | Status | Progress |") table = 1
+        else invalid = 1
+        next
+      }
+      if (!separator) {
+        if (line ~ /^[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*-+[ \t]*\|[ \t]*$/) separator = 1
+        else invalid = 1
+        next
+      }
+      if (line !~ /^[ \t]*\|/) invalid = 1
+    }
+    END { exit !(heading && table && separator && !invalid) }
+  '
 }
 
 escape_table_title() {
@@ -251,8 +270,7 @@ ledger_counts() {
 format_of() {
   local dir="$1" plan_row id title state
   [ -f "$dir/plan.md" ] || { printf 'pre-plan\n'; return; }
-  [ -f "$dir/progress.md" ] && has_root_table "$dir/progress.md" || { printf 'legacy-unsupported\n'; return; }
-  has_legacy_task_history "$dir/progress.md" && { printf 'legacy-unsupported\n'; return; }
+  [ -f "$dir/progress.md" ] && has_only_root_ledger_shape "$dir/progress.md" || { printf 'legacy-unsupported\n'; return; }
   while IFS=$'\t' read -r id title state; do
     [ "$state" = "active" ] || continue
     [ -f "$dir/tasks/task-${id#Task }/progress.md" ] || { printf 'legacy-unsupported\n'; return; }
