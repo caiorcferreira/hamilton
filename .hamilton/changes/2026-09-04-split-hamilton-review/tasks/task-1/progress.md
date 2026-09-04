@@ -44,3 +44,12 @@
 - Verified: `bun --bun vitest run` → 120 tests passed
 - Verified: `bun run build` → passed
 - Notes: Rejected task-scoped passes in root review without deriving standing, rejected repeated root tables, made every task-progress H2 an authoritative validated attempt boundary, and replaced Bash 4 line collection with Bash 3-compatible scalar streams and redirected reads. Direct and inventory regressions cover each reviewed case; the original scaffold checkpoint remains unchanged.
+
+## Task 1: Parse split change context — 2026-09-04
+
+- Outcome: done
+- Changed: created none; modified `bundle/scripts/hamilton-change-context.sh`, `tests/scripts/change-context.test.ts`; deleted none
+- Verified: `bun --bun vitest run tests/scripts/change-context.test.ts` → 45 tests passed
+- Verified: `bun --bun vitest run` → 130 tests passed
+- Verified: `bun run build` → passed
+- Notes: Made all physical task-progress headings authoritative, rejected wrong-level and non-attempt boundaries plus stray outcomes, and required exactly one `done | blocked` outcome for every completed attempt regardless of root row status. Direct and inventory regressions cover wrong-level, stray, missing, duplicate, and illegal evidence; the original scaffold checkpoint remains unchanged.

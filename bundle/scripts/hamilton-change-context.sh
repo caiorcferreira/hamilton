@@ -188,9 +188,24 @@ escape_table_title() {
 latest_outcome() {
   local file="$1" task="$2" title="$3"
   strip_comments "$file" | awk -v task="$task" -v title="$title" '
-    /^## / {
+    function close_attempt() {
+      if (active && outcome_count != 1) invalid = 1
       active = 0
-      outcome = ""
+      outcome_count = 0
+    }
+    /^# / {
+      if (title_seen || active || attempt_seen) {
+        close_attempt()
+        latest = ""
+        invalid = 1
+      }
+      title_seen = 1
+      next
+    }
+    /^## / {
+      close_attempt()
+      latest = ""
+      attempt_seen = 1
       heading = $0
       sub(/^## /, "", heading)
       sub(/\r$/, "", heading)
@@ -207,14 +222,29 @@ latest_outcome() {
       active = 1
       next
     }
-    active && /^[ \t]*-?[ \t]*Outcome:/ {
+    /^###+[ \t]/ {
+      close_attempt()
+      latest = ""
+      invalid = 1
+      next
+    }
+    /^[ \t]*-?[ \t]*Outcome:/ {
+      if (!active) {
+        latest = ""
+        invalid = 1
+        next
+      }
       value = $0
       sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
       sub(/[ \t\r]+$/, "", value)
-      outcome = value
+      outcome_count++
+      if (outcome_count != 1) invalid = 1
+      if (value != "done" && value != "blocked") invalid = 1
+      latest = value
     }
     END {
-      print outcome
+      close_attempt()
+      print latest
       exit invalid
     }
   '

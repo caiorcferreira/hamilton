@@ -211,6 +211,11 @@ Outcome: completed
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
     ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
+    ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
+    ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
+    ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
+    ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],
+    ["outcome-outside-attempt", { "tasks/task-2/progress.md": `# Task Progress: Task 2 — Wire it into the router\n\n- Outcome: blocked\n` }],
     ["sibling-task-attempt", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 2: Wire it into the router — 2026-08-15\n\n- Outcome: blocked\n` }]
   ])("reports %s split-ledger drift", (_name, overrides) => {
     const repo = makeRepo()
@@ -360,7 +365,12 @@ Outcome: completed
 
   it.each([
     ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
-    ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }]
+    ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
+    ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
+    ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
+    ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
+    ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],
+    ["outcome-outside-attempt", { "tasks/task-2/progress.md": `# Task Progress: Task 2 — Wire it into the router\n\n- Outcome: blocked\n` }]
   ])("marks %s structural drift invalid and continues", (_kind, overrides) => {
     const repo = makeRepo()
     seed(repo, "invalid-change", splitFiles(overrides))
