@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { run, makeRepo, makeChangeDir, cleanupRepos, field, SCRIPTS_DIR } from "./helpers.js"
+import { run, makeRepo, makeChangeDir, cleanupRepos, field, SCRIPTS_DIR, commitAll, git, write } from "./helpers.js"
 
 const SCRIPT = "hamilton-change-context.sh"
 
@@ -68,6 +68,51 @@ Verdict: approved
 Verdict: approved
 `
 
+function feedback(task: number, title: string, base: string, head: string, verdict = "approved"): string {
+  return `# Code Feedback: Task ${task} — ${title}
+
+## Pass 1 — 2026-08-14
+
+Base: ${base}
+Head: ${head}
+Verdict: ${verdict}
+
+### Blocking
+
+- None.
+
+### Suggestions
+
+- None.
+`
+}
+
+function review(base: string, head: string, verdict = "approved"): string {
+  return `# Whole-branch Review: add auth
+
+## Pass 1 — 2026-08-14
+
+Base: ${base}
+Head: ${head}
+Verdict: ${verdict}
+
+### Blocking
+
+- None.
+
+### Suggestions
+
+- None.
+`
+}
+
+function seedCommittedSplit(repo: string): { dir: string; base: string; head: string } {
+  const base = git(repo, "rev-parse", "HEAD")
+  const dir = seed(repo, "add-auth", splitFiles({ "review.md": "" }))
+  const head = commitAll(repo, "implement split tasks")
+  return { dir, base, head }
+}
+
 function seed(repo: string, slug: string, files: Record<string, string>): string {
   const dir = makeChangeDir(repo, slug)
   for (const [name, content] of Object.entries(files)) {
@@ -92,6 +137,192 @@ function splitFiles(overrides: Record<string, string> = {}): Record<string, stri
 }
 
 describe("hamilton-change-context.sh <change-dir>", () => {
+  it("reports each task's latest feedback verdict and freshness", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
+    write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head, "changes-requested"))
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)")
+    expect(result.stdout).toContain("Task 2: blocked, feedback: changes-requested (fresh)")
+    expect(result.stdout).toContain("whole change: approved (fresh)")
+  })
+
+  it("reports absent task feedback and whole-branch review", () => {
+    const repo = makeRepo()
+    const { dir } = seedCommittedSplit(repo)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: absent")
+    expect(result.stdout).toContain("Task 2: blocked, feedback: absent")
+    expect(result.stdout).toContain("whole change: not reviewed")
+  })
+
+  it("does not fall back past the physically last malformed feedback pass", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", `${feedback(1, "Add the auth | session", base, head)}
+## Pass 2 — 2026-08-15
+
+Base: ${base}
+Verdict: changes-requested
+`)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: malformed")
+    expect(result.stdout).not.toContain("Task 1: done, feedback: approved")
+  })
+
+  it("rejects feedback whose declared task differs from its directory", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(2, "Wire it into the router", base, head))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: malformed")
+  })
+
+  it("keeps earlier task feedback fresh after an unrelated sibling task commit", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
+    commitAll(repo, "record task one feedback")
+    Fs.appendFileSync(Path.join(dir, "tasks/task-2/progress.md"), "\nMore task two evidence.\n")
+    commitAll(repo, "update task two")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)")
+  })
+
+  it("stales feedback after a later commit touches that task's progress", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
+    commitAll(repo, "record task one feedback")
+    Fs.appendFileSync(Path.join(dir, "tasks/task-1/progress.md"), "\nMore task one evidence.\n")
+    commitAll(repo, "update task one")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (stale)")
+  })
+
+  it("reports malformed feedback ranges separately from stale valid ranges", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", head, base))
+    write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head))
+    commitAll(repo, "record feedback")
+    Fs.appendFileSync(Path.join(dir, "tasks/task-2/progress.md"), "\nMore task two evidence.\n")
+    commitAll(repo, "update task two")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: malformed")
+    expect(result.stdout).toContain("Task 2: blocked, feedback: approved (stale)")
+  })
+
+  it("does not fall back past the physically last malformed whole-branch pass", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", `${review(base, head)}
+## Pass 2 — 2026-08-15
+
+Base: ${base}
+Verdict: changes-requested
+`)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: malformed")
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
+  it("reports the physically last valid whole-branch verdict", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", `${review(base, head)}
+## Pass 2 — 2026-08-15
+
+Base: ${base}
+Head: ${head}
+Verdict: changes-requested
+
+### Blocking
+
+- [src/auth.ts:1] Correct the auth flow.
+
+### Suggestions
+
+- None.
+`)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: changes-requested (fresh)")
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
+  it("keeps whole-branch review fresh after operational bookkeeping and inventories finish.md", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
+    write(repo, ".hamilton/changes/add-auth/finish.md", "# Finish History: add auth\n")
+    Fs.appendFileSync(Path.join(dir, "progress.md"), "\n")
+    Fs.appendFileSync(Path.join(dir, "tasks/task-2/progress.md"), "\n")
+    commitAll(repo, "record operational bookkeeping")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toMatch(/finish\.md\s+present/)
+    expect(result.stdout).toContain("whole change: approved (fresh)")
+  })
+
+  it.each([
+    ".hamilton/changes/add-auth/proposal.md",
+    ".hamilton/changes/add-auth/requirements/auth.md",
+    ".hamilton/changes/add-auth/design.md",
+    ".hamilton/changes/add-auth/plan.md",
+    ".hamilton/specs/auth.md",
+    ".hamilton/maps/auth/route.md",
+    "skills/auth/SKILL.md",
+    "bundle/templates/auth.md",
+    "bundle/scripts/auth.sh",
+    "tests/auth.test.ts",
+    "docs/auth.md",
+    ".hamilton/changes/other-change/progress.md"
+  ])("stales whole-branch review after a material change to %s", (path) => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
+    commitAll(repo, "record whole-branch review")
+    write(repo, path, `${Fs.existsSync(Path.join(repo, path)) ? Fs.readFileSync(Path.join(repo, path), "utf8") : ""}\nmaterial change\n`)
+    commitAll(repo, "make material change")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: approved (stale)")
+  })
+
   it("summarizes a validated split task ledger", () => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", splitFiles())
@@ -106,7 +337,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.stdout).toMatch(/proposal\.md\s+present/)
     expect(result.stdout).toMatch(/requirements\/\s+present\s+auth/)
     expect(field(result, "tasks")).toBe("1/2 done")
-    expect(result.lastLine).toBe("summary: add-auth — 1/2 tasks done, whole change: approved")
+    expect(result.lastLine).toBe("summary: add-auth — 1/2 tasks done, whole change: malformed")
   })
 
   it("recognizes a pre-plan directory without requiring progress scaffolding", () => {

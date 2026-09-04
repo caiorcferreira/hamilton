@@ -409,38 +409,155 @@ capabilities() {
   find "$dir/requirements" -maxdepth 1 -name '*.md' -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' '
 }
 
-review_verdicts() {
-  strip_comments "$1" | awk '
-    /^## / {
-      line = $0
-      sub(/^## /, "", line)
-      idx = index(line, " \342\200\224 ")
-      if (idx == 0) idx = index(line, " - ")
-      scope = (idx > 0) ? substr(line, 1, idx - 1) : line
-      gsub(/^[ \t]+|[ \t]+$/, "", scope)
-      if (!(scope in seen)) {
-        seen[scope] = ++n
-        order[n] = scope
+latest_pass() {
+  local file="$1" expected_heading="$2"
+  strip_comments "$file" | awk -v expected_heading="$expected_heading" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    function atx_level(value,    count, character) {
+      count = 0
+      while (substr(value, count + 1, 1) == "#") count++
+      if (count < 1 || count > 6) return 0
+      character = substr(value, count + 1, 1)
+      if (character != "" && character != " " && character != "\t") return 0
+      return count
+    }
+    function reset_pass() {
+      base = ""
+      head = ""
+      verdict = ""
+      base_count = 0
+      head_count = 0
+      verdict_count = 0
+      pass_valid = 1
+    }
+    {
+      line = normalize_atx($0)
+      level = atx_level(line)
+      if (level == 1) {
+        heading = line
+        sub(/^#[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        heading_count++
+        if (heading != expected_heading) identity_valid = 0
+        next
       }
-      current = scope
-      next
+      if (level == 2) {
+        pass_seen = 1
+        reset_pass()
+        if (heading_count != 1 || !identity_valid) pass_valid = 0
+        heading = line
+        sub(/^##[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        if (heading !~ /^Pass [1-9][0-9]* \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) pass_valid = 0
+        next
+      }
+      if (!pass_seen) next
+      if ($0 ~ /^Base:/) {
+        value = $0
+        sub(/^Base:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        base = value
+        base_count++
+      }
+      if ($0 ~ /^Head:/) {
+        value = $0
+        sub(/^Head:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        head = value
+        head_count++
+      }
+      if ($0 ~ /^Verdict:/) {
+        value = $0
+        sub(/^Verdict:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        verdict = value
+        verdict_count++
+      }
     }
-    current != "" && tolower($0) ~ /^verdict:/ {
-      value = $0
-      sub(/^[Vv]erdict:[ \t]*/, "", value)
-      gsub(/[ \t\r]+$/, "", value)
-      verdict[current] = tolower(value)
-    }
+    BEGIN { identity_valid = 1 }
     END {
-      for (i = 1; i <= n; i++) printf "%s\t%s\n", order[i], (order[i] in verdict ? verdict[order[i]] : "?")
+      if (heading_count != 1 || !identity_valid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || (verdict != "approved" && verdict != "changes-requested")) exit 1
+      printf "%s\t%s\t%s\n", verdict, base, head
     }
   '
 }
 
-ARTIFACTS="proposal.md design.md plan.md progress.md review.md critique.md"
+repo_root_for() {
+  local dir="$1"
+  git -C "$dir" rev-parse --show-toplevel 2>/dev/null
+}
+
+relative_to_root() {
+  local root="$1" path="$2"
+  case "$path" in
+    "$root"/*) printf '%s\n' "${path#"$root"/}" ;;
+    *) return 1 ;;
+  esac
+}
+
+full_commit() {
+  local root="$1" commit="$2"
+  [[ "$commit" =~ ^[0-9a-f]{40}$|^[0-9a-f]{64}$ ]] || return 1
+  git -C "$root" cat-file -e "$commit^{commit}" 2>/dev/null
+}
+
+review_standing() {
+  local root="$1" base="$2" head="$3" required="$4"
+  full_commit "$root" "$base" && full_commit "$root" "$head" || { printf 'malformed\n'; return; }
+  git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null || { printf 'malformed\n'; return; }
+  git -C "$root" merge-base --is-ancestor "$head" HEAD 2>/dev/null || { printf 'stale\n'; return; }
+  [ -n "$required" ] || { printf 'stale\n'; return; }
+  git -C "$root" merge-base --is-ancestor "$required" "$head" 2>/dev/null || { printf 'stale\n'; return; }
+  printf 'fresh\n'
+}
+
+latest_task_commit() {
+  local root="$1" path="$2"
+  git -C "$root" log -1 --format=%H HEAD -- "$path"
+}
+
+latest_material_commit() {
+  local root="$1" change_path="$2"
+  git -C "$root" log -1 --format=%H HEAD -- . \
+    ":(exclude)$change_path/progress.md" \
+    ":(exclude,glob)$change_path/tasks/task-*/progress.md" \
+    ":(exclude,glob)$change_path/tasks/task-*/feedback.md" \
+    ":(exclude)$change_path/review.md" \
+    ":(exclude)$change_path/finish.md"
+}
+
+task_feedback_state() {
+  local root="$1" change_path="$2" file="$3" task="$4" title="$5" parsed verdict base head implementation standing
+  [ -s "$file" ] || { printf 'absent\n'; return; }
+  parsed=$(latest_pass "$file" "Code Feedback: $task — $title") || { printf 'malformed\n'; return; }
+  IFS=$'\t' read -r verdict base head <<<"$parsed"
+  implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${task#Task }/progress.md")
+  standing=$(review_standing "$root" "$base" "$head" "$implementation")
+  [ "$standing" != "malformed" ] || { printf 'malformed\n'; return; }
+  printf '%s (%s)\n' "$verdict" "$standing"
+}
+
+whole_review_state() {
+  local root="$1" change_path="$2" file="$3" parsed verdict base head material standing
+  [ -s "$file" ] || { printf 'not reviewed\n'; return; }
+  parsed=$(latest_pass "$file" "Whole-branch Review: $(first_header "$file" | sed 's/^Whole-branch Review: //')") || { printf 'malformed\n'; return; }
+  IFS=$'\t' read -r verdict base head <<<"$parsed"
+  material=$(latest_material_commit "$root" "$change_path")
+  standing=$(review_standing "$root" "$base" "$head" "$material")
+  [ "$standing" != "malformed" ] || { printf 'malformed\n'; return; }
+  printf '%s (%s)\n' "$verdict" "$standing"
+}
+
+ARTIFACTS="proposal.md design.md plan.md progress.md review.md finish.md critique.md"
 
 cmd_one() {
-  local dir="$1" format artifact lines header route caps counts done_count total whole scope verdict any
+  local dir="$1" format artifact lines header route caps counts done_count total whole root change_path plans rows_text index row id title state actual_task status link feedback
   format=$(format_of "$dir")
   printf 'change: %s\n' "$(basename "$dir")"
   printf 'path: %s\n' "$dir"
@@ -477,29 +594,33 @@ cmd_one() {
       done_count=$(printf '%s' "$counts" | cut -f1)
       total=$(printf '%s' "$counts" | cut -f2)
       printf '\ntasks: %s/%s done\n' "$done_count" "$total"
-      whole="not reviewed"
-      if [ -f "$dir/review.md" ]; then
-        printf 'reviews:\n'
-        any=0
-        while IFS=$'\t' read -r scope verdict; do
-          [ -n "$scope" ] || continue
-          any=1
-          printf '  %s: %s\n' "$scope" "$verdict"
-          [ "$(printf '%s' "$scope" | tr '[:upper:]' '[:lower:]')" = "whole change" ] && whole="$verdict"
-        done <<EOF
-$(review_verdicts "$dir/review.md")
+      root=$(repo_root_for "$dir") || die "change dir is not inside a git repository"
+      change_path=$(relative_to_root "$root" "$dir") || die "change dir is outside its git repository"
+      plans=$(plan_tasks "$dir/plan.md")
+      rows_text=$(root_rows "$dir/progress.md")
+      printf 'task state:\n'
+      index=0
+      while IFS=$'\t' read -r id title state; do
+        [ -n "$id" ] || continue
+        [ "$state" = "active" ] || continue
+        index=$((index + 1))
+        row=$(printf '%s\n' "$rows_text" | sed -n "${index}p")
+        IFS=$'\t' read -r actual_task status link <<<"$row"
+        feedback=$(task_feedback_state "$root" "$change_path" "$dir/tasks/task-${id#Task }/feedback.md" "$id" "$title")
+        printf '  %s: %s, feedback: %s\n' "$id" "$status" "$feedback"
+      done <<EOF
+$plans
 EOF
-        [ "$any" -eq 1 ] || printf '  (no review passes recorded)\n'
-      else
-        printf 'reviews: review.md absent\n'
-      fi
+      whole=$(whole_review_state "$root" "$change_path" "$dir/review.md")
+      printf 'reviews:\n'
+      printf '  whole change: %s\n' "$whole"
       printf 'summary: %s — %s/%s tasks done, whole change: %s\n' "$(basename "$dir")" "$done_count" "$total" "$whole"
       ;;
   esac
 }
 
 cmd_all() {
-  local root changes_dir dir format counts done_count total task_display whole present artifact newest epoch rows
+  local root changes_dir dir format counts done_count total task_display whole present artifact newest epoch rows change_path
   root=$(repo_root)
   changes_dir="$root/.hamilton/changes"
   [ -d "$changes_dir" ] || { printf 'no .hamilton/changes/ under %s\n' "$root" >&2; return 1; }
@@ -530,9 +651,8 @@ cmd_all() {
         done_count=$(printf '%s' "$counts" | cut -f1)
         total=$(printf '%s' "$counts" | cut -f2)
         task_display="$done_count/$total"
-        if [ -f "$dir/review.md" ]; then
-          whole=$(review_verdicts "$dir/review.md" | awk -F'\t' 'tolower($1) == "whole change" { value = $2 } END { print (value == "" ? "-" : value) }')
-        fi
+        change_path=$(relative_to_root "$root" "$dir")
+        whole=$(whole_review_state "$root" "$change_path" "$dir/review.md")
       else
         format="invalid"
       fi
