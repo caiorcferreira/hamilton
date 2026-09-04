@@ -171,9 +171,38 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.stdout).not.toContain("whole change: approved")
   })
 
+  it("recognizes a tab-delimited legacy task pass in root review", () => {
+    const repo = makeRepo()
+    const review = LEGACY_TASK_REVIEW.replace("## Task 1", "##\tTask 1")
+    const dir = seed(repo, "add-auth", splitFiles({ "review.md": review }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(field(result, "reviews")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
   it("rejects a table separator with fewer than three hyphens per cell", () => {
     const repo = makeRepo()
     const progress = ROOT_PROGRESS.replace("|---|---|---|", "|-|-|-|")
+    const dir = seed(repo, "add-auth", splitFiles({ "progress.md": progress }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(0)
+    expect(field(result, "format")).toBe("legacy-unsupported")
+    expect(field(result, "tasks")).toBeUndefined()
+    expect(result.stdout).not.toContain("whole change: approved")
+  })
+
+  it.each([
+    ["between the delimiter and first row", ROOT_PROGRESS.replace("|---|---|---|\n", "|---|---|---|\n\n")],
+    ["between data rows", ROOT_PROGRESS.replace("| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n", "| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n\n")]
+  ])("rejects a blank line %s", (_location, progress) => {
+    const repo = makeRepo()
     const dir = seed(repo, "add-auth", splitFiles({ "progress.md": progress }))
 
     const result = run(SCRIPT, [dir], repo)
@@ -234,12 +263,15 @@ Outcome: completed
     ["wrong-link", { "progress.md": ROOT_PROGRESS.replace("tasks/task-2/progress.md", "tasks/task-1/progress.md") }],
     ["wrong-task", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Task 2", "Task 1") }],
     ["illegal-status", { "progress.md": ROOT_PROGRESS.replace("| blocked |", "| waiting |") }],
-    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
+    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}| Task | Status | Progress |\n|---|---|---|\n` }],
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
     ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
     ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],
+    ["empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n##\n` }],
+    ["indented-empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ##\n` }],
+    ["tab-delimited-empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n##\t\n` }],
     ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
     ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
     ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],
@@ -269,6 +301,8 @@ Outcome: completed
 
 | Task | Status | Progress |
 |---|---|---|
+
+
 `
     })
 
@@ -408,6 +442,23 @@ Outcome: completed
     expect(split).toMatch(/^split-change\s+split\s/)
   })
 
+  it("lists a tab-delimited root task review as unsupported and continues", () => {
+    const repo = makeRepo()
+    const review = LEGACY_TASK_REVIEW.replace("## Task 1", "##\tTask 1")
+    seed(repo, "legacy-review-change", splitFiles({ "review.md": review }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const legacy = result.lines.find((line) => line.startsWith("legacy-review-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(legacy).toMatch(/^legacy-review-change\s+legacy-unsupported\s/)
+    expect(legacy).not.toContain("1/2")
+    expect(legacy).not.toContain("approved")
+    expect(split).toMatch(/^split-change\s+split\s/)
+  })
+
   it("lists a short table separator as unsupported and continues", () => {
     const repo = makeRepo()
     const progress = ROOT_PROGRESS.replace("|---|---|---|", "|-|-|-|")
@@ -426,10 +477,32 @@ Outcome: completed
   })
 
   it.each([
-    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}\n| Task | Status | Progress |\n|---|---|---|\n` }],
+    ["delimiter", ROOT_PROGRESS.replace("|---|---|---|\n", "|---|---|---|\n\n")],
+    ["row", ROOT_PROGRESS.replace("| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n", "| Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |\n\n")]
+  ])("lists rows after a blank following the %s as unsupported and continues", (_location, progress) => {
+    const repo = makeRepo()
+    seed(repo, "blank-table-change", splitFiles({ "progress.md": progress }))
+    seed(repo, "split-change", splitFiles())
+
+    const result = run(SCRIPT, ["--all"], repo)
+    const legacy = result.lines.find((line) => line.startsWith("blank-table-change"))
+    const split = result.lines.find((line) => line.startsWith("split-change"))
+
+    expect(result.status).toBe(0)
+    expect(legacy).toMatch(/^blank-table-change\s+legacy-unsupported\s/)
+    expect(legacy).not.toContain("1/2")
+    expect(legacy).not.toContain("approved")
+    expect(split).toMatch(/^split-change\s+split\s/)
+  })
+
+  it.each([
+    ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}| Task | Status | Progress |\n|---|---|---|\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
     ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],
+    ["empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n##\n` }],
+    ["indented-empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ##\n` }],
+    ["tab-delimited-empty-latest-h2", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n##\t\n` }],
     ["duplicate-outcomes", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: done\n- Outcome: done") }],
     ["missing-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "") }],
     ["illegal-non-done-outcome", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("- Outcome: blocked", "- Outcome: waiting") }],

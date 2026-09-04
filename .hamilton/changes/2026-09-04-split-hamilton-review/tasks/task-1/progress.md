@@ -62,3 +62,12 @@
 - Verified: `bun --bun vitest run` → 136 tests passed
 - Verified: `bun run build` → passed
 - Notes: Normalized Markdown ATX boundaries with zero to three leading spaces for task evidence and root task-review classification, and centralized a three-or-more-hyphen table-separator grammar across both root parsers. Direct and inventory regressions cover indented malformed evidence, indented legacy review passes, and short separators; the original scaffold checkpoint remains unchanged.
+
+## Task 1: Parse split change context — 2026-09-04
+
+- Outcome: done
+- Changed: created none; modified `bundle/scripts/hamilton-change-context.sh`, `tests/scripts/change-context.test.ts`; deleted none
+- Verified: `bun --bun vitest run tests/scripts/change-context.test.ts` → 63 tests passed
+- Verified: `bun --bun vitest run` → 148 tests passed
+- Verified: `bun run build` → passed
+- Notes: Recognized every one-to-six-marker ATX boundary after zero to three spaces, including empty and tab-delimited H2s, while preserving four-space code indentation; made root table rows one contiguous block terminated by the first blank while retaining trailing blanks for a zero-row all-abandoned ledger. Direct and inventory regressions cover all reviewed cases; the original scaffold checkpoint remains unchanged.

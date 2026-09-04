@@ -145,6 +145,16 @@ root_rows() {
       separator = 1
       next
     }
+    found && $0 ~ /^[ \t]*$/ {
+      found = 0
+      table_ended = 1
+      if (separator) invalid = 1
+      next
+    }
+    table_ended && $0 ~ /^[ \t]*\|/ {
+      invalid = 1
+      exit
+    }
     found && separator {
       if ($0 !~ table_separator_re) {
         invalid = 1
@@ -176,7 +186,14 @@ has_only_root_ledger_shape() {
     {
       line = $0
       sub(/\r$/, "", line)
-      if (line ~ /^[ \t]*$/) next
+      if (line ~ /^[ \t]*$/) {
+        if (table) table_ended = 1
+        next
+      }
+      if (table_ended) {
+        invalid = 1
+        next
+      }
       if (!heading) {
         if (normalize_atx(line) ~ /^# Progress:/) heading = 1
         else invalid = 1
@@ -212,6 +229,14 @@ latest_outcome() {
       if (substr(value, 1, 1) == " ") return substr(value, 2)
       return value
     }
+    function atx_level(value,    count, character) {
+      count = 0
+      while (substr(value, count + 1, 1) == "#") count++
+      if (count < 1 || count > 6) return 0
+      character = substr(value, count + 1, 1)
+      if (character != "" && character != " " && character != "\t") return 0
+      return count
+    }
     function close_attempt() {
       if (active && outcome_count != 1) invalid = 1
       active = 0
@@ -219,7 +244,8 @@ latest_outcome() {
     }
     {
       line = normalize_atx($0)
-      if (line ~ /^# /) {
+      level = atx_level(line)
+      if (level == 1) {
         if (title_seen || active || attempt_seen) {
           close_attempt()
           latest = ""
@@ -228,12 +254,12 @@ latest_outcome() {
         title_seen = 1
         next
       }
-      if (line ~ /^## /) {
+      if (level == 2) {
         close_attempt()
         latest = ""
         attempt_seen = 1
         heading = line
-        sub(/^## /, "", heading)
+        sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
         suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
         if (heading !~ (suffix "$")) {
@@ -248,7 +274,7 @@ latest_outcome() {
         active = 1
         next
       }
-      if (line ~ /^###+[ \t]/) {
+      if (level > 0) {
         close_attempt()
         latest = ""
         invalid = 1
@@ -340,7 +366,7 @@ ledger_counts() {
 }
 
 has_task_review_pass() {
-  strip_comments "$1" | grep -Eq '^ {0,3}## Task [1-9][0-9]*([ :]|$)'
+  strip_comments "$1" | grep -Eq '^ {0,3}##[[:blank:]]+Task [1-9][0-9]*([ :]|$)'
 }
 
 format_of() {
