@@ -34,20 +34,27 @@ const ROOT_PROGRESS = `# Progress: add auth
 
 const TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
 
-## Task 1: Add the auth | session — 2026-08-13
+## Attempt 1 — 2026-08-13
 
 - Outcome: blocked
 
-## Task 1: Add the auth | session — 2026-08-14
+## Attempt 2 — 2026-08-14
 
 - Outcome: done
 `
 
 const TASK_TWO_PROGRESS = `# Task Progress: Task 2 — Wire it into the router
 
-## Task 2: Wire it into the router — 2026-08-14
+## Attempt 1 — 2026-08-14
 
 - Outcome: blocked
+`
+
+const LEGACY_TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
+
+## Task 1: Add the auth | session — 2026-08-14
+
+- Outcome: done
 `
 
 const REVIEW = `# Review: add auth
@@ -137,6 +144,16 @@ function splitFiles(overrides: Record<string, string> = {}): Record<string, stri
 }
 
 describe("hamilton-change-context.sh <change-dir>", () => {
+  it("reads canonical attempts alongside exact legacy task attempts", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({ "tasks/task-1/progress.md": LEGACY_TASK_ONE_PROGRESS }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(field(result, "tasks")).toBe("1/2 done")
+  })
+
   it("reports each task's latest feedback verdict and freshness", () => {
     const repo = makeRepo()
     const { dir, base, head } = seedCommittedSplit(repo)
@@ -498,7 +515,7 @@ Outcome: completed
     ["seven-marker-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "####### Task Progress:") }],
     ["no-space-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "#Task Progress:") }],
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
-    ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
+    ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Attempt 3 — 2026-08-15\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
     ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],

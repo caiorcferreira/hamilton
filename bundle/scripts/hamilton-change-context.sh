@@ -270,6 +270,10 @@ latest_outcome() {
         sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
         suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        if (heading ~ ("^Attempt [1-9][0-9]*" suffix "$")) {
+          active = 1
+          next
+        }
         if (heading !~ (suffix "$")) {
           invalid = 1
           next
