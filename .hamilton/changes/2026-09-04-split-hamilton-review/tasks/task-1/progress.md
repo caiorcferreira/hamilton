@@ -71,3 +71,12 @@
 - Verified: `bun --bun vitest run` → 148 tests passed
 - Verified: `bun run build` → passed
 - Notes: Recognized every one-to-six-marker ATX boundary after zero to three spaces, including empty and tab-delimited H2s, while preserving four-space code indentation; made root table rows one contiguous block terminated by the first blank while retaining trailing blanks for a zero-row all-abandoned ledger. Direct and inventory regressions cover all reviewed cases; the original scaffold checkpoint remains unchanged.
+
+## Task 1: Parse split change context — 2026-09-04
+
+- Outcome: done
+- Changed: created none; modified `bundle/scripts/hamilton-change-context.sh`, `tests/scripts/change-context.test.ts`; deleted none
+- Verified: `bun --bun vitest run tests/scripts/change-context.test.ts` → 67 tests passed
+- Verified: `bun --bun vitest run` → 152 tests passed
+- Verified: `bun run build` → passed
+- Notes: Moved exact task-file H1 validation into the ATX-aware task parser, required exactly one matching level-one heading before attempt sections, and removed the generic artifact-header helper as task identity proof. Direct and inventory regressions reject seven-marker and no-space pseudo-headings; shell syntax, diff hygiene, Bash 3 portability, and the original scaffold checkpoint were also verified.

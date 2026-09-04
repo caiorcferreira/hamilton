@@ -251,6 +251,10 @@ latest_outcome() {
           latest = ""
           invalid = 1
         }
+        heading = line
+        sub(/^#[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        if (heading != "Task Progress: " task " \342\200\224 " title) invalid = 1
         title_seen = 1
         next
       }
@@ -258,6 +262,10 @@ latest_outcome() {
         close_attempt()
         latest = ""
         attempt_seen = 1
+        if (!title_seen) {
+          invalid = 1
+          next
+        }
         heading = line
         sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
@@ -297,6 +305,7 @@ latest_outcome() {
     }
     END {
       close_attempt()
+      if (!title_seen) invalid = 1
       print latest
       exit invalid
     }
@@ -347,7 +356,6 @@ EOF
     [ "$link" = "$expected_link" ] || { ledger_error "row $((index + 1)) has the wrong task link"; return 1; }
     task_file="$dir/tasks/task-${id#Task }/progress.md"
     [ -f "$task_file" ] || { ledger_error "$id progress file is missing"; return 1; }
-    [ "$(first_header "$task_file")" = "Task Progress: $id — $title" ] || { ledger_error "$id progress heading does not match"; return 1; }
     outcome=$(latest_outcome "$task_file" "$id" "$title") || { ledger_error "$id progress contains invalid task attempt sections"; return 1; }
     [ "$status" != "done" ] || [ "$outcome" = "done" ] || { ledger_error "$id done row lacks latest Outcome: done evidence"; return 1; }
   done <<EOF

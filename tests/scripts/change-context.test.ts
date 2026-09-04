@@ -264,6 +264,8 @@ Outcome: completed
     ["wrong-task", { "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Task 2", "Task 1") }],
     ["illegal-status", { "progress.md": ROOT_PROGRESS.replace("| blocked |", "| waiting |") }],
     ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}| Task | Status | Progress |\n|---|---|---|\n` }],
+    ["seven-marker-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "####### Task Progress:") }],
+    ["no-space-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "#Task Progress:") }],
     ["done-without-done-evidence", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("- Outcome: done", "- Outcome: blocked") }],
     ["done-without-latest-evidence", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1: Add the auth | session — 2026-08-15\n` }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
@@ -497,6 +499,8 @@ Outcome: completed
 
   it.each([
     ["duplicate-table", { "progress.md": `${ROOT_PROGRESS}| Task | Status | Progress |\n|---|---|---|\n` }],
+    ["seven-marker-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "####### Task Progress:") }],
+    ["no-space-task-heading", { "tasks/task-1/progress.md": TASK_ONE_PROGRESS.replace("# Task Progress:", "#Task Progress:") }],
     ["malformed-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n## Task 1 — 2026-08-15\n\n- Outcome: done\n` }],
     ["wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n### Task 1: Add the auth | session — 2026-08-15\n\n- Outcome: done\n` }],
     ["indented-wrong-level-latest-heading", { "tasks/task-1/progress.md": `${TASK_ONE_PROGRESS}\n   ### Task 1: Add the auth | session — 2026-08-15\n` }],
