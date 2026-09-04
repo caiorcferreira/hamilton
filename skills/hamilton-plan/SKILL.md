@@ -13,8 +13,9 @@ The **pipeline** is Hamilton's spec-driven sequence for a change: propose → pl
 review → finish-work. Each step is a skill that a person or an agent can run. This skill
 is the **plan** step.
 
-`plan.md` is the one required artifact in the pipeline and the handoff contract between
-planning and coding. This skill produces it. **It never writes production code.**
+`plan.md` is the required planning artifact and the handoff contract between planning and
+coding. Finalizing it also initializes the split execution ledger and task-local evidence
+files. This skill produces planning artifacts only. **It never writes production code.**
 
 ## Inputs
 
@@ -130,6 +131,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    and decisions already committed for those capabilities — follow them so the plan stays
    consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
    your primary source of existing behavior; write a two-line why/what for the Overview.
+   If `plan.md` already exists, require the split layout: `<change-dir>/progress.md` must be a
+   root task table and every active row must link to its existing
+   `<change-dir>/tasks/task-N/progress.md`. Treat any other planned layout as
+   `legacy-unsupported` and stop at the between-changes migration boundary. Never parse,
+   migrate, reconstruct, or partially scaffold a planned legacy layout. A change without
+   `plan.md` is pre-plan, not legacy.
 5. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
 6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
@@ -145,8 +152,20 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 8. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
-9. **Write `plan.md`** from `~/.hamilton/templates/plan.md` (installed by `hamilton setup`)
-   into the change directory.
+9. **Write `plan.md` and initialize execution progress.** Write `plan.md` from
+   `~/.hamilton/templates/plan.md` (installed by `hamilton setup`) into the change directory.
+   Then create `<change-dir>/progress.md` as the task-only current-status ledger and create
+   `<change-dir>/tasks/task-N/progress.md` for every active `Task N`. The root table contains
+   exactly one row per active task in plan order, with columns `Task`, `Status`, and `Progress`.
+   Render its identity as `Task N: <title>`, initialize new rows to `pending`, and link each row
+   to the exact relative path `tasks/task-N/progress.md`. The only status vocabulary is
+   `pending`, `in-progress`, `blocked`, and `done`. Apply standard Markdown table escaping to
+   display titles, including escaping `|`, but derive identity and the lowercase `task-N`
+   directory only from the numeric `Task N`; identity is not derived from the title. Initialize
+   each task file from `~/.hamilton/templates/task-progress.md` with the heading
+   `# Task Progress: Task N — <title>` and no attempt block. Root progress contains no changed
+   paths, commands, notes, attempts, task feedback verdicts, whole-branch review summaries, or
+   finish outcomes.
 
 ## Task-sizing heuristics
 
@@ -157,15 +176,25 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 ## Re-plan mode
 
 When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
-re-enter this skill in re-plan mode: read `plan.md` and `progress.md` for the task/outcome
-standings — `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` summarises them in one
-call — then amend the plan.
+re-enter this skill in re-plan mode. Require the split layout before making changes; a planned
+legacy layout is `legacy-unsupported`, so stop rather than migrating or reconstructing it. Read
+`plan.md` and the root `<change-dir>/progress.md` current-status table —
+`~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` summarizes them in one call — and
+amend the plan without reading or rewriting sibling attempt histories.
 
-- Tasks `progress.md` marks done are frozen — leave them untouched.
-- Renumber nothing: stable task ids are what the code step and orchestrate dispatch by.
-- Append new tasks; mark abandoned ones explicitly — `(abandoned — superseded by Task N)` in
-  the title — instead of deleting them.
-- Record the reason for the amendment in the plan's Overview.
+- Tasks the root ledger marks `done` are frozen: do not alter their task definition, title,
+  status row, identifier, link, directory, or task-local history.
+- Renumber nothing and never reuse an abandoned task id. Stable numeric task ids and
+  `tasks/task-N/` paths are the execution identity.
+- Append each new active task with a new numeric id, add its root row in amended plan order with
+  status `pending`, and initialize its `tasks/task-N/progress.md` heading.
+- A renamed non-done task may update only its Markdown-escaped display title in the root row and
+  task-progress heading. Preserve its numeric id, path, current status, and every existing
+  `## Attempt N` block.
+- Mark an abandoned task explicitly in `plan.md`, remove its row from the active root table, and
+  retain its existing task directory and append-only history. Do not delete them.
+- Preserve all other existing task directories and append-only evidence, and record the reason
+  for the amendment in the plan's Overview.
 
 Re-plan mode is the one sanctioned way `plan.md` changes after coding begins; every other
 skill treats the plan as read-only.
@@ -187,6 +216,10 @@ Before finishing, confirm:
   the change).
 - Any code snippet in a task models the clean shape — the coder copies it verbatim.
 - "Done when" captures: all tasks done, tests green, reviews addressed.
+- Root progress has exactly one correctly ordered row per active task, uses only `pending`,
+  `in-progress`, `blocked`, and `done`, and every link resolves to an initialized task progress
+  file.
+- Display titles are Markdown-escaped, while numeric ids and `tasks/task-N/` paths remain stable.
 
 **Blocking.** For a non-trivial change — one that adds or restructures units, not a mechanical
 or single-file edit — do not finalize `plan.md` while a task carries an unresolved structural
@@ -197,7 +230,10 @@ the plan ships to the code.
 
 ## Output
 
-`.hamilton/changes/<change>/plan.md`, following `~/.hamilton/templates/plan.md`.
+`.hamilton/changes/<change>/plan.md`, `<change-dir>/progress.md`, and one initialized
+`<change-dir>/tasks/task-N/progress.md` per active task, following the installed plan, root
+progress, and task-progress templates. Re-plan reconciles those artifacts without rewriting
+done tasks or append-only attempt history.
 
 ## Handoff
 
@@ -226,7 +262,7 @@ digraph hamilton_plan {
     "Interactive?" [shape=diamond];
     "Confirm breakdown with user" [shape=box];
     "Auto-reflect + record assumptions" [shape=box];
-    "Write plan.md + self-review" [shape=doublecircle];
+    "Write plan.md + initialize task ledger + self-review" [shape=doublecircle];
 
     "Detect map-aware mode\n(select first pending unit)" -> "Ensure isolated workspace\n(worktree if on default branch)";
     "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)";
@@ -237,7 +273,7 @@ digraph hamilton_plan {
     "Specify each task\n(files, acceptance, steps, verify, commit)" -> "Interactive?";
     "Interactive?" -> "Confirm breakdown with user" [label="yes"];
     "Interactive?" -> "Auto-reflect + record assumptions" [label="no"];
-    "Confirm breakdown with user" -> "Write plan.md + self-review";
-    "Auto-reflect + record assumptions" -> "Write plan.md + self-review";
+    "Confirm breakdown with user" -> "Write plan.md + initialize task ledger + self-review";
+    "Auto-reflect + record assumptions" -> "Write plan.md + initialize task ledger + self-review";
 }
 ```
