@@ -22,6 +22,12 @@ function prepareTask(repo: string, changeDir: string, task: number): void {
   commitAll(repo, `add task ${task}`)
 }
 
+function prepareAbandonedTask(repo: string, changeDir: string, task: number): void {
+  const plan = Path.join(changeDir, "plan.md")
+  Fs.writeFileSync(plan, `### Task ${task}: Retired work (abandoned — no longer needed)\n`)
+  commitAll(repo, `abandon task ${task}`)
+}
+
 function basePath(changeDir: string, task: number): string {
   return Path.join(changeDir, "tasks", `task-${task}`, ".base")
 }
@@ -97,6 +103,18 @@ describe("hamilton-diff-package.sh --record", () => {
     }
   })
 
+  it("rejects abandoned plan tasks", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    prepareAbandonedTask(repo, changeDir, 2)
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("abandoned")
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(false)
+  })
+
   it("rejects --base", () => {
     const repo = makeRepo()
     const changeDir = makeChangeDir(repo, "add-auth")
@@ -132,6 +150,17 @@ describe("hamilton-diff-package.sh package mode", () => {
       expect(result.status).toBe(2)
       expect(result.stderr).toContain("task")
     }
+  })
+
+  it("rejects abandoned plan tasks when packaging", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    prepareAbandonedTask(repo, changeDir, 2)
+
+    const result = packageTask(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("abandoned")
   })
 
   it("writes a stat summary and a diff for the recorded task range", () => {
@@ -225,7 +254,15 @@ describe("hamilton-diff-package.sh package mode", () => {
     Fs.writeFileSync(checkpoint, "not-a-commit\n")
     const malformed = packageTask(changeDir, 2, repo)
     expect(malformed.status).toBe(2)
-    expect(malformed.stderr).toContain("not a commit")
+    expect(malformed.stderr).toContain("exactly one full commit ID")
+
+    const head = git(repo, "rev-parse", "HEAD")
+    for (const malformedCheckpoint of ["HEAD~1", "main", head.slice(0, 12), `${head.slice(0, 20)} ${head.slice(20)}`]) {
+      Fs.writeFileSync(checkpoint, `${malformedCheckpoint}\n`)
+      const invalid = packageTask(changeDir, 2, repo)
+      expect(invalid.status).toBe(2)
+      expect(invalid.stderr).toContain("exactly one full commit ID")
+    }
 
     git(repo, "checkout", "-q", "-b", "other")
     write(repo, "src/other.ts", "export const other = true\n")
@@ -237,7 +274,7 @@ describe("hamilton-diff-package.sh package mode", () => {
     expect(unrelated.status).toBe(2)
     expect(unrelated.stderr).toContain("not an ancestor")
 
-    Fs.writeFileSync(checkpoint, `${git(repo, "rev-parse", "HEAD")}\n`)
+    Fs.writeFileSync(checkpoint, `${head}\n`)
     const sameAsHead = packageTask(changeDir, 2, repo)
     expect(sameAsHead.status).toBe(1)
     expect(sameAsHead.stderr).toContain("BASE equals HEAD")

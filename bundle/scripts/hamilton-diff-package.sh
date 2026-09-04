@@ -95,15 +95,35 @@ ensure_base_ignored() {
 }
 
 validate_task() {
-  local change_dir="$1" task="$2" plan
+  local change_dir="$1" task="$2" plan title
   [[ "$task" =~ ^[1-9][0-9]*$ ]] || die "task must be an exact positive task number"
   plan="$change_dir/plan.md"
   [ -f "$plan" ] || die "task $task has no plan at $plan"
-  grep -qE "^### Task ${task}:" "$plan" || die "task $task is not active in $plan"
+  title=$(grep -E "^### Task ${task}:" "$plan")
+  [ -n "$title" ] || die "task $task is not active in $plan"
+  [[ "${title,,}" != *"(abandoned"* ]] || die "task $task is abandoned in $plan"
 }
 
 task_base_file() {
   printf '%s/tasks/task-%s/.base\n' "$1" "$2"
+}
+
+read_task_checkpoint() {
+  local base_file="$1" checkpoint canonical
+  checkpoint=$(<"$base_file")
+  if [[ ! "$checkpoint" =~ ^[0-9a-f]+$ ]]; then
+    printf 'error: task checkpoint %s must contain exactly one full commit ID\n' "$base_file" >&2
+    return 2
+  fi
+  canonical=$(git rev-parse --verify --quiet "$checkpoint^{commit}" 2>/dev/null) || {
+    printf 'error: task checkpoint %s must contain exactly one full commit ID\n' "$base_file" >&2
+    return 2
+  }
+  if [ "$checkpoint" != "$canonical" ]; then
+    printf 'error: task checkpoint %s must contain exactly one full commit ID\n' "$base_file" >&2
+    return 2
+  fi
+  printf '%s\n' "$checkpoint"
 }
 
 write_package() {
@@ -125,13 +145,13 @@ write_package() {
 }
 
 cmd_record() {
-  local change_dir="$1" task="$2" resolved head base_file base
+  local change_dir="$1" task="$2" resolved base_file base
   resolved=$(resolve_change_dir "$change_dir") || exit $?
   validate_task "$resolved" "$task"
   base_file=$(task_base_file "$resolved" "$task")
   mkdir -p "$(dirname "$base_file")" || die "cannot create $(dirname "$base_file")"
   if [ -f "$base_file" ]; then
-    base=$(tr -d '[:space:]' <"$base_file")
+    base=$(read_task_checkpoint "$base_file") || return $?
   else
     base=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
     printf '%s\n' "$base" >"$base_file" || die "cannot write $base_file"
@@ -152,8 +172,11 @@ cmd_package() {
       printf 'error: no BASE recorded for Task %s — run --record before dispatching an implementer\n' "$task" >&2
       return 1
     fi
-    base=$(tr -d '[:space:]' <"$base_file")
-    [ -n "$base" ] || { printf 'error: %s is empty — re-run --record\n' "$base_file" >&2; return 1; }
+    [ -n "$(tr -d '[:space:]' <"$base_file")" ] || {
+      printf 'error: %s is empty — re-run --record\n' "$base_file" >&2
+      return 1
+    }
+    base=$(read_task_checkpoint "$base_file") || return $?
     label="task-$task"
     recorded="yes"
   else
