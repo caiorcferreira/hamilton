@@ -191,8 +191,11 @@ amend the plan without reading or rewriting sibling attempt histories.
 - A renamed non-done task may update only its Markdown-escaped display title in the root row and
   task-progress heading. Preserve its numeric id, path, current status, and every existing
   `## Attempt N` block.
-- Mark an abandoned task explicitly in `plan.md`, remove its row from the active root table, and
-  retain its existing task directory and append-only history. Do not delete them.
+- Mark an abandoned task with the canonical heading
+  `### Task N: <title> (abandoned — <reason>)`. Active-task resolution treats a heading whose
+  suffix begins with the literal `(abandoned` marker as abandoned. Remove its row from the active
+  root table and retain its existing task directory and append-only history. Do not delete them
+  or reuse the numeric id.
 - Preserve all other existing task directories and append-only evidence, and record the reason
   for the amendment in the plan's Overview.
 

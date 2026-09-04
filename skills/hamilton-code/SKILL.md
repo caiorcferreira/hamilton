@@ -27,6 +27,10 @@ Exactly one of these forms supplies it:
   more than one id, or does not match one existing active plan task, stop before implementation
   and ask for the exact id. The inline form does not permit title inference.
 
+An active task heading does not carry the literal `(abandoned` suffix used by the canonical
+`### Task N: <title> (abandoned — <reason>)` form. Exclude any heading whose suffix begins with
+that marker; never resolve or execute it as active, and never reuse its numeric id.
+
 Plus:
 
 - The change directory path (`.hamilton/changes/<change>/`), always present.
@@ -55,7 +59,8 @@ Plus:
    installed, verify by hand that the repository is off its default branch and the change
    directory resolves under `git rev-parse --show-toplevel`.
 2. **Resolve exactly one task.** Load only the requested task block from `plan.md`. Confirm its
-   exact positive numeric `Task N` id, confirm that id occurs once, and reject an abandoned task.
+   exact positive numeric `Task N` id, confirm that id occurs once, and reject a heading marked
+   by the canonical literal `(abandoned` suffix.
    For inline input, also confirm that its id and content identify the same active plan task.
    Read its Acceptance, cited requirement or design sections, and project standards. Do not load
    other task blocks.
