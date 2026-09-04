@@ -359,7 +359,6 @@ gate_tasks() {
 $plans
 EOF
 
-  [ "$total" -gt 0 ] || { fail "Tasks (plan.md declares no active tasks)"; return; }
   has_only_root_ledger_shape "$progress" || { fail "Tasks ($first_active: legacy progress layout is unsupported)"; return; }
   rows_text=$(root_rows "$progress") || { fail "Tasks ($first_active: invalid root task ledger)"; return; }
 

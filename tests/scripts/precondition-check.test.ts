@@ -316,6 +316,34 @@ describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
     expect(Fs.readFileSync(Path.join(dir, "tasks/task-2/progress.md"), "utf8")).toContain("Outcome: blocked")
   })
 
+  it("passes an empty ledger when every plan task is abandoned", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, {
+      plan: `# Plan: add auth
+
+## Tasks
+
+### Task 1: Add the auth | session (abandoned — no longer needed)
+
+### Task 2: Wire it into the router (abandoned — no longer needed)
+`,
+      progress: `# Progress: add auth
+
+| Task | Status | Progress |
+|---|---|---|
+`
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain("[PASS] Clean tree")
+    expect(result.stdout).toContain("[PASS] Tests (true)")
+    expect(result.stdout).toContain("[PASS] Tasks (0/0 implemented, 2 abandoned)")
+    expect(result.stdout).toContain("[PASS] Reviews (all task scopes and whole change approved)")
+    expect(result.lastLine).toBe("gate: open")
+  })
+
   it("fails a planned legacy progress layout instead of interpreting it", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {
