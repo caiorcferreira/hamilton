@@ -29,6 +29,22 @@ describe("hamilton-code-feedback contract", () => {
     expect(inputs).toContain("Project standards")
   })
 
+  it("gates the split generation before task scope or verdict writes", () => {
+    const skill = readCodeFeedback()
+    const preflight = section(skill, "## Generation preflight")
+
+    expect(preflight).toMatch(/no `plan\.md`.*`pre-plan`/is)
+    expect(preflight).toMatch(/once `plan\.md` exists.*exact (?:split )?root task ledger/is)
+    expect(preflight).toMatch(/every required active-task.*tasks\/task-N\/progress\.md/is)
+    expect(preflight).toMatch(/monolithic.*missing.*partially split.*`legacy-unsupported`/is)
+    expect(preflight).toMatch(/between-changes.*upgrade/i)
+    expect(preflight).toMatch(/absent.*feedback\.md.*valid creation-time state/is)
+    expect(preflight).toMatch(/never.*(?:create|append|change|write).*feedback/is)
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Wrong scope"))
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Process"))
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Feedback artifact"))
+  })
+
   it("keeps inspection bounded to the task diff and one named risk", () => {
     const inspection = section(readCodeFeedback(), "## Bounded inspection")
 

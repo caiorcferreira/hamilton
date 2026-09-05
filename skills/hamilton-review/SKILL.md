@@ -43,6 +43,32 @@ before inspection. Stop if the target cannot be resolved or any range check fail
 This skill ships with its own `references/code-quality.md`. Read it from this skill directory and
 apply its integration, omission, and affected-consumer rubric to the whole branch.
 
+## Generation preflight
+
+Run this no-write gate before whole-branch scope inspection, range validation, or verdict mutation.
+A change directory with no `plan.md` is `pre-plan`, not legacy; stop because no planned branch can
+enter final review, but do not classify or scaffold it as an unsupported generation.
+
+Once `plan.md` exists, require the exact split root task ledger and every required active-task
+scaffold artifact. Root `<change-dir>/progress.md` must be the exact task-only table, with one
+`Task | Status | Progress` column set, exactly one plan-ordered row per active task, a status from
+`pending`, `in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each
+linked
+`<change-dir>/tasks/task-N/progress.md` must exist with matching numeric task identity. Reject a
+monolithic root progress file, missing scaffold, partially scaffolded or otherwise partially split
+layout, alternate task path, or mixed execution and verdict history as `legacy-unsupported`. Stop
+with between-changes upgrade guidance: finish the old change under its old installation or upgrade
+the complete Hamilton generation and run `hamilton setup` between changes. Never parse, migrate,
+reconstruct, or partially scaffold that layout, and never create, append, change, or write review
+when this gate fails.
+
+After the split scaffold passes, require every active task's `feedback.md` before declaring the
+change review-ready. Missing task feedback is a valid lifecycle state rather than a legacy format,
+but final review stops without writing `review.md` until every active task has complete task-local
+implementation and feedback evidence. An absent root `review.md` is also a valid creation-time
+state; the first successful whole-branch pass creates it. Only after this preflight succeeds may
+the whole-branch scope and range checks below run.
+
 ## Wrong scope
 
 A task-scoped invocation, `Task N` identity, task-only diff range, arbitrary ancestor, task
@@ -81,20 +107,21 @@ verification, including the full suite and build, after review approval.
 
 ## Process
 
-1. Validate that the input is a complete whole-branch package and reject wrong scope before any
+1. Run the generation preflight and stop without inspection or writes unless it succeeds.
+2. Validate that the input is a complete whole-branch package and reject wrong scope before any
    inspection or write.
-2. Resolve the target or default branch, compute its actual merge base with current `HEAD`, require
+3. Resolve the target or default branch, compute its actual merge base with current `HEAD`, require
    the supplied base to equal it exactly, and validate the full head identifier and ancestry.
-3. Read the complete branch diff first. Read the supplied change artifacts, root ledger, every
+4. Read the complete branch diff first. Read the supplied change artifacts, root ledger, every
    active task's latest implementation attempt and feedback concerns, project standards, and this
    skill's local rubric.
-4. Trace every changed contract and assumption through affected repository consumers. Inspect
+5. Trace every changed contract and assumption through affected repository consumers. Inspect
    cross-task composition, requirements, design, tests, security, project idioms, structural
    quality, missing material changes, scope, hygiene, and boundaries.
-5. Resolve a concrete remaining doubt with focused verification only when warranted.
-6. Check every binding requirement and design decision against the branch and broader repository.
-7. Decide `approved` or `changes-requested` and append one complete pass to root `review.md`.
-8. Create and verify the artifact-only bookkeeping commit before handoff.
+6. Resolve a concrete remaining doubt with focused verification only when warranted.
+7. Check every binding requirement and design decision against the branch and broader repository.
+8. Decide `approved` or `changes-requested` and append one complete pass to root `review.md`.
+9. Create and verify the artifact-only bookkeeping commit before handoff.
 
 ## Review dimensions
 

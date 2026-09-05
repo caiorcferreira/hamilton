@@ -30,6 +30,22 @@ describe("hamilton-review contract", () => {
     expect(inputs).toContain("Project standards")
   })
 
+  it("gates the split generation before branch scope or verdict writes", () => {
+    const skill = readReview()
+    const preflight = section(skill, "## Generation preflight")
+
+    expect(preflight).toMatch(/no `plan\.md`.*`pre-plan`/is)
+    expect(preflight).toMatch(/once `plan\.md` exists.*exact (?:split )?root task ledger/is)
+    expect(preflight).toMatch(/every required active-task.*tasks\/task-N\/progress\.md/is)
+    expect(preflight).toMatch(/monolithic.*missing.*partially split.*`legacy-unsupported`/is)
+    expect(preflight).toMatch(/between-changes.*upgrade/i)
+    expect(preflight).toMatch(/every active task.*feedback\.md.*review-ready/is)
+    expect(preflight).toMatch(/never.*(?:create|append|change|write).*review/i)
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Wrong scope"))
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Process"))
+    expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Review artifact"))
+  })
+
   it("rejects an arbitrary ancestor or task checkpoint as the whole-branch base", () => {
     const inputs = section(readReview(), "## Inputs")
     const wrongScope = section(readReview(), "## Wrong scope")

@@ -40,6 +40,31 @@ This skill ships with its own `references/code-quality.md`. Read it from this sk
 apply it proportionately to the task diff. It is the only structural-quality rubric needed by this
 skill.
 
+## Generation preflight
+
+Run this no-write gate before task-scope inspection, diff validation, or verdict mutation. A change
+directory with no `plan.md` is `pre-plan`, not legacy; stop because no planned task can be reviewed,
+but do not classify or scaffold it as an unsupported generation.
+
+Once `plan.md` exists, require the exact split root task ledger and every required active-task
+scaffold artifact. Root `<change-dir>/progress.md` must be the exact task-only table, with one
+`Task | Status | Progress` column set, exactly one plan-ordered row per active task, a status from
+`pending`, `in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each
+linked
+`<change-dir>/tasks/task-N/progress.md` must exist with matching numeric task identity. Reject a
+monolithic root progress file, missing scaffold, partially scaffolded or otherwise partially split
+layout, alternate task path, or mixed execution and verdict history as `legacy-unsupported`. Stop
+with between-changes upgrade guidance: finish the old change under its old installation or upgrade
+the complete Hamilton generation and run `hamilton setup` between changes. Never parse, migrate,
+reconstruct, or partially scaffold that layout, and never create, append, change, or write feedback
+when this gate fails.
+
+An absent assigned `feedback.md` is a valid creation-time state after the split scaffold passes;
+the first successful feedback pass creates it. If it already exists, its path and task identity
+must match the assigned task. Feedback files for tasks that have not reached feedback are not
+planning scaffold. Only after this preflight succeeds may the task-specific scope and evidence
+checks below run.
+
 ## Wrong scope
 
 Before inspection, require one exact positive numeric `Task N` that occurs once as an active plan
@@ -62,21 +87,22 @@ search.
 
 ## Process
 
-1. Validate the exact task identity and reject wrong-scope input before inspection or writes.
-2. Validate the diff package and checkpoint. Require full commit identifiers, require the package
+1. Run the generation preflight and stop without inspection or writes unless it succeeds.
+2. Validate the exact task identity and reject wrong-scope input before inspection or writes.
+3. Validate the diff package and checkpoint. Require full commit identifiers, require the package
    base to equal the task's recorded checkpoint, and require base to be an ancestor of head and
    head to be an ancestor of current `HEAD`. Stop on a missing, malformed, inverted, unreachable,
    or mismatched range.
-3. Read only the assigned task block, its cited binding constraints, project standards, the latest
+4. Read only the assigned task block, its cited binding constraints, project standards, the latest
    physical attempt in that task's progress file, the supplied diff package, and this skill's
    local rubric. Confirm every nested task identity equals the requested `Task N`.
-4. Inspect the complete task diff for correctness, meaningful tests, security, project idioms,
+5. Inspect the complete task diff for correctness, meaningful tests, security, project idioms,
    structural quality, scope, hygiene, and boundary compliance. Follow the bounded-inspection rule
    for any concrete outside risk.
-5. Check every acceptance criterion and every latest implementation claim against located diff or
+6. Check every acceptance criterion and every latest implementation claim against located diff or
    permitted-risk evidence. Claims never substitute for the diff.
-6. Decide `approved` or `changes-requested` under the verdict rules.
-7. Append one complete pass to the assigned task's feedback history, then make and verify the
+7. Decide `approved` or `changes-requested` under the verdict rules.
+8. Append one complete pass to the assigned task's feedback history, then make and verify the
    artifact-only bookkeeping commit before handoff.
 
 ## Review dimensions
