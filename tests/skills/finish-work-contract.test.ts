@@ -75,11 +75,26 @@ describe("hamilton-finish-work contract", () => {
     const boundary = section(readFinishWork(), "## Post-gate mutation boundary")
 
     expect(boundary).toMatch(/capture.*gate-entry.*HEAD/is)
-    expect(boundary).toMatch(/canonical spec.*route.*map.*numbered.*finish/is)
+    expect(boundary).toMatch(/canonical.*specs.*route.*map.*numbered.*finish/is)
     expect(boundary).toMatch(/finish-owned.*do not stale.*same attempt/is)
     expect(boundary).toMatch(/unrelated material edit.*abort/is)
     expect(boundary).toMatch(/return.*whole-branch review/is)
     expect(boundary).toMatch(/waiver.*does\s+not.*post-gate/is)
+  })
+
+  it("routes missing or incorrect change requirements out of finish-work", () => {
+    const skill = readFinishWork()
+    const synchronization = section(skill, "## Specification synchronization")
+    const boundary = section(skill, "## Post-gate mutation boundary")
+
+    expect(synchronization).toMatch(/canonical.*\.hamilton\/specs\/.*already approved.*artifacts/is)
+    expect(synchronization).toMatch(/missing or incorrect.*change requirement.*abort/is)
+    expect(synchronization).toMatch(/artifact revision.*fresh whole-branch review/is)
+    expect(synchronization).toMatch(/never.*(?:add|edit|rewrite).*requirements\//is)
+    expect(boundary).toMatch(/only.*canonical.*\.hamilton\/specs\/.*route.*map.*finish\.md/is)
+    expect(boundary).toMatch(/change requirement.*not finish-owned/is)
+    expect(boundary).not.toMatch(/supporting delta/i)
+    expect(skill).not.toMatch(/write the missing delta|first add .*delta/is)
   })
 
   it("persists a verified local-merge outcome on the base branch", () => {

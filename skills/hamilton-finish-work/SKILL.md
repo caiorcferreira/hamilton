@@ -23,8 +23,8 @@ review → finish-work. Each step is a skill a person or an agent can run. This 
     `<change-dir>/tasks/task-N/feedback.md`.
   - The physically last whole-branch review pass in `<change-dir>/review.md`.
   - The append-only finish history at `<change-dir>/finish.md`, if it exists.
-- The deliberate specification inputs: `proposal.md`, `design.md`, and `requirements/` where
-  present, plus the current canonical `.hamilton/specs/` documents.
+- The already approved specification inputs: `proposal.md`, `design.md`, and `requirements/`
+  where present, plus the current canonical `.hamilton/specs/` documents.
 - The `Route unit` field in `proposal.md` or the plan Overview, when the change executes a route
   unit, and that unit's exact `route.md` and `map.md` paths.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
@@ -56,9 +56,9 @@ skill's own directory — they are co-located with this `SKILL.md`, not at `~/.h
   finish side effect. Read back every relevant effect before writing its matching `Outcome N`.
 - **Finish history is paired and append-only.** The attempt says what will be done; the outcome
   says what was verified. Neither rewrites the other.
-- **Specs are the truth.** Fold the change's requirement deltas into the canonical specs at
+- **Specs are the truth.** Fold the approved requirement deltas into the canonical specs at
   human-readable altitude before attempting to finish.
-- **Same-attempt ownership is narrow.** Expected specification, route, map, and numbered finish
+- **Same-attempt ownership is narrow.** Expected canonical spec, route, map, and numbered finish
   mutations made by this skill do not invalidate the attempt whose gate admitted them. No other
   post-gate material edit receives that treatment.
 - **Root progress is task state only.** Finish-work reads the root ledger but never changes root
@@ -108,16 +108,25 @@ the admitted attempt and its post-gate mutation boundary.
 
 ## Specification synchronization
 
-Run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to identify the deliberate
-artifacts and capability deltas. If the script is unavailable, list those paths directly. For
-each `requirements/<capability>.md`, read the current `.hamilton/specs/<capability>.md` together
-with the delta, then draw durable rationale, decisions, and reusable patterns from `design.md`
-and `proposal.md`.
+Run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to identify the approved change
+artifacts and capability deltas. If the script is unavailable, list those paths directly. Before
+editing a canonical spec, confirm that the approved proposal, design, and requirement deltas are
+complete and mutually consistent. Treat them as read-only inputs throughout finish-work.
 
-The content set comes from those deliberate change artifacts. Never invent canonical behavior
-from the raw diff, root or task progress, task feedback, whole-branch review comments, or an
-external request. If review exposed genuinely missing behavior, first add that behavior to the
-appropriate delta, then distill it.
+For each approved `requirements/<capability>.md`, read the current
+`.hamilton/specs/<capability>.md` together with the delta, then draw durable rationale, decisions,
+and reusable patterns from the approved `design.md` and `proposal.md`. Write canonical
+`.hamilton/specs/` documents only from those already approved change artifacts.
+
+The content set comes from those approved change artifacts. Never invent canonical behavior from
+the raw diff, root or task progress, task feedback, whole-branch review comments, or an external
+request. Never add, edit, or rewrite a file under `requirements/` during finish-work.
+
+If synchronization discovers a missing or incorrect change requirement, abort before allocating
+an attempt or committing canonical specs. Route the defect to artifact revision, then require a
+fresh whole-branch review before finish-work runs again. The same stop applies when the proposal,
+design, and requirement deltas disagree. Report the affected artifact and mismatch without
+repairing approved intent inside the finish stage.
 
 Write canonical specifications in the human-readable skeleton from
 `~/.hamilton/templates/requirements-spec.md`. Never copy the change-side
@@ -135,14 +144,15 @@ consumer-visible persisted fields in `## Contract`, fold observable scenarios in
 and state reusable rules once. Reserve `MUST` and `NEVER` for invariants.
 
 When the change has no requirement delta, compare its touched capabilities with existing specs.
-If behavior changed, write the missing delta and distill it; otherwise record that no canonical
-spec changed. A tactical path does not permit spec drift.
+If behavior changed, treat the absent delta as a missing change requirement: abort for artifact
+revision and fresh whole-branch review. Otherwise record that no canonical spec changed. A
+tactical path does not permit spec drift.
 
-Review the synchronization and stage only its deliberate delta and canonical-spec paths. If any
-changed, commit them before allocating the finish attempt, verify the commit, and restore a clean
-tree. If none changed, record the verified no-change `HEAD` instead of manufacturing an empty
-commit. Either result is an expected finish-owned synchronization for this attempt, but it does
-not make an unrelated edit safe.
+Review the synchronization and stage only canonical `.hamilton/specs/` paths derived from the
+already approved artifacts. If any changed, commit them before allocating the finish attempt,
+verify the commit, and restore a clean tree. If none changed, record the verified no-change
+`HEAD` instead of manufacturing an empty commit. Either result is an expected finish-owned
+synchronization for this attempt, but it does not make an unrelated edit safe.
 
 ## Finish history
 
@@ -210,9 +220,12 @@ preconditions again.
 ## Post-gate mutation boundary
 
 Capture the gate-entry `HEAD` and compare every later commit and working-tree path with it before
-each finish effect. The only allowed post-gate changes are the canonical spec synchronization
-and any deliberate supporting delta, the exact route and map transition named by the attempt,
-and the numbered finish mutations for that same `Attempt N` and `Outcome N`.
+each finish effect. The only allowed post-gate changes are canonical `.hamilton/specs/` folding
+derived from already approved artifacts, the exact route and map transition named by the
+attempt, and the numbered `finish.md` mutations for that same `Attempt N` and `Outcome N`.
+
+A change requirement is not finish-owned. Any post-gate edit to `proposal.md`, `design.md`, or
+`requirements/` is an unrelated material edit, even if it appears to help synchronization.
 
 Those finish-owned changes do not stale the same attempt. They are not a general freshness
 exception and do not open a later attempt. An unrelated material edit, unexpected path, amended
@@ -229,8 +242,10 @@ not excuse any post-gate mutation outside this allowlist.
    report its output without writing anything.
 3. **Capture gate entry.** Record the full admitted identities and establish the post-gate
    allowlist.
-4. **Persist specification synchronization.** After preconditions pass, synchronize the
-   specification at altitude. Commit and verify any deliberate spec paths, or verify the
+4. **Persist specification synchronization.** After preconditions pass, validate the approved
+   change artifacts, then synchronize canonical specifications at altitude. A missing or
+   incorrect requirement returns to artifact revision and fresh whole-branch review without an
+   attempt. Otherwise commit and verify only changed `.hamilton/specs/` paths, or verify the
    no-change `HEAD`, then check the mutation boundary.
 5. **Resolve intent.** Detect the workspace with
    `~/.hamilton/scripts/hamilton-isolate.sh --check`, resolve the actual base branch and selected
