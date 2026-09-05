@@ -120,8 +120,11 @@ verification, including the full suite and build, after review approval.
    quality, missing material changes, scope, hygiene, and boundaries.
 6. Resolve a concrete remaining doubt with focused verification only when warranted.
 7. Check every binding requirement and design decision against the branch and broader repository.
-8. Decide `approved` or `changes-requested` and append one complete pass to root `review.md`.
-9. Create and verify the artifact-only bookkeeping commit before handoff.
+8. Decide `approved` or `changes-requested`, then inspect the index through the commit safety
+   preflight before mutating root `review.md`.
+9. Append one complete pass to root `review.md`.
+10. Make the path-limited artifact-only bookkeeping commit. Verify the committed path list and
+    preservation of the pre-existing staged state before handoff.
 
 ## Review dimensions
 
@@ -160,6 +163,21 @@ Use only these verdicts:
 
 An approved pass with a blocking finding is contradictory and invalid.
 
+## Commit safety preflight
+
+Immediately before any create, append, change, write, or other mutation of root `review.md`, inspect
+the repository index with `git diff --cached --name-only --` and preserve the exact staged diff as
+reported by `git diff --cached --binary --` as read-only comparison evidence. A pre-staged production
+path does not belong to this verdict commit. A pre-staged change-artifact path unrelated to this
+review receives the same protection. If root `review.md` itself was already staged before this pass,
+stop without mutating it because its staged content cannot be attributed safely to the current
+verdict.
+
+Never unstage, reset, restore, overwrite, or otherwise alter pre-existing staged work. Keep its
+index state intact through artifact authoring and the path-limited commit below. If the initial
+staged state cannot be identified exactly, stop before review mutation rather than risk absorbing
+or destroying unrelated work.
+
 ## Review artifact
 
 Write only `<change-dir>/review.md`. Load the exact installed
@@ -191,9 +209,12 @@ pass.
 
 ## Record and commit
 
-After appending the complete pass, create an artifact-only bookkeeping commit containing only root
-`review.md`. Commit no code or task artifact. Verify the commit's path list before handoff; if it
-contains any other path, stop and report the invalid commit rather than advancing.
+After appending the complete pass, stage only root `review.md`. Create an artifact-only bookkeeping commit with the exact path-limited invocation
+`git commit --only -- <change-dir>/review.md`. Do not use an unrestricted commit. Commit no code or task artifact. After
+the commit, verify that its path list contains only root `review.md`; if it includes any other path,
+stop and report the invalid commit rather than advancing. Also compare the index with the
+safety-preflight evidence and require every pre-existing staged path to remain staged and unchanged.
+Never use destructive unstaging to make either check pass.
 
 Never write root `<change-dir>/progress.md`. Never write task-local progress or feedback. Never
 change a task implementation status. Whole-branch verdict history belongs only in root `review.md`.

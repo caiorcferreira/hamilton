@@ -118,6 +118,28 @@ describe("hamilton-review contract", () => {
     expect(recording).toMatch(/Never.*task implementation status/is)
   })
 
+  it("protects unrelated staged work before mutating or committing review", () => {
+    const skill = readReview()
+    const process = section(skill, "## Process")
+    const safety = section(skill, "## Commit safety preflight")
+    const recording = section(skill, "## Record and commit")
+
+    expect(safety).toContain("git diff --cached --name-only")
+    expect(safety).toMatch(/before.*(?:create|append|change|write|mutat).*review/is)
+    expect(safety).toMatch(/pre-staged\s+production\s+path/i)
+    expect(safety).toMatch(/pre-staged\s+change-artifact\s+path/i)
+    expect(safety).toMatch(/never.*(?:unstage|reset|restore)/is)
+    expect(recording).toContain("git commit --only --")
+    expect(recording).toMatch(/pre-existing staged.*remain staged.*unchanged/is)
+    expect(recording).toMatch(/after.*commit.*verify.*only.*root `review\.md`/is)
+    expect(process.indexOf("Inspect the index")).toBeLessThan(
+      process.indexOf("Append one complete pass"),
+    )
+    expect(process.indexOf("Append one complete pass")).toBeLessThan(
+      process.indexOf("Verify the committed path list"),
+    )
+  })
+
   it("stops task-scoped input and redirects it to hamilton-code-feedback", () => {
     const wrongScope = section(readReview(), "## Wrong scope")
 

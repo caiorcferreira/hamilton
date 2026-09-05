@@ -102,8 +102,10 @@ search.
 6. Check every acceptance criterion and every latest implementation claim against located diff or
    permitted-risk evidence. Claims never substitute for the diff.
 7. Decide `approved` or `changes-requested` under the verdict rules.
-8. Append one complete pass to the assigned task's feedback history, then make and verify the
-   artifact-only bookkeeping commit before handoff.
+8. Inspect the index through the commit safety preflight before mutating the feedback artifact.
+9. Append one complete pass to the assigned task's feedback history.
+10. Make the path-limited artifact-only bookkeeping commit. Verify the committed path list and
+    preservation of the pre-existing staged state before handoff.
 
 ## Review dimensions
 
@@ -138,6 +140,21 @@ unresolved, and never demote it to Suggestions. The driver may either return a c
 to the same task's code step or provide located evidence and dispatch a new feedback pass against
 the same head. Only a new complete pass without the unresolved item may approve.
 
+## Commit safety preflight
+
+Immediately before any create, append, change, write, or other mutation of the feedback artifact,
+inspect the repository index with `git diff --cached --name-only --` and preserve the exact staged
+diff from `git diff --cached --binary --` as read-only comparison evidence. A pre-staged production
+path does not belong to this verdict commit. A pre-staged change-artifact path unrelated to this
+task receives the same protection. If the feedback destination itself was already staged before
+this pass, stop without mutating it because its staged content cannot be attributed safely to the
+current verdict.
+
+Never unstage, reset, restore, overwrite, or otherwise alter pre-existing staged work. Keep its
+index state intact through artifact authoring and the path-limited commit below. If the initial
+staged state cannot be identified exactly, stop before feedback mutation rather than risk absorbing
+or destroying unrelated work.
+
 ## Feedback artifact
 
 Write only `<change-dir>/tasks/task-N/feedback.md`; the task directory segment is lowercase
@@ -164,10 +181,13 @@ do not rewrite, delete, reorder, or insert before an existing pass.
 
 ## Record and commit
 
-After appending the complete pass, create an artifact-only bookkeeping commit containing only
-`tasks/task-N/feedback.md`. Commit no code or sibling task artifact. Verify the commit's path list
-before handoff; if it includes any other path, stop and report the invalid commit rather than
-advancing.
+After appending the complete pass, stage only `tasks/task-N/feedback.md`. Create an artifact-only bookkeeping commit with the exact path-limited invocation
+`git commit --only -- <change-dir>/tasks/task-N/feedback.md`. Do not use an unrestricted commit.
+Commit no code or sibling task artifact. After the commit, verify that its path list contains only
+`tasks/task-N/feedback.md`; if it includes any other path, stop and report the invalid commit rather
+than advancing. Also compare the index with the safety-preflight evidence and require every
+pre-existing staged path to remain staged and unchanged. Never use destructive unstaging to make
+either check pass.
 
 Never write root `<change-dir>/progress.md`. Never write
 `<change-dir>/tasks/task-N/progress.md`. Never change the root task status. Feedback history belongs
