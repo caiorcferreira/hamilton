@@ -83,6 +83,21 @@ const VERDICT_HISTORY_MUTATIONS = [
   ["out-of-order metadata", (content: string) => content.replace(/Base: ([^\n]+)\nHead: ([^\n]+)/, "Head: $2\nBase: $1")]
 ] as const
 
+const BLOCKING_ENTRY_CASES = [
+  ["a None-only Blocking section", "- None.", false],
+  ["an empty Blocking section", "", false],
+  ["a TBD placeholder", "- TBD.", false],
+  ["ordinary unlocated prose", "- Fix the auth flow.", false],
+  ["empty brackets", "- [] Fix the auth flow.", false],
+  ["location-free brackets", "- [src/auth.ts] Fix the auth flow.", false],
+  ["a location without an action", "- [src/auth.ts:1]", false],
+  ["a retained location placeholder", "- [<file>:<loc>] Fix the auth flow.", false],
+  ["a retained action placeholder", "- [src/auth.ts:1] <what is wrong> — <what to change>", false],
+  ["a single concrete location", "- [src/auth.ts:1] Fix the auth flow.", true],
+  ["multiple concrete locations", "- [`src/auth.ts:1`; `src/router.ts:2`] Fix the auth flow.", true],
+  ["a priority-prefixed action", "- [src/auth.ts:1] [P1] Fix the auth flow.", true]
+] as const
+
 interface Artifacts {
   plan?: string
   progress?: string
@@ -674,11 +689,7 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
   }
 
   for (const owner of ["task feedback", "whole-branch review"] as const) {
-    it.each([
-      ["a None-only Blocking section", "- None.", true],
-      ["an empty Blocking section", "", true],
-      ["a canonical blocking finding", "- [src/auth.ts:1] Fix the auth flow.", false]
-    ])(`handles changes-requested ${owner} with %s`, (_case, blocking, malformed) => {
+    it.each(BLOCKING_ENTRY_CASES)(`validates changes-requested ${owner} with %s`, (_case, blocking, valid) => {
       const repo = makeRepo()
       const dir = seedChange(repo)
       const path = owner === "task feedback"
@@ -693,7 +704,7 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
 
       expect(result.status).toBe(1)
       expect(result.stdout).toContain(owner === "task feedback" ? "Task 1" : "whole-branch")
-      if (malformed) {
+      if (!valid) {
         expect(result.stdout).toContain(owner === "task feedback" ? "feedback malformed" : "review malformed")
       } else {
         expect(result.stdout).toContain("latest verdict: changes-requested")
@@ -734,12 +745,14 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
     expect(result.stdout).toContain("whole-branch(review malformed)")
   })
 
-  it("accepts resolved cannot verify from diff prose in Suggestions", () => {
+  it.each([
+    ["resolved cannot verify from diff prose", "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."],
+    ["ordinary unlocated prose", "- Consider simplifying the routing coverage."]
+  ])("accepts %s in Suggestions", (_case, suggestion) => {
     const repo = makeRepo()
     const dir = seedChange(repo)
     const feedbackPath = `${CHANGE_PATH}/tasks/task-1/feedback.md`
     const reviewPath = `${CHANGE_PATH}/review.md`
-    const suggestion = "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."
     const feedbackContent = Fs.readFileSync(Path.join(repo, feedbackPath), "utf8")
       .replace("### Suggestions\n\n- None.", `### Suggestions\n\n${suggestion}`)
     const reviewContent = Fs.readFileSync(Path.join(repo, reviewPath), "utf8")

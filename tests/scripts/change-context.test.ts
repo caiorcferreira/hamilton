@@ -117,6 +117,21 @@ const VERDICT_HISTORY_MUTATIONS = [
   ["out-of-order metadata", (content: string) => content.replace(/Base: ([^\n]+)\nHead: ([^\n]+)/, "Head: $2\nBase: $1")]
 ] as const
 
+const BLOCKING_ENTRY_CASES = [
+  ["a None-only Blocking section", "- None.", false],
+  ["an empty Blocking section", "", false],
+  ["a TBD placeholder", "- TBD.", false],
+  ["ordinary unlocated prose", "- Fix the auth flow.", false],
+  ["empty brackets", "- [] Fix the auth flow.", false],
+  ["location-free brackets", "- [src/auth.ts] Fix the auth flow.", false],
+  ["a location without an action", "- [src/auth.ts:1]", false],
+  ["a retained location placeholder", "- [<file>:<loc>] Fix the auth flow.", false],
+  ["a retained action placeholder", "- [src/auth.ts:1] <what is wrong> — <what to change>", false],
+  ["a single concrete location", "- [src/auth.ts:1] Fix the auth flow.", true],
+  ["multiple concrete locations", "- [`src/auth.ts:1`; `src/router.ts:2`] Fix the auth flow.", true],
+  ["a priority-prefixed action", "- [src/auth.ts:1] [P1] Fix the auth flow.", true]
+] as const
+
 function seedCommittedSplit(repo: string): { dir: string; base: string; head: string } {
   const base = git(repo, "rev-parse", "HEAD")
   const dir = seed(repo, "add-auth", splitFiles({ "review.md": "" }))
@@ -279,11 +294,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
   }
 
   for (const owner of ["task feedback", "whole-branch review"] as const) {
-    it.each([
-      ["a None-only Blocking section", "- None.", "malformed"],
-      ["an empty Blocking section", "", "malformed"],
-      ["a canonical blocking finding", "- [src/auth.ts:1] Fix the auth flow.", "changes-requested (fresh)"]
-    ])(`reports changes-requested ${owner} with %s`, (_case, blocking, expected) => {
+    it.each(BLOCKING_ENTRY_CASES)(`validates changes-requested ${owner} with %s`, (_case, blocking, valid) => {
       const repo = makeRepo()
       const { dir, base, head } = seedCommittedSplit(repo)
       const content = owner === "task feedback"
@@ -298,15 +309,17 @@ describe("hamilton-change-context.sh <change-dir>", () => {
 
       expect(result.status, result.stderr).toBe(0)
       expect(result.stdout).toContain(owner === "task feedback"
-        ? `Task 1: done, feedback: ${expected}`
-        : `whole change: ${expected}`)
+        ? `Task 1: done, feedback: ${valid ? "changes-requested (fresh)" : "malformed"}`
+        : `whole change: ${valid ? "changes-requested (fresh)" : "malformed"}`)
     })
   }
 
-  it("accepts resolved cannot verify from diff prose in Suggestions", () => {
+  it.each([
+    ["resolved cannot verify from diff prose", "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."],
+    ["ordinary unlocated prose", "- Consider simplifying the routing coverage."]
+  ])("accepts %s in Suggestions", (_case, suggestion) => {
     const repo = makeRepo()
     const { dir, base, head } = seedCommittedSplit(repo)
-    const suggestion = "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head, "approved", "- None.", suggestion))
     write(repo, ".hamilton/changes/add-auth/review.md", review(base, head, "approved", "- None.", suggestion))
 

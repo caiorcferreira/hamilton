@@ -139,6 +139,46 @@ hamilton_latest_verdict_pass() {
       if (character != "" && character != " " && character != "\t") return 0
       return count
     }
+    function trim(value) {
+      sub(/^[ \t]+/, "", value)
+      sub(/[ \t]+$/, "", value)
+      return value
+    }
+    function valid_blocking_finding(value,    closing, locations, action, count, parts, item, separator, file, location, marker, file_marker, location_marker) {
+      if (substr(value, 1, 1) != "[") return 0
+      closing = index(value, "]")
+      if (!closing) return 0
+      locations = substr(value, 2, closing - 2)
+      action = trim(substr(value, closing + 1))
+      if (locations ~ /[<>]/ || action ~ /<[^>]+>/) return 0
+      if (action ~ /^\[P[0-9][0-9]*\]([ \t]+|$)/) {
+        sub(/^\[P[0-9][0-9]*\][ \t]*/, "", action)
+        action = trim(action)
+      }
+      marker = action
+      gsub(/[[:space:][:punct:]]/, "", marker)
+      if (action == "" || marker == "" || tolower(marker) == "tbd") return 0
+      count = split(locations, parts, /;/)
+      if (!count) return 0
+      for (item = 1; item <= count; item++) {
+        parts[item] = trim(parts[item])
+        if (substr(parts[item], 1, 1) == "`" && substr(parts[item], length(parts[item]), 1) == "`") {
+          parts[item] = substr(parts[item], 2, length(parts[item]) - 2)
+        }
+        if (parts[item] == "" || parts[item] ~ /[\[\]`<>]/) return 0
+        separator = index(parts[item], ":")
+        if (!separator) return 0
+        file = trim(substr(parts[item], 1, separator - 1))
+        location = trim(substr(parts[item], separator + 1))
+        if (file == "" || location == "") return 0
+        file_marker = file
+        location_marker = location
+        gsub(/[[:space:][:punct:]]/, "", file_marker)
+        gsub(/[[:space:][:punct:]]/, "", location_marker)
+        if (file_marker == "" || location_marker == "") return 0
+      }
+      return 1
+    }
     function reset_pass() {
       base = ""
       head = ""
@@ -269,7 +309,8 @@ hamilton_latest_verdict_pass() {
       }
       if (section == "blocking") {
         if (value == "None.") blocking_none++
-        else blocking++
+        else if (valid_blocking_finding(value)) blocking++
+        else invalid = 1
       } else if (section == "suggestions") {
         if (value == "None.") suggestions_none++
         else suggestions++
