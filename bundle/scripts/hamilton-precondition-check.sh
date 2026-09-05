@@ -83,6 +83,21 @@ gate_tests() {
   rm -f "$out"
 }
 
+committed_artifact() {
+  local root="$1" file="$2" path
+  case "$file" in
+    "$root"/*) path="${file#"$root"/}" ;;
+    *) return 1 ;;
+  esac
+  if ! git -C "$root" cat-file -e "HEAD:$path" 2>/dev/null; then
+    [ ! -e "$file" ] && return 2
+    return 1
+  fi
+  [ -f "$file" ] || return 1
+  git -C "$root" diff --cached --quiet HEAD -- "$path" 2>/dev/null || return 1
+  git -C "$root" cat-file blob "HEAD:$path" 2>/dev/null | cmp -s - "$file"
+}
+
 # --------------------------------------------------------------- gate 3: tasks
 
 TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
@@ -303,13 +318,17 @@ task_progress_state() {
 }
 
 gate_tasks() {
-  local change_dir="$1"
+  local change_dir="$1" root="$2"
   local plan="$change_dir/plan.md" progress="$change_dir/progress.md"
   local plans rows_text expected_text="" first_active="" total=0 done_count=0 abandoned=0
-  local id title state expected_task actual_task status link count index row expected_link task_file evidence suffix=""
+  local id title state expected_task actual_task status link count index row expected_link task_file evidence suffix="" committed
 
-  [ -f "$plan" ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
-  [ -f "$progress" ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
+  committed_artifact "$root" "$plan"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Tasks (plan.md is not tracked and committed exactly at HEAD)"; return; }
+  committed_artifact "$root" "$progress"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Tasks (progress.md is not tracked and committed exactly at HEAD)"; return; }
 
   plans=$(hamilton_plan_tasks "$plan") || { fail "Tasks (plan has invalid or duplicate task declarations)"; return; }
   while IFS=$'\t' read -r id title state; do
@@ -361,7 +380,9 @@ EOF
     expected_link="[details](tasks/task-${id#Task }/progress.md)"
     [ "$link" = "$expected_link" ] || { fail "Tasks ($id: wrong link; expected $expected_link)"; return; }
     task_file="$change_dir/tasks/task-${id#Task }/progress.md"
-    [ -f "$task_file" ] || { fail "Tasks ($id: progress file is missing)"; return; }
+    committed_artifact "$root" "$task_file"; committed=$?
+    [ "$committed" -ne 2 ] || { fail "Tasks ($id: progress file is missing)"; return; }
+    [ "$committed" -eq 0 ] || { fail "Tasks ($id: progress is not tracked and committed exactly at HEAD)"; return; }
     title=$(printf '%s\n' "$plans" | awk -F'\t' -v task="$id" '$1 == task { print $2; exit }')
     evidence=$(task_progress_state "$task_file" "$id" "$title")
     [ "$evidence" != "wrong-heading" ] || { fail "Tasks ($id: wrong task heading in progress file)"; return; }
@@ -448,21 +469,37 @@ gate_reviews() {
   local change_dir="$1" root="$2"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
   local change_path problems=""
-  local plans id title state feedback parsed verdict base head blocking implementation standing
+  local plans id title state feedback parsed verdict base head blocking implementation standing committed
 
-  [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
+  committed_artifact "$root" "$review"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Reviews (no review.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Reviews (whole-branch(review is not tracked and committed exactly at HEAD))"; return; }
 
   case "$change_dir" in
     "$root"/*) change_path="${change_dir#"$root"/}" ;;
     *) fail "Reviews (change directory is outside the repository)"; return ;;
   esac
 
-  if [ -f "$plan" ]; then
+  committed_artifact "$root" "$plan"; committed=$?
+  if [ "$committed" -eq 1 ]; then
+    fail "Reviews (plan.md is not tracked and committed exactly at HEAD)"
+    return
+  fi
+  if [ "$committed" -eq 0 ]; then
     plans=$(hamilton_plan_tasks "$plan") || { problems="${problems}${problems:+; }plan(task declarations malformed)"; plans=""; }
     while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "abandoned" ] && continue
       feedback="$change_dir/tasks/task-${id#Task }/feedback.md"
+      committed_artifact "$root" "$feedback"; committed=$?
+      if [ "$committed" -eq 2 ]; then
+        problems="${problems}${problems:+; }$id(feedback missing)"
+        continue
+      fi
+      if [ "$committed" -ne 0 ]; then
+        problems="${problems}${problems:+; }$id(feedback is not tracked and committed exactly at HEAD)"
+        continue
+      fi
       if [ ! -s "$feedback" ]; then
         problems="${problems}${problems:+; }$id(feedback missing)"
         continue
@@ -524,9 +561,11 @@ EOF
 
 gate_review_freshness() {
   local change_dir="$1" waiver="$2" root="$3"
-  local review="$change_dir/review.md" change_path parsed verdict base head blocking standing material
+  local review="$change_dir/review.md" plan="$change_dir/plan.md" change_path parsed verdict base head blocking standing material committed
 
-  [ -s "$review" ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
+  committed_artifact "$root" "$review"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Whole-branch review freshness (review.md is not tracked and committed exactly at HEAD)"; return; }
   case "$change_dir" in
     "$root"/*) change_path="${change_dir#"$root"/}" ;;
     *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
@@ -540,6 +579,8 @@ gate_review_freshness() {
     fresh) ;;
     *) fail "Whole-branch review freshness (review range cannot be verified)"; return ;;
   esac
+  committed_artifact "$root" "$plan"; committed=$?
+  [ "$committed" -ne 1 ] || { fail "Whole-branch review freshness (plan.md is not tracked and committed exactly at HEAD)"; return; }
   material=$(latest_material_commit "$root" "$change_path")
   [ -n "$material" ] || { fail "Whole-branch review freshness (no material commit exists on the current branch)"; return; }
   if [ "$waiver" = "yes" ]; then
@@ -588,7 +629,7 @@ main() {
   gate_clean_tree "$target_root" "Clean tree"
   gate_tests "$target_root" "$test_cmd"
   gate_clean_tree "$target_root" "Clean tree after verification"
-  gate_tasks "$change_dir"
+  gate_tasks "$change_dir" "$target_root"
   gate_reviews "$change_dir" "$target_root"
   gate_review_freshness "$change_dir" "$waiver" "$target_root"
 

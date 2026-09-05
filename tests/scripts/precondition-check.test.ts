@@ -158,6 +158,46 @@ function record(repo: string, path: string, content: string, message: string): s
   return commitPaths(repo, message, path)
 }
 
+const COMMITTED_EVIDENCE_OWNERS = [
+  ["plan", `${CHANGE_PATH}/plan.md`, "Tasks (plan.md is not tracked and committed exactly at HEAD)"],
+  ["root ledger", `${CHANGE_PATH}/progress.md`, "Tasks (progress.md is not tracked and committed exactly at HEAD)"],
+  ["task progress", `${CHANGE_PATH}/tasks/task-1/progress.md`, "Task 1: progress is not tracked and committed exactly at HEAD"],
+  ["task feedback", `${CHANGE_PATH}/tasks/task-1/feedback.md`, "Task 1(feedback is not tracked and committed exactly at HEAD)"],
+  ["whole-branch review", `${CHANGE_PATH}/review.md`, "whole-branch(review is not tracked and committed exactly at HEAD)"]
+] as const
+
+const UNCOMMITTED_EVIDENCE_STATES = [
+  "ignored-untracked recreation",
+  "staged index-only change",
+  "modified change",
+  "deleted path",
+  "assume-unchanged change"
+] as const
+
+function makeEvidenceUncommitted(repo: string, path: string, state: typeof UNCOMMITTED_EVIDENCE_STATES[number]): void {
+  const fullPath = Path.join(repo, path)
+  const content = Fs.readFileSync(fullPath, "utf8")
+  if (state === "ignored-untracked recreation") {
+    git(repo, "rm", "--cached", "--", path)
+    git(repo, "commit", "-q", "-m", `stop tracking ${path}`)
+    Fs.appendFileSync(Path.join(repo, ".git", "info", "exclude"), `/${path}\n`)
+    Fs.writeFileSync(fullPath, content)
+    return
+  }
+  if (state === "deleted path") {
+    Fs.rmSync(fullPath)
+    return
+  }
+  if (state === "assume-unchanged change") {
+    git(repo, "update-index", "--assume-unchanged", "--", path)
+  }
+  Fs.writeFileSync(fullPath, `${content}\n`)
+  if (state === "staged index-only change") {
+    git(repo, "add", "--", path)
+    Fs.writeFileSync(fullPath, content)
+  }
+}
+
 describe("hamilton-precondition-check.sh", () => {
   it("opens the gate when every precondition holds", () => {
     const repo = makeRepo()
@@ -189,6 +229,34 @@ describe("hamilton-precondition-check.sh", () => {
 
     expect(result.status).toBe(2)
     expect(result.stderr).toContain("change dir does not exist")
+  })
+})
+
+describe("hamilton-precondition-check.sh committed evidence", () => {
+  it.each(COMMITTED_EVIDENCE_OWNERS)("accepts exact committed %s", (_owner, path) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+
+    expect(git(repo, "diff", "--quiet", "HEAD", "--", path)).toBe("")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(0)
+    expect(result.lastLine).toBe("gate: open")
+  })
+
+  it.each(COMMITTED_EVIDENCE_OWNERS.flatMap(([owner, path, failure]) =>
+    UNCOMMITTED_EVIDENCE_STATES.map((state) => [owner, state, path, failure] as const)
+  ))("rejects %s with a valid-looking %s", (_owner, state, path, failure) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    makeEvidenceUncommitted(repo, path, state)
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain(failure)
+    expect(result.lastLine).toContain("gate: closed")
   })
 })
 
