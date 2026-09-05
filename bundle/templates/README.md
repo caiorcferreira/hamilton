@@ -10,8 +10,8 @@ taken in spirit (right-sized), not by conformance.
 | `requirements-spec.md` | SRS (canonical) | What | `.hamilton/specs/<capability>.md` | hamilton-finish-work |
 | `design.md` | SDD | How | `<change>/design.md` | hamilton-propose |
 | `plan.md` | Plan | Steps | `<change>/plan.md` | hamilton-plan |
-| `progress.md` | Task index | Current task status | `<change>/progress.md` | hamilton-plan / hamilton-code |
-| `task-progress.md` | Task Progress | Task execution history | `<change>/tasks/task-N/progress.md` | hamilton-code |
+| `progress.md` | Task index | Current task status | `<change>/progress.md` | hamilton-plan (initialize) / hamilton-code (update assigned row) |
+| `task-progress.md` | Task Progress | Task execution history | `<change>/tasks/task-N/progress.md` | hamilton-plan (initialize) / hamilton-code (append attempts) |
 | `feedback.md` | Code Feedback | Task feedback | `<change>/tasks/task-N/feedback.md` | hamilton-code-feedback |
 | `review.md` | Whole-branch Review | Whole-branch verdict | `<change>/review.md` | hamilton-review |
 | `finish.md` | Finish History | Finish attempts and outcomes | `<change>/finish.md` | hamilton-finish-work |
@@ -21,11 +21,12 @@ delta a change proposes; `requirements-spec.md` is the consolidated truth it fol
 
 ## Required vs optional
 
-Only `plan.md` is required. `proposal.md`, `design.md`, and `requirements/` are
-optional: small or mechanical changes may start directly at hamilton-plan.
+`plan.md` is the only required declarative input to execution. `proposal.md`, `design.md`, and
+`requirements/` are optional: small or mechanical changes may start directly at hamilton-plan.
 
-Every downstream stage consumes the richer upstream artifact when present, and otherwise
-works from the raw change description. This is what makes "start anywhere" real.
+Hamilton-plan also creates the required operational scaffold: root `progress.md` and one linked
+`tasks/task-N/progress.md` file for every active task. Later stages consume that plan and operational
+state; only planning works directly from a raw request when richer upstream artifacts are absent.
 
 ## Wayfinder templates
 
@@ -73,9 +74,11 @@ Per-project, under the project's `.hamilton/` directory (created by `hamilton-in
       finish.md
 ```
 
-`plan.md` is authored up front. The root `progress.md` is the current task index; each
-linked task progress file records implementation attempts. Task feedback is kept alongside
-task progress, while `review.md` and `finish.md` remain change-level artifacts.
+`plan.md` is the declarative task contract authored up front. Hamilton-plan initializes the root
+`progress.md` current-task ledger and each linked task progress file from the installed templates.
+Hamilton-code updates only its assigned root row and appends implementation attempts to that task's
+progress file. Task feedback is kept alongside task progress, while `review.md` and `finish.md`
+remain change-level artifacts.
 
 `requirements/*.md` inside a change use delta headers (ADDED / MODIFIED / REMOVED /
 RENAMED). `hamilton-finish-work` folds those deltas into the canonical

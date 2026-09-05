@@ -168,12 +168,15 @@ commits.
 - **Inputs:** one exact active `Task N`; its root ledger row and linked
   `tasks/task-N/progress.md`; its stable `tasks/task-N/.base` checkpoint; `AGENTS.md`; and, on a
   correction, that task's `feedback.md`.
-- **Produces:** the task's tests and code, one implementation commit, one appended
-  `tasks/task-N/progress.md` attempt, and the assigned root row transitioned through `in-progress`
-  to `done` or `blocked`.
-- **Notes:** changes only its assigned row and task-local attempt history among execution artifacts;
-  it never edits `plan.md`, sibling task state, feedback, root review, or finish history. The
-  checkpoint stays fixed across corrections so code feedback always receives the complete task diff.
+- **Produces:** for a successful attempt, the task's tests and code plus one implementation commit
+  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root row's
+  transition through `in-progress` to `done`. For a graceful blocker, an artifact-only bookkeeping
+  commit contains the appended blocked attempt and the assigned row set to `blocked`; partial
+  production edits remain uncommitted.
+- **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
+  only its assigned row and appends to that task-local history among execution artifacts. It never
+  edits `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
+  fixed across corrections so code feedback always receives the complete task diff.
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*

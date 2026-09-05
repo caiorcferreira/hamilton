@@ -32,4 +32,4 @@
 | Task 28: Protect verdict bookkeeping commits before commit | done | [details](tasks/task-28/progress.md) |
 | Task 29: Document the atomic installed-generation upgrade | done | [details](tasks/task-29/progress.md) |
 | Task 30: Correct pipeline stage ordering | done | [details](tasks/task-30/progress.md) |
-| Task 31: Correct artifact lifecycle reference claims | pending | [details](tasks/task-31/progress.md) |
+| Task 31: Correct artifact lifecycle reference claims | done | [details](tasks/task-31/progress.md) |
