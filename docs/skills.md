@@ -216,11 +216,12 @@ and executes the selected finish strategy.
 - **Produces:** synchronized `.hamilton/specs/<capability>.md` files, the verified merge / request /
   no-op result, and a paired `Attempt N` and `Outcome N` history in root `finish.md`.
 - **Notes:** the hard gate treats these as separate requirements: the exact root ledger has every
-  row `done`; every row links to `tasks/task-N/progress.md`, whose physical latest attempt has
-  `Outcome: done`; every task has fresh approved feedback; the whole branch has a fresh approved
-  review; the tree is clean; and full tests and build pass. It commits intent before external effects
-  and records only observed results afterward; a dangling attempt is reconciled from actual
-  repository and provider state before any new attempt.
+  row `done`; every row links to `tasks/task-N/progress.md`, where the exact matching H1 is
+  `# Task Progress: Task N — <title>` and the physical latest attempt has `Outcome: done`; every task
+  has fresh approved feedback; the whole branch has a fresh approved review; the tree is clean; and
+  full tests and build pass. It commits intent before external effects and records only observed
+  results afterward; a dangling attempt is reconciled from actual repository and provider state
+  before any new attempt.
 - Source: [`skills/hamilton-finish-work/SKILL.md`](../skills/hamilton-finish-work/SKILL.md)
 
 ### `hamilton-orchestrate` — run a whole plan *(driver)*
