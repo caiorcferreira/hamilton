@@ -33,3 +33,6 @@
 | Task 29: Document the atomic installed-generation upgrade | done | [details](tasks/task-29/progress.md) |
 | Task 30: Correct pipeline stage ordering | done | [details](tasks/task-30/progress.md) |
 | Task 31: Correct artifact lifecycle reference claims | done | [details](tasks/task-31/progress.md) |
+| Task 32: Bind whole-review identity to the owning plan | pending | [details](tasks/task-32/progress.md) |
+| Task 33: Require actionable changes-requested verdicts | pending | [details](tasks/task-33/progress.md) |
+| Task 34: Use exact abandonment syntax in execution skills | pending | [details](tasks/task-34/progress.md) |

@@ -8,6 +8,8 @@
 - Build / typecheck: `bun run build`
 - Context notes: Follow `proposal.md`, `design.md`, and all four files under `requirements/`. Before recording Task 1's checkpoint, commit the currently untracked approved proposal, requirements, design, this plan, root progress index, and initialized task progress files as a planning-scaffold commit so no task diff absorbs upstream artifacts. Baseline verification after `bun install` found one existing GNU/Linux portability failure in `tests/scripts/change-context.test.ts` (`--all` orders `older-change` first because failed `stat -f` output contaminates the timestamp); Task 1 fixes that helper before any later task, while the other 97 tests pass and `bun run build` succeeds. Whole-branch Review Pass 1 requested eighteen corrections after Tasks 1–14. The approved self-hosting bootstrap disposition resolves Finding 1 without rewriting history and authorizes only Task 15's forward normalization of the existing Task 1 and Task 4 attempt headings; Findings 2–18 remain implementation obligations. Tasks 1–14 and their existing rows and histories are frozen except for those two exact Task 15 heading normalizations. After Task 15's implementation commit, its edits make Task 1 and Task 4 feedback stale: before recording Task 16's checkpoint, the driver must obtain and commit fresh artifact-only `hamilton-code-feedback` passes for Task 1 and Task 4 at the normalization head, then obtain Task 15 feedback. After Task 27's producer correction, before recording Task 28's checkpoint, the driver must use `hamilton-code-feedback` to remove retained template instructions from the live Task 4, Task 5, Task 11, and Task 14 feedback artifacts while preserving every pass, append fresh canonical passes at the same material head, commit each artifact alone, and then obtain Task 27 feedback. Every new remediation task otherwise follows canonical `Attempt N` syntax and receives a committed artifact-only feedback pass before the next task checkpoint. Do not edit `.hamilton/specs/` during implementation; `hamilton-finish-work` distills the deltas into canonical specs after the final gate. Do not modify historical `.hamilton/changes/` or `.hamilton/maps/` artifacts outside this active change. Do not add comments to TypeScript, tests, or shell code; the instructional HTML blocks required inside artifact templates are template content, not source-code commentary. Run the task Verify command, then the full suite and build required by `hamilton-code` before each implementation commit.
 - Quality notes: Tasks 15–31 preserve the completed task definitions while slicing review remediation by parser boundary, gate boundary, producer boundary, template lifecycle, and documentation concern. Shared artifact grammar becomes one installed shell library before consumers tighten verdict semantics; same-file changes carry explicit dependencies; target-repository checks are separated from committed-evidence checks; template creation shapes precede producer consumption; migration, sequence, and catalog corrections remain separate presentation tasks. Real temporary repositories verify executable behavior, while Markdown contract tests assert stable lifecycle boundaries rather than prose snapshots. No structural smell is accepted.
+- Re-plan Pass 2 notes: Whole-branch Review Pass 2 requested three further corrections after Tasks 15–31: bind whole-review owner identity to the owning plan instead of the review file, reject actionless `changes-requested` verdicts, and align plan/code producer instructions with the exact canonical abandonment suffix already enforced by the shared parser. Tasks 1–31 and all existing rows and histories remain frozen. Tasks 32–34 append those corrections without introducing compatibility grammar or weakening any strict split-layout gate.
+- Re-plan Pass 2 quality notes: Task 32 owns external whole-review identity, Task 33 owns verdict consistency in the shared parser, and Task 34 owns producer-contract wording. The two parser tasks are ordered because they share the artifact-contract library and consumer fixtures; the producer-contract task remains independently verifiable. No structural smell is accepted.
 
 ## Tasks
 
@@ -734,12 +736,83 @@
 - Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts && bun run build && git diff --check` → template contracts and build pass and both reference surfaces state the implemented lifecycle accurately.
 - Commit: `docs: correct artifact lifecycle ownership`
 
+### Task 32: Bind whole-review identity to the owning plan
+
+- Depends on: Task 18, Task 23
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-32/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Context and precondition derive the expected `Whole-branch Review: <title>` identity from the owning plan's exact `# Plan: <title>` heading and pass that independently derived value to the shared verdict parser; neither consumer reads the review artifact to decide which owner heading should be accepted (requirements/review.md — Whole-branch review has a change-owned verdict history).
+  - A review copied from another change, a decorated whole-review heading, or a missing, duplicate, decorated, or otherwise malformed owning plan H1 fails closed even when the review's pass grammar and commit range are otherwise valid (requirements/artifact-templates.md — Whole-branch review has an installed template and change-root instance path).
+  - Correctly matched plan and review identities retain the existing verdict, ancestry, freshness, committed-evidence, and exact split-layout behavior in both consumers.
+- Steps:
+  1. Add failing context and precondition fixtures for a copied wrong-title review, a decorated review H1, and malformed or ambiguous plan H1 ownership while retaining one matched-title control.
+  2. Add one exact plan-title resolver to the shared artifact-contract library and make both whole-review consumers construct the expected review heading only from that result before invoking the existing verdict parser.
+  3. Remove review-file-derived expected-heading logic, run the focused consumer suites, and inspect both call sites to confirm the review cannot authenticate its own owner identity.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts` → both consumers reject copied or decorated whole-review ownership and accept only identity bound to the owning plan.
+- Commit: `fix(scripts): bind whole review identity to plan`
+
+### Task 33: Require actionable changes-requested verdicts
+
+- Depends on: Task 32
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-33/progress.md`
+  - Deleted: none
+- Acceptance:
+  - The shared verdict grammar accepts `changes-requested` only when the Blocking section contains at least one canonical finding and contains no `- None.` marker; an empty, omitted, or `None.`-only Blocking section is malformed (requirements/review.md — task-feedback and whole-branch verdict histories).
+  - The inverse consistency rule remains exact: `approved` requires `- None.` as its sole Blocking entry and rejects every blocking finding, while Suggestions keeps its existing canonical nonempty-list semantics.
+  - The same task-feedback and whole-branch regression matrix passes through both change-context and precondition, and neither consumer can route an actionless changes-requested pass as valid current state.
+- Steps:
+  1. Add failing matrix cases for Task feedback and whole-branch review with `changes-requested` plus `- None.`, omitted Blocking content, and a canonical blocking-finding control in both consumer test files.
+  2. Tighten the shared pass close validation so verdict and Blocking semantics are bidirectionally consistent without adding consumer-specific branches.
+  3. Run both focused suites and inspect context and finish-gate output to confirm invalid actionless passes are reported malformed rather than as routable changes requests.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts` → both consumers reject every actionless `changes-requested` form and preserve valid findings and approvals.
+- Commit: `fix(scripts): require blocking review findings`
+
+### Task 34: Use exact abandonment syntax in execution skills
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-plan/SKILL.md`
+    - `skills/hamilton-code/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-34/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Plan and code classify a task as abandoned only when its heading ends with the complete canonical `### Task N: <title> (abandoned — <reason>)` suffix with a nonempty reason, matching the shared parser's exact contract (requirements/execution.md — exact active task and canonical abandonment ownership).
+  - A suffix that merely begins with `(abandoned`, uses a different dash or punctuation, lacks a reason, or carries trailing decoration remains active or malformed under the ordinary exact task rules; neither skill advertises or interprets a broad starts-with alternate grammar.
+  - Skill contract tests require the exact canonical suffix in both producers and explicitly prove that malformed abandonment markers are not excluded as abandoned.
+- Steps:
+  1. Replace the broad literal-marker assertions with failing exact-suffix and malformed-marker-active assertions for both plan re-plan behavior and code task resolution.
+  2. Update only the two producer contracts to name the complete canonical suffix and its nonempty-reason boundary, preserving abandoned history and stable task-id rules.
+  3. Run the focused execution contract suite and search both skills for starts-with or literal-prefix abandonment language.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts && ! rg -n 'begins with the literal|suffix begins with|canonical literal' skills/hamilton-plan/SKILL.md skills/hamilton-code/SKILL.md` → the producer contracts and regression tests enforce only exact canonical abandonment syntax.
+- Commit: `fix(skills): require exact abandonment syntax`
+
 ## Done when
 
-- All thirty-one active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
+- All thirty-four active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
 - Every task's physical latest feedback pass is valid, committed, `approved`, free of blocking items, and fresh for that task's latest progress commit.
 - Task 1 and Task 4 feedback is refreshed after their approved forward normalization; Task 4, Task 5, Task 11, and Task 14 feedback histories retain every pass but no installed-template instruction block; every new task feedback commit precedes the next task checkpoint.
 - Root `review.md` has a committed physical latest whole-branch pass that is valid, `approved`, free of blocking findings, and fresh for the latest material change commit.
 - `bun --bun vitest run` passes and `bun run build` succeeds.
-- `git diff --check` is clean; no generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted verdict acceptance, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
+- `git diff --check` is clean; no self-authenticating whole-review identity, actionless `changes-requested` verdict, broad abandonment prefix, generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted verdict acceptance, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
 - `hamilton-finish-work` folds `execution`, `review`, `artifact-templates`, and `framework-docs` deltas into canonical specs and records the verified finish strategy in `finish.md`.
