@@ -47,3 +47,21 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 2 — 2026-09-05
+
+Base: 8b711317796319834365411e4d1c48fd42e1971c
+Head: 596fe3f3d0b72b15e31d10d12e78bdfaa41472ee
+Verdict: changes-requested
+
+### Blocking
+
+- [`bundle/scripts/hamilton-change-context.sh:464`; `bundle/scripts/hamilton-precondition-check.sh:403`] [P1] Whole-branch owner identity is still self-authenticating: context constructs the expected `Whole-branch Review:` heading from the review file's own first heading, and precondition extracts that same heading and passes it back as the parser's expected value. A review copied from another change therefore satisfies the canonical grammar and can be reported fresh or open the finish gate when its commit range is otherwise valid. Derive the expected change title from the owning plan/change artifact in both consumers, pass that independent identity to the shared parser, and add wrong-title and decorated-heading regressions. (violates: `plan.md` Task 18 exact-owner-H1 acceptance; `requirements/review.md` change-owned verdict-history requirement; `requirements/artifact-templates.md` whole-branch review instance ownership)
+
+- [`bundle/scripts/hamilton-artifact-contracts.sh:111`] [P1] The shared verdict grammar rejects an `approved` pass with blocking findings but accepts the inverse contradiction, `Verdict: changes-requested` with `### Blocking` containing only `- None.`. A focused invocation returned `changes-requested` with blocking count `0`, so context treats an actionless pass as valid and orchestration can send a task back to code without any correction to perform. Require `changes-requested` to carry at least one canonical Blocking finding and forbid `None.` in that case, then apply the same regression matrix through both context and precondition consumers. (violates: `plan.md` Task 18 complete-and-consistent verdict grammar; `requirements/review.md` task-feedback and whole-branch verdict definitions; `skills/hamilton-code-feedback/SKILL.md` and `skills/hamilton-review/SKILL.md` verdict contracts)
+
+- [`skills/hamilton-code/SKILL.md:31`; `skills/hamilton-plan/SKILL.md:195`; `tests/skills/execution-contracts.test.ts:28`] [P1] The shared helper now recognizes only the exact canonical abandonment suffix, but both execution producers still tell agents to exclude any heading whose suffix merely begins with the literal `(abandoned`, and the skill test explicitly locks that broader rule. A malformed heading such as `(abandoned - not canonical)` is active to every helper yet abandoned to plan/code, recreating divergent task identity and a generic alternate grammar after the approved bootstrap exception. Make both skills require the complete canonical `### Task N: <title> (abandoned — <reason>)` suffix, remove the starts-with rule, and test that malformed markers remain active consistently with the shared parser. (violates: `plan.md` Task 17 exact active-task resolution; `requirements/execution.md` active-task and canonical abandonment contract; approved self-hosting exception's no-compatibility boundary)
+
+### Suggestions
+
+- None.
