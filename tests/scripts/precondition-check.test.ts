@@ -447,6 +447,21 @@ No tasks were declared.
     expect(result.stdout).toContain("Task 1")
     expect(result.stdout).toContain("legacy progress layout is unsupported")
   })
+
+  it.each([
+    ["task-titled", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Task 1: Add the auth | session")],
+    ["skipped", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Attempt 3")],
+    ["duplicated", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Attempt 1")],
+    ["out-of-order", TASK_ONE_PROGRESS.replace("## Attempt 1", "## Attempt 2").replace("## Attempt 2 — 2026-08-14", "## Attempt 1 — 2026-08-14")]
+  ])("fails %s task attempt headings", (_kind, taskOneProgress) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { taskOneProgress })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("Task 1: invalid task attempt evidence")
+  })
 })
 
 describe("hamilton-precondition-check.sh gate 4 — reviews", () => {

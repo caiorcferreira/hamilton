@@ -50,13 +50,6 @@ const TASK_TWO_PROGRESS = `# Task Progress: Task 2 — Wire it into the router
 - Outcome: blocked
 `
 
-const LEGACY_TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
-
-## Task 1: Add the auth | session — 2026-08-14
-
-- Outcome: done
-`
-
 const REVIEW = `# Review: add auth
 
 ## whole change — 2026-08-14
@@ -144,14 +137,20 @@ function splitFiles(overrides: Record<string, string> = {}): Record<string, stri
 }
 
 describe("hamilton-change-context.sh <change-dir>", () => {
-  it("reads canonical attempts alongside exact legacy task attempts", () => {
+  it.each([
+    ["task-titled", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Task 1: Add the auth | session")],
+    ["skipped", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Attempt 3")],
+    ["duplicated", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Attempt 1")],
+    ["out-of-order", TASK_ONE_PROGRESS.replace("## Attempt 1", "## Attempt 2").replace("## Attempt 2 — 2026-08-14", "## Attempt 1 — 2026-08-14")]
+  ])("rejects %s task attempt headings", (_kind, taskOneProgress) => {
     const repo = makeRepo()
-    const dir = seed(repo, "add-auth", splitFiles({ "tasks/task-1/progress.md": LEGACY_TASK_ONE_PROGRESS }))
+    const dir = seed(repo, "add-auth", splitFiles({ "tasks/task-1/progress.md": taskOneProgress }))
 
     const result = run(SCRIPT, [dir], repo)
 
-    expect(result.status, result.stderr).toBe(0)
-    expect(field(result, "tasks")).toBe("1/2 done")
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("task ledger: Task 1 progress contains invalid task attempt sections")
+    expect(field(result, "tasks")).toBeUndefined()
   })
 
   it("reports each task's latest feedback verdict and freshness", () => {

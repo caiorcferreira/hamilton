@@ -17,7 +17,7 @@
 | Task 13: Synchronize the seven-step identity across live skills | done | [details](tasks/task-13/progress.md) |
 | Task 14: Publish the split workflow migration guidance | done | [details](tasks/task-14/progress.md) |
 | Task 15: Normalize bootstrap task attempt histories | done | [details](tasks/task-15/progress.md) |
-| Task 16: Enforce canonical task attempt grammar | pending | [details](tasks/task-16/progress.md) |
+| Task 16: Enforce canonical task attempt grammar | done | [details](tasks/task-16/progress.md) |
 | Task 17: Centralize exact active-task resolution | pending | [details](tasks/task-17/progress.md) |
 | Task 18: Centralize exact verdict history parsing | pending | [details](tasks/task-18/progress.md) |
 | Task 19: Scope material exclusions to exact task owners | pending | [details](tasks/task-19/progress.md) |

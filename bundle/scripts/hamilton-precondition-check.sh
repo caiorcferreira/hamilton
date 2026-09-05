@@ -231,6 +231,7 @@ escape_table_title() {
 task_progress_state() {
   local file="$1" task="$2" title="$3"
   strip_comments "$file" | awk -v task="$task" -v title="$title" '
+    BEGIN { expected_attempt = 1 }
     function normalize_atx(value) {
       if (substr(value, 1, 4) == "    ") return value
       if (substr(value, 1, 3) == "   ") return substr(value, 4)
@@ -279,19 +280,15 @@ task_progress_state() {
         sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
         suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-        if (heading ~ ("^Attempt [1-9][0-9]*" suffix "$")) {
-          active = 1
-          next
-        }
-        if (heading !~ (suffix "$")) {
+        if (heading !~ ("^Attempt [1-9][0-9]*" suffix "$")) {
           invalid = 1
           next
         }
-        sub(suffix "$", "", heading)
-        if (heading != task ": " title) {
-          invalid = 1
-          next
-        }
+        attempt = heading
+        sub(/^Attempt /, "", attempt)
+        sub(suffix "$", "", attempt)
+        if (attempt + 0 != expected_attempt) invalid = 1
+        expected_attempt++
         active = 1
         next
       }
