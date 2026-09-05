@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest"
+import { readSkill, section } from "./helpers.js"
+
+const readFinishWork = () => readSkill("hamilton-finish-work")
+
+describe("hamilton-finish-work contract", () => {
+  it("consumes the exact split-pipeline evidence package", () => {
+    const inputs = section(readFinishWork(), "## Inputs")
+
+    expect(inputs).toContain("<change-dir>/progress.md")
+    expect(inputs).toContain("<change-dir>/tasks/task-N/progress.md")
+    expect(inputs).toContain("<change-dir>/tasks/task-N/feedback.md")
+    expect(inputs).toContain("<change-dir>/review.md")
+    expect(inputs).toContain("<change-dir>/finish.md")
+    expect(inputs).toMatch(/physically last.*attempt.*feedback pass.*whole-branch.*pass/is)
+    expect(inputs).toContain("Project standards")
+  })
+
+  it("fails closed on every exact ledger, feedback, and review gate", () => {
+    const preconditions = section(readFinishWork(), "## Preconditions")
+
+    expect(preconditions).toContain("hamilton-precondition-check.sh")
+    expect(preconditions).toMatch(/exact root task ledger/i)
+    expect(preconditions).toMatch(/physically last\s+task\s+attempt.*(?:`done`|`Outcome: done`)/is)
+    expect(preconditions).toMatch(/physically last task feedback pass.*valid.*fresh.*`approved`/is)
+    expect(preconditions).toMatch(/physically last whole-branch review pass.*valid.*`approved`/is)
+    expect(preconditions).toMatch(/no blocking findings/i)
+    expect(preconditions).toMatch(/full test suite.*build/is)
+    expect(preconditions).toMatch(/output verbatim/i)
+    expect(preconditions).toMatch(/do not.*(?:create|change|write).*`finish\.md`/is)
+  })
+
+  it("limits the explicit waiver to material-change ancestry", () => {
+    const preconditions = section(readFinishWork(), "## Preconditions")
+
+    expect(preconditions).toMatch(/`--whole-change-waived`.*explicit/is)
+    expect(preconditions).toMatch(/only.*material.*ancestry/is)
+    expect(preconditions).toMatch(/does not waive.*ledger.*task feedback.*whole-branch.*validity.*verdict.*blocking/is)
+  })
+
+  it("uses finish.md exclusively for finish attempts and outcomes", () => {
+    const skill = readFinishWork()
+    const history = section(skill, "## Finish history")
+
+    expect(history).toContain("<change-dir>/finish.md")
+    expect(history).toContain("## Attempt N — <YYYY-MM-DD>")
+    expect(history).toContain("## Outcome N — <YYYY-MM-DD>")
+    expect(history).toMatch(/append-only/i)
+    expect(history).toMatch(/next integer.*highest.*Attempt.*Outcome/is)
+    expect(history).toMatch(/Outcome N.*matching.*Attempt N/is)
+    expect(history).toMatch(/Never.*root\s+`progress\.md`/is)
+    expect(skill).not.toMatch(/append(?:s|ing)? (?:a )?finish (?:entry|section) to `?progress\.md`?/i)
+  })
+
+  it("commits the attempt after gates and spec synchronization but before effects", () => {
+    const process = section(readFinishWork(), "## Process")
+
+    expect(process).toMatch(/preconditions.*synchroniz.*specification.*commit/is)
+    expect(process).toMatch(/append.*`Attempt N`.*commit.*change branch/is)
+    expect(process).toMatch(/before.*external.*finish action/is)
+    expect(process).toMatch(/Passed preconditions.*Specification\s+synchronization.*Strategy.*Intended workspace result.*Route intent/is)
+  })
+
+  it("reconciles a dangling attempt before allocating or executing another", () => {
+    const recovery = section(readFinishWork(), "## Resume and recovery")
+
+    expect(recovery).toMatch(/Attempt N.*without.*Outcome N/is)
+    expect(recovery).toMatch(/inspect.*git.*remote.*pull\s+request.*route.*workspace/is)
+    expect(recovery).toMatch(/append.*matching.*Outcome N.*continue.*same attempt/is)
+    expect(recovery).toMatch(/never.*allocate.*duplicate.*attempt/is)
+    expect(recovery).toMatch(/before.*(?:new|another).*(?:action|attempt)/is)
+  })
+
+  it("allows only finish-owned post-gate mutations for the same attempt", () => {
+    const boundary = section(readFinishWork(), "## Post-gate mutation boundary")
+
+    expect(boundary).toMatch(/capture.*gate-entry.*HEAD/is)
+    expect(boundary).toMatch(/canonical spec.*route.*map.*numbered.*finish/is)
+    expect(boundary).toMatch(/finish-owned.*do not stale.*same attempt/is)
+    expect(boundary).toMatch(/unrelated material edit.*abort/is)
+    expect(boundary).toMatch(/return.*whole-branch review/is)
+    expect(boundary).toMatch(/waiver.*does\s+not.*post-gate/is)
+  })
+
+  it("persists a verified local-merge outcome on the base branch", () => {
+    const strategies = section(readFinishWork(), "## Strategy execution")
+
+    expect(strategies).toMatch(/local-merge:.*merge.*attempt\s+commit.*base branch/is)
+    expect(strategies).toMatch(/local-merge:[\s\S]*remove.*worktree/is)
+    expect(strategies).toMatch(/local-merge:[\s\S]*read back.*base.*workspace/is)
+    expect(strategies).toMatch(/local-merge:[\s\S]*matching `Outcome N`.*base branch.*commit/is)
+  })
+
+  it("pushes and reads back a pull-request outcome", () => {
+    const strategies = section(readFinishWork(), "## Strategy execution")
+
+    expect(strategies).toMatch(/pull-request:[\s\S]*push.*open.*(?:pull|merge) request/is)
+    expect(strategies).toMatch(/pull-request:[\s\S]*read back.*URL.*head.*base/is)
+    expect(strategies).toMatch(/pull-request:[\s\S]*matching `Outcome N`.*commit.*push/is)
+    expect(strategies).toMatch(/pull-request:[\s\S]*verify.*request.*outcome\s+commit/is)
+  })
+
+  it("verifies and persists no-op without moving the workspace", () => {
+    const strategies = section(readFinishWork(), "## Strategy execution")
+
+    expect(strategies).toMatch(/no-op:[\s\S]*verify.*branch.*worktree.*remain/is)
+    expect(strategies).toMatch(/no-op:[\s\S]*matching `Outcome N`.*change branch.*commit/is)
+  })
+
+  it("records verified partial failure without claiming completion", () => {
+    const failures = section(readFinishWork(), "## Partial failure")
+
+    expect(failures).toMatch(/after.*action.*begins/is)
+    expect(failures).toMatch(/inspect.*actual.*partial state/is)
+    expect(failures).toMatch(/matching.*Outcome N.*`blocked`/is)
+    expect(failures).toMatch(/surviving branch or base/i)
+    expect(failures).toMatch(/push.*read\s+back.*remote/is)
+    expect(failures).toMatch(/never.*report.*completed/is)
+  })
+
+  it("reports only verified effects and persisted history", () => {
+    const output = section(readFinishWork(), "## Output")
+    const flow = section(readFinishWork(), "## Process flow")
+
+    expect(output).toMatch(/verified.*external\s+result/i)
+    expect(output).toMatch(/persisted.*Outcome N/i)
+    expect(output).toMatch(/never claim.*merge.*pull request.*no-op.*route.*workspace.*outcome/is)
+    expect(flow).toMatch(/Attempt N.*finish action.*read back.*Outcome N/is)
+  })
+})
