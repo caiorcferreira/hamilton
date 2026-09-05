@@ -450,9 +450,22 @@ EOF
   git -C "$root" log -1 --format=%H HEAD -- . "${exclusions[@]}"
 }
 
+durable_task_feedback() {
+  local root="$1" path="$2" file="$3" head_blob worktree_blob commit changed
+  head_blob=$(git -C "$root" rev-parse "HEAD:$path" 2>/dev/null) || return 1
+  worktree_blob=$(git -C "$root" hash-object -- "$file" 2>/dev/null) || return 1
+  [ "$worktree_blob" = "$head_blob" ] || return 1
+  git -C "$root" diff --cached --quiet HEAD -- "$path" || return 1
+  commit=$(git -C "$root" log -1 --format=%H HEAD -- "$path")
+  [ -n "$commit" ] || return 1
+  changed=$(git -C "$root" diff-tree --root --no-commit-id --name-only -r "$commit") || return 1
+  [ "$changed" = "$path" ]
+}
+
 task_feedback_state() {
   local root="$1" change_path="$2" file="$3" task="$4" title="$5" parsed verdict base head blocking implementation standing
   [ -s "$file" ] || { printf 'absent\n'; return; }
+  durable_task_feedback "$root" "$change_path/tasks/task-${task#Task }/feedback.md" "$file" || { printf 'uncommitted\n'; return; }
   parsed=$(hamilton_latest_verdict_pass "$file" "Code Feedback: $task — $title") || { printf 'malformed\n'; return; }
   IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${task#Task }/progress.md")

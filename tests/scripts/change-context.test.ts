@@ -1,9 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { run, makeRepo, makeChangeDir, cleanupRepos, field, SCRIPTS_DIR, commitAll, git, write } from "./helpers.js"
+import { run, makeRepo, makeChangeDir, cleanupRepos, field, SCRIPTS_DIR, commitAll, commitPaths, git, write } from "./helpers.js"
 
 const SCRIPT = "hamilton-change-context.sh"
+const TASK_ONE_FEEDBACK_PATH = ".hamilton/changes/add-auth/tasks/task-1/feedback.md"
 
 afterEach(cleanupRepos)
 
@@ -219,6 +220,8 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     const { dir, base, head } = seedCommittedSplit(repo)
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
     write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head, "changes-requested", "- [src/router.ts:1] Fix the router wiring."))
+    commitPaths(repo, "record task one feedback", ".hamilton/changes/add-auth/tasks/task-1/feedback.md")
+    commitPaths(repo, "record task two feedback", ".hamilton/changes/add-auth/tasks/task-2/feedback.md")
     write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
 
     const result = run(SCRIPT, [dir], repo)
@@ -283,6 +286,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
         ? ".hamilton/changes/add-auth/tasks/task-1/feedback.md"
         : ".hamilton/changes/add-auth/review.md"
       write(repo, path, mutate(content))
+      if (owner === "task feedback") commitPaths(repo, "record malformed task feedback", path)
 
       const result = run(SCRIPT, [dir], repo)
 
@@ -304,6 +308,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
         ? ".hamilton/changes/add-auth/tasks/task-1/feedback.md"
         : ".hamilton/changes/add-auth/review.md"
       write(repo, path, content)
+      if (owner === "task feedback") commitPaths(repo, "record task feedback", path)
 
       const result = run(SCRIPT, [dir], repo)
 
@@ -321,6 +326,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     const repo = makeRepo()
     const { dir, base, head } = seedCommittedSplit(repo)
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head, "approved", "- None.", suggestion))
+    commitPaths(repo, "record task one feedback", ".hamilton/changes/add-auth/tasks/task-1/feedback.md")
     write(repo, ".hamilton/changes/add-auth/review.md", review(base, head, "approved", "- None.", suggestion))
 
     const result = run(SCRIPT, [dir], repo)
@@ -339,6 +345,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
 Base: ${base}
 Verdict: changes-requested
 `)
+    commitPaths(repo, "record malformed task feedback", ".hamilton/changes/add-auth/tasks/task-1/feedback.md")
 
     const result = run(SCRIPT, [dir], repo)
 
@@ -351,6 +358,7 @@ Verdict: changes-requested
     const repo = makeRepo()
     const { dir, base, head } = seedCommittedSplit(repo)
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(2, "Wire it into the router", base, head))
+    commitPaths(repo, "record task one feedback", ".hamilton/changes/add-auth/tasks/task-1/feedback.md")
 
     const result = run(SCRIPT, [dir], repo)
 
@@ -365,6 +373,87 @@ Verdict: changes-requested
     commitAll(repo, "record task one feedback")
     Fs.appendFileSync(Path.join(dir, "tasks/task-2/progress.md"), "\nMore task two evidence.\n")
     commitAll(repo, "update task two")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)")
+  })
+
+  it("reports approval written before its artifact commit as uncommitted", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, TASK_ONE_FEEDBACK_PATH, feedback(1, "Add the auth | session", base, head))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: uncommitted")
+  })
+
+  it("reports ignored feedback recreated after its tracked removal as uncommitted", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, TASK_ONE_FEEDBACK_PATH, feedback(1, "Add the auth | session", base, head))
+    commitPaths(repo, "record task one feedback", TASK_ONE_FEEDBACK_PATH)
+    git(repo, "rm", "--cached", TASK_ONE_FEEDBACK_PATH)
+    Fs.appendFileSync(Path.join(repo, ".gitignore"), `\n${TASK_ONE_FEEDBACK_PATH}\n`)
+    commitAll(repo, "stop tracking task one feedback")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: uncommitted")
+  })
+
+  it("reports feedback with worktree bytes changed after commit as uncommitted", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    const content = feedback(1, "Add the auth | session", base, head)
+    write(repo, TASK_ONE_FEEDBACK_PATH, content)
+    commitPaths(repo, "record task one feedback", TASK_ONE_FEEDBACK_PATH)
+    write(repo, TASK_ONE_FEEDBACK_PATH, content.replace("### Suggestions\n\n- None.", "### Suggestions\n\n- Consider a smaller helper."))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: uncommitted")
+  })
+
+  it("reports feedback with staged-only divergence as uncommitted", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    const content = feedback(1, "Add the auth | session", base, head)
+    write(repo, TASK_ONE_FEEDBACK_PATH, content)
+    commitPaths(repo, "record task one feedback", TASK_ONE_FEEDBACK_PATH)
+    write(repo, TASK_ONE_FEEDBACK_PATH, content.replace("### Suggestions\n\n- None.", "### Suggestions\n\n- Consider a smaller helper."))
+    git(repo, "add", "--", TASK_ONE_FEEDBACK_PATH)
+    write(repo, TASK_ONE_FEEDBACK_PATH, content)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: uncommitted")
+  })
+
+  it("reports feedback last committed with another path as uncommitted", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, TASK_ONE_FEEDBACK_PATH, feedback(1, "Add the auth | session", base, head))
+    write(repo, "mixed.txt", "mixed commit\n")
+    commitAll(repo, "record mixed task feedback")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: uncommitted")
+  })
+
+  it("reports an artifact-only committed approval as fresh", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, TASK_ONE_FEEDBACK_PATH, feedback(1, "Add the auth | session", base, head))
+    commitPaths(repo, "record task one feedback", TASK_ONE_FEEDBACK_PATH)
 
     const result = run(SCRIPT, [dir], repo)
 
@@ -391,7 +480,8 @@ Verdict: changes-requested
     const { dir, base, head } = seedCommittedSplit(repo)
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", head, base))
     write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head))
-    commitAll(repo, "record feedback")
+    commitPaths(repo, "record task one feedback", ".hamilton/changes/add-auth/tasks/task-1/feedback.md")
+    commitPaths(repo, "record task two feedback", ".hamilton/changes/add-auth/tasks/task-2/feedback.md")
     Fs.appendFileSync(Path.join(dir, "tasks/task-2/progress.md"), "\nMore task two evidence.\n")
     commitAll(repo, "update task two")
 
