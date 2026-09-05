@@ -69,8 +69,10 @@ each exact `tasks/task-N/feedback.md` path, require all of the following from re
 - the feedback path is tracked at current `HEAD`, with
   `git ls-files --error-unmatch -- <feedback-path>` succeeding and the path present in the `HEAD`
   tree;
-- the feedback path is unchanged from current `HEAD`, with
-  `git diff --quiet HEAD -- <feedback-path>` succeeding across staged and unstaged state;
+- the feedback path's index entry is unchanged from current `HEAD`, with
+  `git diff --cached --quiet HEAD -- <feedback-path>` succeeding;
+- the feedback path's worktree content is unchanged from the index, with
+  `git diff --quiet -- <feedback-path>` succeeding;
 - the latest commit that touched the feedback path is artifact-only, and the commit's path list
   contains only `tasks/task-N/feedback.md`;
 - the physical last pass has valid identity, numbering, shape, verdict, findings, and range, says
@@ -79,7 +81,9 @@ each exact `tasks/task-N/feedback.md` path, require all of the following from re
 
 Missing feedback is a valid lifecycle state rather than a legacy format. A worktree-only approval
 is interrupted-before-feedback-commit state. An untracked or modified feedback path fails this
-preflight. A mixed feedback commit also fails. Stale or malformed feedback and
+preflight. Evaluate index and worktree divergence independently: a staged feedback blob that
+differs while the worktree matches `HEAD` must fail the index condition. A mixed feedback commit
+also fails. Stale or malformed feedback and
 `changes-requested` feedback also fail it. Stop without creating, appending, changing, or writing
 `review.md`; direct the caller back to `hamilton-code-feedback` for the affected task. Only durable
 approved feedback for every active task may continue to branch inspection, range validation, or

@@ -51,7 +51,15 @@ describe("hamilton-review contract", () => {
 
     expect(preflight).toMatch(/every active task.*status `done`/is)
     expect(preflight).toMatch(/feedback.*tracked at current `HEAD`/is)
-    expect(preflight).toMatch(/feedback.*unchanged from current `HEAD`/is)
+    expect(preflight).toMatch(
+      /index.*unchanged from current `HEAD`.*`git diff --cached --quiet HEAD -- <feedback-path>`/is,
+    )
+    expect(preflight).toMatch(
+      /worktree.*unchanged from the index.*`git diff --quiet -- <feedback-path>`/is,
+    )
+    expect(preflight).toMatch(
+      /staged.*differs.*worktree.*matches.*`HEAD`.*fail/is,
+    )
     expect(preflight).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
     expect(preflight).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
     expect(preflight).toMatch(

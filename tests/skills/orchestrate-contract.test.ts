@@ -175,7 +175,15 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     const approval = singleLine(section(skill, "## Durable task approval"))
 
     expect(approval).toMatch(/tracked at current `HEAD`.*`git ls-files --error-unmatch`/is)
-    expect(approval).toMatch(/unchanged from current `HEAD`.*`git diff --quiet HEAD --`/is)
+    expect(approval).toMatch(
+      /index.*unchanged from current `HEAD`.*`git diff --cached --quiet HEAD --`/is,
+    )
+    expect(approval).toMatch(
+      /worktree.*unchanged from the index.*`git diff --quiet --`/is,
+    )
+    expect(approval).toMatch(
+      /staged.*differs.*worktree.*matches.*`HEAD`.*fail/is,
+    )
     expect(approval).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
     expect(approval).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
     expect(approval).toMatch(

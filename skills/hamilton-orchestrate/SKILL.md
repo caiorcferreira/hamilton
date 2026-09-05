@@ -113,8 +113,10 @@ An approval is consumable only when every part of this predicate succeeds for th
 
 - the feedback path is tracked at current `HEAD`: `git ls-files --error-unmatch` succeeds for the
   exact path and the path exists in the `HEAD` tree;
-- the feedback path is unchanged from current `HEAD`: `git diff --quiet HEAD --` succeeds for the
-  exact path, covering both staged and unstaged worktree state;
+- the feedback path's index entry is unchanged from current `HEAD`:
+  `git diff --cached --quiet HEAD --` succeeds for the exact path;
+- the feedback path's worktree content is unchanged from the index: `git diff --quiet --` succeeds
+  for the exact path;
 - the latest commit that touched the feedback path is artifact-only, and the commit's path list
   contains only `tasks/task-N/feedback.md`;
 - the physical last pass has exact task identity and valid pass shape, says `approved`, contains no
@@ -123,7 +125,9 @@ An approval is consumable only when every part of this predicate succeeds for th
 Evaluate this predicate from repository state, never from subagent output. Any failed condition,
 including a worktree-only approval, an untracked file, or a mixed latest feedback-touching commit,
 requires the driver to dispatch `hamilton-code-feedback` for the same task; it never authorizes a
-later task checkpoint or whole-branch review.
+later task checkpoint or whole-branch review. Evaluate the index and worktree conditions
+independently: a staged feedback blob that differs while the worktree matches `HEAD` must fail the
+index condition.
 
 ## Task resume matrix
 
