@@ -30,6 +30,18 @@ describe("hamilton-review contract", () => {
     expect(inputs).toContain("Project standards")
   })
 
+  it("rejects an arbitrary ancestor or task checkpoint as the whole-branch base", () => {
+    const inputs = section(readReview(), "## Inputs")
+    const wrongScope = section(readReview(), "## Wrong scope")
+
+    expect(inputs).toMatch(/resolve.*target branch.*default branch/is)
+    expect(inputs).toMatch(/`git merge-base`.*target.*`HEAD`/is)
+    expect(inputs).toMatch(/supplied base.*equal.*actual merge base/is)
+    expect(wrongScope).toMatch(/arbitrary ancestor.*task checkpoint/is)
+    expect(wrongScope).toMatch(/stop\s+without recording a verdict/is)
+    expect(wrongScope).toContain("`hamilton-code-feedback`")
+  })
+
   it("starts from the whole diff and always inspects broader repository impact", () => {
     const inspection = section(readReview(), "## Whole-branch inspection")
 

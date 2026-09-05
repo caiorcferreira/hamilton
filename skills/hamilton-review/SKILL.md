@@ -18,6 +18,7 @@ Every invocation supplies only the complete branch change from its merge base th
 `HEAD` and a whole-branch evidence package containing:
 
 - The full merge base and head commit identifiers.
+- The target branch reference, or enough repository context to resolve its default branch.
 - The change directory path.
 - The change-level proposal, requirements, design, plan, and root task ledger that exist.
 - Every active task's latest implementation attempt and feedback concerns. Older attempts or
@@ -26,9 +27,12 @@ Every invocation supplies only the complete branch change from its merge base th
 - The complete branch diff from the supplied merge base through the supplied head.
 - Project standards from `AGENTS.md` or its repository equivalent.
 
-The supplied base and head define one stable review range. Require both identifiers in full,
-require the base to be an ancestor of the head, and require the head to be an ancestor of current
-`HEAD` before inspection.
+The supplied base and head define one stable review range. Require both identifiers in full.
+Resolve the target branch from the package, or resolve the repository's default branch when the
+package does not name one. Compute the actual merge base with `git merge-base` against that target
+branch and current `HEAD`; the supplied base must equal the actual merge base exactly. Merely being
+an ancestor of the head is insufficient. Also require the head to be an ancestor of current `HEAD`
+before inspection. Stop if the target cannot be resolved or any range check fails.
 
 ## References
 
@@ -37,9 +41,11 @@ apply its integration, omission, and affected-consumer rubric to the whole branc
 
 ## Wrong scope
 
-A task-scoped invocation, `Task N` identity, task-only diff range, missing whole-branch range, or
-mixed-scope package is wrong scope. Stop without recording a verdict or changing any artifact. For
-task-scoped review, direct the caller to `hamilton-code-feedback`.
+A task-scoped invocation, `Task N` identity, task-only diff range, arbitrary ancestor, task
+checkpoint, missing whole-branch range, or mixed-scope package is wrong scope. An arbitrary
+ancestor or task checkpoint remains wrong even when it is an ancestor of the supplied head. Stop
+without recording a verdict or changing any artifact. For task-scoped review, direct the caller to
+`hamilton-code-feedback`.
 
 ## Whole-branch inspection
 
@@ -73,7 +79,8 @@ verification, including the full suite and build, after review approval.
 
 1. Validate that the input is a complete whole-branch package and reject wrong scope before any
    inspection or write.
-2. Validate the full merge base and head identifiers and their ancestry.
+2. Resolve the target or default branch, compute its actual merge base with current `HEAD`, require
+   the supplied base to equal it exactly, and validate the full head identifier and ancestry.
 3. Read the complete branch diff first. Read the supplied change artifacts, root ledger, every
    active task's latest implementation attempt and feedback concerns, project standards, and this
    skill's local rubric.
