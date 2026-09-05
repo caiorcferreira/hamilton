@@ -19,6 +19,7 @@ Subagent:
     - Task id: Task [N]
     - Root ledger row: [<change-dir>/progress.md row for Task N]
     - Task log: [<change-dir>/tasks/task-N/progress.md]
+    - Task checkpoint: [<change-dir>/tasks/task-N/.base]
 
     Read only Task [N] from plan.md, its cited constraints, the root row named above, and this
     task's own evidence. Do not read or touch a sibling task. Follow the task's Steps exactly;
@@ -35,10 +36,12 @@ Subagent:
 
     ## Required outcome
 
-    Follow hamilton-code completely: preserve or create the task-local checkpoint, transition
-    only Task [N]'s root row, execute and verify the task, append exactly one canonical attempt
-    to the task log, and commit the implementation plus that synchronized evidence with the
-    task's specified commit message. Leave plan.md, sibling evidence, and feedback untouched.
+    The orchestrator has already established the checkpoint. Validate and preserve the
+    already-recorded task-local checkpoint; never create, reset, reconstruct, or replace it.
+    Follow hamilton-code completely: transition only Task [N]'s root row, execute and verify the
+    task, append exactly one canonical attempt to the task log, and commit the implementation plus
+    that synchronized evidence with the task's specified commit message. Leave plan.md, sibling
+    evidence, and feedback untouched.
 
     The task log is the detailed report. Return only concise status and commit information:
     - Status: done | blocked

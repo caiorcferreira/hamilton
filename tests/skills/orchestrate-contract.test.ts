@@ -79,12 +79,15 @@ describe("hamilton-orchestrate whole-branch resume contract", () => {
 
 describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   const process = singleLine(section(skill, "## Process"))
-  const implementer = readReference("implementer-prompt.md")
+  const checkpointRules = singleLine(
+    section(skill, "## Checkpoint establishment and recovery"),
+  )
+  const implementer = singleLine(readReference("implementer-prompt.md"))
   const codeFeedback = readReference("code-feedback-prompt.md")
   const wholeBranch = readReference("whole-branch-review-prompt.md")
 
   it("orders the stable checkpoint, code, feedback, and next task", () => {
-    const checkpoint = process.indexOf("Record or reuse the task checkpoint")
+    const checkpoint = process.indexOf("Resolve and validate the task checkpoint")
     const code = process.indexOf("Dispatch `hamilton-code`")
     const packageDiff = process.indexOf("Package the task diff")
     const feedback = process.indexOf("Dispatch `hamilton-code-feedback`")
@@ -99,12 +102,43 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(advance).toBeGreaterThan(commit)
   })
 
-  it("records one task-local base and preserves it across corrections", () => {
+  it("creates a task-local base only before a genuine first attempt", () => {
     expect(skill).toContain("<change-dir>/tasks/task-N/.base")
     expect(process).toContain(
       "hamilton-diff-package.sh --record --task N --change-dir <change-dir>",
     )
-    expect(skill).toMatch(/recorded once.*never overwritten/is)
+    expect(checkpointRules).toMatch(
+      /only when.*root row is `pending`.*task log has no `## Attempt`.*feedback.*absent.*no task-owned implementation changes/is,
+    )
+    expect(checkpointRules).toMatch(/record current `HEAD` as the checkpoint/i)
+    expect(process).not.toMatch(
+      /before any first attempt, retry, or correction dispatch.*--record/is,
+    )
+  })
+
+  it("reconstructs or stops instead of rebasing historical work", () => {
+    expect(checkpointRules).toMatch(
+      /historical evidence exists when.*status.*other than `pending`.*`## Attempt`.*feedback/is,
+    )
+    expect(checkpointRules).toMatch(
+      /missing or malformed.*unambiguous durable git, task, and feedback evidence/is,
+    )
+    expect(checkpointRules).toMatch(
+      /valid feedback `Base:`.*first parent.*earliest commit.*first task attempt/is,
+    )
+    expect(checkpointRules).toMatch(/every available candidate.*same full commit/i)
+    expect(checkpointRules).toMatch(
+      /existing checkpoint.*historical evidence.*match.*candidate.*precede the first implementation attempt/is,
+    )
+    expect(checkpointRules).toMatch(/otherwise stop.*intervention/i)
+    expect(checkpointRules).toMatch(/never.*current `HEAD`.*historical evidence/is)
+  })
+
+  it("makes the implementer preserve rather than create a checkpoint", () => {
+    expect(implementer).not.toMatch(/preserve or create/i)
+    expect(implementer).toMatch(
+      /validate and preserve the already-recorded task-local checkpoint.*never create/is,
+    )
   })
 
   it("uses task progress as the sole detailed implementer report", () => {

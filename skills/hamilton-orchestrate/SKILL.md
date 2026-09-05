@@ -54,8 +54,9 @@ review have different evidence, inspection boundaries, artifact destinations, an
   root row, the physically last verdict, and reviewed-range freshness.
 - **One active task lane.** Never dispatch task implementers in parallel. Resolve the earliest
   active task that has not reached `done` plus fresh approval before selecting another.
-- **One task, one checkpoint.** `<change-dir>/tasks/task-N/.base` is recorded once before that
-  task's first code attempt and is never overwritten by a retry or correction.
+- **One task, one checkpoint.** Create `<change-dir>/tasks/task-N/.base` from current `HEAD` only
+  before a genuine first attempt. Every later dispatch validates the historical checkpoint or
+  recovers that same commit from unambiguous durable evidence; it never rebases the task range.
 - **Stage-owned evidence.** Code owns the root status and task progress, code feedback owns only
   task feedback, and whole-branch review owns only root review.
 - **Commit every gate.** A feedback or review verdict is not a completed checkpoint until its
@@ -66,6 +67,38 @@ review have different evidence, inspection boundaries, artifact destinations, an
 - **Fail closed.** An absent, malformed, unreachable, contradictory, or stale last pass never
   inherits an earlier approval.
 - **Specify every model.** Every dispatch names its model according to **Model roles**.
+
+## Checkpoint establishment and recovery
+
+Create a new checkpoint only when every first-attempt condition holds: the root row is `pending`,
+the task log has no `## Attempt` section, task feedback is absent, and the working tree and task
+history show no task-owned implementation changes. Only in that state run
+`~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>` to
+record current `HEAD` as the checkpoint. Confirm the resulting file contains exactly one full
+commit identifier and that git resolves it.
+
+For every other dispatch, first validate the existing checkpoint without changing it. Historical
+evidence exists when the root status is anything other than `pending`, the task log contains an
+`## Attempt` section, task feedback exists, or task-owned implementation work is present. A valid
+checkpoint must contain one full commit identifier, resolve in the repository, and be an ancestor
+of current `HEAD` and every valid recorded feedback Head. An existing checkpoint for a task with
+historical evidence must also match every available recovery candidate and precede the first
+implementation attempt; a commit is not valid merely because it resolves or equals current
+`HEAD`.
+
+If the checkpoint is missing or malformed after historical evidence exists, reconstruct it only
+from unambiguous durable git, task, and feedback evidence. Candidate sources are every valid
+feedback `Base:` value and the first parent of the earliest commit that added the first task
+attempt to `tasks/task-N/progress.md`. Validate every candidate as a full commit, require every available
+candidate to identify the same full commit, and require that commit to precede the first
+implementation attempt and be an ancestor of every valid feedback Head and current `HEAD`. Restore
+that identifier to `tasks/task-N/.base`, keep the path ignored, and validate it again before
+dispatch.
+
+Otherwise stop and request intervention. Missing candidates, conflicting candidates, ambiguous
+git history, invalid ancestry, or evidence that cannot distinguish the original pre-implementation
+commit is not recoverable automatically. Never record current `HEAD` when historical evidence
+exists, and never continue code with an unresolved checkpoint.
 
 ## Task resume matrix
 
@@ -138,12 +171,13 @@ current tasks or review merely because conversation history was compacted or los
 5. **Select the current task.** Apply **Task resume matrix** to active tasks in plan order. Mark
    only its todo entry active. A fully gated task stays complete; a root `done` row alone does not
    authorize advancement.
-6. **Record or reuse the task checkpoint before code.** Before any first attempt, retry, or
-   correction dispatch, run
+6. **Resolve and validate the task checkpoint before code.** Apply **Checkpoint establishment and
+   recovery**. A genuine pending first attempt with no implementation evidence may run
    `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>`.
-   Confirm it resolves `<change-dir>/tasks/task-N/.base`. The command creates the full-commit
-   checkpoint only when absent and otherwise validates and reuses it. Never delete, reset, or
-   replace this checkpoint.
+   Every retry, correction, resumed task, or evidence-bearing task must validate its existing
+   `<change-dir>/tasks/task-N/.base` or reconstruct the original commit unambiguously and validate
+   it. Stop for intervention when recovery is ambiguous. Complete checkpoint validation before
+   every code dispatch.
 7. **Dispatch `hamilton-code`.** Fill `references/implementer-prompt.md` with one exact Task N,
    its root row, task log, minimal prior interfaces, and either first-attempt context or its fresh
    `changes-requested` feedback path. Do not provide a second detailed reporting destination.
@@ -207,9 +241,11 @@ progress remains append-only evidence and is opened only for the current task.
 
 Combine each root row with the task's physical latest feedback verdict and freshness. Resolve the
 latest implementation commit as the latest commit touching `tasks/task-N/progress.md`. Validate
-the last pass's shape, full Base and Head, ancestry, and containment. Keep
-`tasks/task-N/.base` unchanged for every attempt. A task is selectable as complete only when the
-row is `done` and that last pass is fresh `approved` without blocking findings.
+the last pass's shape, full Base and Head, ancestry, and containment. Before every code attempt,
+validate `tasks/task-N/.base` as the original pre-implementation commit. If it is missing or
+malformed after historical evidence exists, apply **Checkpoint establishment and recovery**;
+never replace it with the resume-time `HEAD`. A task is selectable as complete only when the row
+is `done` and that last pass is fresh `approved` without blocking findings.
 
 After every task passes, inspect root `review.md` the same way. Its physical last pass and latest
 material change commit determine the whole-branch matrix. A committed earlier approval, a todo
@@ -252,8 +288,9 @@ Specify a model on every dispatch.
 ## Boundaries
 
 - Always: verify isolation; validate split task identity and state; use the two resume matrices;
-  preserve each task checkpoint; name a model on every dispatch; serialize task work; verify each
-  verdict's artifact-only commit; require fresh approvals before advancing.
+  create a checkpoint only for a genuine evidence-free first attempt; validate or unambiguously
+  recover the original checkpoint before later code; name a model on every dispatch; serialize
+  task work; verify each verdict's artifact-only commit; require fresh approvals before advancing.
 - Ask first: starting on the default branch; a finding that conflicts with plan-mandated behavior;
   a blocker that proves the plan itself invalid and lacks an already specified re-plan path.
 - Never: edit implementation, tests, plan, or stage-owned evidence in the controller; dispatch two
@@ -279,7 +316,11 @@ digraph hamilton_orchestrate {
     "Read earliest task row + physical feedback pass" [shape=box];
     "Task state?" [shape=diamond];
     "Inspect interrupted task state" [shape=box];
-    "Record or reuse task-N/.base" [shape=box];
+    "Resolve checkpoint state" [shape=box];
+    "Valid task-N/.base?" [shape=diamond];
+    "Create at HEAD\n(pending + no evidence only)" [shape=box];
+    "Recover original base\n(or stop for intervention)" [shape=box];
+    "Validate task-N/.base" [shape=box];
     "Dispatch hamilton-code" [shape=box];
     "Package task .base..HEAD" [shape=box];
     "Dispatch hamilton-code-feedback" [shape=box];
@@ -298,9 +339,15 @@ digraph hamilton_orchestrate {
     "All tasks done + fresh approved feedback?" -> "Read earliest task row + physical feedback pass" [label="no"];
     "Read earliest task row + physical feedback pass" -> "Task state?";
     "Task state?" -> "Inspect interrupted task state" [label="in-progress"];
-    "Inspect interrupted task state" -> "Record or reuse task-N/.base" [label="resume"];
-    "Task state?" -> "Record or reuse task-N/.base" [label="pending / blocked / fresh changes-requested"];
-    "Record or reuse task-N/.base" -> "Dispatch hamilton-code";
+    "Inspect interrupted task state" -> "Resolve checkpoint state" [label="resume"];
+    "Task state?" -> "Resolve checkpoint state" [label="pending / blocked / fresh changes-requested"];
+    "Resolve checkpoint state" -> "Valid task-N/.base?";
+    "Valid task-N/.base?" -> "Validate task-N/.base" [label="yes"];
+    "Valid task-N/.base?" -> "Create at HEAD\n(pending + no evidence only)" [label="genuine first attempt"];
+    "Create at HEAD\n(pending + no evidence only)" -> "Validate task-N/.base";
+    "Valid task-N/.base?" -> "Recover original base\n(or stop for intervention)" [label="historical evidence"];
+    "Recover original base\n(or stop for intervention)" -> "Validate task-N/.base" [label="unambiguous"];
+    "Validate task-N/.base" -> "Dispatch hamilton-code";
     "Dispatch hamilton-code" -> "Read earliest task row + physical feedback pass";
     "Task state?" -> "Package task .base..HEAD" [label="done + absent/stale feedback"];
     "Package task .base..HEAD" -> "Dispatch hamilton-code-feedback";
