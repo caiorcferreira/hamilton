@@ -1,309 +1,322 @@
 ---
 name: hamilton-orchestrate
-description: "Execute a whole plan.md in one session by dispatching a fresh subagent per task — each runs hamilton-code on one task, followed by a hamilton-review pass — then a broad whole-branch review at the end. Coordinates only; never edits code itself."
+description: "Execute a whole plan by composing task implementation, task-scoped code feedback, and whole-branch review as durable state machines. Coordinates only; never edits implementation itself."
 ---
 
 # Orchestrating a plan
 
-Drive an entire `plan.md` to completion by dispatching one fresh subagent per task. Each
-implementer subagent runs the **hamilton-code** skill on a single task; each is followed by
-a **hamilton-review** pass on that task's diff; and after the last task a broad whole-branch
-review runs before the work is finished.
+Drive every active task in a `plan.md` through implementation and fresh task approval, then drive
+the complete branch through its whole-branch review gate. Resume from committed artifacts and git
+ancestry at every decision; conversation memory and an in-session todo list are never state.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill a person or an agent can run. This skill is the
-**driver** for the code and review steps: it does not add a new step, it runs the existing
-ones across every task in the plan, in one session, without a human in the loop between
-tasks.
+The driver coordinates three distinct roles:
 
-**Why subagents.** You delegate each task to a fresh agent whose whole job is to run
-`hamilton-code` on that one task. It never inherits this session's history — you hand it
-only the plan path and the task id, and `hamilton-code` reads just its own task. Fresh
-context per task keeps implementers focused and keeps *your* context free for coordination.
+- `hamilton-code` owns one task's implementation status and task-local progress.
+- `hamilton-code-feedback` judges one task's stable diff and owns its feedback artifact.
+- `hamilton-review` judges the complete branch and owns the root review artifact.
 
-**Core principle.** Fresh subagent per task (hamilton-code) + a hamilton-review pass per
-task + one broad whole-branch review = high quality, fast iteration.
+**Continuous execution.** Run tasks in plan order without asking whether to continue. Stop only
+for an unresolved blocker, an upstream artifact defect, unsafe workspace state, or completion of
+the fresh whole-branch approval gate.
 
-**Continuous execution.** Do not pause to check in between tasks. Execute every task in the
-plan, in order, without stopping. The only reasons to stop are a blocker you cannot resolve,
-an ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?"
-prompts and progress summaries waste the user's time — they asked you to run the plan, so
-run it.
-
-**You coordinate; you never implement.** This skill never edits production code, never edits
-`plan.md`, and never runs a task's steps itself. All of that happens inside subagents. Your
-tools are: read the plan, dispatch, read reports, adjudicate, track progress.
+**Coordinate; never implement.** Dispatch the skills that own code, planning, and review. Do not
+edit implementation, tests, `plan.md`, progress, feedback, or review artifacts in the controller.
+The only controller state is its todo display, which mirrors rather than replaces durable state.
 
 ## Inputs
 
-- A change directory at `.hamilton/changes/<YYYY-MM-DD-title>/` containing `plan.md` — the
-  ordered task ledger produced by `hamilton-plan`.
-- Project standards (`AGENTS.md`): test/build commands, code style, git workflow, boundaries.
-- Optional: `design.md` / `requirements/` in the change dir — the source of the binding
-  constraints you pass to reviewers.
-- `progress.md` in the change dir, if it exists — the durable record of which tasks are
-  already done (see **Durable progress**).
+- A change directory at `.hamilton/changes/<YYYY-MM-DD-title>/` containing `plan.md`.
+- The root `<change-dir>/progress.md` task ledger and linked
+  `<change-dir>/tasks/task-N/progress.md` files.
+- Task-local `<change-dir>/tasks/task-N/.base` checkpoints and `feedback.md` files when present.
+- Root `<change-dir>/review.md` when present.
+- The change's proposal, requirements, and design artifacts when present.
+- Project standards from `AGENTS.md` or the repository equivalent.
+
+Require the split execution layout before dispatching. Active task ids come from `plan.md`; root
+rows use only `pending`, `in-progress`, `blocked`, or `done` and link to the matching lowercase
+`tasks/task-N/progress.md`. Reject a planned legacy layout rather than migrating it in place.
 
 ## References
 
-This skill ships with a `references/` folder. Read reference files with the Read tool on the
-skill's own directory — they are co-located with this SKILL.md.
+Read the scope-specific prompt that matches each dispatch:
 
-- `references/implementer-prompt.md` — template for dispatching a hamilton-code subagent.
-- `references/reviewer-prompt.md` — template for dispatching a hamilton-review subagent.
+- `references/implementer-prompt.md` dispatches `hamilton-code` for one exact Task N.
+- `references/code-feedback-prompt.md` dispatches `hamilton-code-feedback` for one exact Task N.
+- `references/whole-branch-review-prompt.md` dispatches `hamilton-review` for the complete branch.
+
+Do not combine the two review scopes into a conditional prompt. Task feedback and whole-branch
+review have different evidence, inspection boundaries, artifact destinations, and handoffs.
 
 ## Principles
 
-- **One task per subagent, by reference.** Dispatch the plan path and the task id; let
-  `hamilton-code` read only its own task. Never paste the whole plan, and never paste
-  accumulated summaries of earlier tasks — a fresh subagent needs its task, the interfaces
-  earlier tasks established, and the binding constraints. Nothing else.
-- **Never edit; only dispatch.** Findings are fixed by re-dispatching `hamilton-code` with
-  the review feedback — not by you editing files. Editing in the controller pollutes your
-  context and defeats the isolation.
-- **Trust the ledger, not memory.** `progress.md` and `git log` are the source of truth for
-  what is done. After any compaction, resume from them (see **Durable progress**).
-- **Hand artifacts over as files.** Diffs and reports move as file paths, not pasted text,
-  so bulk content never sits resident in your context (see **File handoffs**).
-- **Specify the model on every dispatch.** An omitted model silently inherits this session's
-  — usually the most capable and most expensive one. Choose per **Model selection**.
-- **Track tasks in your coding agent's todo tool, not just in your head.** Whatever
-  in-session todo/task-list tool your coding agent provides, use it to mirror `plan.md`'s
-  task list: one entry per task, marked in-progress while its subagent runs and completed
-  once its `progress.md` entry reads `done`. This is what keeps a long run legible to the
-  user and keeps you from losing your place after compaction — do not rely on memory or on
-  re-reading `plan.md` alone to know where you are.
+- **Read state, then dispatch.** Before every action, recompute the applicable matrix from the
+  root row, the physically last verdict, and reviewed-range freshness.
+- **One active task lane.** Never dispatch task implementers in parallel. Resolve the earliest
+  active task that has not reached `done` plus fresh approval before selecting another.
+- **One task, one checkpoint.** `<change-dir>/tasks/task-N/.base` is recorded once before that
+  task's first code attempt and is never overwritten by a retry or correction.
+- **Stage-owned evidence.** Code owns the root status and task progress, code feedback owns only
+  task feedback, and whole-branch review owns only root review.
+- **Commit every gate.** A feedback or review verdict is not a completed checkpoint until its
+  owner has made and verified the required artifact-only commit.
+- **Files carry detail.** Task progress is the only detailed implementer report. Dispatch output
+  is concise status and commit information; diff packages and verdict artifacts carry review
+  evidence.
+- **Fail closed.** An absent, malformed, unreachable, contradictory, or stale last pass never
+  inherits an earlier approval.
+- **Specify every model.** Every dispatch names its model according to **Model roles**.
+
+## Task resume matrix
+
+Apply this matrix to the earliest active task that is not fully gated. `Feedback state` means the
+physically last pass in `tasks/task-N/feedback.md`, validated against the latest commit that
+touched that task's progress file.
+
+| Root status | Feedback state | Action |
+|---|---|---|
+| `pending` | any | Dispatch `hamilton-code` for Task N. |
+| `blocked` | any | Dispatch `hamilton-code` for Task N with the recorded blocker and newly available resolution. |
+| `in-progress` | any | Inspect Task N's git state and task-local log before resuming or resolving it; never select another task. |
+| `done` | absent | Dispatch `hamilton-code-feedback` for the stable Task N range. |
+| `done` | stale or malformed | Dispatch `hamilton-code-feedback` for the stable Task N range. |
+| `done` | fresh `changes-requested` | Dispatch `hamilton-code` with `tasks/task-N/feedback.md`. |
+| `done` | fresh `approved` with no blocking findings | Advance to the next active task or the whole-branch gate. |
+
+A task feedback pass is fresh only when its full Base and Head are valid commits, Base is an
+ancestor of Head, Head is an ancestor of current `HEAD`, and Head contains the latest commit that
+touched `tasks/task-N/progress.md`. A later code attempt therefore makes every earlier pass stale,
+including a prior `changes-requested` pass: the corrected task goes to code feedback, not directly
+back to another correction.
+
+For `in-progress`, inspect only that task's working tree, commits, checkpoint, and physical latest
+attempt. Determine whether an interrupted implementer is still running, whether its work can be
+resumed by a fresh `hamilton-code` dispatch, or whether it must finish through the canonical
+blocked path. Never manufacture an attempt entry or infer completion from code alone.
+
+For `blocked`, read the latest task attempt before dispatch. Supply missing context, a resolved
+external condition, or a more suitable explicitly named model. If nothing has changed, do not
+repeat the same dispatch. A task too large or impossible as planned is a plan defect and stops for
+re-plan or user adjudication rather than an improvised split.
+
+## Whole-branch resume matrix
+
+Use this matrix only after every active task is `done` with fresh `approved` feedback and no
+blocking findings. `Review state` means the physically last pass in root `review.md`, validated
+against the current branch and latest material change commit.
+
+| Review state | Action |
+|---|---|
+| absent | Dispatch `hamilton-review` on the complete branch. |
+| stale or malformed | Dispatch `hamilton-review` on the complete branch. |
+| fresh `changes-requested` | Classify the complete finding set for re-plan or the upstream-defect stop. |
+| fresh `approved` with no blocking findings | Hand off to `hamilton-finish-work`. |
+
+Whole-branch freshness follows `hamilton-review`'s material-path and ancestry rules. The
+physically last pass governs; never scan backward to an earlier approval. Do not rerun approved
+current tasks or review merely because conversation history was compacted or lost.
 
 ## Process
 
-1. **Verify an isolated workspace.** `hamilton-plan` normally leaves you in a worktree or on
-   a dedicated branch. Confirm it with
-   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`: a last line of
-   `isolated: yes` means proceed. If it reports `isolated: no`, **stop and ask** — never start
-   dispatching implementers onto `main`/`master` without explicit consent. If the script is not
-   installed (`hamilton setup` has not run), check by hand: `git rev-parse --git-dir` differing
-   from `--git-common-dir` (a linked worktree), or a branch other than the repo's default.
-2. **Load the plan and resume point.** Open with
-   `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` for the artifact inventory and
-   the per-task standing, then read `plan.md` for the task list, the Overview's context, and the
-   Global Constraints / Quality notes. Read `progress.md`: any task with `Outcome: done` is
-   complete — do not re-dispatch it. Resume at the first task not marked done. (If the script is
-   not installed, read `plan.md` and `progress.md` directly; the standings are the same, they
-   just cost more to obtain.)
-3. **Populate your todo tool from the plan.** Before dispatching anything, create one todo
-   entry per task in `plan.md`, in plan order, using your coding agent's own todo/task-list
-   tool (name and shape vary by agent — use whichever one you have), plus one trailing entry
-   for the whole-branch review. Mark any task `progress.md` already shows as `done` as
-   completed immediately. This list is the visible, durable mirror of the plan's task ledger
-   for the rest of the run — keep it in sync with `progress.md` rather than tracking status
-   only in conversation.
-4. **Pre-flight scan (once, before Task 1).** Scan the plan for internal conflicts: tasks
-   that contradict each other or the plan's constraints, or anything the plan mandates that
-   a review would treat as a defect (a test asserting nothing, verbatim duplication of a
-   logic block). Present everything you find to the user as one batched question — each
-   finding beside the plan text that mandates it — before execution begins. If the scan is
-   clean, proceed without comment.
-5. **Per task, in order** (skipping tasks already `done`):
-   1. **Mark the task's todo entry in-progress.** Update it before dispatching, not after.
-   2. **Record BASE** = current `HEAD`:
-      `~/.hamilton/scripts/hamilton-diff-package.sh --record --change-dir <change-dir>`. This is
-      the diff base for the task — never `HEAD~1`, which drops all but the last commit of a
-      multi-commit task. The script stores it in the change directory, so it survives a
-      compaction of your context; without the script, record `git rev-parse HEAD` and keep it
-      somewhere durable yourself.
-   3. **Dispatch the implementer** (see `references/implementer-prompt.md`): a fresh subagent
-      whose whole job is to run `hamilton-code` on this task, by reference — the change
-      directory path and the task id. Give it a one-line scene-setting note, the interfaces
-      or decisions from earlier tasks it needs, and the report-file path. Nothing more.
-   4. **Handle its status** (see **Handling implementer status**). If it asks a question,
-      answer completely before it proceeds.
-   5. **Package the diff.** Run
-      `~/.hamilton/scripts/hamilton-diff-package.sh --change-dir <change-dir>`; it reads the
-      BASE recorded in 5.2, writes the diff to a scratch file, and prints that path on its last
-      line (see **File handoffs**).
-   6. **Dispatch the reviewer** (see `references/reviewer-prompt.md`): a fresh subagent that
-      runs `hamilton-review` on the task's diff, with the binding constraints copied verbatim
-      from the plan. It judges only; it returns a verdict and located feedback.
-   7. **Adjudicate.** If the review requests changes, re-dispatch `hamilton-code` on the
-      **same task** with the review feedback attached (`hamilton-code` accepts prior-pass
-      feedback as an input and addresses it in place), then re-package the diff and
-      re-review. Loop until the reviewer approves. Resolve any "cannot verify from diff" item
-      yourself — you hold the cross-task context the reviewer lacks; a confirmed gap is a
-      failed review, so send it back.
-   8. **Record progress.** `hamilton-code` already appended a `progress.md` entry; confirm it
-      reads `Outcome: done`. That entry is your durable mark of completion.
-   9. **Mark the task's todo entry completed.** Do this immediately after confirming
-      `progress.md`, before moving to the next task — the todo list should never lag the
-      ledger.
-6. **Broad whole-branch review.** After the last task, mark the trailing "whole-branch
-   review" todo entry in-progress, then build the branch-wide package with
-   `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change` — it resolves the default
-   branch, diffs from the merge-base, and prints the path — and dispatch one `hamilton-review`
-   subagent over it, with the whole change's requirements and design as context. Without the
-   script, package `git merge-base <default-branch> HEAD`..`HEAD` by hand. This is the merge
-   gate the per-task passes are not.
-7. **Fix the final review as one wave.** If it returns findings, dispatch **one**
-   `hamilton-code` subagent with the complete findings list — not one fixer per finding — then
-   re-review the affected range. Leave the "whole-branch review" todo entry in-progress until
-   this re-review comes back clean.
-8. **Commit any pending change-dir state, then hand off to finish-work.** Before handing off,
-   run `git status` and confirm the change directory is fully committed. Each `hamilton-code`
-   subagent commits its own `progress.md`, but the whole-branch review and final fix wave can
-   leave change-dir artifacts (e.g. `progress.md`) uncommitted — if any remain, commit them
-   with a bookkeeping message so nothing under `.hamilton/changes/<change>/` is left in the
-   working tree. This commit is the one exception to "never touch the tree": it moves no
-   production code, only the change-dir ledger. Once the whole-branch review is clean, mark
-   its todo entry completed. When the change dir is committed, the plan's "Done when" is
-   satisfied. Stop here and hand off to **hamilton-finish-work** to complete the branch; do
-   not merge or open a PR from this skill.
+1. **Verify workspace isolation.** Run
+   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`. Continue only when
+   its last line is `isolated: yes`. If the installed script is absent, verify that the change
+   directory is under the repository root and the branch is not the default branch. Otherwise
+   stop before dispatching.
+2. **Load durable state.** Run
+   `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>`, then read `plan.md` for active
+   task identity and shared constraints and root `progress.md` for current status. Validate the
+   split layout. Read detailed task evidence only for the task currently being diagnosed,
+   implemented, or reviewed. Determine verdicts from the physically last pass and validate their
+   Base and Head rather than trusting a summary.
+3. **Mirror the plan in the todo tool.** Create one visible entry per active task, in plan order,
+   plus one trailing whole-branch review entry. Reflect root status and fresh approval, but never
+   use the todo tool as a resume source.
+4. **Run the pre-flight scan once.** Before the first task attempt, scan the plan for internal
+   conflicts or a mandate that its own feedback gate would reject. Batch genuine conflicts for
+   user adjudication. If the scan is clean, continue without pausing.
+5. **Select the current task.** Apply **Task resume matrix** to active tasks in plan order. Mark
+   only its todo entry active. A fully gated task stays complete; a root `done` row alone does not
+   authorize advancement.
+6. **Record or reuse the task checkpoint before code.** Before any first attempt, retry, or
+   correction dispatch, run
+   `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>`.
+   Confirm it resolves `<change-dir>/tasks/task-N/.base`. The command creates the full-commit
+   checkpoint only when absent and otherwise validates and reuses it. Never delete, reset, or
+   replace this checkpoint.
+7. **Dispatch `hamilton-code`.** Fill `references/implementer-prompt.md` with one exact Task N,
+   its root row, task log, minimal prior interfaces, and either first-attempt context or its fresh
+   `changes-requested` feedback path. Do not provide a second detailed reporting destination.
+   When the subagent returns, read the root row and physical latest task attempt instead of
+   trusting its concise response. A `blocked` or interrupted result returns to the task matrix.
+8. **Package the task diff after code reaches `done`.** Run
+   `~/.hamilton/scripts/hamilton-diff-package.sh --task N --change-dir <change-dir>`. Capture the
+   printed full Base and Head and scratch package path. Require Base to equal the unchanged task
+   checkpoint and Head to contain the latest task progress commit.
+9. **Dispatch `hamilton-code-feedback`.** Fill `references/code-feedback-prompt.md` with the exact
+   task, full Base and Head, diff package, task-local progress path, feedback destination, and
+   verbatim task acceptance and cited constraints. The reviewer judges only that stable task
+   range and persists the supplied range in `tasks/task-N/feedback.md`.
+10. **Confirm the feedback artifact-only commit.** Require the feedback subagent to commit only
+    `tasks/task-N/feedback.md`, verify the commit's path list, and re-read the physical last pass.
+    Complete this check before proceeding to **Select the next active task**. If the commit or
+    pass is invalid, stop rather than advancing. Apply the task matrix again: fresh approval may
+    advance, fresh requested changes return to code, and stale feedback returns to feedback.
+11. **Adjudicate a bounded unresolved risk.** When code feedback records `cannot verify from
+    diff`, inspect only its concrete named risk with cross-task context. A confirmed code gap goes
+    back to code. If located evidence resolves the concern without a code change, supply that
+    evidence to a new code-feedback pass against the same Head. Only the new physical pass may
+    approve.
+12. **Enter the whole-branch gate.** When all active tasks are fully gated, apply
+    **Whole-branch resume matrix**. For an absent, malformed, or stale pass, run
+    `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change`, then fill
+    `references/whole-branch-review-prompt.md` with the actual merge base, current Head, complete
+    package, approved change intent, root ledger, and linked task evidence.
+13. **Confirm the review artifact-only commit.** Require `hamilton-review` to commit only root
+    `review.md`, verify the commit's path list, and re-read its physical last pass. Apply the
+    whole-branch matrix again rather than trusting transient output.
+14. **Route whole-branch findings.** Apply **Whole-branch findings** to a fresh
+    `changes-requested` pass. Remediation returns through the ordinary task loop; an upstream
+    artifact defect stops the run.
+15. **Hand off after fresh approval.** When the physical last whole-branch pass is valid, fresh,
+    `approved`, and has no blocking findings, confirm the worktree and change directory are clean
+    and hand off to `hamilton-finish-work`. Do not merge or open a pull request here.
 
-## Handling implementer status
+## Whole-branch findings
 
-`hamilton-code` reports its outcome. Handle each:
+For implementation findings consistent with approved requirements and design, send the complete
+finding set to `hamilton-plan` in re-plan mode. Re-plan must append one or more appropriately sized
+numbered remediation tasks, initialize their root rows and task progress files, and commit its
+artifacts. Each new task then runs through the ordinary `hamilton-code` and
+`hamilton-code-feedback` loop. After all remediation tasks have fresh approval, repeat the
+whole-branch review gate.
 
-- **Done** (`progress.md` says `Outcome: done`, suite and build green): proceed to the diff
-  package and review.
-- **Blocked** (`Outcome: blocked`, or the subagent reports it cannot complete): read the
-  blocker. If it is missing context, provide it and re-dispatch with the same model. If the
-  task needs more reasoning, re-dispatch with a more capable model. If the task is too large,
-  it is a plan defect — escalate to the user rather than improvising a split (this skill does
-  not edit `plan.md`); the remedy is `hamilton-plan` in re-plan mode. Never force the same
-  model to retry with nothing changed.
-- **Asks a question before or during work:** answer clearly and completely, then let it
-  proceed. Do not rush it into implementation.
+When any finding requires changing an approved requirement or design decision, stop and return
+the affected artifacts and finding to `hamilton-propose` for revision and approval. Do not ask
+re-plan or code to work around an upstream defect.
 
-## Model selection
+All whole-branch implementation corrections enter re-plan. Frozen completed tasks remain
+unchanged, and every correction becomes a numbered active task present in `plan.md` with its own
+ordinary implementation and feedback ownership.
 
-Use the least powerful model that can do each role — turn count and wall-clock cost more than
-token price, so avoid a cheap model that will thrash.
+## Durable resume
 
-- **Implementer (hamilton-code):** the plan already carries the design and exact steps, so
-  most tasks are transcription-plus-testing — a **fast, cheap** model is the floor. Use a
-  **standard** model when the task touches many files or has real integration concerns.
-- **Task reviewer (hamilton-review):** a **standard** model, scaled to the diff — a subtle
-  concurrency or contract change warrants the most capable model; a one-file mechanical diff
-  does not.
-- **Final whole-branch review:** the **most capable** model available. It is the merge gate.
+Root `progress.md` is the current implementation ledger. On start, compaction, or interruption,
+read its canonical rows instead of reconstructing task status from attempt history. Task-local
+progress remains append-only evidence and is opened only for the current task.
 
-Specify the model explicitly on every dispatch.
+Combine each root row with the task's physical latest feedback verdict and freshness. Resolve the
+latest implementation commit as the latest commit touching `tasks/task-N/progress.md`. Validate
+the last pass's shape, full Base and Head, ancestry, and containment. Keep
+`tasks/task-N/.base` unchanged for every attempt. A task is selectable as complete only when the
+row is `done` and that last pass is fresh `approved` without blocking findings.
 
-## Durable progress
+After every task passes, inspect root `review.md` the same way. Its physical last pass and latest
+material change commit determine the whole-branch matrix. A committed earlier approval, a todo
+checkmark, an agent response, or remembered conversation never overrides current physical state.
 
-Conversation memory does not survive compaction; re-dispatching completed tasks is the most
-expensive failure. Hamilton already gives you a durable ledger: **`progress.md`** in the
-change directory, appended by every `hamilton-code` run.
+## Model roles
 
-- At skill start, and after any compaction or resume, read
-  `.hamilton/changes/<change>/progress.md`. Every task whose newest entry says
-  `Outcome: done` is complete — do not re-dispatch it. Cross-check with `git log`: the
-  commits it names exist even when your context no longer remembers creating them.
-- Trust the ledger and `git log` over your own recollection.
-- `progress.md` is committed with the change, so it survives `git clean`; if it is ever lost,
-  recover the completion state from `git log`.
+Specify a model on every dispatch.
+
+- **Task implementer (`hamilton-code`):** use a fast, economical model for narrow mechanical work
+  and a standard model for multi-file or integration-heavy tasks. Escalate a blocked retry only
+  when greater reasoning capability addresses the recorded blocker.
+- **Task feedback (`hamilton-code-feedback`):** use a standard model scaled to the task diff's
+  risk. Subtle security, concurrency, or contract changes warrant the strongest suitable task
+  reviewer.
+- **Whole-branch review (`hamilton-review`):** use the most capable available model because this
+  pass owns integration, affected-consumer, and omission analysis across the repository.
+- **Remediation planning (`hamilton-plan`):** use a model capable of splitting the complete
+  finding set into independently verifiable numbered tasks without changing approved intent.
 
 ## File handoffs
 
-Everything you paste into a dispatch, and everything a subagent prints back, stays resident
-in your context for the rest of the session. Move bulk artifacts as files:
-
-- **Diff package:** before dispatching a reviewer, run
-  `~/.hamilton/scripts/hamilton-diff-package.sh --change-dir <change-dir>` and pass the reviewer
-  the path on its last line. It uses the BASE recorded before the implementer ran, and refuses
-  to run at all if none was recorded — never `HEAD~1`. Without the script, redirect
-  `git diff --stat BASE..HEAD` and `git diff -U10 BASE..HEAD` into one uniquely named scratch
-  file (e.g. under the system temp dir) yourself.
-- **Report file:** name each subagent's report file after its task and put the path in the
-  dispatch. The subagent writes its full report there and returns only status, commits, a
-  one-line test summary, and concerns.
-- **Reviewer inputs:** the reviewer gets the diff-package path, the report path, and the
-  binding constraints copied verbatim from the plan — not this session's history.
-
-## Constructing reviewer dispatches
-
-- Copy the binding requirements **verbatim** from the plan's Global Constraints / Quality
-  notes (or the design): exact values, formats, and the stated relationships between
-  components. That block is the reviewer's attention lens; `hamilton-review`'s own rubric
-  already carries the process rules.
-- Never pre-judge findings — do not tell a reviewer what not to flag or pre-rate a severity.
-  If you think a finding would be a false positive, let it be raised and adjudicate it in the
-  loop. A finding that conflicts with what the plan mandates is the user's decision: present
-  the finding beside the plan text and ask which governs.
-- Do not ask a reviewer to re-run tests the implementer already ran on the same code — the
-  report carries that evidence.
+- **Implementation evidence:** the root Task N row supplies current status and
+  `<change-dir>/tasks/task-N/progress.md` supplies the detailed physical latest attempt. There is
+  no second implementer narrative artifact.
+- **Task range:**
+  `~/.hamilton/scripts/hamilton-diff-package.sh --task N --change-dir <change-dir>` packages the
+  unchanged task-local checkpoint through current `HEAD`. Pass its printed full Base, Head, and
+  scratch path to the code-feedback prompt.
+- **Task verdict:** `<change-dir>/tasks/task-N/feedback.md` is append-only and is committed alone
+  before the driver selects another task or dispatches a correction.
+- **Whole-branch range:** `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change` packages
+  the actual default-branch merge base through current `HEAD`. Pass the complete package and
+  approved change intent to the whole-branch prompt.
+- **Whole-branch verdict:** `<change-dir>/review.md` is append-only and is committed alone before
+  the driver re-plans or hands off to finish-work.
+- **Constraints:** task feedback receives only the task's acceptance criteria and cited binding
+  sections. Whole-branch review receives the complete approved requirements and design.
 
 ## Boundaries
 
-- Always: verify workspace isolation before Task 1; populate the coding agent's todo tool
-  from `plan.md` before dispatching any task, including a trailing entry for the whole-branch
-  review, and keep each entry's status in sync with `progress.md` and the review outcome as
-  work starts and finishes; specify a model on every dispatch; confirm each task's
-  `progress.md` entry before moving on; confirm the change directory is fully committed
-  before handing off to finish-work.
-- Ask first: starting on the default branch; any plan-mandated finding a review flags as a
-  defect; a blocker that implies the plan itself is wrong.
-- Never: edit production code or `plan.md` yourself; dispatch two implementers in parallel
-  (they conflict on the working tree); paste the whole plan or prior-task history into a
-  dispatch; skip the per-task review or accept "close enough" on it; re-dispatch a task
-  `progress.md` already marks done.
+- Always: verify isolation; validate split task identity and state; use the two resume matrices;
+  preserve each task checkpoint; name a model on every dispatch; serialize task work; verify each
+  verdict's artifact-only commit; require fresh approvals before advancing.
+- Ask first: starting on the default branch; a finding that conflicts with plan-mandated behavior;
+  a blocker that proves the plan itself invalid and lacks an already specified re-plan path.
+- Never: edit implementation, tests, plan, or stage-owned evidence in the controller; dispatch two
+  implementers concurrently; infer task identity from a title; read sibling task detail without a
+  concrete current-state reason; advance on root `done` alone; accept a stale or malformed pass;
+  send whole-branch findings directly to code; merge or open a pull request.
 
 ## Output
 
-Every task in the plan implemented by its own `hamilton-code` subagent, each passing a
-`hamilton-review` gate; a clean whole-branch review; a `progress.md` with a `done` entry per
-task, fully committed with the rest of the change directory; and the branch ready for
-**hamilton-finish-work**. This skill writes no production code and never modifies `plan.md`.
-If anything is unresolved — a blocker, a plan defect, an unadjudicated plan-mandated finding —
-state it plainly and stop.
+Every active plan task is committed with root status `done`, canonical task progress, and a
+physically last task-feedback pass that is valid, fresh, `approved`, and free of blocking findings.
+The complete branch has a committed root review pass that is valid, fresh, `approved`, and free of
+blocking findings. The worktree and change directory are clean, and control is handed to
+`hamilton-finish-work`. If an unresolved blocker or upstream artifact defect remains, report it
+plainly and stop in its owning stage.
 
 ## Process flow
 
 ```dot
 digraph hamilton_orchestrate {
-    "Verify isolated workspace\n(stop if on default branch)" [shape=box];
-    "Load plan.md + progress.md\n(resume at first not-done task)" [shape=box];
-    "Populate todo tool from plan.md\n(one entry per task)" [shape=box];
-    "Pre-flight scan for conflicts\n(batched question if any)" [shape=box];
-    "Mark task todo in-progress\nRecord BASE = HEAD" [shape=box];
-    "Dispatch implementer subagent\n(runs hamilton-code on one task)" [shape=box];
-    "Status?" [shape=diamond];
-    "Provide context / re-dispatch\n(or escalate plan defect)" [shape=box];
-    "Package diff, dispatch reviewer\n(runs hamilton-review on task diff)" [shape=box];
-    "Review approved?" [shape=diamond];
-    "Re-dispatch hamilton-code\nwith review feedback" [shape=box];
-    "Confirm progress.md: done" [shape=box];
-    "Mark task todo completed" [shape=box];
-    "More tasks?" [shape=diamond];
-    "Mark whole-branch-review todo in-progress" [shape=box];
-    "Whole-branch hamilton-review\n(most capable model)" [shape=box];
-    "Final review clean?" [shape=diamond];
-    "One hamilton-code fix wave\n(all findings)" [shape=box];
-    "Mark whole-branch-review todo completed" [shape=box];
-    "Commit pending change-dir state\n(git status clean)" [shape=box];
+    "Verify isolation + load durable state" [shape=box];
+    "All tasks done + fresh approved feedback?" [shape=diamond];
+    "Read earliest task row + physical feedback pass" [shape=box];
+    "Task state?" [shape=diamond];
+    "Inspect interrupted task state" [shape=box];
+    "Record or reuse task-N/.base" [shape=box];
+    "Dispatch hamilton-code" [shape=box];
+    "Package task .base..HEAD" [shape=box];
+    "Dispatch hamilton-code-feedback" [shape=box];
+    "Confirm feedback-only commit" [shape=box];
+    "Read physical whole-branch review pass" [shape=box];
+    "Whole-review state?" [shape=diamond];
+    "Package merge-base..HEAD" [shape=box];
+    "Dispatch hamilton-review" [shape=box];
+    "Confirm review-only commit" [shape=box];
+    "Classify complete findings" [shape=diamond];
+    "Dispatch hamilton-plan re-plan\n(numbered remediation tasks)" [shape=box];
+    "Stop at hamilton-propose\n(upstream artifact defect)" [shape=octagon];
     "Hand off to hamilton-finish-work" [shape=doublecircle];
 
-    "Verify isolated workspace\n(stop if on default branch)" -> "Load plan.md + progress.md\n(resume at first not-done task)";
-    "Load plan.md + progress.md\n(resume at first not-done task)" -> "Populate todo tool from plan.md\n(one entry per task)";
-    "Populate todo tool from plan.md\n(one entry per task)" -> "Pre-flight scan for conflicts\n(batched question if any)";
-    "Pre-flight scan for conflicts\n(batched question if any)" -> "Mark task todo in-progress\nRecord BASE = HEAD";
-    "Mark task todo in-progress\nRecord BASE = HEAD" -> "Dispatch implementer subagent\n(runs hamilton-code on one task)";
-    "Dispatch implementer subagent\n(runs hamilton-code on one task)" -> "Status?";
-    "Status?" -> "Provide context / re-dispatch\n(or escalate plan defect)" [label="blocked / needs context"];
-    "Provide context / re-dispatch\n(or escalate plan defect)" -> "Dispatch implementer subagent\n(runs hamilton-code on one task)";
-    "Status?" -> "Package diff, dispatch reviewer\n(runs hamilton-review on task diff)" [label="done"];
-    "Package diff, dispatch reviewer\n(runs hamilton-review on task diff)" -> "Review approved?";
-    "Review approved?" -> "Re-dispatch hamilton-code\nwith review feedback" [label="no"];
-    "Re-dispatch hamilton-code\nwith review feedback" -> "Package diff, dispatch reviewer\n(runs hamilton-review on task diff)" [label="re-review"];
-    "Review approved?" -> "Confirm progress.md: done" [label="yes"];
-    "Confirm progress.md: done" -> "Mark task todo completed";
-    "Mark task todo completed" -> "More tasks?";
-    "More tasks?" -> "Mark task todo in-progress\nRecord BASE = HEAD" [label="yes"];
-    "More tasks?" -> "Mark whole-branch-review todo in-progress" [label="no"];
-    "Mark whole-branch-review todo in-progress" -> "Whole-branch hamilton-review\n(most capable model)";
-    "Whole-branch hamilton-review\n(most capable model)" -> "Final review clean?";
-    "Final review clean?" -> "One hamilton-code fix wave\n(all findings)" [label="no"];
-    "One hamilton-code fix wave\n(all findings)" -> "Whole-branch hamilton-review\n(most capable model)" [label="re-review"];
-    "Final review clean?" -> "Mark whole-branch-review todo completed" [label="yes"];
-    "Mark whole-branch-review todo completed" -> "Commit pending change-dir state\n(git status clean)";
-    "Commit pending change-dir state\n(git status clean)" -> "Hand off to hamilton-finish-work";
+    "Verify isolation + load durable state" -> "All tasks done + fresh approved feedback?";
+    "All tasks done + fresh approved feedback?" -> "Read earliest task row + physical feedback pass" [label="no"];
+    "Read earliest task row + physical feedback pass" -> "Task state?";
+    "Task state?" -> "Inspect interrupted task state" [label="in-progress"];
+    "Inspect interrupted task state" -> "Record or reuse task-N/.base" [label="resume"];
+    "Task state?" -> "Record or reuse task-N/.base" [label="pending / blocked / fresh changes-requested"];
+    "Record or reuse task-N/.base" -> "Dispatch hamilton-code";
+    "Dispatch hamilton-code" -> "Read earliest task row + physical feedback pass";
+    "Task state?" -> "Package task .base..HEAD" [label="done + absent/stale feedback"];
+    "Package task .base..HEAD" -> "Dispatch hamilton-code-feedback";
+    "Dispatch hamilton-code-feedback" -> "Confirm feedback-only commit";
+    "Confirm feedback-only commit" -> "Read earliest task row + physical feedback pass";
+    "Task state?" -> "All tasks done + fresh approved feedback?" [label="done + fresh approved"];
+    "All tasks done + fresh approved feedback?" -> "Read physical whole-branch review pass" [label="yes"];
+    "Read physical whole-branch review pass" -> "Whole-review state?";
+    "Whole-review state?" -> "Package merge-base..HEAD" [label="absent / malformed / stale"];
+    "Package merge-base..HEAD" -> "Dispatch hamilton-review";
+    "Dispatch hamilton-review" -> "Confirm review-only commit";
+    "Confirm review-only commit" -> "Read physical whole-branch review pass";
+    "Whole-review state?" -> "Classify complete findings" [label="fresh changes-requested"];
+    "Classify complete findings" -> "Dispatch hamilton-plan re-plan\n(numbered remediation tasks)" [label="implementation"];
+    "Dispatch hamilton-plan re-plan\n(numbered remediation tasks)" -> "All tasks done + fresh approved feedback?";
+    "Classify complete findings" -> "Stop at hamilton-propose\n(upstream artifact defect)" [label="approved artifact"];
+    "Whole-review state?" -> "Hand off to hamilton-finish-work" [label="fresh approved"];
 }
 ```
