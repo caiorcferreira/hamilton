@@ -57,22 +57,22 @@ strip_comments() {
 # ---------------------------------------------------------------- gate 1: tree
 
 gate_clean_tree() {
-  local dirty
-  dirty=$(git status --porcelain 2>/dev/null)
+  local root="$1" label="$2" dirty
+  dirty=$(git -C "$root" status --porcelain 2>/dev/null)
   if [ -z "$dirty" ]; then
-    pass "Clean tree"
+    pass "$label"
     return
   fi
-  fail "Clean tree ($(printf '%s\n' "$dirty" | wc -l | tr -d ' ') uncommitted path(s))"
+  fail "$label ($(printf '%s\n' "$dirty" | wc -l | tr -d ' ') uncommitted path(s))"
   printf '%s\n' "$dirty" | sed 's/^/       /'
 }
 
 # --------------------------------------------------------------- gate 2: tests
 
 gate_tests() {
-  local cmd="$1" out status
+  local root="$1" cmd="$2" out status
   out=$(mktemp "${TMPDIR:-/tmp}/hamilton-precheck-XXXXXX") || die "cannot create a scratch file"
-  bash -c "$cmd" >"$out" 2>&1
+  (cd "$root" && bash -c "$cmd") >"$out" 2>&1
   status=$?
   if [ "$status" -eq 0 ]; then
     pass "Tests ($cmd)"
@@ -445,14 +445,13 @@ EOF
 }
 
 gate_reviews() {
-  local change_dir="$1"
+  local change_dir="$1" root="$2"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
-  local root change_path problems=""
+  local change_path problems=""
   local plans id title state feedback parsed verdict base head blocking implementation standing
 
   [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
 
-  root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || { fail "Reviews (change directory is not in a git repository)"; return; }
   case "$change_dir" in
     "$root"/*) change_path="${change_dir#"$root"/}" ;;
     *) fail "Reviews (change directory is outside the repository)"; return ;;
@@ -524,11 +523,10 @@ EOF
 # ----------------------------------------------------------- gate 5: freshness
 
 gate_review_freshness() {
-  local change_dir="$1" waiver="$2"
-  local review="$change_dir/review.md" root change_path parsed verdict base head blocking standing material
+  local change_dir="$1" waiver="$2" root="$3"
+  local review="$change_dir/review.md" change_path parsed verdict base head blocking standing material
 
   [ -s "$review" ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
-  root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || { fail "Whole-branch review freshness (change directory is not in a git repository)"; return; }
   case "$change_dir" in
     "$root"/*) change_path="${change_dir#"$root"/}" ;;
     *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
@@ -558,7 +556,7 @@ gate_review_freshness() {
 # ----------------------------------------------------------------------- main
 
 main() {
-  local change_dir="" test_cmd="" waiver="no"
+  local change_dir="" test_cmd="" waiver="no" target_root=""
 
   [ $# -gt 0 ] || { usage >&2; exit 2; }
 
@@ -579,16 +577,24 @@ main() {
   [ -n "$change_dir" ] || die "--change-dir is required"
   [ -n "$test_cmd" ] || die "--test-cmd is required (take it from AGENTS.md or plan.md; this script will not guess)"
   [ -d "$change_dir" ] || die "change dir does not exist: $change_dir"
-  git rev-parse --show-toplevel >/dev/null 2>&1 || die "not inside a git repository"
-
   change_dir=$(abs_dir "$change_dir")
+  target_root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || die "change directory is not inside a git repository"
+  target_root=$(abs_dir "$target_root") || die "cannot resolve target repository root"
+  case "$change_dir" in
+    "$target_root"/*) ;;
+    *) die "change directory is outside the target repository" ;;
+  esac
 
-  gate_clean_tree
-  gate_tests "$test_cmd"
+  gate_clean_tree "$target_root" "Clean tree"
+  gate_tests "$target_root" "$test_cmd"
+  gate_clean_tree "$target_root" "Clean tree after verification"
   gate_tasks "$change_dir"
-  gate_reviews "$change_dir"
-  gate_review_freshness "$change_dir" "$waiver"
+  gate_reviews "$change_dir" "$target_root"
+  gate_review_freshness "$change_dir" "$waiver" "$target_root"
 
+  if [ "$FAILURES" -eq 0 ]; then
+    gate_clean_tree "$target_root" "Final clean tree"
+  fi
   if [ "$FAILURES" -eq 0 ]; then
     printf 'gate: open\n'
     return 0

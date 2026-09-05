@@ -203,7 +203,21 @@ describe("hamilton-precondition-check.sh gate 1 — clean tree", () => {
     expect(result.status).toBe(1)
     expect(result.stdout).toContain("[FAIL] Clean tree (1 uncommitted path(s))")
     expect(result.stdout).toContain("?? stray.ts")
-    expect(result.lastLine).toBe("gate: closed (1 failing)")
+    expect(result.lastLine).toBe("gate: closed (2 failing)")
+  })
+
+  it("checks the target repository instead of a clean caller repository", () => {
+    const caller = makeRepo()
+    const target = makeRepo()
+    const dir = seedChange(target)
+    write(target, "dirty.ts", "dirty\n")
+
+    const result = run(SCRIPT, ["--change-dir", dir, "--test-cmd", "true"], caller)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("[FAIL] Clean tree")
+    expect(result.stdout).toContain("?? dirty.ts")
+    expect(result.lastLine).toContain("gate: closed")
   })
 })
 
@@ -221,6 +235,62 @@ describe("hamilton-precondition-check.sh gate 2 — tests", () => {
     expect(result.status).toBe(1)
     expect(result.stdout).toContain("exited 3")
     expect(result.stdout).toContain("boom: 2 failed")
+  })
+
+  it("runs verification from the target repository", () => {
+    const caller = makeRepo()
+    const target = makeRepo()
+    write(target, "target-only.txt", "target\n")
+    commitPaths(target, "add target marker", "target-only.txt")
+    const dir = seedChange(target)
+
+    const result = run(SCRIPT, ["--change-dir", dir, "--test-cmd", "test -f target-only.txt"], caller)
+
+    expect(result.status, result.stdout + result.stderr).toBe(0)
+    expect(result.stdout).toContain("[PASS] Tests (test -f target-only.txt)")
+    expect(result.lastLine).toBe("gate: open")
+    expect(result.lines.filter((line) =>
+      line === "[PASS] Clean tree"
+      || line === "[PASS] Tests (test -f target-only.txt)"
+      || line === "[PASS] Clean tree after verification"
+      || line === "[PASS] Final clean tree"
+      || line === "gate: open"
+    )).toEqual([
+      "[PASS] Clean tree",
+      "[PASS] Tests (test -f target-only.txt)",
+      "[PASS] Clean tree after verification",
+      "[PASS] Final clean tree",
+      "gate: open"
+    ])
+  })
+
+  it("does not borrow a passing verification context from the caller repository", () => {
+    const caller = makeRepo()
+    const target = makeRepo()
+    const dir = seedChange(target)
+    write(caller, "caller-only.txt", "caller\n")
+    commitPaths(caller, "add caller marker", "caller-only.txt")
+
+    const result = run(SCRIPT, ["--change-dir", dir, "--test-cmd", "test -f caller-only.txt"], caller)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("[FAIL] Tests (test -f caller-only.txt exited 1)")
+    expect(result.lastLine).toContain("gate: closed")
+  })
+
+  it("closes the gate when successful verification mutates a tracked target path", () => {
+    const caller = makeRepo()
+    const target = makeRepo()
+    const dir = seedChange(target)
+    const command = "printf mutation >> README.md"
+
+    const result = run(SCRIPT, ["--change-dir", dir, "--test-cmd", command], caller)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain(`[PASS] Tests (${command})`)
+    expect(result.stdout).toContain("[FAIL] Clean tree after verification")
+    expect(result.stdout).toContain(" M README.md")
+    expect(result.lastLine).toContain("gate: closed")
   })
 })
 

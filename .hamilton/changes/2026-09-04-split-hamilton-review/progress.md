@@ -23,7 +23,7 @@
 | Task 19: Scope material exclusions to exact task owners | done | [details](tasks/task-19/progress.md) |
 | Task 20: Bind diff packaging to the change repository | done | [details](tasks/task-20/progress.md) |
 | Task 21: Guard checkpoint creation after durable task evidence | done | [details](tasks/task-21/progress.md) |
-| Task 22: Run finish gates in the target repository | pending | [details](tasks/task-22/progress.md) |
+| Task 22: Run finish gates in the target repository | done | [details](tasks/task-22/progress.md) |
 | Task 23: Require committed finish-gate evidence | pending | [details](tasks/task-23/progress.md) |
 | Task 24: Reject unsupported review generations | pending | [details](tasks/task-24/progress.md) |
 | Task 25: Route unresolved feedback evidence explicitly | pending | [details](tasks/task-25/progress.md) |
