@@ -36,3 +36,6 @@
 | Task 32: Bind whole-review identity to the owning plan | done | [details](tasks/task-32/progress.md) |
 | Task 33: Require actionable changes-requested verdicts | done | [details](tasks/task-33/progress.md) |
 | Task 34: Use exact abandonment syntax in execution skills | done | [details](tasks/task-34/progress.md) |
+| Task 35: Require located actionable Blocking findings | pending | [details](tasks/task-35/progress.md) |
+| Task 36: Report only committed task approval state | pending | [details](tasks/task-36/progress.md) |
+| Task 37: Gate advancement on durable task approval | pending | [details](tasks/task-37/progress.md) |

@@ -10,6 +10,8 @@
 - Quality notes: Tasks 15–31 preserve the completed task definitions while slicing review remediation by parser boundary, gate boundary, producer boundary, template lifecycle, and documentation concern. Shared artifact grammar becomes one installed shell library before consumers tighten verdict semantics; same-file changes carry explicit dependencies; target-repository checks are separated from committed-evidence checks; template creation shapes precede producer consumption; migration, sequence, and catalog corrections remain separate presentation tasks. Real temporary repositories verify executable behavior, while Markdown contract tests assert stable lifecycle boundaries rather than prose snapshots. No structural smell is accepted.
 - Re-plan Pass 2 notes: Whole-branch Review Pass 2 requested three further corrections after Tasks 15–31: bind whole-review owner identity to the owning plan instead of the review file, reject actionless `changes-requested` verdicts, and align plan/code producer instructions with the exact canonical abandonment suffix already enforced by the shared parser. Tasks 1–31 and all existing rows and histories remain frozen. Tasks 32–34 append those corrections without introducing compatibility grammar or weakening any strict split-layout gate.
 - Re-plan Pass 2 quality notes: Task 32 owns external whole-review identity, Task 33 owns verdict consistency in the shared parser, and Task 34 owns producer-contract wording. The two parser tasks are ordered because they share the artifact-contract library and consumer fixtures; the producer-contract task remains independently verifiable. No structural smell is accepted.
+- Re-plan Pass 3 notes: Whole-branch Review Pass 3 requested two further corrections after Tasks 32–34: require every canonical Blocking entry to contain located, actionable finding content instead of accepting placeholders, and require task approval evidence to be durably committed before resume may advance or whole-branch review may begin. Tasks 1–34 and all existing rows and histories remain frozen. Tasks 35–37 append those corrections without adding compatibility syntax or weakening physical-last-pass, freshness, artifact-only ordering, or split-layout gates.
+- Re-plan Pass 3 quality notes: Task 35 owns the shared Blocking-item grammar, Task 36 owns executable committed-evidence classification in change context, and Task 37 owns consumption of that durable approval boundary by orchestration and direct whole-branch review. The parser and context behaviors remain independently testable in temporary repositories; the final task aligns the two stage contracts without duplicating artifact shape. No structural smell is accepted.
 
 ## Tasks
 
@@ -807,12 +809,81 @@
 - Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts && ! rg -n 'begins with the literal|suffix begins with|canonical literal' skills/hamilton-plan/SKILL.md skills/hamilton-code/SKILL.md` → the producer contracts and regression tests enforce only exact canonical abandonment syntax.
 - Commit: `fix(skills): require exact abandonment syntax`
 
+### Task 35: Require located actionable Blocking findings
+
+- Depends on: Task 33
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-35/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Every non-`None.` entry under a canonical `### Blocking` section begins with a location group containing at least one concrete file and location and continues with nonempty corrective prose; bare placeholders such as `- TBD.`, unlocated prose, empty or location-free brackets, a location without an action body, and unexpanded template placeholders make the physical pass malformed (requirements/review.md — Task feedback has task-owned verdict history; Whole-branch review has a change-owned verdict history).
+  - The grammar retains valid single-location and existing multi-location findings, including optional priority text after the location group, while `### Suggestions` retains its existing canonical nonempty-list semantics and may contain ordinary prose without a location.
+  - Change-context and precondition consume the same shared rule for both task feedback and whole-branch review, so neither exposes or routes a placeholder `changes-requested` pass as valid and neither falls back to an earlier pass.
+- Steps:
+  1. Add failing task-feedback and whole-review matrices in both consumer suites for `- TBD.`, ordinary unlocated prose, empty or location-free brackets, location-only entries, and retained template placeholders, plus valid single-location, multi-location, priority-prefixed, and unlocated-Suggestion controls.
+  2. Tighten only the shared verdict parser's Blocking-entry validation so structural location and nonempty action content are mandatory without imposing that rule on Suggestions or adding consumer-specific parsing.
+  3. Run both focused consumer suites, invoke the shared parser against representative valid and invalid passes, and inspect physical-last-pass failure output.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts` → both consumers reject unlocated or non-actionable Blocking entries and preserve canonical located findings and ordinary Suggestions.
+- Commit: `fix(scripts): require located blocking findings`
+
+### Task 36: Report only committed task approval state
+
+- Depends on: Task 23, Task 35
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-36/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Change-context reports a task feedback verdict as durable only when the feedback path exists in current `HEAD`, the worktree bytes equal the committed blob, the index has no divergence for that path, and the latest commit that touched the feedback path is an artifact-only commit containing no other path (requirements/review.md — Task feedback has task-owned verdict history).
+  - A valid approval written but not committed, ignored and recreated after removal from the index, modified after its commit, staged-only, or last committed with another path is reported explicitly as uncommitted rather than `approved (fresh)`; malformed committed history and stale committed history retain their distinct existing states.
+  - A valid artifact-only feedback commit remains fresh after unrelated later commits, preserving the ordinary feedback-before-next-checkpoint sequence without requiring the feedback commit to remain the repository tip.
+- Steps:
+  1. Add failing temporary-repository fixtures for interrupted-before-commit approval, ignored untracked recreation, worktree and staged divergence, a mixed-path feedback commit, a valid artifact-only commit, and unrelated later commits.
+  2. Add an exact target-repository committed-artifact check before task verdict parsing and freshness calculation, and classify non-durable present feedback separately without changing whole-review or task-implementation freshness rules.
+  3. Run the focused context suite and inspect summaries for absent, uncommitted, malformed, stale, and fresh-approved feedback.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts` → only exact artifact-only feedback committed in the change repository can be reported as a fresh approval.
+- Commit: `fix(scripts): require durable task feedback state`
+
+### Task 37: Gate advancement on durable task approval
+
+- Depends on: Task 28, Task 36
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-orchestrate/SKILL.md`
+    - `skills/hamilton-review/SKILL.md`
+    - `tests/skills/orchestrate-contract.test.ts`
+    - `tests/skills/review-contract.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-37/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Orchestration treats a task approval as consumable only when its feedback file is tracked and unchanged at current `HEAD`, its latest touching commit contains only that task's feedback path, and its physical last pass is valid, approved, blocking-free, and fresh; worktree-only or mixed-commit approval routes back to code feedback and cannot authorize the next task checkpoint (requirements/review.md — Orchestration runs both review contracts in order; Task feedback has task-owned verdict history).
+  - The orchestrator rechecks that durable predicate when loading state, immediately after feedback handoff, before selecting the next task, and before entering the whole-branch matrix; transient subagent output or parseable worktree text never substitutes for the artifact-only commit.
+  - Direct `hamilton-review` preflight requires every active task to be `done` with the same exact committed, artifact-only, valid, approved, blocking-free, fresh task feedback before branch inspection or review mutation; interrupted-before-feedback-commit state stops without writing root `review.md` (requirements/review.md — Whole-branch review is a distinct pipeline gate).
+- Steps:
+  1. Add failing orchestration contract assertions for an explicit uncommitted feedback state, repeated durable-evidence checks at every advancement boundary, and prohibition on recording a next checkpoint before the artifact-only commit; add direct-review preflight assertions for interrupted, mixed-commit, stale, unapproved, and durable approved feedback.
+  2. Tighten the task resume matrix, load/confirmation/advancement process, and whole-review generation preflight around one stated durable approval predicate while preserving absent, malformed, stale, `changes-requested`, and unresolved-evidence routing.
+  3. Run both focused skill suites and read the revised resume and preflight sections end to end to confirm that no path consumes uncommitted approval text.
+- Verify: `bun --bun vitest run tests/skills/orchestrate-contract.test.ts tests/skills/review-contract.test.ts` → orchestration and direct whole-branch review require a durable artifact-only task approval before advancement.
+- Commit: `fix(skills): consume only durable task approval`
+
 ## Done when
 
-- All thirty-four active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
+- All thirty-seven active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
 - Every task's physical latest feedback pass is valid, committed, `approved`, free of blocking items, and fresh for that task's latest progress commit.
 - Task 1 and Task 4 feedback is refreshed after their approved forward normalization; Task 4, Task 5, Task 11, and Task 14 feedback histories retain every pass but no installed-template instruction block; every new task feedback commit precedes the next task checkpoint.
 - Root `review.md` has a committed physical latest whole-branch pass that is valid, `approved`, free of blocking findings, and fresh for the latest material change commit.
 - `bun --bun vitest run` passes and `bun run build` succeeds.
-- `git diff --check` is clean; no self-authenticating whole-review identity, actionless `changes-requested` verdict, broad abandonment prefix, generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted verdict acceptance, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
+- `git diff --check` is clean; no self-authenticating whole-review identity, actionless or unlocated `changes-requested` verdict, broad abandonment prefix, generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted task approval consumption, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
 - `hamilton-finish-work` folds `execution`, `review`, `artifact-templates`, and `framework-docs` deltas into canonical specs and records the verified finish strategy in `finish.md`.
