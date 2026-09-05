@@ -1,8 +1,8 @@
 # Code-feedback dispatch template
 
 Use this to dispatch `hamilton-code-feedback` for one exact active task after its root row is
-`done` and its latest feedback is absent, malformed, or stale. The stable task range and task log
-are the complete implementation handoff.
+`done` and its latest feedback is absent, malformed, stale, or awaiting evidence-only re-feedback.
+The stable task range, task log, and optional located evidence are the complete handoff.
 
 Fill every `[BRACKET]`. Choose the model according to the orchestrator's model roles.
 
@@ -37,6 +37,16 @@ Subagent:
 
     [TASK_ACCEPTANCE_AND_CITED_CONSTRAINTS]
 
+    ## Located evidence
+
+    [LOCATED_EVIDENCE_OR_NONE]
+
+    Use `none` for an ordinary feedback pass. A populated value is exact named cross-task evidence
+    supplied by the driver after bounded adjudication of a prior `cannot verify from diff`
+    Blocking item. Treat it only as supplementary evidence for the same supplied `Head`; it does
+    not change the reviewed range or authorize a broader search. Independently judge the item in
+    a new physical pass rather than inheriting the prior verdict.
+
     ## Required outcome
 
     Judge without fixing. Append one complete pass to
@@ -56,3 +66,5 @@ Subagent:
 - `[DIFF_FILE]` is the scratch package produced for Task `[N]`.
 - `[TASK_ACCEPTANCE_AND_CITED_CONSTRAINTS]` is copied verbatim from that task and its cited
   requirements or design sections.
+- `[LOCATED_EVIDENCE_OR_NONE]` is `none` for an ordinary pass or the exact named cross-task
+  evidence that resolves one prior canonical unresolved item for same-Head re-feedback.

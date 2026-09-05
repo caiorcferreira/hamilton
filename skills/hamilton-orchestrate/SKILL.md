@@ -119,7 +119,8 @@ touched that task's progress file.
 | `in-progress` | any | Inspect Task N's git state and task-local log before resuming or resolving it; never select another task. |
 | `done` | absent | Dispatch `hamilton-code-feedback` for the stable Task N range. |
 | `done` | stale or malformed | Dispatch `hamilton-code-feedback` for the stable Task N range. |
-| `done` | fresh `changes-requested` | Dispatch `hamilton-code` with `tasks/task-N/feedback.md`. |
+| `done` | fresh `changes-requested` with no canonical unresolved `cannot verify from diff` Blocking item | Dispatch `hamilton-code` with `tasks/task-N/feedback.md`. |
+| `done` | fresh `changes-requested` with a canonical unresolved `cannot verify from diff` Blocking item | Driver adjudicates the concrete named risk before code or advancement. |
 | `done` | fresh `approved` with no blocking findings | Advance to the next active task or the whole-branch gate. |
 
 A task feedback pass is fresh only when its full Base and Head are valid commits, Base is an
@@ -127,6 +128,10 @@ ancestor of Head, Head is an ancestor of current `HEAD`, and Head contains the l
 touched `tasks/task-N/progress.md`. A later code attempt therefore makes every earlier pass stale,
 including a prior `changes-requested` pass: the corrected task goes to code feedback, not directly
 back to another correction.
+
+An unresolved evidence item is canonical only when a finding under the physical last pass's
+`### Blocking` section contains the exact text `cannot verify from diff`. Other
+`changes-requested` passes are ordinary code findings and return directly to `hamilton-code`.
 
 For `in-progress`, inspect only that task's working tree, commits, checkpoint, and physical latest
 attempt. Determine whether an interrupted implementer is still running, whether its work can be
@@ -194,19 +199,25 @@ current tasks or review merely because conversation history was compacted or los
    printed full Base and Head and scratch package path. Require Base to equal the unchanged task
    checkpoint and Head to contain the latest task progress commit.
 9. **Dispatch `hamilton-code-feedback`.** Fill `references/code-feedback-prompt.md` with the exact
-   task, full Base and Head, diff package, task-local progress path, feedback destination, and
-   verbatim task acceptance and cited constraints. The reviewer judges only that stable task
-   range and persists the supplied range in `tasks/task-N/feedback.md`.
+   task, full Base and Head, diff package, task-local progress path, feedback destination,
+   verbatim task acceptance and cited constraints, and the located-evidence input. Use `none` for
+   an ordinary pass. The reviewer judges only that stable task range and supplied bounded
+   evidence and persists the supplied range in `tasks/task-N/feedback.md`.
 10. **Confirm the feedback artifact-only commit.** Require the feedback subagent to commit only
     `tasks/task-N/feedback.md`, verify the commit's path list, and re-read the physical last pass.
     Complete this check before proceeding to **Select the next active task**. If the commit or
     pass is invalid, stop rather than advancing. Apply the task matrix again: fresh approval may
-    advance, fresh requested changes return to code, and stale feedback returns to feedback.
-11. **Adjudicate a bounded unresolved risk.** When code feedback records `cannot verify from
-    diff`, inspect only its concrete named risk with cross-task context. A confirmed code gap goes
-    back to code. If located evidence resolves the concern without a code change, supply that
-    evidence to a new code-feedback pass against the same Head. Only the new physical pass may
-    approve.
+    advance, an ordinary fresh requested change returns to code, a canonical unresolved item
+    enters bounded adjudication, and stale feedback returns to feedback.
+11. **Adjudicate a bounded unresolved risk.** When a fresh `changes-requested` pass has a finding
+    under `### Blocking` containing the exact text `cannot verify from diff`, inspect only its
+    concrete named risk with cross-task context. For a confirmed code gap, dispatch
+    `hamilton-code` with the feedback path and exact located gap. If located evidence resolves the
+    concern without a code change, preserve the unresolved pass's same Base and Head, populate the
+    dispatch template's located-evidence input with the exact named cross-task evidence, and
+    re-dispatch `hamilton-code-feedback` against that same Base and Head. Do not create a code
+    commit or move the reviewed Head for evidence-only re-feedback. Only a new physical pass that
+    independently resolves the item may approve.
 12. **Enter the whole-branch gate.** When all active tasks are fully gated, apply
     **Whole-branch resume matrix**. For an absent, malformed, or stale pass, run
     `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change`, then fill

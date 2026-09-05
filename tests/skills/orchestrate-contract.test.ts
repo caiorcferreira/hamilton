@@ -40,9 +40,15 @@ describe("hamilton-orchestrate task resume contract", () => {
     )
   })
 
-  it("returns fresh changes-requested feedback to code", () => {
+  it("returns ordinary fresh changes-requested feedback to code", () => {
     expect(matrix).toMatch(
-      /\| `done` \| fresh `changes-requested` \| Dispatch `hamilton-code` with `tasks\/task-N\/feedback\.md`/,
+      /\| `done` \| fresh `changes-requested` with no canonical unresolved `cannot verify from diff` Blocking item \| Dispatch `hamilton-code` with `tasks\/task-N\/feedback\.md`/,
+    )
+  })
+
+  it("adjudicates a canonical unresolved feedback item before routing", () => {
+    expect(matrix).toMatch(
+      /\| `done` \| fresh `changes-requested` with a canonical unresolved `cannot verify from diff` Blocking item \| Driver adjudicates the concrete named risk before code or advancement/,
     )
   })
 
@@ -179,6 +185,27 @@ describe("hamilton-orchestrate prompt scopes", () => {
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/feedback.md")
     expect(codeFeedback).toMatch(/bounded inspection/i)
+  })
+
+  it("supplies optional located evidence for a same-head feedback pass", () => {
+    const process = singleLine(section(skill, "## Process"))
+
+    expect(codeFeedback).toContain("## Located evidence")
+    expect(codeFeedback).toContain("[LOCATED_EVIDENCE_OR_NONE]")
+    expect(codeFeedback).toMatch(/exact named cross-task evidence/i)
+    expect(codeFeedback).toMatch(/same supplied `Head`/i)
+    expect(codeFeedback).toMatch(/new physical pass/i)
+    expect(process).toMatch(
+      /located evidence resolves.*re-dispatch.*same Base and Head.*new physical pass/is,
+    )
+  })
+
+  it("routes a confirmed unresolved gap back to code", () => {
+    const process = singleLine(section(skill, "## Process"))
+
+    expect(process).toMatch(
+      /confirmed code gap.*dispatch `hamilton-code`.*feedback.*located gap/is,
+    )
   })
 
   it("binds whole-branch review to the complete branch and root destination", () => {
