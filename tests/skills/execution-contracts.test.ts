@@ -25,13 +25,20 @@ describe("hamilton-plan execution contract", () => {
     expect(replan).toContain("Renumber nothing")
   })
 
-  it("uses the canonical abandoned marker and preserves abandoned history", () => {
+  it("uses only the exact canonical abandonment suffix and preserves abandoned history", () => {
     const replan = section(skill, "## Re-plan mode")
     const codeInputs = section(readSkill("hamilton-code"), "## Inputs")
 
-    expect(replan).toContain("`### Task N: <title> (abandoned — <reason>)`")
-    expect(replan).toContain("retain its existing task directory and append-only history")
-    expect(codeInputs).toContain("literal `(abandoned`")
+    for (const contract of [replan, codeInputs]) {
+      expect(contract).toContain("`### Task N: <title> (abandoned — <reason>)`")
+      expect(contract).toMatch(/only.*ends with.*complete\s+canonical.*nonempty reason/is)
+      expect(contract).toContain("`(abandoned - reason)`")
+      expect(contract).toContain("`(abandoned — )`")
+      expect(contract).toContain("`(abandoned — reason) trailing`")
+      expect(contract).toMatch(/active or malformed/)
+      expect(contract).not.toMatch(/begins with the literal|suffix begins with|canonical literal/)
+    }
+    expect(replan).toMatch(/retain its existing task directory and append-only\s+history/)
   })
 
   it("rejects planned legacy layouts", () => {

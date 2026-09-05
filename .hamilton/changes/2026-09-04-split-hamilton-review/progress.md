@@ -35,4 +35,4 @@
 | Task 31: Correct artifact lifecycle reference claims | done | [details](tasks/task-31/progress.md) |
 | Task 32: Bind whole-review identity to the owning plan | done | [details](tasks/task-32/progress.md) |
 | Task 33: Require actionable changes-requested verdicts | done | [details](tasks/task-33/progress.md) |
-| Task 34: Use exact abandonment syntax in execution skills | pending | [details](tasks/task-34/progress.md) |
+| Task 34: Use exact abandonment syntax in execution skills | done | [details](tasks/task-34/progress.md) |
