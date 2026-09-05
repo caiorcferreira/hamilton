@@ -1,17 +1,9 @@
 <!--
-  Task Progress — append-only execution history for one plan task.
+  Task Progress — execution history for one plan task.
+  Produced by: hamilton-plan (step 2); updated by hamilton-code (step 3).
   Lives at: .hamilton/changes/<change>/tasks/task-N/progress.md
-  Written by hamilton-code. The root progress.md remains the task status index.
+  The root progress.md remains the task status index.
+  Delete this instruction block and every inline hint before finalizing.
 -->
 
-# Task Progress: Task N — <title>
-
-## Attempt N — <YYYY-MM-DD>
-
-- Outcome: done | blocked
-- Changed:
-  - Created: <paths, or none>
-  - Modified: <paths, or none>
-  - Deleted: <paths, or none>
-- Verified: `<command>` → <result>
-- Notes: <deviations, decisions, anything to flag for feedback>
+# Task Progress: Task N — <title> <!-- hint: replace with the exact plan task id and title -->

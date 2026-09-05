@@ -12,6 +12,26 @@ function readTemplate(name: string): string {
 }
 
 describe("split execution artifact templates", () => {
+  it("gives every lifecycle producer disposable authoring instructions", () => {
+    const lifecycleTemplates = [
+      ["progress.md", "hamilton-plan", ".hamilton/changes/<change>/progress.md"],
+      ["task-progress.md", "hamilton-plan", ".hamilton/changes/<change>/tasks/task-N/progress.md"],
+      ["feedback.md", "hamilton-code-feedback", ".hamilton/changes/<change>/tasks/task-N/feedback.md"],
+      ["review.md", "hamilton-review", ".hamilton/changes/<change>/review.md"],
+      ["finish.md", "hamilton-finish-work", ".hamilton/changes/<change>/finish.md"],
+    ]
+
+    for (const [name, producer, instancePath] of lifecycleTemplates) {
+      const template = readTemplate(name)
+      const instructions = template.match(/^<!--([\s\S]*?)-->/)?.[1]
+
+      expect(instructions).toBeDefined()
+      expect(instructions).toContain(`Produced by: ${producer}`)
+      expect(instructions).toContain(`Lives at: ${instancePath}`)
+      expect(instructions).toMatch(/Delete this instruction block and every inline hint before finalizing\./)
+    }
+  })
+
   it("defines the root task index", () => {
     const template = readTemplate("progress.md")
 
@@ -24,9 +44,9 @@ describe("split execution artifact templates", () => {
     const template = readTemplate("task-progress.md")
 
     expect(template).toContain("# Task Progress: Task N — <title>")
-    expect(template).toContain("## Attempt N — <YYYY-MM-DD>")
-    expect(template).toContain("- Outcome: done | blocked")
-    expect(template).toContain("- Verified: `<command>` → <result>")
+    expect(template).not.toContain("## Attempt N — <YYYY-MM-DD>")
+    expect(template).not.toContain("- Outcome: done | blocked")
+    expect(template).not.toContain("- Verified: `<command>` → <result>")
   })
 
   it("defines the task-local feedback artifact", () => {
@@ -50,12 +70,12 @@ describe("split execution artifact templates", () => {
     expect(template).not.toContain("<scope reviewed>")
   })
 
-  it("defines paired finish attempts and outcomes", () => {
+  it("defines finish history at first-attempt creation", () => {
     const template = readTemplate("finish.md")
 
     expect(template).toContain("## Attempt N — <YYYY-MM-DD>")
-    expect(template).toContain("## Outcome N — <YYYY-MM-DD>")
-    expect(template).toContain("- Result: completed | blocked")
+    expect(template).not.toContain("## Outcome N — <YYYY-MM-DD>")
+    expect(template).not.toContain("- Result: completed | blocked")
   })
 
   it("documents the split artifact owners and instance paths", () => {
