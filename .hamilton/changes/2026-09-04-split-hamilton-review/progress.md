@@ -39,4 +39,4 @@
 | Task 35: Require located actionable Blocking findings | done | [details](tasks/task-35/progress.md) |
 | Task 36: Report only committed task approval state | done | [details](tasks/task-36/progress.md) |
 | Task 37: Gate advancement on durable task approval | done | [details](tasks/task-37/progress.md) |
-| Task 38: Distinguish template placeholders from concrete literals | pending | [details](tasks/task-38/progress.md) |
+| Task 38: Distinguish template placeholders from concrete literals | done | [details](tasks/task-38/progress.md) |

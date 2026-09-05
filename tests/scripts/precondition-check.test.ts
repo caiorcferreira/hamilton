@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
 import * as Path from "node:path"
-import { run, git, makeRepo, makeChangeDir, cleanupRepos, write, commitAll, commitPaths } from "./helpers.js"
+import { run, git, makeRepo, makeChangeDir, cleanupRepos, write, commitAll, commitPaths, SCRIPTS_DIR } from "./helpers.js"
 
 const SCRIPT = "hamilton-precondition-check.sh"
 const CHANGE_PATH = ".hamilton/changes/add-auth"
+const CURRENT_REVIEW_PATH = Path.resolve(SCRIPTS_DIR, "../../.hamilton/changes/2026-09-04-split-hamilton-review/review.md")
 
 afterEach(cleanupRepos)
 
@@ -91,12 +92,33 @@ const BLOCKING_ENTRY_CASES = [
   ["empty brackets", "- [] Fix the auth flow.", false],
   ["location-free brackets", "- [src/auth.ts] Fix the auth flow.", false],
   ["a location without an action", "- [src/auth.ts:1]", false],
-  ["a retained location placeholder", "- [<file>:<loc>] Fix the auth flow.", false],
-  ["a retained action placeholder", "- [src/auth.ts:1] <what is wrong> — <what to change>", false],
+  ["a retained file placeholder", "- [<file>:1] Fix the auth flow.", false],
+  ["a retained location placeholder", "- [src/auth.ts:<loc>] Fix the auth flow.", false],
+  ["a retained problem placeholder", "- [src/auth.ts:1] <what is wrong> — Fix the auth flow.", false],
+  ["a retained correction placeholder", "- [src/auth.ts:1] Auth is broken — <what to change>", false],
+  ["a retained criterion placeholder", "- [src/auth.ts:1] Fix the auth flow. (violates: <criterion / standard>)", false],
+  ["a retained improvement placeholder", "- [src/auth.ts:1] <optional improvement>", false],
+  ["a concrete title literal", "- [src/auth.ts:1] Preserve the documented `<title>` token.", true],
+  ["a concrete date literal", "- [src/auth.ts:1] Preserve the documented `<date>` token.", true],
+  ["a concrete reason literal", "- [src/auth.ts:1] Preserve the documented `<reason>` token.", true],
   ["a single concrete location", "- [src/auth.ts:1] Fix the auth flow.", true],
   ["multiple concrete locations", "- [`src/auth.ts:1`; `src/router.ts:2`] Fix the auth flow.", true],
   ["a priority-prefixed action", "- [src/auth.ts:1] [P1] Fix the auth flow.", true]
 ] as const
+
+function currentReviewHistory(passOneOnly: boolean): string {
+  const content = Fs.readFileSync(CURRENT_REVIEW_PATH, "utf8")
+  if (!passOneOnly) return content
+  const passTwo = content.indexOf("\n## Pass 2")
+  return passTwo === -1 ? content : content.slice(0, passTwo).trimEnd() + "\n"
+}
+
+function fixtureReviewHistory(content: string, base: string, head: string): string {
+  return content
+    .replace(/^# Whole-branch Review:.*$/m, "# Whole-branch Review: add auth")
+    .replace(/^Base: .*$/gm, `Base: ${base}`)
+    .replace(/^Head: .*$/gm, `Head: ${head}`)
+}
 
 interface Artifacts {
   plan?: string
@@ -687,6 +709,32 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
         : "whole-branch(review malformed)")
     })
   }
+
+  it.each([
+    ["preserved Pass 1", true],
+    ["current multi-pass history", false]
+  ])("parses the %s review fixture as canonical history", (_case, passOneOnly) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const base = initialCommit(repo)
+    const head = taskCommit(repo, 2)
+    const history = currentReviewHistory(passOneOnly)
+    const verdicts = [...history.matchAll(/^Verdict: (approved|changes-requested)$/gm)]
+    const latestVerdict = verdicts.at(-1)?.[1]
+    record(
+      repo,
+      `${CHANGE_PATH}/review.md`,
+      fixtureReviewHistory(history, base, head),
+      "record historical whole-branch review"
+    )
+
+    const result = check(repo, dir)
+
+    expect(latestVerdict).toBeDefined()
+    expect(result.status).toBe(latestVerdict === "approved" ? 0 : 1)
+    expect(result.stdout).toContain(latestVerdict === "approved" ? "[PASS] Reviews" : "latest verdict: changes-requested")
+    expect(result.stdout).not.toContain("review malformed")
+  })
 
   for (const owner of ["task feedback", "whole-branch review"] as const) {
     it.each(BLOCKING_ENTRY_CASES)(`validates changes-requested ${owner} with %s`, (_case, blocking, valid) => {

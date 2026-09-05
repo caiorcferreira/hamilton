@@ -144,13 +144,21 @@ hamilton_latest_verdict_pass() {
       sub(/[ \t]+$/, "", value)
       return value
     }
+    function has_verdict_template_field(value) {
+      return index(value, "<file>") ||
+        index(value, "<loc>") ||
+        index(value, "<what is wrong>") ||
+        index(value, "<what to change>") ||
+        index(value, "<criterion / standard>") ||
+        index(value, "<optional improvement>")
+    }
     function valid_blocking_finding(value,    closing, locations, action, count, parts, item, separator, file, location, marker, file_marker, location_marker) {
       if (substr(value, 1, 1) != "[") return 0
       closing = index(value, "]")
       if (!closing) return 0
       locations = substr(value, 2, closing - 2)
       action = trim(substr(value, closing + 1))
-      if (locations ~ /[<>]/ || action ~ /<[^>]+>/) return 0
+      if (locations ~ /[<>]/ || has_verdict_template_field(action)) return 0
       if (action ~ /^\[P[0-9][0-9]*\]([ \t]+|$)/) {
         sub(/^\[P[0-9][0-9]*\][ \t]*/, "", action)
         action = trim(action)
