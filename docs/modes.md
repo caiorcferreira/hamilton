@@ -44,8 +44,16 @@ The code and skills live in:
   `hamilton setup`.
 - `bundle/guidelines/` — coding guidelines, installed to `~/.hamilton/guidelines/` by
   `hamilton setup`.
-- `bundle/scripts/` — the helper scripts the skills call, installed executable to
-  `~/.hamilton/scripts/` by `hamilton setup`. Every skill that calls one also states the manual
-  recipe, so the pipeline still runs without them.
+- `bundle/scripts/` — the helper entry points and shared artifact-contract library, installed
+  executable to `~/.hamilton/scripts/` by `hamilton setup`. The split workflow requires them for
+  stable checkpoints, diff packaging, change context, and finish gates except where an individual
+  skill supplies a complete explicit fallback.
 - a project's `.hamilton/` — per-project specs and change artifacts, created by the `hamilton-init`
   skill.
+
+Upgrade the Assisted bundle only between changes. Finish an active old-format change with the
+generation that created it, update the CLI bundle and agent-loaded skills from one release, run
+`hamilton setup`, verify the installed split templates, all six script files, and the seven-step
+skill catalog, then start the next change. See
+[Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow) for the exact
+checks. There is no blanket manual fallback for a missing required helper.

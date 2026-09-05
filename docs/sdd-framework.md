@@ -210,17 +210,42 @@ each stage has one durable owner.
 
 ## Upgrading to the split workflow
 
-Treat this artifact split as a clean break between changes. Before starting a new change, update
-the Hamilton skills, templates, and helper scripts as one compatible set. New work uses the full
-seven-step pipeline, root `progress.md` only as the task index and ledger,
+Treat this artifact split as a clean break between changes. Finish every active old-format change
+with the Hamilton generation that created it. Only then, between changes:
+
+1. Update the Hamilton CLI and bundle, and update the skills loaded by your agent from the same
+   release or checkout.
+2. Run `hamilton setup` even when the release installer already ran it. This copies that bundle's
+   templates, guidelines, helper entry points, and shared helper library into `~/.hamilton/`.
+3. Verify the setup output lists the split templates and all six script files, then run these checks
+   against the installed generation:
+
+   ```bash
+   test -f ~/.hamilton/templates/task-progress.md
+   test -f ~/.hamilton/templates/feedback.md
+   test -f ~/.hamilton/templates/review.md
+   test -f ~/.hamilton/templates/finish.md
+   for helper in hamilton-artifact-contracts.sh hamilton-change-context.sh \
+     hamilton-diff-package.sh hamilton-isolate.sh hamilton-precondition-check.sh \
+     hamilton-prototype-branch.sh; do
+     test -x ~/.hamilton/scripts/$helper || exit 1
+   done
+   ```
+
+   Reload the coding-agent session and confirm it exposes `hamilton-code-feedback` as step 4 and
+   `hamilton-review` as the whole-branch-only step 5. A missing file, failed executable check, or
+   older skill definition means the generation is not installed; stop before planning.
+4. Start the next change with the verified generation.
+
+New work uses the full seven-step pipeline, root `progress.md` only as the task index and ledger,
 `tasks/task-N/progress.md` and `tasks/task-N/feedback.md` for task histories, root `review.md` for
 the whole-branch gate, and root `finish.md` for finish history. Replace task-scoped
 `hamilton-review` invocations with `hamilton-code-feedback`.
 
 Legacy planned changes that mix task verdicts into root `review.md` or detailed attempts into root
 `progress.md` are `legacy-unsupported` under the new execution and finish contracts. They are not
-converted, resumed, or accepted by the new workflow. Finish an active legacy change with the
-Hamilton version that created it; do not switch formats in the middle of that change.
+converted, resumed, or accepted by the new workflow. Do not switch formats or replace only the
+skills, templates, or helpers in the middle of a change.
 `hamilton-change-context.sh --all` may inventory such planned changes as `legacy-unsupported`, but
 it declines to parse or infer their task or review state.
 
@@ -255,9 +280,10 @@ Four locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
   to `~/.hamilton/templates/` by `hamilton setup`.
-- `bundle/scripts/` — the optional helper scripts the skills call for their mechanical steps,
-  installed to `~/.hamilton/scripts/` by the same command. Every call site carries the manual
-  recipe too, so the framework does not depend on them.
+- `bundle/scripts/` — the helper entry points and their shared artifact-contract library, installed
+  executable to `~/.hamilton/scripts/` by the same command. The split workflow requires this set for
+  stable checkpoints, diff packaging, change context, and finish gates. A call site may use an
+  explicit complete fallback where its skill defines one, but no blanket fallback covers the set.
 - `skills/hamilton-*/` — the seven core pipeline skills and their optional companion skills, each a
   self-contained `SKILL.md`.
 - a project's `.hamilton/` — the per-project specs and change artifacts, created by

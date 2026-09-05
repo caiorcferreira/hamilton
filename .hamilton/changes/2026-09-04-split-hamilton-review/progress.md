@@ -30,6 +30,6 @@
 | Task 26: Model lifecycle creation state in templates | done | [details](tasks/task-26/progress.md) |
 | Task 27: Instantiate installed artifact templates in producers | done | [details](tasks/task-27/progress.md) |
 | Task 28: Protect verdict bookkeeping commits before commit | done | [details](tasks/task-28/progress.md) |
-| Task 29: Document the atomic installed-generation upgrade | pending | [details](tasks/task-29/progress.md) |
+| Task 29: Document the atomic installed-generation upgrade | done | [details](tasks/task-29/progress.md) |
 | Task 30: Correct pipeline stage ordering | pending | [details](tasks/task-30/progress.md) |
 | Task 31: Correct artifact lifecycle reference claims | pending | [details](tasks/task-31/progress.md) |

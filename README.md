@@ -60,15 +60,16 @@ init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-fee
                                      repeat per task              once per change
 ```
 
-Each step is a self-contained `SKILL.md` that names no tool and depends on no engine internals — only
-on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton installs at
-`~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
+Each step is a self-contained `SKILL.md` that names no engine internals. It depends on the project's
+standards (`AGENTS.md`), the artifact templates and helper scripts Hamilton installs under
+`~/.hamilton/` with `hamilton setup`, and the per-change artifacts under the project's own
 `.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
 heavyweight front door (`propose`) is optional; a tactical change starts at `plan`.
 
-Several steps also call a helper script from `~/.hamilton/scripts/` — creating a worktree, building a
-diff package, running the finish-work gate. Those are accelerators, not dependencies: every reference
-carries the manual recipe alongside it, so a skill still runs end to end without `hamilton setup`.
+The split workflow requires its installed helpers for stable checkpoints, diff packaging, change
+context, and finish gates. Individual isolation call sites retain the explicit manual procedure they
+document, but there is no blanket manual substitute for the helper set. Install templates and
+helpers from the same Hamilton generation as the skills before starting a change.
 
 ### Artifacts
 
@@ -96,10 +97,13 @@ The skills produce durable, per-project artifacts under `.hamilton/`:
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
 `specs/`, the project's always-current requirements truth.
 
-When upgrading to this split workflow, update the Hamilton skills, templates, and helper scripts as
-one compatible set between changes. See the
+When upgrading to this split workflow, first finish any active old-format change with the Hamilton
+generation that created it. Between changes, update the CLI bundle and agent-loaded skills from one
+Hamilton release, run `hamilton setup`, verify the installed split templates and all helper scripts,
+then start the next change. See the
 **[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
-before continuing an active change created with an older artifact format.
+for the exact procedure. Never replace one part of the installed generation while a change is
+active.
 
 ## Requirements
 

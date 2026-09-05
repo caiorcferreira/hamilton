@@ -41,7 +41,8 @@ proposal, requirement, and design artifacts when present and otherwise works fro
 
 Assisted mode needs two things in place:
 
-1. **Artifact templates and helper scripts**, installed once with the CLI:
+1. **Artifact templates and helper scripts**, installed for the current Hamilton generation with
+   the CLI:
 
    ```bash
    bun run install-local     # build + symlink the `hamilton` CLI
@@ -49,7 +50,8 @@ Assisted mode needs two things in place:
    ```
 
    The skills read the installed templates from `~/.hamilton/templates/<name>.md`, and call the
-   helper scripts at `~/.hamilton/scripts/<name>.sh` (see [Helper scripts](#helper-scripts)).
+   required helper scripts at `~/.hamilton/scripts/<name>.sh` (see
+   [Helper scripts](#helper-scripts)).
 
 2. **The skills available to your coding agent.** The pipeline skills live in `skills/hamilton-*/`.
    Make them discoverable to your agent — for Claude Code, copy or symlink the `skills/hamilton-*`
@@ -59,6 +61,11 @@ Assisted mode needs two things in place:
 
 Then, once per project, run the `hamilton-init` skill (below) to scaffold `.hamilton/` and write
 `AGENTS.md`.
+
+Treat the CLI bundle and agent-loaded skills as one installed generation. Finish an active change
+before updating either side, update both from the same release, run `hamilton setup`, and verify the
+installed generation before starting new work. The complete commands and checks are in
+[Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow).
 
 ## The skills
 
@@ -297,23 +304,25 @@ in their separate owner artifact rather than being mixed into progress.
 
 ## Helper scripts
 
-`hamilton setup` installs five scripts to `~/.hamilton/scripts/`, executable, from the repository's
-`bundle/scripts/`. They exist to make the pipeline's *mechanical* steps deterministic — the recipes
-an agent would otherwise re-derive from prose on every run, and occasionally get wrong.
+`hamilton setup` installs six files to `~/.hamilton/scripts/`, executable, from the repository's
+`bundle/scripts/`. Five are entry-point helpers; one is their shared artifact-contract library.
+They make the pipeline's mechanical steps deterministic and fail closed when required state cannot
+be established.
 
-| Script | Does | Called by |
+| Script | Does | Consumers |
 |--------|------|-----------|
+| `hamilton-artifact-contracts.sh` | Provide the exact active-task and verdict-history parsers shared by other helpers | sourced by `diff-package`, `change-context`, and `precondition-check` |
 | `hamilton-isolate.sh` | Check whether the workspace is isolated (`--check`), create a worktree + branch (`<title>`), or confirm the `cd` landed (`--verify <title>`) | `propose`, `plan`, `code`, `orchestrate`, `finish-work` |
 | `hamilton-diff-package.sh` | Record one task's stable checkpoint (`--record --task N`), package that task range (`--task N`), or package `merge-base(default)..HEAD` (`--whole-change`) | `code`, `orchestrate` |
 | `hamilton-precondition-check.sh` | Run the five finish-work gates — clean tree, tests, tasks done, reviews approved, whole-change review not stale — in one call | `finish-work` |
-| `hamilton-change-context.sh` | Summarise a change directory: artifact inventory, root task standings, task-feedback freshness, and whole-review freshness (`--all` for one line per change) | `plan`, `code`, `review`, `critique`, `orchestrate`, `finish-work` |
+| `hamilton-change-context.sh` | Summarise a change directory: artifact inventory, root task standings, task-feedback freshness, and whole-review freshness (`--all` for one line per change) | `plan`, `critique`, `orchestrate`, `finish-work` |
 | `hamilton-prototype-branch.sh` | Create/resume `prototype/<map-name>/<ticket-name>` from the current branch (`<map> <ticket>`, `--standalone <slug>`) or confirm the checkout landed (`--verify <branch>`) | `wayfinder-prototype` |
 
-Three properties hold across all five:
+Three properties hold across the entry-point helpers:
 
-- **Optional.** Every skill that calls a script also states the manual recipe beside it, so a skill
-  runs end to end when `hamilton setup` has not been run. The scripts speed the pipeline up; they are
-  not a dependency of it.
+- **Required and generation-matched.** Checkpoint, packaging, context, and finish contracts depend
+  on these installed files. Run `hamilton setup` after updating the CLI bundle, and stop at the
+  between-changes boundary if a required helper or its shared library is missing or stale.
 - **Plain text out, result last.** Each prints human-readable lines and puts the load-bearing value —
   the verdict, the path, the range — on the **last** line, so a caller reads `tail -1`. Exit codes
   carry the same answer: `0` yes/success, `1` no/failed, `2` usage or environment error.
