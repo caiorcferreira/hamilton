@@ -157,7 +157,8 @@ hamilton_latest_verdict_pass() {
       if (blocking + blocking_none < 1 || suggestions + suggestions_none < 1) invalid = 1
       if (blocking_none && (blocking != 0 || blocking_none != 1)) invalid = 1
       if (suggestions_none && (suggestions != 0 || suggestions_none != 1)) invalid = 1
-      if (verdict == "approved" && blocking != 0) invalid = 1
+      if (verdict == "approved" && (blocking != 0 || blocking_none != 1)) invalid = 1
+      if (verdict == "changes-requested" && (blocking < 1 || blocking_none != 0)) invalid = 1
       latest_verdict = verdict
       latest_base = base
       latest_head = head

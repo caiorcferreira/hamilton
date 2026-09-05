@@ -203,7 +203,7 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     const repo = makeRepo()
     const { dir, base, head } = seedCommittedSplit(repo)
     write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head))
-    write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head, "changes-requested"))
+    write(repo, ".hamilton/changes/add-auth/tasks/task-2/feedback.md", feedback(2, "Wire it into the router", base, head, "changes-requested", "- [src/router.ts:1] Fix the router wiring."))
     write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
 
     const result = run(SCRIPT, [dir], repo)
@@ -275,6 +275,31 @@ describe("hamilton-change-context.sh <change-dir>", () => {
       expect(result.stdout).toContain(owner === "task feedback"
         ? "Task 1: done, feedback: malformed"
         : "whole change: malformed")
+    })
+  }
+
+  for (const owner of ["task feedback", "whole-branch review"] as const) {
+    it.each([
+      ["a None-only Blocking section", "- None.", "malformed"],
+      ["an empty Blocking section", "", "malformed"],
+      ["a canonical blocking finding", "- [src/auth.ts:1] Fix the auth flow.", "changes-requested (fresh)"]
+    ])(`reports changes-requested ${owner} with %s`, (_case, blocking, expected) => {
+      const repo = makeRepo()
+      const { dir, base, head } = seedCommittedSplit(repo)
+      const content = owner === "task feedback"
+        ? feedback(1, "Add the auth | session", base, head, "changes-requested", blocking)
+        : review(base, head, "changes-requested", blocking)
+      const path = owner === "task feedback"
+        ? ".hamilton/changes/add-auth/tasks/task-1/feedback.md"
+        : ".hamilton/changes/add-auth/review.md"
+      write(repo, path, content)
+
+      const result = run(SCRIPT, [dir], repo)
+
+      expect(result.status, result.stderr).toBe(0)
+      expect(result.stdout).toContain(owner === "task feedback"
+        ? `Task 1: done, feedback: ${expected}`
+        : `whole change: ${expected}`)
     })
   }
 

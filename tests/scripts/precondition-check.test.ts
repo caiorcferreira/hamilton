@@ -673,6 +673,35 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
     })
   }
 
+  for (const owner of ["task feedback", "whole-branch review"] as const) {
+    it.each([
+      ["a None-only Blocking section", "- None.", true],
+      ["an empty Blocking section", "", true],
+      ["a canonical blocking finding", "- [src/auth.ts:1] Fix the auth flow.", false]
+    ])(`handles changes-requested ${owner} with %s`, (_case, blocking, malformed) => {
+      const repo = makeRepo()
+      const dir = seedChange(repo)
+      const path = owner === "task feedback"
+        ? `${CHANGE_PATH}/tasks/task-1/feedback.md`
+        : `${CHANGE_PATH}/review.md`
+      const content = Fs.readFileSync(Path.join(repo, path), "utf8")
+        .replace("Verdict: approved", "Verdict: changes-requested")
+        .replace("### Blocking\n\n- None.", `### Blocking\n\n${blocking}`)
+      record(repo, path, content, `record ${owner} changes request`)
+
+      const result = check(repo, dir)
+
+      expect(result.status).toBe(1)
+      expect(result.stdout).toContain(owner === "task feedback" ? "Task 1" : "whole-branch")
+      if (malformed) {
+        expect(result.stdout).toContain(owner === "task feedback" ? "feedback malformed" : "review malformed")
+      } else {
+        expect(result.stdout).toContain("latest verdict: changes-requested")
+        expect(result.stdout).not.toContain(owner === "task feedback" ? "feedback malformed" : "review malformed")
+      }
+    })
+  }
+
   it.each([
     ["copied owner", "# Whole-branch Review: another change"],
     ["decorated owner", "# Whole-branch Review: add auth #"]
