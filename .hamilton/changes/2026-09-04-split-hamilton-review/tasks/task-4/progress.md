@@ -1,12 +1,12 @@
 # Task Progress: Task 4 — Scope diff checkpoints to individual tasks
 
-## Task 4: Scope diff checkpoints to individual tasks — 2026-09-04
+## Attempt 1 — 2026-09-04
 - Outcome: done
 - Changed: modified `bundle/scripts/hamilton-diff-package.sh`, `tests/scripts/diff-package.test.ts`, `progress.md`
 - Verified: `bun --bun vitest run tests/scripts/diff-package.test.ts` → 18 tests passed; `bun run test` → 164 tests passed; `bun run build` → passed
 - Notes: Task checkpoints are recorded once at `tasks/task-N/.base`; explicit-base and whole-change packaging remain covered.
 
-## Task 4: Scope diff checkpoints to individual tasks — 2026-09-04
+## Attempt 2 — 2026-09-04
 - Outcome: done
 - Changed: modified `bundle/scripts/hamilton-diff-package.sh`, `tests/scripts/diff-package.test.ts`, `progress.md`
 - Verified: `bun --bun vitest run tests/scripts/diff-package.test.ts` → 20 tests passed; `bun run test` → 166 tests passed; `bun run build` → passed
