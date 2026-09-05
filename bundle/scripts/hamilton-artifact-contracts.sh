@@ -78,6 +78,49 @@ EOF
   printf '%s\n' "$title"
 }
 
+hamilton_plan_title() {
+  awk '
+    {
+      remaining = $0
+      visible = ""
+      while (length(remaining) > 0) {
+        if (in_comment) {
+          marker = index(remaining, "-->")
+          if (!marker) {
+            remaining = ""
+          } else {
+            remaining = substr(remaining, marker + 3)
+            in_comment = 0
+          }
+        } else {
+          marker = index(remaining, "<!--")
+          if (!marker) {
+            visible = visible remaining
+            remaining = ""
+          } else {
+            visible = visible substr(remaining, 1, marker - 1)
+            remaining = substr(remaining, marker + 4)
+            in_comment = 1
+          }
+        }
+      }
+      sub(/\r$/, "", visible)
+      if (visible !~ /^#[ \t]/) next
+      headings++
+      if (visible !~ /^# Plan: [^ \t]/ || visible ~ /[ \t]$/ || visible ~ /[ \t]#+$/) {
+        invalid = 1
+        next
+      }
+      title = visible
+      sub(/^# Plan: /, "", title)
+    }
+    END {
+      if (in_comment || invalid || headings != 1 || title == "") exit 1
+      print title
+    }
+  ' "$1"
+}
+
 hamilton_latest_verdict_pass() {
   local file="$1" expected_heading="$2"
   awk -v expected_heading="$expected_heading" '

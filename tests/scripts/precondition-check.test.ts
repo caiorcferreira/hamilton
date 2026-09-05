@@ -673,6 +673,38 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
     })
   }
 
+  it.each([
+    ["copied owner", "# Whole-branch Review: another change"],
+    ["decorated owner", "# Whole-branch Review: add auth #"]
+  ])("fails a whole-branch review with a %s heading", (_case, heading) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const path = `${CHANGE_PATH}/review.md`
+    const content = Fs.readFileSync(Path.join(repo, path), "utf8")
+      .replace("# Whole-branch Review: add auth", heading)
+    record(repo, path, content, "record mismatched whole-branch owner")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("whole-branch(review malformed)")
+  })
+
+  it.each([
+    ["missing", PLAN.replace("# Plan: add auth\n", "")],
+    ["duplicate", `${PLAN}\n# Plan: another change\n`],
+    ["decorated", PLAN.replace("# Plan: add auth", "# Plan: add auth #")],
+    ["wrong owner type", PLAN.replace("# Plan: add auth", "# Proposal: add auth")]
+  ])("fails whole-branch ownership for a %s plan H1", (_case, plan) => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { plan })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain("whole-branch(review malformed)")
+  })
+
   it("accepts resolved cannot verify from diff prose in Suggestions", () => {
     const repo = makeRepo()
     const dir = seedChange(repo)

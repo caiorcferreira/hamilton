@@ -462,9 +462,10 @@ task_feedback_state() {
 }
 
 whole_review_state() {
-  local root="$1" change_path="$2" file="$3" parsed verdict base head blocking material standing
+  local root="$1" change_path="$2" file="$3" plan_title parsed verdict base head blocking material standing
   [ -s "$file" ] || { printf 'not reviewed\n'; return; }
-  parsed=$(hamilton_latest_verdict_pass "$file" "Whole-branch Review: $(first_header "$file" | sed 's/^Whole-branch Review: //')") || { printf 'malformed\n'; return; }
+  plan_title=$(hamilton_plan_title "$root/$change_path/plan.md") || { printf 'malformed\n'; return; }
+  parsed=$(hamilton_latest_verdict_pass "$file" "Whole-branch Review: $plan_title") || { printf 'malformed\n'; return; }
   IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   material=$(latest_material_commit "$root" "$change_path")
   standing=$(review_standing "$root" "$base" "$head" "$material")

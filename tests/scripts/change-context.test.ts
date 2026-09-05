@@ -214,6 +214,37 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.stdout).toContain("whole change: approved (fresh)")
   })
 
+  it.each([
+    ["copied owner", "# Whole-branch Review: another change"],
+    ["decorated owner", "# Whole-branch Review: add auth #"]
+  ])("reports malformed whole-branch review for a %s heading", (_case, heading) => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head).replace("# Whole-branch Review: add auth", heading))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: malformed")
+  })
+
+  it.each([
+    ["missing", PLAN.replace("# Plan: add auth\n", "")],
+    ["duplicate", `${PLAN}\n# Plan: another change\n`],
+    ["decorated", PLAN.replace("# Plan: add auth", "# Plan: add auth #")],
+    ["wrong owner type", PLAN.replace("# Plan: add auth", "# Proposal: add auth")]
+  ])("reports malformed whole-branch review for a %s plan H1", (_case, plan) => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/plan.md", plan)
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: malformed")
+  })
+
   it("reports absent task feedback and whole-branch review", () => {
     const repo = makeRepo()
     const { dir } = seedCommittedSplit(repo)

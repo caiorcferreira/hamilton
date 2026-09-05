@@ -401,18 +401,9 @@ EOF
 # ------------------------------------------------------------- gate 4: reviews
 
 whole_review_pass() {
-  local file="$1" heading
-  heading=$(strip_comments "$file" | awk '
-    /^#[ \t]+Whole-branch Review:[ \t]+[^ \t]/ {
-      line = $0
-      sub(/^#[ \t]+/, "", line)
-      sub(/\r$/, "", line)
-      print line
-      exit
-    }
-  ')
-  [ -n "$heading" ] || return 1
-  hamilton_latest_verdict_pass "$file" "$heading"
+  local file="$1" plan="$2" title
+  title=$(hamilton_plan_title "$plan") || return 1
+  hamilton_latest_verdict_pass "$file" "Whole-branch Review: $title"
 }
 
 full_commit() {
@@ -531,7 +522,7 @@ $plans
 EOF
   fi
 
-  parsed=$(whole_review_pass "$review") || {
+  parsed=$(whole_review_pass "$review" "$plan") || {
     problems="${problems}${problems:+; }whole-branch(review malformed)"
     parsed=""
   }
@@ -570,7 +561,7 @@ gate_review_freshness() {
     "$root"/*) change_path="${change_dir#"$root"/}" ;;
     *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
   esac
-  parsed=$(whole_review_pass "$review") || { fail "Whole-branch review freshness (review malformed)"; return; }
+  parsed=$(whole_review_pass "$review" "$plan") || { fail "Whole-branch review freshness (review malformed)"; return; }
   IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   standing=$(review_range_standing "$root" "$base" "$head" "")
   case "$standing" in
