@@ -106,6 +106,25 @@ git history, invalid ancestry, or evidence that cannot distinguish the original 
 commit is not recoverable automatically. Never record current `HEAD` when historical evidence
 exists, and never continue code with an unresolved checkpoint.
 
+## Durable task approval
+
+An approval is consumable only when every part of this predicate succeeds for the exact
+`tasks/task-N/feedback.md` path:
+
+- the feedback path is tracked at current `HEAD`: `git ls-files --error-unmatch` succeeds for the
+  exact path and the path exists in the `HEAD` tree;
+- the feedback path is unchanged from current `HEAD`: `git diff --quiet HEAD --` succeeds for the
+  exact path, covering both staged and unstaged worktree state;
+- the latest commit that touched the feedback path is artifact-only, and the commit's path list
+  contains only `tasks/task-N/feedback.md`;
+- the physical last pass has exact task identity and valid pass shape, says `approved`, contains no
+  blocking findings, and is fresh by the task range rules below.
+
+Evaluate this predicate from repository state, never from subagent output. Any failed condition,
+including a worktree-only approval, an untracked file, or a mixed latest feedback-touching commit,
+requires the driver to dispatch `hamilton-code-feedback` for the same task; it never authorizes a
+later task checkpoint or whole-branch review.
+
 ## Task resume matrix
 
 Apply this matrix to the earliest active task that is not fully gated. `Feedback state` means the
@@ -118,10 +137,12 @@ touched that task's progress file.
 | `blocked` | any | Dispatch `hamilton-code` for Task N with the recorded blocker and newly available resolution. |
 | `in-progress` | any | Inspect Task N's git state and task-local log before resuming or resolving it; never select another task. |
 | `done` | absent | Dispatch `hamilton-code-feedback` for the stable Task N range. |
+| `done` | feedback untracked or changed from `HEAD` | Dispatch `hamilton-code-feedback` for the stable Task N range. |
+| `done` | latest feedback-touching commit is mixed | Dispatch `hamilton-code-feedback` for the stable Task N range. |
 | `done` | stale or malformed | Dispatch `hamilton-code-feedback` for the stable Task N range. |
 | `done` | fresh `changes-requested` with no canonical unresolved `cannot verify from diff` Blocking item | Dispatch `hamilton-code` with `tasks/task-N/feedback.md`. |
 | `done` | fresh `changes-requested` with a canonical unresolved `cannot verify from diff` Blocking item | Driver adjudicates the concrete named risk before code or advancement. |
-| `done` | fresh `approved` with no blocking findings | Advance to the next active task or the whole-branch gate. |
+| `done` | durable, fresh `approved` with no blocking findings | Advance to the next active task or the whole-branch gate. |
 
 A task feedback pass is fresh only when its full Base and Head are valid commits, Base is an
 ancestor of Head, Head is an ancestor of current `HEAD`, and Head contains the latest commit that
@@ -172,7 +193,8 @@ current tasks or review merely because conversation history was compacted or los
    task identity and shared constraints and root `progress.md` for current status. Validate the
    split layout. Read detailed task evidence only for the task currently being diagnosed,
    implemented, or reviewed. Determine verdicts from the physically last pass and validate their
-   Base and Head rather than trusting a summary.
+   Base and Head rather than trusting a summary. At load, evaluate **Durable task approval** for
+   every apparent approval before marking any task fully gated.
 3. **Mirror the plan in the todo tool.** Create one visible entry per active task, in plan order,
    plus one trailing whole-branch review entry. Reflect root status and fresh approval, but never
    use the todo tool as a resume source.
@@ -181,7 +203,9 @@ current tasks or review merely because conversation history was compacted or los
    user adjudication. If the scan is clean, continue without pausing.
 5. **Select the current task.** Apply **Task resume matrix** to active tasks in plan order. Mark
    only its todo entry active. A fully gated task stays complete; a root `done` row alone does not
-   authorize advancement.
+   authorize advancement. Before selecting a later task and recording its checkpoint, re-evaluate
+   **Durable task approval** for the immediately preceding task. On failure, route that task to
+   `hamilton-code-feedback` and do not record the next task checkpoint.
 6. **Resolve and validate the task checkpoint before code.** Apply **Checkpoint establishment and
    recovery**. A genuine pending first attempt with no implementation evidence may run
    `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>`.
@@ -205,10 +229,11 @@ current tasks or review merely because conversation history was compacted or los
    evidence and persists the supplied range in `tasks/task-N/feedback.md`.
 10. **Confirm the feedback artifact-only commit.** Require the feedback subagent to commit only
     `tasks/task-N/feedback.md`, verify the commit's path list, and re-read the physical last pass.
-    Complete this check before proceeding to **Select the next active task**. If the commit or
-    pass is invalid, stop rather than advancing. Apply the task matrix again: fresh approval may
-    advance, an ordinary fresh requested change returns to code, a canonical unresolved item
-    enters bounded adjudication, and stale feedback returns to feedback.
+    Re-evaluate **Durable task approval** immediately after the feedback handoff and complete this
+    check before proceeding to **Select the next active task**. If the predicate fails, route the
+    task back to `hamilton-code-feedback` rather than advancing. Apply the task matrix again: a
+    durable fresh approval may advance, an ordinary fresh requested change returns to code, a
+    canonical unresolved item enters bounded adjudication, and stale feedback returns to feedback.
 11. **Adjudicate a bounded unresolved risk.** When a fresh `changes-requested` pass has a finding
     under `### Blocking` containing the exact text `cannot verify from diff`, inspect only its
     concrete named risk with cross-task context. For a confirmed code gap, dispatch
@@ -218,8 +243,11 @@ current tasks or review merely because conversation history was compacted or los
     re-dispatch `hamilton-code-feedback` against that same Base and Head. Do not create a code
     commit or move the reviewed Head for evidence-only re-feedback. Only a new physical pass that
     independently resolves the item may approve.
-12. **Enter the whole-branch gate.** When all active tasks are fully gated, apply
-    **Whole-branch resume matrix**. For an absent, malformed, or stale pass, run
+12. **Enter the whole-branch gate.** Before entering the whole-branch gate, re-evaluate
+    **Durable task approval** for every active task. Any failed predicate routes that task to
+    `hamilton-code-feedback` and prohibits whole-branch packaging. Only when all active tasks are
+    fully gated may the driver apply **Whole-branch resume matrix**. For an absent, malformed, or
+    stale pass, run
     `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change`, then fill
     `references/whole-branch-review-prompt.md` with the actual merge base, current Head, complete
     package, approved change intent, root ledger, and linked task evidence.
@@ -232,6 +260,9 @@ current tasks or review merely because conversation history was compacted or los
 15. **Hand off after fresh approval.** When the physical last whole-branch pass is valid, fresh,
     `approved`, and has no blocking findings, confirm the worktree and change directory are clean
     and hand off to `hamilton-finish-work`. Do not merge or open a pull request here.
+
+Transient subagent output or parseable worktree text never substitutes for committed evidence and
+never authorizes the driver to advance.
 
 ## Whole-branch findings
 

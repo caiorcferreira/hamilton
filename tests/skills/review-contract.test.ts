@@ -46,6 +46,30 @@ describe("hamilton-review contract", () => {
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Review artifact"))
   })
 
+  it("requires durable task approval before direct whole-branch review", () => {
+    const preflight = section(readReview(), "## Generation preflight")
+
+    expect(preflight).toMatch(/every active task.*status `done`/is)
+    expect(preflight).toMatch(/feedback.*tracked at current `HEAD`/is)
+    expect(preflight).toMatch(/feedback.*unchanged from current `HEAD`/is)
+    expect(preflight).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
+    expect(preflight).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
+    expect(preflight).toMatch(
+      /physical last pass.*valid.*`approved`.*no blocking findings.*fresh/is,
+    )
+  })
+
+  it("fails closed for interrupted, mixed, stale, and unapproved feedback", () => {
+    const preflight = section(readReview(), "## Generation preflight")
+
+    expect(preflight).toMatch(/worktree-only.*interrupted-before-feedback-commit/is)
+    expect(preflight).toMatch(/mixed feedback commit/is)
+    expect(preflight).toMatch(/stale.*feedback/is)
+    expect(preflight).toMatch(/`changes-requested`.*feedback/is)
+    expect(preflight).toMatch(/stop without.*(?:create|append|change|write).*review\.md/is)
+    expect(preflight).toMatch(/only.*durable approved.*continue.*branch inspection/is)
+  })
+
   it("rejects an arbitrary ancestor or task checkpoint as the whole-branch base", () => {
     const inputs = section(readReview(), "## Inputs")
     const wrongScope = section(readReview(), "## Wrong scope")

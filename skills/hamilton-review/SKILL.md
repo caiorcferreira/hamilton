@@ -62,12 +62,32 @@ the complete Hamilton generation and run `hamilton setup` between changes. Never
 reconstruct, or partially scaffold that layout, and never create, append, change, or write review
 when this gate fails.
 
-After the split scaffold passes, require every active task's `feedback.md` before declaring the
-change review-ready. Missing task feedback is a valid lifecycle state rather than a legacy format,
-but final review stops without writing `review.md` until every active task has complete task-local
-implementation and feedback evidence. An absent root `review.md` is also a valid creation-time
-state; the first successful whole-branch pass creates it. Only after this preflight succeeds may
-the whole-branch scope and range checks below run.
+After the split scaffold passes, require every active task's `feedback.md` as review-ready evidence,
+require every active task to have root status `done`, and require durable approved feedback. For
+each exact `tasks/task-N/feedback.md` path, require all of the following from repository state:
+
+- the feedback path is tracked at current `HEAD`, with
+  `git ls-files --error-unmatch -- <feedback-path>` succeeding and the path present in the `HEAD`
+  tree;
+- the feedback path is unchanged from current `HEAD`, with
+  `git diff --quiet HEAD -- <feedback-path>` succeeding across staged and unstaged state;
+- the latest commit that touched the feedback path is artifact-only, and the commit's path list
+  contains only `tasks/task-N/feedback.md`;
+- the physical last pass has valid identity, numbering, shape, verdict, findings, and range, says
+  `approved`, has no blocking findings, and is fresh for the latest commit that touched that task's
+  progress file.
+
+Missing feedback is a valid lifecycle state rather than a legacy format. A worktree-only approval
+is interrupted-before-feedback-commit state. An untracked or modified feedback path fails this
+preflight. A mixed feedback commit also fails. Stale or malformed feedback and
+`changes-requested` feedback also fail it. Stop without creating, appending, changing, or writing
+`review.md`; direct the caller back to `hamilton-code-feedback` for the affected task. Only durable
+approved feedback for every active task may continue to branch inspection, range validation, or
+review mutation.
+
+An absent root `review.md` is also a valid creation-time state; the first successful whole-branch
+pass creates it. Only after this preflight succeeds may the whole-branch scope and range checks
+below run.
 
 ## Wrong scope
 

@@ -54,7 +54,16 @@ describe("hamilton-orchestrate task resume contract", () => {
 
   it("advances only after fresh task approval", () => {
     expect(matrix).toMatch(
-      /\| `done` \| fresh `approved` with no blocking findings \| Advance to the next active task or the whole-branch gate/,
+      /\| `done` \| durable, fresh `approved` with no blocking findings \| Advance to the next active task or the whole-branch gate/,
+    )
+  })
+
+  it("routes worktree-only and mixed-commit approvals back to feedback", () => {
+    expect(matrix).toMatch(
+      /\| `done` \| feedback untracked or changed from `HEAD` \| Dispatch `hamilton-code-feedback`/,
+    )
+    expect(matrix).toMatch(
+      /\| `done` \| latest feedback-touching commit is mixed \| Dispatch `hamilton-code-feedback`/,
     )
   })
 })
@@ -160,6 +169,33 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(process).toMatch(
       /Confirm the feedback artifact-only commit.*only `tasks\/task-N\/feedback\.md`.*before.*Select the next active task/is,
     )
+  })
+
+  it("defines one exact durable task approval predicate", () => {
+    const approval = singleLine(section(skill, "## Durable task approval"))
+
+    expect(approval).toMatch(/tracked at current `HEAD`.*`git ls-files --error-unmatch`/is)
+    expect(approval).toMatch(/unchanged from current `HEAD`.*`git diff --quiet HEAD --`/is)
+    expect(approval).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
+    expect(approval).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
+    expect(approval).toMatch(
+      /physical last pass.*valid.*`approved`.*no blocking findings.*fresh/is,
+    )
+    expect(approval).toMatch(/any failed condition.*dispatch `hamilton-code-feedback`/is)
+  })
+
+  it("rechecks durable approval at every advancement boundary", () => {
+    expect(process).toMatch(/Load durable state.*evaluate.*durable task approval/is)
+    expect(process).toMatch(
+      /Confirm the feedback artifact-only commit.*re-evaluate.*durable task approval/is,
+    )
+    expect(process).toMatch(
+      /before.*recording.*next task checkpoint.*re-evaluate.*durable task approval/is,
+    )
+    expect(process).toMatch(
+      /before.*whole-branch gate.*re-evaluate.*durable task approval.*every active task/is,
+    )
+    expect(process).toMatch(/never.*transient.*subagent output.*worktree text.*advance/is)
   })
 })
 
