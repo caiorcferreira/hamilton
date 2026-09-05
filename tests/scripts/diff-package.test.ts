@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest"
 import * as Fs from "node:fs"
+import * as Os from "node:os"
 import * as Path from "node:path"
 import { run, git, makeRepo, makeChangeDir, cleanupRepos, write, commitAll, field } from "./helpers.js"
 
@@ -176,6 +177,64 @@ describe("hamilton-diff-package.sh --record", () => {
 })
 
 describe("hamilton-diff-package.sh package mode", () => {
+  it("binds record and package operations to the change repository", () => {
+    const callerRepo = makeRepo()
+    const changeRepo = makeRepo()
+    const changeDir = makeChangeDir(changeRepo, "add-auth")
+    prepareTask(changeRepo, changeDir, 2)
+    const base = git(changeRepo, "rev-parse", "HEAD")
+    const callerExclude = Fs.readFileSync(Path.join(callerRepo, ".git", "info", "exclude"), "utf-8")
+
+    const recorded = record(changeDir, 2, callerRepo)
+    write(changeRepo, "src/auth.ts", "export const auth = true\n")
+    const head = commitAll(changeRepo, "add auth")
+    write(callerRepo, "src/caller.ts", "export const caller = true\n")
+    commitAll(callerRepo, "change caller")
+    const taskOut = Path.join(changeRepo, "task.diff")
+    const explicitOut = Path.join(changeRepo, "explicit.diff")
+
+    const task = run(SCRIPT, ["--task", "2", "--change-dir", changeDir, "--out", "task.diff"], callerRepo)
+    const explicit = run(SCRIPT, ["--base", base, "--change-dir", changeDir, "--out", "explicit.diff"], callerRepo)
+
+    expect(recorded.status).toBe(0)
+    expect(field(recorded, "base")).toBe(base)
+    expect(task.status).toBe(0)
+    expect(explicit.status).toBe(0)
+    expect(field(task, "range")).toBe(`${base}..${head}`)
+    expect(field(explicit, "range")).toBe(`${base}..${head}`)
+    expect(Fs.readFileSync(taskOut, "utf-8")).toContain("export const auth = true")
+    expect(Fs.readFileSync(explicitOut, "utf-8")).toContain("export const auth = true")
+    expect(Fs.readFileSync(taskOut, "utf-8")).not.toContain("export const caller = true")
+    expect(Fs.readFileSync(Path.join(callerRepo, ".git", "info", "exclude"), "utf-8")).toBe(callerExclude)
+    expect(Fs.readFileSync(Path.join(changeRepo, ".git", "info", "exclude"), "utf-8")).toContain(
+      ".hamilton/changes/add-auth/tasks/task-2/.base"
+    )
+    expect(git(callerRepo, "status", "--porcelain")).toBe("")
+    discard(taskOut)
+    discard(explicitOut)
+  })
+
+  it("rejects a change directory outside a Git repository before writing", () => {
+    const callerRepo = makeRepo()
+    const outside = Fs.mkdtempSync(Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nonrepo-"))
+    const changeDir = Path.join(outside, ".hamilton", "changes", "add-auth")
+    Fs.mkdirSync(changeDir, { recursive: true })
+    Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: Test task\n")
+
+    try {
+      const recorded = record(changeDir, 2, callerRepo)
+      const packaged = run(SCRIPT, ["--base", "HEAD", "--change-dir", changeDir], callerRepo)
+
+      expect(recorded.status).toBe(2)
+      expect(packaged.status).toBe(2)
+      expect(recorded.stderr).toContain("not inside a git repository")
+      expect(packaged.stderr).toContain("not inside a git repository")
+      expect(Fs.existsSync(basePath(changeDir, 2))).toBe(false)
+    } finally {
+      Fs.rmSync(outside, { recursive: true, force: true })
+    }
+  })
+
   it("refuses to guess a task BASE when none was recorded", () => {
     const repo = makeRepo()
     const changeDir = makeChangeDir(repo, "add-auth")

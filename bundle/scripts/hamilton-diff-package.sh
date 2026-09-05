@@ -27,8 +27,15 @@ abs_dir() {
 }
 
 repo_root() {
-  git rev-parse --show-toplevel >/dev/null 2>&1 || die "not inside a git repository"
-  abs_dir "$(git rev-parse --show-toplevel)"
+  local root
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git repository"
+  abs_dir "$root"
+}
+
+repo_root_for_change() {
+  local change_dir="$1" root
+  root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || die "change dir is not inside a git repository: $change_dir"
+  abs_dir "$root"
 }
 
 discover_change_dir() {
@@ -61,21 +68,21 @@ resolve_change_dir() {
 }
 
 default_ref() {
-  local ref candidate
-  ref=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)
+  local root="$1" ref candidate
+  ref=$(git -C "$root" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)
   if [ -n "$ref" ]; then
     ref="origin/${ref#refs/remotes/origin/}"
-    if git rev-parse --verify --quiet "$ref" >/dev/null 2>&1; then
+    if git -C "$root" rev-parse --verify --quiet "$ref" >/dev/null 2>&1; then
       printf '%s\n' "$ref"
       return 0
     fi
   fi
   for candidate in main master; do
-    if git rev-parse --verify --quiet "origin/$candidate" >/dev/null 2>&1; then
+    if git -C "$root" rev-parse --verify --quiet "origin/$candidate" >/dev/null 2>&1; then
       printf 'origin/%s\n' "$candidate"
       return 0
     fi
-    if git show-ref --verify --quiet "refs/heads/$candidate"; then
+    if git -C "$root" show-ref --verify --quiet "refs/heads/$candidate"; then
       printf '%s\n' "$candidate"
       return 0
     fi
@@ -84,11 +91,14 @@ default_ref() {
 }
 
 ensure_base_ignored() {
-  local base_file="$1" root rel exclude_file
-  root=$(repo_root)
+  local base_file="$1" root="$2" rel common_dir exclude_file
   rel="${base_file#"$root"/}"
-  git check-ignore -q "$base_file" 2>/dev/null && return 0
-  exclude_file="$(git rev-parse --git-common-dir)/info/exclude"
+  git -C "$root" check-ignore -q -- "$base_file" 2>/dev/null && return 0
+  common_dir=$(git -C "$root" rev-parse --git-common-dir) || die "cannot resolve Git common directory"
+  case "$common_dir" in
+    /*) exclude_file="$common_dir/info/exclude" ;;
+    *) exclude_file="$root/$common_dir/info/exclude" ;;
+  esac
   mkdir -p "$(dirname "$exclude_file")" || die "cannot create $(dirname "$exclude_file")"
   if [ -f "$exclude_file" ] && grep -qxF "$rel" "$exclude_file"; then
     return 0
@@ -117,13 +127,13 @@ task_base_file() {
 }
 
 read_task_checkpoint() {
-  local base_file="$1" checkpoint canonical
+  local base_file="$1" root="$2" checkpoint canonical
   checkpoint=$(<"$base_file")
   if [[ ! "$checkpoint" =~ ^[0-9a-f]+$ ]]; then
     printf 'error: task checkpoint %s must contain exactly one full commit ID\n' "$base_file" >&2
     return 2
   fi
-  canonical=$(git rev-parse --verify --quiet "$checkpoint^{commit}" 2>/dev/null) || {
+  canonical=$(git -C "$root" rev-parse --verify --quiet "$checkpoint^{commit}" 2>/dev/null) || {
     printf 'error: task checkpoint %s must contain exactly one full commit ID\n' "$base_file" >&2
     return 2
   }
@@ -135,45 +145,49 @@ read_task_checkpoint() {
 }
 
 write_package() {
-  local base="$1" head="$2" label="$3" out="$4"
+  local root="$1" base="$2" head="$3" label="$4" out="$5"
   if [ -z "$out" ]; then
     out=$(mktemp "${TMPDIR:-/tmp}/hamilton-diff-${label}-XXXXXX") || die "cannot create a scratch file"
+  elif [[ "$out" != /* ]]; then
+    out="$root/$out"
   fi
   {
     printf '# Hamilton diff package\n'
     printf '# range: %s..%s\n' "$base" "$head"
     printf '\n## git diff --stat %s..%s\n\n' "$base" "$head"
-    git diff --stat "$base..$head"
+    git -C "$root" diff --stat "$base..$head"
     printf '\n## git diff -U10 %s..%s\n\n' "$base" "$head"
-    git diff -U10 "$base..$head"
+    git -C "$root" diff -U10 "$base..$head"
   } >"$out" || die "cannot write $out"
   printf 'range: %s..%s\n' "$base" "$head"
-  printf 'files-changed: %s\n' "$(git diff --name-only "$base..$head" | wc -l | tr -d ' ')"
+  printf 'files-changed: %s\n' "$(git -C "$root" diff --name-only "$base..$head" | wc -l | tr -d ' ')"
   printf '%s\n' "$out"
 }
 
 cmd_record() {
-  local change_dir="$1" task="$2" resolved base_file base
+  local change_dir="$1" task="$2" resolved root base_file base
   resolved=$(resolve_change_dir "$change_dir") || exit $?
+  root=$(repo_root_for_change "$resolved") || exit $?
   validate_task "$resolved" "$task"
   base_file=$(task_base_file "$resolved" "$task")
   mkdir -p "$(dirname "$base_file")" || die "cannot create $(dirname "$base_file")"
   if [ -f "$base_file" ]; then
-    base=$(read_task_checkpoint "$base_file") || return $?
+    base=$(read_task_checkpoint "$base_file" "$root") || return $?
   else
-    base=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
+    base=$(git -C "$root" rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
     printf '%s\n' "$base" >"$base_file" || die "cannot write $base_file"
   fi
-  ensure_base_ignored "$base_file"
+  ensure_base_ignored "$base_file" "$root"
   printf 'base: %s\n' "$base"
   printf '%s\n' "$base_file"
 }
 
 cmd_package() {
   local base="$1" change_dir="$2" task="$3" out="$4"
-  local resolved base_file head label recorded="no"
+  local resolved root base_file head label recorded="no"
   if [ -z "$base" ]; then
     resolved=$(resolve_change_dir "$change_dir") || exit $?
+    root=$(repo_root_for_change "$resolved") || exit $?
     validate_task "$resolved" "$task"
     base_file=$(task_base_file "$resolved" "$task")
     if [ ! -f "$base_file" ]; then
@@ -184,35 +198,44 @@ cmd_package() {
       printf 'error: %s is empty — re-run --record\n' "$base_file" >&2
       return 1
     }
-    base=$(read_task_checkpoint "$base_file") || return $?
+    base=$(read_task_checkpoint "$base_file" "$root") || return $?
     label="task-$task"
     recorded="yes"
   else
+    if [ -n "$change_dir" ]; then
+      resolved=$(resolve_change_dir "$change_dir") || exit $?
+      root=$(repo_root_for_change "$resolved") || exit $?
+    elif resolved=$(discover_change_dir); then
+      root=$(repo_root_for_change "$resolved") || exit $?
+    else
+      root=$(repo_root) || exit $?
+    fi
     label="explicit-base"
   fi
-  git rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1 || die "BASE is not a commit in this repository: $base"
-  head=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
-  if [ "$recorded" = "yes" ] && ! git merge-base --is-ancestor "$base" "$head"; then
+  git -C "$root" rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1 || die "BASE is not a commit in this repository: $base"
+  head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
+  if [ "$recorded" = "yes" ] && ! git -C "$root" merge-base --is-ancestor "$base" "$head"; then
     die "BASE is not an ancestor of HEAD: $base"
   fi
-  if [ "$(git rev-parse "$base^{commit}")" = "$head" ]; then
+  if [ "$(git -C "$root" rev-parse "$base^{commit}")" = "$head" ]; then
     printf 'error: BASE equals HEAD (%s) — nothing has been committed since --record\n' "$base" >&2
     return 1
   fi
-  write_package "$base" "$head" "$label" "$out"
+  write_package "$root" "$base" "$head" "$label" "$out"
 }
 
 cmd_whole_change() {
-  local out="$1" ref base head
-  ref=$(default_ref) || die "cannot determine the default branch (no origin/HEAD, main, or master)"
-  base=$(git merge-base "$ref" HEAD 2>/dev/null) || die "cannot compute merge-base against $ref"
-  head=$(git rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
+  local out="$1" root ref base head
+  root=$(repo_root) || exit $?
+  ref=$(default_ref "$root") || die "cannot determine the default branch (no origin/HEAD, main, or master)"
+  base=$(git -C "$root" merge-base "$ref" HEAD 2>/dev/null) || die "cannot compute merge-base against $ref"
+  head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
   if [ "$base" = "$head" ]; then
     printf 'error: HEAD is at the merge-base with %s — this branch has no commits to review\n' "$ref" >&2
     return 1
   fi
   printf 'default-branch: %s\n' "$ref"
-  write_package "$base" "$head" "whole-change" "$out"
+  write_package "$root" "$base" "$head" "whole-change" "$out"
 }
 
 main() {
@@ -238,7 +261,6 @@ main() {
       *) die "unknown argument: $1" ;;
     esac
   done
-  repo_root >/dev/null
   case "$mode" in
     record)
       [ -z "$base" ] || die "--base is meaningless with --record"
