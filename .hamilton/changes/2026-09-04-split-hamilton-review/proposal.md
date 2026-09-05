@@ -16,6 +16,8 @@ The shared `review.md` artifact compounds the ambiguity by interleaving task ver
 
 Task execution history has the same ownership problem. Root `progress.md` currently accumulates every task attempt and may also receive review and finish summaries. Every task implementation edits one shared, ever-growing file; resuming orchestration requires parsing that mixed timeline; and a task-scoped agent receives a change-level artifact containing sibling history it does not need. A root ledger should answer which tasks are pending, in progress, blocked, or done, while each task owns its detailed execution record and non-task stages own their own histories.
 
+This change necessarily began self-hosting before the split pipeline it defines could produce all of its own evidence. Tasks 1–13 received task feedback after later task implementation had advanced, and Task 1 and Task 4 recorded attempts with the pre-contract task-titled heading rather than the canonical numbered attempt heading. Rewriting existing commits to manufacture the eventual pipeline order would destroy honest branch history; keeping a generic legacy parser would turn a bootstrap condition into product compatibility.
+
 ## Goals & Success Criteria
 
 - Promote `hamilton-code-feedback` to core pipeline step 4, make `hamilton-review` the whole-branch-only step 5, and renumber `hamilton-finish-work` to step 6 across every maintained pipeline contract and user-facing diagram.
@@ -35,12 +37,13 @@ Task execution history has the same ownership problem. Root `progress.md` curren
 - Update `hamilton-orchestrate` to use separate dispatch prompts and skills for the per-task feedback loop and the final whole-branch gate.
 - Add automated contract and fixture coverage proving pipeline scopes, artifact paths, task-status transitions, re-plan reconciliation, resume behavior, verdict outcomes, orchestration order, setup installation, and finish-gate behavior.
 - Publish migration guidance that tells users to update the Hamilton skill, template, and helper set between changes, replace task-scoped `hamilton-review` calls with `hamilton-code-feedback`, and begin new changes with the split task directory and progress-ledger layout.
+- Resolve this change's two already-incurred self-hosting deviations without rewriting git history: accept the backfilled Task 1–13 feedback chronology and permit remediation to normalize only the pre-contract Task 1 and Task 4 attempt headings into canonical numbered syntax.
 
 ## Non-Goals
 
 - Do not support legacy change directories that mix task and whole-change sections in `review.md` or append detailed attempts into root `progress.md`; users adopt the new skill set between changes rather than during one.
 - Do not interpret an inventory label for a completed old-format change as compatibility: the new context view may identify it as `legacy-unsupported`, but no new skill parses its state, resumes it, migrates it, or passes it through finish.
-- Do not automatically migrate historical or active change artifacts, and do not edit historical `.hamilton/changes/` directories to match the new layout.
+- Do not automatically migrate historical or active change artifacts, and do not edit historical `.hamilton/changes/` directories to match the new layout. The exact Task 1 and Task 4 heading repair approved below is forward remediation of this active change, not a migration workflow.
 - Do not treat the stale project-local `.hamilton/templates/` directory as historical change evidence or preserve it as a compatibility source.
 - Do not retain a task-diff compatibility mode inside `hamilton-review`, add aliases, or silently infer the intended scope.
 - Do not change the verdict vocabulary from `approved` and `changes-requested` or weaken any finish precondition.
@@ -48,6 +51,15 @@ Task execution history has the same ownership problem. Root `progress.md` curren
 - Do not require `hamilton-review` to rerun the full test suite or build; focused checks remain available when broad inspection raises a concrete doubt, and `hamilton-finish-work` owns the mandatory full verification.
 - Do not put review verdicts, finish outcomes, changed-file lists, verification output, notes, or attempt history into the root task index.
 - Do not introduce a shared cross-skill review engine, generated skill variants, runtime service, dependency, configuration flag, task database, or CLI command.
+- Do not generalize this change's bootstrap disposition into product compatibility, a change-slug special case, or an alternative parser grammar. Every future planned change—and every new remediation task created after this approval—uses the strict split layout, canonical `## Attempt N — <date>` syntax, and an artifact-only task-feedback commit before the next task checkpoint.
+
+## Approved Self-Hosting Bootstrap Exception
+
+For `.hamilton/changes/2026-09-04-split-hamilton-review/` only, approval accepts exactly two historical deviations caused by implementing the pipeline that would otherwise have produced its evidence. First, the existing feedback artifacts for Tasks 1–13 may remain committed after later task implementation rather than before the next task checkpoint. Second, remediation may normalize the existing Task 1 and Task 4 progress attempt headings to canonical `## Attempt N — <date>` syntax in physical order while preserving every date, evidence body, and attempt order.
+
+Both dispositions are forward-only and non-destructive: existing commits are not rewritten, reordered, squashed, or recreated, and any normalization lands as a new remediation commit so the original representation remains available in git history.
+
+The exception approves no legacy input grammar and requires no runtime branch for this change. Strict split parsing, canonical attempt syntax, and feedback-before-next-checkpoint sequencing remain normative for all future planned changes and for all new work after this approval. The exception resolves only the feedback-chronology finding without code or artifact repair; the legacy-parser finding remains blocking until remediation removes the fallback and normalizes the two exact progress files. The other 17 blocking findings in whole-branch review Pass 1 remain fully in force, as do every review, freshness, cleanliness, verification, and finish gate.
 
 ## Proposed Change
 

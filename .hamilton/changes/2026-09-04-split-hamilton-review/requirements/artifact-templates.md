@@ -6,7 +6,7 @@ Every artifact shape Hamilton produces is defined once in the bundled templates 
 
 ### Requirement: Task execution details have an installed template and nested instance path
 
-The bundled templates tree SHALL contain `task-progress.md`, and `hamilton setup` SHALL install it as `~/.hamilton/templates/task-progress.md` and report the relative name `task-progress.md`. `hamilton-plan` SHALL initialize each instance at `.hamilton/changes/<change>/tasks/task-N/progress.md`, where `task-N` is the lowercase hyphenated encoding of the exact plan identifier `Task N`. The artifact SHALL identify that task in a `# Task Progress: Task N — <title>` heading and provide an append-only shape for dated implementation attempts with `done` or `blocked` outcome, changed paths, verification evidence, and notes.
+The bundled templates tree SHALL contain `task-progress.md`, and `hamilton setup` SHALL install it as `~/.hamilton/templates/task-progress.md` and report the relative name `task-progress.md`. `hamilton-plan` SHALL initialize each instance at `.hamilton/changes/<change>/tasks/task-N/progress.md`, where `task-N` is the lowercase hyphenated encoding of the exact plan identifier `Task N`. The artifact SHALL identify that task in a `# Task Progress: Task N — <title>` heading and provide append-only dated implementation attempts headed exactly `## Attempt N — <date>`, where `N` starts at 1 and increases by one in physical order. Each attempt SHALL carry a `done` or `blocked` outcome, changed paths, verification evidence, and notes. No task-titled or otherwise alternate attempt heading SHALL be part of the accepted shape.
 
 - Priority: must
 - Rationale: task-local execution evidence needs a different shape from the root current-state index even though both instances are named `progress.md` in their owning directories.
@@ -25,6 +25,15 @@ The bundled templates tree SHALL contain `task-progress.md`, and `hamilton setup
 
 - WHEN a later code attempt completes for the same task
 - THEN the new dated attempt is appended to that task's existing `progress.md` and earlier attempts remain unchanged
+
+#### Scenario: A task progress file uses an alternate attempt heading
+
+- WHEN an attempt is headed with `## Task N: <title> — <date>` or any form other than canonical `## Attempt N — <date>`
+- THEN split-layout consumers treat the task progress file as malformed rather than interpreting the alternate form
+
+#### Approved bootstrap disposition for this change
+
+The Task 1 and Task 4 progress files already present under `.hamilton/changes/2026-09-04-split-hamilton-review/` predate this exact syntax. Remediation for this change MAY replace only their pre-contract attempt headings with canonical, contiguously numbered `## Attempt N — <date>` headings in physical order and SHALL preserve each date, evidence body, and attempt order. The normalization SHALL land in a new remediation commit and SHALL NOT rewrite existing commits. This permission applies only to those two live artifacts and adds no accepted legacy syntax for any producer, parser, fixture, or other change.
 
 ### Requirement: Task feedback has its own installed template and nested instance path
 

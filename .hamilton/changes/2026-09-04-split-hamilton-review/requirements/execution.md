@@ -60,6 +60,10 @@ Each `<change-dir>/tasks/task-N/progress.md` SHALL identify exactly one plan tas
 - WHEN `hamilton-code-feedback` reviews Task 5
 - THEN it reads `tasks/task-5/progress.md` as the implementer's detailed evidence and does not load sibling task progress files
 
+#### Approved bootstrap disposition for this change
+
+For `.hamilton/changes/2026-09-04-split-hamilton-review/` only, remediation MAY replace the pre-contract attempt headings in the already-recorded Task 1 and Task 4 histories with canonical numbers in physical order. It SHALL preserve all dates, evidence bodies, and ordering and SHALL land as a new commit without rewriting existing commits. The ordinary task-feedback freshness rule applies to that commit. After normalization, append-only ownership and the exact canonical task-progress contract govern those files; no consumer SHALL retain or add a legacy-heading fallback.
+
 ### Requirement: Code owns task status transitions and synchronized final evidence
 
 Every `hamilton-code` invocation SHALL identify exactly one existing active `Task N`, including when the task block is supplied inline, so the task's root row and directory can be resolved without title inference. At the start of the invocation, the code step SHALL update only its assigned task's root row to `in-progress` before executing implementation steps. On a completed attempt, it SHALL append the detailed attempt to that task's progress file and update the same root row to `done` or `blocked` to match the attempt outcome. A correction or retry MAY transition an existing `blocked` or `done` row back to `in-progress`; `done` SHALL mean the latest implementation attempt completed, not that task feedback is approved. The root-row final transition and task-progress append SHALL be committed with the task's code when an implementation commit exists. A gracefully reported blocked attempt with no valid implementation commit SHALL persist its root and task-progress changes in a change-artifact-only bookkeeping commit while leaving partial production edits uncommitted and explicitly reported. No coder SHALL mutate a sibling task row or progress file.
@@ -263,6 +267,11 @@ The new execution, re-plan, feedback, review, and finish contracts SHALL require
 
 - WHEN re-plan, code, feedback, review, or finish is invoked on a planned change without the required new task ledger and nested artifacts
 - THEN it stops with the between-changes migration boundary instead of reconstructing or creating partial new state
+
+#### Scenario: A split task log presents pre-contract attempt syntax
+
+- WHEN any task progress file still presents `## Task N: <title> — <date>` or another noncanonical attempt heading
+- THEN execution, context, review, and finish treat it as malformed and do not interpret it; the one-time normalization of this change's exact Task 1 and Task 4 files creates no parser exception
 
 #### Scenario: Direct context targets an old-format change
 

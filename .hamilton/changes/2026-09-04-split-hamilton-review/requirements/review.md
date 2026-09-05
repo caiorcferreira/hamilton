@@ -70,6 +70,12 @@ Each `hamilton-code-feedback` pass SHALL append one dated section to `<change-di
 - WHEN an earlier pass is approved but the physically last Task 2 pass omits a required field or declares another task
 - THEN Task 2 feedback is malformed and consumers do not fall back to the earlier approval
 
+#### Approved bootstrap disposition for this change
+
+For `.hamilton/changes/2026-09-04-split-hamilton-review/` only, whole-branch re-review MAY accept the existing artifact-only feedback commits for Tasks 1–13 even though later task implementation preceded those commits. This disposition accepts only that already-incurred chronology. Each pass remains subject to every identity, grammar, verdict, finding, reviewed-range, freshness, and tracked-at-HEAD requirement, and Task 14 and every new remediation task SHALL follow the ordinary feedback-before-next-checkpoint sequence. Existing commits SHALL NOT be rewritten or reordered to simulate compliance.
+
+The approved change artifacts carry this disposition; no producer, parser, orchestrator, or finish gate receives a compatibility branch. The disposition resolves only the chronology finding. The legacy-parser finding remains among whole-branch review Pass 1's other 17 blocking findings and still requires fallback removal plus exact Task 1 and Task 4 normalization. No other finding or gate is waived.
+
 ### Requirement: Unverified task impact is resolved before approval
 
 A `cannot verify from diff` item SHALL remain a blocking unresolved item under `changes-requested`; code feedback SHALL NOT issue `approved` while such an item remains. The driver SHALL inspect only the concrete named risk with its cross-task context. If the risk reveals a code gap, it SHALL return the task to code; if the risk is satisfied, it SHALL provide the located evidence and re-dispatch code feedback so a new append-only pass can approve the reviewed head without the unresolved item.
@@ -205,6 +211,11 @@ On start or resume after all active tasks are done with fresh approved feedback,
 
 - WHEN every active plan task is `done` and its latest feedback verdict is approved and fresh for its latest task progress commit
 - THEN the orchestrator packages the whole branch and dispatches `hamilton-review` exactly once for the next pass
+
+#### Scenario: A future task advances to the next checkpoint
+
+- WHEN task feedback is recorded for Task N after this bootstrap disposition
+- THEN its artifact-only feedback commit exists before the next task checkpoint is recorded, whether Task N is a remediation task in this change or belongs to any future planned change
 
 #### Scenario: Whole-branch review requests changes
 
