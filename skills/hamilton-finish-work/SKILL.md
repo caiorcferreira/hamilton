@@ -158,10 +158,13 @@ synchronization for this attempt, but it does not make an unrelated edit safe.
 ## Finish history
 
 `<change-dir>/finish.md` is the only finish-history artifact. On the first admitted attempt,
-instantiate the installed `finish.md` template: remove its instructions and placeholder pair,
-set the real change title, and use the first real attempt as `Attempt 1`. Otherwise validate the
-existing body before use. `finish.md` is append-only. Never alter or reorder a recorded attempt
-or outcome, and never write root `progress.md`; finish work owns no root progress row or section.
+load and instantiate the exact installed `~/.hamilton/templates/finish.md` template. Substitute the
+real change title and first complete attempt, remove the opening instruction block and every inline
+hint, and ensure no authoring instruction or hint survives in the live file. Otherwise validate the
+existing body before use and derive the next attempt from the cleaned record portion of that same
+installed template. Retained authoring markup may be removed, but `finish.md` is otherwise
+append-only: never alter or reorder a recorded attempt or outcome, and never write root
+`progress.md`; finish work owns no root progress row or section.
 
 Every pair uses `## Attempt N — <YYYY-MM-DD>` and `## Outcome N — <YYYY-MM-DD>`. For a fully
 paired history, choose the next integer after the highest numbered Attempt or Outcome. Numbers
@@ -169,25 +172,12 @@ must be strictly monotonic, each number must occur once for each kind, and Outco
 matching observation for Attempt N. Reject duplicate, skipped, reordered, or malformed sections
 before any action.
 
-Append an attempt with all fields populated by durable identifiers and concrete intent:
-
-    ## Attempt N — <YYYY-MM-DD>
-
-    - Passed preconditions: <gate-entry HEAD, review range, material commit, verification, waiver>
-    - Specification synchronization: <spec commit and capabilities, or verified none>
-    - Strategy: <local merge | pull request | no-op>
-    - Intended workspace result: <base/branch/worktree result>
-    - Route intent: <exact unit and map transition, or none>
-
-Append its outcome only after reading back the effect:
-
-    ## Outcome N — <YYYY-MM-DD>
-
-    - Result: completed | blocked
-    - Verified external result: <observed merge, request, or no-op state and identifiers>
-    - Actual workspace state: <observed branch and worktree state>
-    - Actual route state: <observed unit and map state, or none>
-    - Blockers or partial state: <none, or exact verified partial result>
+Populate the template-defined attempt with durable gate evidence, specification synchronization,
+selected strategy, intended workspace result, and route intent. Append its matching outcome only
+after reading back the effect, recording the completed or blocked result together with verified
+external, workspace, route, and partial-state evidence. The installed template remains the exact
+creation and attempt shape; these lifecycle rules govern later outcomes without duplicating that
+shape here.
 
 The attempt and outcome are separate commits because the external result cannot be known before
 the action. Commit the attempt on the change branch and verify that exact commit before the first
@@ -252,10 +242,10 @@ not excuse any post-gate mutation outside this allowlist.
    `~/.hamilton/scripts/hamilton-isolate.sh --check`, resolve the actual base branch and selected
    strategy, and identify any exact route and map transitions. Ask if the strategy is still
    unspecified and no project default exists.
-6. **Commit intent.** Append `Attempt N` with Passed preconditions, Specification
-   synchronization, Strategy, Intended workspace result, and Route intent. Commit that attempt
-   alone on the change branch, verify the commit contains the expected finish path, and confirm
-   it is reachable from the branch. This commit must exist before any external finish action.
+6. **Commit intent.** Append the template-defined `Attempt N` with complete durable intent. Commit
+   that attempt alone on the change branch, verify the commit contains the expected finish path,
+   and confirm it is reachable from the branch. This commit must exist before any external finish
+   action.
 7. **Apply route intent.** If route-backed, update only the named unit from `in-progress` to
    `shipped`; update the map from `shipping` to `shipped` only when every unit is verified
    shipped. Commit the exact route/map paths and read them back. If not route-backed, record no

@@ -63,23 +63,22 @@ describe("hamilton-code-feedback contract", () => {
     expect(verdicts).toMatch(/never.*`approved`.*unresolved/is)
   })
 
-  it("appends the canonical task-owned feedback pass", () => {
+  it("instantiates the installed template and appends task-owned feedback", () => {
     const artifact = readCodeFeedback()
 
+    expect(artifact).toContain("~/.hamilton/templates/feedback.md")
+    expect(artifact).toMatch(/exact installed.*template/i)
     expect(artifact).toContain("<change-dir>/tasks/task-N/feedback.md")
     expect(artifact).toMatch(/task directory segment is lowercase\s+`task-N`/)
-    expect(artifact).toContain("# Code Feedback: Task N — <title>")
-    expect(artifact).toContain("## Pass N — <YYYY-MM-DD>")
-    expect(artifact).toContain("Verdict: approved | changes-requested")
-    expect(artifact).toContain("### Blocking")
-    expect(artifact).toContain("### Suggestions")
+    expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
+    expect(artifact).toMatch(/append.*next-numbered pass.*physical end/is)
+    expect(artifact).toMatch(/preserve.*prior pass/is)
+    expect(artifact).not.toMatch(/```(?:markdown)?[\s\S]*?### Blocking[\s\S]*?### Suggestions[\s\S]*?```/)
   })
 
   it("records and validates the complete reviewed range", () => {
     const artifact = readCodeFeedback()
 
-    expect(artifact).toContain("Base: <full base commit identifier>")
-    expect(artifact).toContain("Head: <full head commit identifier>")
     expect(artifact).toMatch(/physically last pass.*governs/is)
     expect(artifact).toMatch(/malformed last pass.*fail closed/is)
     expect(artifact).toMatch(/never.*fall\s+back.*earlier approval/is)

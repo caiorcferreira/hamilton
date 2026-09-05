@@ -162,31 +162,19 @@ An approved pass with a blocking finding is contradictory and invalid.
 
 ## Review artifact
 
-Write only `<change-dir>/review.md`. When it does not exist, instantiate the installed root
-`review.md` template with the change title. Preserve the heading and every prior pass. Append the
-next numbered pass at the physical end of the file in this shape:
+Write only `<change-dir>/review.md`. Load the exact installed
+`~/.hamilton/templates/review.md` template on every pass. When the file does not exist, instantiate
+a complete copy with the change title, current date, next pass number, full reviewed identifiers,
+verdict, and findings. Remove the opening instruction block and every inline hint while substituting
+placeholders; neither authoring instructions nor hints may survive in the live artifact.
 
-```markdown
-# Whole-branch Review: <Change Title>
-
-## Pass N — <YYYY-MM-DD>
-
-Base: <full merge base commit identifier>
-Head: <full head commit identifier>
-Verdict: approved | changes-requested
-
-### Blocking
-
-- [<file>:<loc>] <what is wrong> — <what to change> (violates: <criterion / standard>)
-
-### Suggestions
-
-- [<file>:<loc>] <optional improvement>
-```
-
-On approval, write `- None.` under Blocking and briefly state verified coverage under Suggestions
-when useful. Do not omit either section. Record any focused command and result without changing the
-required pass shape. Every pass records full identifiers, never abbreviated commit ids.
+When the file exists, validate it first, then use the cleaned record portion of that same installed
+template to append the next-numbered pass at the physical end. Preserve the heading and every prior
+pass. Retained template authoring markup may be removed before appending, but no recorded pass may
+be changed, deleted, reordered, or split. Populate every template-defined value. An approval has no
+blocking findings and may briefly record useful verified coverage as a suggestion; both findings
+groups remain present. Record any focused command and result without changing the template-defined
+shape. Every pass records full identifiers, never abbreviated commit ids.
 
 For freshness, the latest material change commit is the latest current-branch commit touching any
 tracked path except the change's root `progress.md`, `tasks/task-N/progress.md`,
@@ -197,8 +185,9 @@ remain material even when their paths are under `.hamilton/`.
 The physically last pass governs whole-branch status only when its numbering and shape, verdict,
 findings, and reviewed range are valid; its base is an ancestor of its head; its head is an ancestor
 of current `HEAD`; and its head contains the latest material change commit. A malformed last pass
-must fail closed. Never scan backward or fall back to an earlier approval. Do not rewrite, delete,
-reorder, or insert before an existing pass.
+must fail closed. Never scan backward or fall back to an earlier approval. Apart from removal of
+retained template authoring markup, do not rewrite, delete, reorder, or insert before an existing
+pass.
 
 ## Record and commit
 

@@ -51,14 +51,19 @@ describe("hamilton-code execution contract", () => {
     expect(inputs).toContain("does not permit title inference")
   })
 
-  it("owns only the assigned task status transitions and evidence", () => {
+  it("loads the installed task-progress template and owns only assigned task evidence", () => {
     const process = section(skill, "## Process")
 
+    expect(skill).toContain("~/.hamilton/templates/task-progress.md")
+    expect(skill).toMatch(/exact installed.*template/is)
+    expect(skill).toMatch(/instruction block.*inline hint/is)
+    expect(skill).toMatch(/must not survive|remov(?:e|ing)/is)
     expect(process).toMatch(/Update only the assigned task's root row to `in-progress`/)
     expect(process).toMatch(/update the same root row from `in-progress` to\s+the matching `done` or `blocked` status/)
     expect(skill).toContain("<change-dir>/tasks/task-N/progress.md")
-    expect(skill).toContain("## Attempt N — <YYYY-MM-DD>")
-    expect(skill).toContain("- Outcome: done | blocked")
+    expect(skill).toMatch(/append.*next-numbered.*attempt.*physical end/is)
+    expect(skill).toMatch(/preserve.*prior attempt/is)
+    expect(skill).not.toMatch(/```(?:markdown)?[\s\S]*?Outcome: done \| blocked[\s\S]*?```/)
     expect(skill).toContain("Never mutate a sibling row, progress file, feedback file, or checkpoint")
   })
 

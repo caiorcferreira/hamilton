@@ -38,13 +38,15 @@ describe("hamilton-finish-work contract", () => {
     expect(preconditions).toMatch(/does not waive.*ledger.*task feedback.*whole-branch.*validity.*verdict.*blocking/is)
   })
 
-  it("uses finish.md exclusively for finish attempts and outcomes", () => {
+  it("instantiates the installed finish template and preserves finish history", () => {
     const skill = readFinishWork()
     const history = section(skill, "## Finish history")
 
+    expect(history).toContain("~/.hamilton/templates/finish.md")
+    expect(history).toMatch(/exact installed.*template/i)
     expect(history).toContain("<change-dir>/finish.md")
-    expect(history).toContain("## Attempt N — <YYYY-MM-DD>")
-    expect(history).toContain("## Outcome N — <YYYY-MM-DD>")
+    expect(history).toMatch(/remove.*instruction block.*inline\s+hint/is)
+    expect(history).not.toMatch(/```(?:markdown)?[\s\S]*?Passed preconditions:[\s\S]*?Route intent:[\s\S]*?```/)
     expect(history).toMatch(/append-only/i)
     expect(history).toMatch(/next integer.*highest.*Attempt.*Outcome/is)
     expect(history).toMatch(/Outcome N.*matching.*Attempt N/is)
@@ -57,8 +59,8 @@ describe("hamilton-finish-work contract", () => {
 
     expect(process).toMatch(/preconditions.*synchroniz.*specification.*commit/is)
     expect(process).toMatch(/append.*`Attempt N`.*commit.*change branch/is)
-    expect(process).toMatch(/before.*external.*finish action/is)
-    expect(process).toMatch(/Passed preconditions.*Specification\s+synchronization.*Strategy.*Intended workspace result.*Route intent/is)
+    expect(process).toMatch(/before.*external.*finish\s+action/is)
+    expect(process).toMatch(/template-defined.*attempt.*durable.*intent/is)
   })
 
   it("reconciles a dangling attempt before allocating or executing another", () => {

@@ -65,9 +65,14 @@ Plus:
    For inline input, also confirm that its id and content identify the same active plan task.
    Read its Acceptance, cited requirement or design sections, and project standards. Do not load
    other task blocks.
-3. **Require the split execution layout.** Before implementation, require `plan.md`, the root
+3. **Require the split execution layout.** Before implementation, load the exact installed
+   `~/.hamilton/templates/task-progress.md` template. Instantiate a cleaned in-memory copy with the
+   assigned task id and title by removing its opening instruction block and every inline hint, then
+   require `plan.md`, the root
    `<change-dir>/progress.md` task table, exactly one active row for the assigned task, and the
-   linked `<change-dir>/tasks/task-N/progress.md`. The row link must be the exact relative path
+   linked `<change-dir>/tasks/task-N/progress.md`. The linked file's creation portion must match
+   that cleaned instantiation before any appended attempts; no template instruction or hint may
+   survive in the live artifact. The row link must be the exact relative path
    `tasks/task-N/progress.md`, and the row status must be one of `pending`, `in-progress`,
    `blocked`, or `done`. If a planned change lacks this layout, stores attempt history in root
    progress, or otherwise exposes `legacy-unsupported`, stop at the between-changes migration
@@ -103,10 +108,10 @@ Plus:
 8. **Check acceptance and self-review.** Confirm every acceptance criterion, then inspect the
    diff against the code-quality checklist. Resolve issues by repeating the relevant specified
    step, or finish as blocked when a specified step or criterion cannot be completed.
-9. **Finalize synchronized evidence.** Append exactly one next-numbered
-   `## Attempt N — <YYYY-MM-DD>` section to
-   `<change-dir>/tasks/task-N/progress.md`. Record final `Outcome: done | blocked`, Created,
-   Modified, and Deleted paths, every verification command with its observed result, and Notes
+9. **Finalize synchronized evidence.** Append exactly one next-numbered dated attempt at the
+   physical end of `<change-dir>/tasks/task-N/progress.md`, preserving every prior attempt. Populate
+   the installed-template lifecycle record completely with the final done or blocked outcome,
+   created, modified, and deleted paths, every verification command and observed result, and notes
    for deviations, decisions, or concerns. Then update the same root row from `in-progress` to
    the matching `done` or `blocked` status. Do not change another row or append review, feedback,
    or finish summaries anywhere in progress.
@@ -122,22 +127,16 @@ Plus:
 
 This skill never edits `plan.md`.
 
-## Task progress format
+## Task progress lifecycle
 
-Append only to `<change-dir>/tasks/task-N/progress.md`, following the installed
-`task-progress.md` template:
-
-```
-## Attempt N — <YYYY-MM-DD>
-
-- Outcome: done | blocked
-- Changed:
-  - Created: <paths, or none>
-  - Modified: <paths, or none>
-  - Deleted: <paths, or none>
-- Verified: `<command>` → <observed result>
-- Notes: <deviations, decisions, concerns, or none>
-```
+The exact installed `~/.hamilton/templates/task-progress.md` template is the sole creation-shape
+definition for `<change-dir>/tasks/task-N/progress.md`. Hamilton-plan creates the durable file;
+hamilton-code instantiates a cleaned copy in memory to validate that creation portion and never
+recreates a missing scaffold. Each completed invocation appends one contiguous, next-numbered dated
+attempt at the physical end. Attempts remain in physical order and every prior attempt is preserved
+byte-for-byte. Validate identity, numbering, outcome vocabulary, path accounting, verification
+evidence, and notes semantically against the lifecycle contract without carrying another full
+artifact skeleton here.
 
 The root `<change-dir>/progress.md` is only the current task ledger. It contains task identity,
 status, and links; it does not receive attempt sections, changed paths, commands, notes, feedback

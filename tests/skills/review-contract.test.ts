@@ -81,13 +81,16 @@ describe("hamilton-review contract", () => {
     expect(verification).toMatch(/hamilton-finish-work.*mandatory\s+full\s+verification/is)
   })
 
-  it("records the canonical root review pass and material freshness range", () => {
+  it("instantiates the installed root template and records material freshness", () => {
     const artifact = readReview()
 
+    expect(artifact).toContain("~/.hamilton/templates/review.md")
+    expect(artifact).toMatch(/exact installed.*template/is)
     expect(artifact).toContain("<change-dir>/review.md")
-    expect(artifact).toContain("Base: <full merge base commit identifier>")
-    expect(artifact).toContain("Head: <full head commit identifier>")
-    expect(artifact).toContain("Verdict: approved | changes-requested")
+    expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
+    expect(artifact).toMatch(/append.*next-numbered pass.*physical end/is)
+    expect(artifact).toMatch(/preserve.*prior\s+pass/is)
+    expect(artifact).not.toMatch(/```(?:markdown)?[\s\S]*?### Blocking[\s\S]*?### Suggestions[\s\S]*?```/)
     expect(artifact).toMatch(/latest material change commit/i)
     expect(artifact).toMatch(/root `progress\.md`.*task-N\/progress\.md.*task-N\/feedback\.md.*root `review\.md`.*root `finish\.md`/is)
     expect(artifact).toMatch(/skills.*templates.*scripts.*documentation.*material/is)

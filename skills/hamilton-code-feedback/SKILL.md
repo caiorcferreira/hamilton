@@ -141,37 +141,26 @@ the same head. Only a new complete pass without the unresolved item may approve.
 ## Feedback artifact
 
 Write only `<change-dir>/tasks/task-N/feedback.md`; the task directory segment is lowercase
-`task-N`. When the file does not exist, instantiate the installed `feedback.md` template with the
-exact task id and title. Preserve its task identity heading and all prior passes. Append the next
-numbered pass at the physical end of the file in this shape:
+`task-N`. Load the exact installed `~/.hamilton/templates/feedback.md` template on every pass. When
+the file does not exist, instantiate a complete copy with the exact task id, title, current date,
+next pass number, full reviewed identifiers, verdict, and findings. Remove the opening instruction
+block and every inline hint while substituting placeholders; neither authoring instructions nor
+hints may survive in the live artifact.
 
-```markdown
-# Code Feedback: Task N — <title>
-
-## Pass N — <YYYY-MM-DD>
-
-Base: <full base commit identifier>
-Head: <full head commit identifier>
-Verdict: approved | changes-requested
-
-### Blocking
-
-- [<file>:<loc>] <what is wrong> — <what to change> (violates: <criterion / standard>)
-
-### Suggestions
-
-- [<file>:<loc>] <optional improvement>
-```
-
-The file heading, directory, and requested task must identify the same `Task N`. On approval, write
-`- None.` under Blocking and briefly state verified coverage under Suggestions when useful; do not
-omit either section. Every pass records the supplied full Base and Head values, never abbreviated
+When the file exists, validate it first, then use the cleaned record portion of that same installed
+template to append the next-numbered pass at the physical end. Preserve the task identity heading
+and every prior pass. A retained leading template instruction block or inline hint is authoring
+markup rather than verdict history: remove that markup before appending, but do not change, delete,
+reorder, or insert within any prior pass. Populate every template-defined value. An approval has no
+blocking findings and may briefly record useful verified coverage as a suggestion; both findings
+groups remain present. Every pass records the supplied full Base and Head values, never abbreviated
 commit ids.
 
 The physically last pass governs. It is valid only when task identity, pass numbering and shape,
 verdict, findings, and reviewed range are complete and consistent. An `approved` pass with a
 blocking item is contradictory. A malformed last pass must fail closed; never scan backward or fall
-back to an earlier approval. Do not rewrite, delete, reorder, or insert before an existing pass.
+back to an earlier approval. Apart from the one-time removal of retained template authoring markup,
+do not rewrite, delete, reorder, or insert before an existing pass.
 
 ## Record and commit
 
