@@ -8,10 +8,12 @@ description: "Turn an idea into a change's proposal, requirements, and design th
 Turn an idea into a well-formed change by writing its proposal (why), requirements (what),
 and design (how) — refined with the user through dialogue before any implementation begins.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill a person or an agent can run. This skill is
-**step 1** — the optional heavyweight front door that produces the PRD, the SRS, and the
-SDD. A change that does not warrant that depth skips this step and starts at `hamilton-plan`.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
+skill is **step 1** — the optional heavyweight front door that produces the PRD, the SRS, and
+the SDD. A change that does not warrant that depth skips this step and starts at
+`hamilton-plan`. Wayfinder and `hamilton-critique` are optional and remain outside the
+seven-step core count.
 
 **Gate.** Do not move to implementation — no `hamilton-plan`, no code — until the artifacts
 are approved and the design clears the `references/code-quality.md` self-review: for a

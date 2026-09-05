@@ -8,9 +8,10 @@ description: "Implement a single planned task by following its steps exactly, ve
 Implement exactly one active plan task, carry out its steps as written, verify the result,
 self-review it, and commit the implementation with synchronized task-local evidence.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill a person or an agent can run. This skill is the
-**code** step.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
+skill is **step 3**, the code step. Wayfinder and `hamilton-critique` are optional and remain
+outside the seven-step core count.
 
 **Scope: one task, steps as written.** The task's Steps were already designed and ordered by
 the plan step. Execute them faithfully. Do not redesign, reorder, add work, or inspect sibling

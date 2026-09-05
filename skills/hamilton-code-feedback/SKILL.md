@@ -6,8 +6,12 @@ description: "Review exactly one Task N within its stable diff, record task-owne
 # Reviewing one implemented task
 
 Review exactly one implemented plan task within its stable diff, decide a tactical verdict,
-and persist that verdict in the task-owned feedback history. This skill is pipeline step 4,
-between task implementation and whole-branch review.
+and persist that verdict in the task-owned feedback history.
+
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. This skill is **step 4**, the tactical gate between task
+implementation and whole-branch review. Wayfinder and `hamilton-critique` are optional and remain
+outside the seven-step core count.
 
 **Judge, do not fix.** Inspect and report. Never modify implementation, tests, plan artifacts,
 or task status while performing code feedback.
@@ -159,7 +163,8 @@ only in the feedback artifact, even when the verdict is `changes-requested`.
 Return the task identity, full reviewed Base and Head, verdict, blocking count, suggestion count,
 and feedback commit identifier. Do not create a separate detailed report.
 
-For `approved`, return control to the driver so it can select the next pipeline state. For ordinary
+For `approved`, return control to the driver so it can select the next task for `hamilton-code` or,
+after every task is approved, enter whole-branch `hamilton-review`. For ordinary
 `changes-requested`, the driver returns the same task to code. For an unresolved
 `cannot verify from diff` blocker, the driver adjudicates only the named risk and then supplies
 located evidence for another feedback pass or sends a confirmed gap to code. Never invoke another

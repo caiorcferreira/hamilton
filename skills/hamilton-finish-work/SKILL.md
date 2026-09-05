@@ -9,9 +9,10 @@ Close out a change only after its exact task evidence and whole-branch review op
 gate. Synchronize the canonical specifications, durably record the intended finish, carry out the
 selected strategy, read the result back, and durably record what actually happened.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill a person or an agent can run. This skill is the
-**finish-work** step — the last one.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
+skill is **step 6**, the finish-work step and the last one. Wayfinder and `hamilton-critique` are
+optional and remain outside the seven-step core count.
 
 ## Inputs
 

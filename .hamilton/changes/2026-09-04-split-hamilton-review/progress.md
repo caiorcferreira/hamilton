@@ -14,5 +14,5 @@
 | Task 10: Narrow hamilton-review to whole-branch inspection | done | [details](tasks/task-10/progress.md) |
 | Task 11: Rebuild orchestration around split pipeline state | done | [details](tasks/task-11/progress.md) |
 | Task 12: Move finish history into finish.md | done | [details](tasks/task-12/progress.md) |
-| Task 13: Synchronize the seven-step identity across live skills | pending | [details](tasks/task-13/progress.md) |
+| Task 13: Synchronize the seven-step identity across live skills | done | [details](tasks/task-13/progress.md) |
 | Task 14: Publish the split workflow migration guidance | pending | [details](tasks/task-14/progress.md) |

@@ -70,8 +70,9 @@
 ## Testing Strategy
 
 <!-- What will prove this works: unit vs integration boundaries, the key cases to
-     cover, and how verification runs. This feeds hamilton-code, hamilton-code-feedback,
-     hamilton-review, and hamilton-finish-work. -->
+     cover, and how verification runs. Name the tactical gates, `hamilton-code` and
+     `hamilton-code-feedback`, and the final gates, `hamilton-review` and
+     `hamilton-finish-work`. -->
 
 ## Constraints & Boundaries
 

@@ -9,6 +9,12 @@ Drive every active task in a `plan.md` through implementation and fresh task app
 the complete branch through its whole-branch review gate. Resume from committed artifacts and git
 ancestry at every decision; conversation memory and an in-session todo list are never state.
 
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. This driver coordinates the per-task `hamilton-code` ↔
+`hamilton-code-feedback` loop, then one whole-branch `hamilton-review`, followed by
+`hamilton-finish-work`. Wayfinder and `hamilton-critique` are optional and remain outside the
+seven-step core count.
+
 The driver coordinates three distinct roles:
 
 - `hamilton-code` owns one task's implementation status and task-local progress.

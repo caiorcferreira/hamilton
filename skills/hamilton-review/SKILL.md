@@ -9,6 +9,10 @@ Review the complete branch as the final inspection gate before finish-work. This
 step 5. It judges how all implemented tasks compose across the repository; it is never a task-diff
 review.
 
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Wayfinder and `hamilton-critique` are optional and remain
+outside the seven-step core count.
+
 **Judge, do not fix.** Inspect and report. Never modify implementation, tests, proposal artifacts,
 the plan, or task state while performing whole-branch review.
 

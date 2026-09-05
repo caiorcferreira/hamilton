@@ -9,9 +9,10 @@ Turn a change — whether it already has a design and requirements, or is just a
 request — into `plan.md`: an ordered ledger of small, independently verifiable tasks that
 a coder (human or agent) implements one at a time.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill that a person or an agent can run. This skill
-is the **plan** step.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill that a person or an agent can run.
+This skill is **step 2**, the plan step. Wayfinder and `hamilton-critique` are optional and
+remain outside the seven-step core count.
 
 `plan.md` is the required planning artifact and the handoff contract between planning and
 coding. Finalizing it also initializes the split execution ledger and task-local evidence
