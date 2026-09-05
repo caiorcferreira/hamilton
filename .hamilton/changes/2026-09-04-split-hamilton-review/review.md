@@ -65,3 +65,19 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 3 — 2026-09-05
+
+Base: 8b711317796319834365411e4d1c48fd42e1971c
+Head: e49c4b01d1a08f05fc0e70473996394654b1669e
+Verdict: changes-requested
+
+### Blocking
+
+- [`bundle/scripts/hamilton-artifact-contracts.sh:258`; `tests/scripts/change-context.test.ts:278`; `tests/scripts/precondition-check.test.ts:673`] [P1] Pass 2's actionable-verdict correction still accepts an unlocated placeholder as a canonical Blocking finding. The shared parser counts every non-`None.` bullet as blocking without requiring the template-defined `[file:loc]` owner or any actionable body; a focused invocation with `Verdict: changes-requested` and the sole item `- TBD.` returned success with blocking count 1. Context can therefore expose, and orchestration can route, a changes-requested pass that gives code no located correction even though Task 33 requires at least one canonical finding and both verdict-producer contracts require every finding to identify an exact file and location. Tighten the shared grammar to reject structurally unlocated or empty-action Blocking entries and add the same negative cases through both consumers while retaining ordinary prose under Suggestions. (violates: `plan.md` Task 33 acceptance; `requirements/review.md` task- and change-owned verdict-history requirements; `skills/hamilton-code-feedback/SKILL.md` and `skills/hamilton-review/SKILL.md` finding contracts)
+
+- [`bundle/scripts/hamilton-change-context.sh:453`; `skills/hamilton-orchestrate/SKILL.md:171`; `skills/hamilton-review/SKILL.md:62`] [P1] Durable resume and whole-review readiness can still consume an uncommitted task approval. `task_feedback_state` parses the worktree file and derives freshness only from its recorded range and the last committed task-progress change; orchestration's load/matrix path repeats those checks but never requires the feedback blob to exist unchanged at `HEAD`, and whole-review preflight requires only that the file exist. If a reviewer writes a valid approval and is interrupted before its artifact-only commit, a resumed driver can classify it as fresh approval, record the next task checkpoint, or enter whole-branch review even though the required feedback commit does not exist. Require task advancement and final-review readiness to distinguish durable committed evidence from worktree-only verdict text, and cover interrupted-before-feedback-commit resume so no next checkpoint is recorded until the artifact-only commit is present. (violates: `requirements/review.md` task-feedback persistence and feedback-before-next-checkpoint orchestration requirements; `design.md` feedback-before-next-checkpoint invariant)
+
+### Suggestions
+
+- None.
