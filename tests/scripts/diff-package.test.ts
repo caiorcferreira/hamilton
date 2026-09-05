@@ -18,8 +18,18 @@ function addTask(changeDir: string, task: number): void {
   Fs.writeFileSync(plan, `${current}### Task ${task}: Test task\n`)
 }
 
+function addTaskExecutionArtifacts(changeDir: string, task: number, status = "pending"): void {
+  const progress = Path.join(changeDir, "progress.md")
+  if (!Fs.existsSync(progress)) {
+    Fs.writeFileSync(progress, "# Progress: test\n\n| Task | Status | Progress |\n|---|---|---|\n")
+  }
+  Fs.appendFileSync(progress, `| Task ${task}: Test task | ${status} | [details](tasks/task-${task}/progress.md) |\n`)
+  write(changeDir, `tasks/task-${task}/progress.md`, `# Task Progress: Task ${task} — Test task\n`)
+}
+
 function prepareTask(repo: string, changeDir: string, task: number): void {
   addTask(changeDir, task)
+  addTaskExecutionArtifacts(changeDir, task)
   commitAll(repo, `add task ${task}`)
 }
 
@@ -58,6 +68,7 @@ describe("hamilton-diff-package.sh --record", () => {
     const repo = makeRepo()
     const changeDir = makeChangeDir(repo, "add-auth")
     Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: Test task\n<!-- ### Task 2: Hidden duplicate -->\n")
+    addTaskExecutionArtifacts(changeDir, 2)
     commitAll(repo, "add commented task")
 
     const result = record(changeDir, 2, repo)
@@ -82,6 +93,7 @@ describe("hamilton-diff-package.sh --record", () => {
     const repo = makeRepo()
     const changeDir = makeChangeDir(repo, "add-auth")
     Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: Test task (abandoned - not canonical)\n")
+    addTaskExecutionArtifacts(changeDir, 2)
     commitAll(repo, "add malformed abandonment")
 
     const result = record(changeDir, 2, repo)
@@ -128,6 +140,15 @@ describe("hamilton-diff-package.sh --record", () => {
     prepareTask(repo, changeDir, 2)
     const base = git(repo, "rev-parse", "HEAD")
     record(changeDir, 2, repo)
+    Fs.writeFileSync(
+      Path.join(changeDir, "progress.md"),
+      "# Progress: test\n\n| Task | Status | Progress |\n|---|---|---|\n| Task 2: Test task | done | [details](tasks/task-2/progress.md) |\n"
+    )
+    Fs.appendFileSync(
+      Path.join(changeDir, "tasks/task-2/progress.md"),
+      "\n## Attempt 1 — 2026-09-04\n\n- Outcome: done\n"
+    )
+    write(changeDir, "tasks/task-2/feedback.md", "# Code Feedback: Task 2 — Test task\n")
     write(repo, "src/auth.ts", "export const auth = true\n")
     commitAll(repo, "add auth")
 
@@ -136,6 +157,68 @@ describe("hamilton-diff-package.sh --record", () => {
     expect(result.status).toBe(0)
     expect(field(result, "base")).toBe(base)
     expect(Fs.readFileSync(basePath(changeDir, 2), "utf-8").trim()).toBe(base)
+  })
+
+  it.each(["done", "blocked", "in-progress"])("rejects first checkpoint creation when the task row is %s", (status) => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    addTask(changeDir, 2)
+    addTaskExecutionArtifacts(changeDir, 2, status)
+    commitAll(repo, `add ${status} task`)
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("historical recovery")
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(false)
+  })
+
+  it("rejects first checkpoint creation when the task log has an attempt", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    prepareTask(repo, changeDir, 2)
+    Fs.appendFileSync(
+      Path.join(changeDir, "tasks/task-2/progress.md"),
+      "\n## Attempt 1 — 2026-09-04\n\n- Outcome: blocked\n"
+    )
+    commitAll(repo, "record blocked attempt")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("historical recovery")
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(false)
+  })
+
+  it("rejects first checkpoint creation when task feedback exists", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    prepareTask(repo, changeDir, 2)
+    write(changeDir, "tasks/task-2/feedback.md", "# Code Feedback: Task 2 — Test task\n")
+    commitAll(repo, "record task feedback")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("historical recovery")
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(false)
+  })
+
+  it("rejects an existing checkpoint outside current history", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    prepareTask(repo, changeDir, 2)
+    git(repo, "checkout", "-q", "-b", "other")
+    write(repo, "src/other.ts", "export const other = true\n")
+    const offHistory = commitAll(repo, "other history")
+    git(repo, "checkout", "-q", "main")
+    Fs.writeFileSync(basePath(changeDir, 2), `${offHistory}\n`)
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("not an ancestor")
+    expect(Fs.readFileSync(basePath(changeDir, 2), "utf-8").trim()).toBe(offHistory)
   })
 
   it("requires an exact positive active task number", () => {

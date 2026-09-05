@@ -74,11 +74,22 @@ Plus:
    boundary before implementation. Never parse, migrate, reconstruct, or partially scaffold a
    planned legacy layout.
 4. **Record the stable task checkpoint.** Immediately before the first implementation attempt,
-   run `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>`.
-   It writes the full commit identifier to `<change-dir>/tasks/task-N/.base` and excludes that
-   path from git tracking. If the checkpoint already exists, validate and reuse it; never overwrite
-   it on a blocked retry or a correction after changes-requested feedback. Stop if an
-   existing checkpoint is missing its one valid full commit identifier.
+   first inspect the task's durable state. Run
+   `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>` only
+   when the row is `pending`, the task log has no attempt, feedback is absent, and the working tree
+   and task history contain no task-owned implementation changes. It writes the full commit identifier
+   to `<change-dir>/tasks/task-N/.base` and excludes that path from git tracking. If the
+   checkpoint already exists, require one full commit identifier that resolves, precedes the first
+   attempt, is an ancestor of current `HEAD` and every valid feedback `Head:`, and matches every
+   recovery candidate; then reuse it and never overwrite it on a blocked retry or a correction
+   after changes-requested feedback. When the checkpoint is missing or malformed after
+   durable evidence exists, reconstruct the historical checkpoint only from unambiguous durable
+   git and task evidence: every valid feedback `Base:` and the first parent of the earliest commit
+   that added the first task attempt must identify the same full commit, which must precede that
+   attempt and be an ancestor of every valid feedback `Head:` and current `HEAD`. Restore and
+   validate only that identifier. Stop and request intervention if candidates are absent,
+   conflicting, ambiguous, or fail ancestry validation. Never invoke `--record` at current `HEAD`
+   after historical evidence exists, and never substitute `HEAD~1` or another guessed base.
 5. **Begin the attempt.** Update only the assigned task's root row to `in-progress` before
    executing implementation steps. A `pending`, `blocked`, or `done` row may enter
    `in-progress`; `done` means only that the latest implementation attempt completed. Preserve

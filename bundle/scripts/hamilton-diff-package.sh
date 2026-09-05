@@ -144,6 +144,86 @@ read_task_checkpoint() {
   printf '%s\n' "$checkpoint"
 }
 
+task_row_status() {
+  local progress="$1" task="$2"
+  awk -v task="$task" '
+    BEGIN {
+      link = "\\[details\\]\\(tasks/task-" task "/progress\\.md\\)"
+      suffix = "[ \\t]*\\|[ \\t]*" link "[ \\t]*\\|[ \\t]*$"
+    }
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line !~ suffix) next
+      prefix = line
+      sub(suffix, "", prefix)
+      if (prefix !~ ("^\\|[ \\t]*Task " task ":[ \\t]+")) invalid = 1
+      status = prefix
+      sub(/^.*\|[ \\t]*/, "", status)
+      sub(/[ \\t]+$/, "", status)
+      count++
+      found = status
+    }
+    END {
+      if (invalid || count != 1) exit 1
+      print found
+    }
+  ' "$progress"
+}
+
+task_log_has_attempt() {
+  awk '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    {
+      remaining = $0
+      visible = ""
+      while (length(remaining) > 0) {
+        if (in_comment) {
+          marker = index(remaining, "-->")
+          if (!marker) remaining = ""
+          else {
+            remaining = substr(remaining, marker + 3)
+            in_comment = 0
+          }
+        } else {
+          marker = index(remaining, "<!--")
+          if (!marker) {
+            visible = visible remaining
+            remaining = ""
+          } else {
+            visible = visible substr(remaining, 1, marker - 1)
+            remaining = substr(remaining, marker + 4)
+            in_comment = 1
+          }
+        }
+      }
+      line = normalize_atx(visible)
+      sub(/\r$/, "", line)
+      if (line ~ /^##([ \\t]|$)/) found = 1
+    }
+    END { exit !found }
+  ' "$1"
+}
+
+validate_first_checkpoint() {
+  local change_dir="$1" task="$2" progress task_progress feedback status
+  progress="$change_dir/progress.md"
+  task_progress="$change_dir/tasks/task-$task/progress.md"
+  feedback="$change_dir/tasks/task-$task/feedback.md"
+  [ -f "$progress" ] || die "cannot create a checkpoint without the split root task ledger: $progress"
+  [ -f "$task_progress" ] || die "cannot create a checkpoint without the task progress file: $task_progress"
+  status=$(task_row_status "$progress" "$task") || die "cannot create a checkpoint without one exact split row for Task $task"
+  if [ "$status" != "pending" ] || task_log_has_attempt "$task_progress" || [ -e "$feedback" ]; then
+    die "cannot create missing checkpoint for Task $task after durable task evidence; historical recovery requires unambiguous durable git and task evidence or intervention"
+  fi
+}
+
 write_package() {
   local root="$1" base="$2" head="$3" label="$4" out="$5"
   if [ -z "$out" ]; then
@@ -170,10 +250,12 @@ cmd_record() {
   root=$(repo_root_for_change "$resolved") || exit $?
   validate_task "$resolved" "$task"
   base_file=$(task_base_file "$resolved" "$task")
-  mkdir -p "$(dirname "$base_file")" || die "cannot create $(dirname "$base_file")"
   if [ -f "$base_file" ]; then
     base=$(read_task_checkpoint "$base_file" "$root") || return $?
+    git -C "$root" merge-base --is-ancestor "$base" HEAD || die "task checkpoint is not an ancestor of HEAD: $base"
   else
+    validate_first_checkpoint "$resolved" "$task"
+    mkdir -p "$(dirname "$base_file")" || die "cannot create $(dirname "$base_file")"
     base=$(git -C "$root" rev-parse HEAD 2>/dev/null) || die "cannot resolve HEAD"
     printf '%s\n' "$base" >"$base_file" || die "cannot write $base_file"
   fi

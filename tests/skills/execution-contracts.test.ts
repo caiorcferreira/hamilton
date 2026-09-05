@@ -69,6 +69,15 @@ describe("hamilton-code execution contract", () => {
     expect(skill).toMatch(/does not receive attempt sections, changed paths, commands, notes, feedback\s+verdicts, whole-branch review summaries, or finish outcomes/)
   })
 
+  it("creates checkpoints only before evidence-free first attempts and stops for historical recovery", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/row is `pending`.*task log has no attempt.*feedback is absent/is)
+    expect(process).toMatch(/historical checkpoint.*unambiguous durable\s+git and task evidence/is)
+    expect(process).toMatch(/stop.*intervention/is)
+    expect(process).toMatch(/never substitute `HEAD~1`/)
+  })
+
   it("persists graceful blockers without committing partial production edits", () => {
     const blocking = section(skill, "## Blocking and interruption")
 
