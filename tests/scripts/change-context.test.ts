@@ -420,6 +420,23 @@ Verdict: changes-requested
     expect(result.stdout).toContain("whole change: approved (stale)")
   })
 
+  it.each([
+    "tasks/task-not-a-task/feedback.md",
+    "tasks/task-99/feedback.md"
+  ])("treats undeclared task-like bookkeeping path %s as material", (path) => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head))
+    commitAll(repo, "record whole-branch review")
+    write(repo, `.hamilton/changes/add-auth/${path}`, "# Undeclared bookkeeping\n")
+    commitAll(repo, "record undeclared task-like bookkeeping")
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("whole change: approved (stale)")
+  })
+
   it("summarizes a validated split task ledger", () => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", splitFiles())

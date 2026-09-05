@@ -428,12 +428,26 @@ latest_task_commit() {
 
 latest_material_commit() {
   local root="$1" change_path="$2"
-  git -C "$root" log -1 --format=%H HEAD -- . \
-    ":(exclude)$change_path/progress.md" \
-    ":(exclude,glob)$change_path/tasks/task-*/progress.md" \
-    ":(exclude,glob)$change_path/tasks/task-*/feedback.md" \
-    ":(exclude)$change_path/review.md" \
+  local plan="$root/$change_path/plan.md" plans id title state
+  local -a exclusions=(
+    ":(exclude)$change_path/progress.md"
+    ":(exclude)$change_path/review.md"
     ":(exclude)$change_path/finish.md"
+  )
+  if [ -f "$plan" ]; then
+    plans=$(hamilton_plan_tasks "$plan") || return 1
+    while IFS=$'\t' read -r id title state; do
+      [ -n "$id" ] || continue
+      [ "$state" = "active" ] || continue
+      exclusions+=(
+        ":(exclude)$change_path/tasks/task-${id#Task }/progress.md"
+        ":(exclude)$change_path/tasks/task-${id#Task }/feedback.md"
+      )
+    done <<EOF
+$plans
+EOF
+  fi
+  git -C "$root" log -1 --format=%H HEAD -- . "${exclusions[@]}"
 }
 
 task_feedback_state() {

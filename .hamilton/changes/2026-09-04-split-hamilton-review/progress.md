@@ -20,7 +20,7 @@
 | Task 16: Enforce canonical task attempt grammar | done | [details](tasks/task-16/progress.md) |
 | Task 17: Centralize exact active-task resolution | done | [details](tasks/task-17/progress.md) |
 | Task 18: Centralize exact verdict history parsing | done | [details](tasks/task-18/progress.md) |
-| Task 19: Scope material exclusions to exact task owners | pending | [details](tasks/task-19/progress.md) |
+| Task 19: Scope material exclusions to exact task owners | done | [details](tasks/task-19/progress.md) |
 | Task 20: Bind diff packaging to the change repository | pending | [details](tasks/task-20/progress.md) |
 | Task 21: Guard checkpoint creation after durable task evidence | pending | [details](tasks/task-21/progress.md) |
 | Task 22: Run finish gates in the target repository | pending | [details](tasks/task-22/progress.md) |
