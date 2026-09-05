@@ -12,6 +12,8 @@
 - Re-plan Pass 2 quality notes: Task 32 owns external whole-review identity, Task 33 owns verdict consistency in the shared parser, and Task 34 owns producer-contract wording. The two parser tasks are ordered because they share the artifact-contract library and consumer fixtures; the producer-contract task remains independently verifiable. No structural smell is accepted.
 - Re-plan Pass 3 notes: Whole-branch Review Pass 3 requested two further corrections after Tasks 32–34: require every canonical Blocking entry to contain located, actionable finding content instead of accepting placeholders, and require task approval evidence to be durably committed before resume may advance or whole-branch review may begin. Tasks 1–34 and all existing rows and histories remain frozen. Tasks 35–37 append those corrections without adding compatibility syntax or weakening physical-last-pass, freshness, artifact-only ordering, or split-layout gates.
 - Re-plan Pass 3 quality notes: Task 35 owns the shared Blocking-item grammar, Task 36 owns executable committed-evidence classification in change context, and Task 37 owns consumption of that durable approval boundary by orchestration and direct whole-branch review. The parser and context behaviors remain independently testable in temporary repositories; the final task aligns the two stage contracts without duplicating artifact shape. No structural smell is accepted.
+- Pre-Pass 4 re-plan notes: Validation after Tasks 35–37 exposed one overbroad Task 35 rule: the shared Blocking-finding parser rejects every angle-bracket expression in actionable prose, so the preserved whole-review Pass 1 history and current root review become malformed solely because located findings quote legitimate contract literals such as `<title>`, `<date>`, and `<reason>`. Tasks 1–37 and all existing rows and histories remain frozen. Task 38 narrows placeholder rejection to actual unexpanded finding-template fields while preserving strict located, actionable Blocking semantics and physical-last-pass validation.
+- Pre-Pass 4 quality notes: Task 38 owns one shared-parser distinction and its existing context/precondition consumer matrices. It adds no compatibility grammar and does not weaken concrete location, actionable prose, verdict consistency, pass ordering, freshness, or committed-evidence checks. The preserved review history is an explicit regression input, so the correction remains independently verifiable without editing that history. No structural smell is accepted.
 
 ## Tasks
 
@@ -878,12 +880,35 @@
 - Verify: `bun --bun vitest run tests/skills/orchestrate-contract.test.ts tests/skills/review-contract.test.ts` → orchestration and direct whole-branch review require a durable artifact-only task approval before advancement.
 - Commit: `fix(skills): consume only durable task approval`
 
+### Task 38: Distinguish template placeholders from concrete literals
+
+- Depends on: Task 35
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-38/progress.md`
+  - Deleted: none
+- Acceptance:
+  - The shared Blocking-finding grammar rejects actual unexpanded finding-template fields in their structural positions, including `<file>`, `<loc>`, `<what is wrong>`, `<what to change>`, `<criterion / standard>`, and `<optional improvement>`, while retaining the existing requirements for at least one concrete `file:location` owner and nonempty actionable prose (requirements/review.md — task-feedback and whole-branch verdict histories).
+  - A located actionable finding may quote legitimate concrete code or documentation literals such as `<title>`, `<date>`, and `<reason>` without becoming malformed; placeholder rejection is based on the installed verdict-template field vocabulary rather than a blanket ban on angle-bracket text in the action body.
+  - Both change-context and precondition regressions reject the unexpanded location/action placeholders for task feedback and whole-branch review, accept concrete angle-bracket literals in otherwise canonical Blocking prose, and prove that the preserved whole-review Pass 1 history and the current multi-pass `review.md` parse as valid history rather than malformed without editing either review artifact or falling back to an earlier pass.
+- Steps:
+  1. Extend both consumer suites with failing task-feedback and whole-review matrix cases for every retained finding-template field, valid located actions quoting `<title>`, `<date>`, and `<reason>`, and regression fixtures exercising the preserved Pass 1 and current root review history; assert that invalid placeholders are malformed and valid historical prose reaches the ordinary verdict/freshness result instead.
+  2. Replace the shared parser's blanket angle-bracket rejection in action prose with exact detection of the unexpanded fields defined by the installed feedback and review templates, while retaining strict concrete location validation and every existing action, priority, list, identity, numbering, verdict, and physical-last-pass rule.
+  3. Run both focused consumer suites, invoke the shared parser against the preserved Pass 1 and current root review artifacts, and inspect context/precondition output to confirm neither consumer reports valid historical prose as malformed.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts && bash -c 'source bundle/scripts/hamilton-artifact-contracts.sh; heading="Whole-branch Review: $(hamilton_plan_title .hamilton/changes/2026-09-04-split-hamilton-review/plan.md)"; hamilton_latest_verdict_pass .hamilton/changes/2026-09-04-split-hamilton-review/review.md "$heading" >/dev/null'` → both consumers distinguish real template placeholders from concrete literals and the preserved current whole-review history is canonical.
+- Commit: `fix(scripts): distinguish review placeholders`
+
 ## Done when
 
-- All thirty-seven active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
+- All thirty-eight active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
 - Every task's physical latest feedback pass is valid, committed, `approved`, free of blocking items, and fresh for that task's latest progress commit.
 - Task 1 and Task 4 feedback is refreshed after their approved forward normalization; Task 4, Task 5, Task 11, and Task 14 feedback histories retain every pass but no installed-template instruction block; every new task feedback commit precedes the next task checkpoint.
 - Root `review.md` has a committed physical latest whole-branch pass that is valid, `approved`, free of blocking findings, and fresh for the latest material change commit.
 - `bun --bun vitest run` passes and `bun run build` succeeds.
-- `git diff --check` is clean; no self-authenticating whole-review identity, actionless or unlocated `changes-requested` verdict, broad abandonment prefix, generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted task approval consumption, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
+- `git diff --check` is clean; no self-authenticating whole-review identity, actionless or unlocated `changes-requested` verdict, actual unexpanded finding-template placeholder, blanket action-literal rejection, broad abandonment prefix, generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted task approval consumption, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
 - `hamilton-finish-work` folds `execution`, `review`, `artifact-templates`, and `framework-docs` deltas into canonical specs and records the verified finish strategy in `finish.md`.
