@@ -138,7 +138,7 @@ hamilton setup                 # install bundle/{templates,guidelines,scripts}/ 
 #    hamilton-code         → implement one task and record its attempt
 #    hamilton-code-feedback → review that task; loop with code until approved
 #    hamilton-review       → inspect the whole branch once after all tasks
-#    hamilton-finish-work  → gate, record finish history, sync specs, merge / PR
+#    hamilton-finish-work  → gate, sync specs, record intent, merge / PR / no-op, verify, record outcome
 ```
 
 **Build and test commands** (for contributors):

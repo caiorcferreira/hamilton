@@ -87,9 +87,10 @@ The framework is a synthesis, not an invention.
 
 ## The pipeline
 
-Seven core skills run in fixed order. Step 0 is one-time project setup; steps 1–6 run per change.
-Wayfinder is an optional pre-change planning stage, and `hamilton-critique` is an optional
-design-phase gate; neither is counted in this core sequence.
+Seven core skills define the fixed order. Step 0 runs once per project, step 1 is optional per
+change, and steps 2–6 form the per-change sequence. Wayfinder is an optional pre-change planning
+stage, and `hamilton-critique` is an optional design-phase gate; neither is counted in this core
+sequence.
 
 | Step | Skill | Role |
 |------|-------|------|
@@ -99,7 +100,7 @@ design-phase gate; neither is counted in this core sequence.
 | 3 | `hamilton-code` | Implement one task, then enter its `code` ↔ `code-feedback` loop |
 | 4 | `hamilton-code-feedback` | Judge that task's stable diff; approve it or loop back to `code` |
 | 5 | `hamilton-review` | Run the single whole-branch gate after every task loop passes |
-| 6 | `hamilton-finish-work` | Gate, sync specs, record finish history, finish via merge / PR / no-op |
+| 6 | `hamilton-finish-work` | Gate, sync specs, record intent, finish via merge / PR / no-op, verify, record outcome |
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-feedback ) ──▶ review ──▶ finish-work
@@ -237,10 +238,11 @@ with the Hamilton generation that created it. Only then, between changes:
    older skill definition means the generation is not installed; stop before planning.
 4. Start the next change with the verified generation.
 
-New work uses the full seven-step pipeline, root `progress.md` only as the task index and ledger,
-`tasks/task-N/progress.md` and `tasks/task-N/feedback.md` for task histories, root `review.md` for
-the whole-branch gate, and root `finish.md` for finish history. Replace task-scoped
-`hamilton-review` invocations with `hamilton-code-feedback`.
+New work uses the seven-stage pipeline, skipping only the optional propose stage when appropriate,
+with root `progress.md` only as the task index and ledger, `tasks/task-N/progress.md` and
+`tasks/task-N/feedback.md` for task histories, root `review.md` for the whole-branch gate, and root
+`finish.md` for finish history. Replace task-scoped `hamilton-review` invocations with
+`hamilton-code-feedback`.
 
 Legacy planned changes that mix task verdicts into root `review.md` or detailed attempts into root
 `progress.md` are `legacy-unsupported` under the new execution and finish contracts. They are not
