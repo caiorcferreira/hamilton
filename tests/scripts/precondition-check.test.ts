@@ -84,7 +84,12 @@ interface Artifacts {
 
 function taskIsActive(plan: string, task: number): boolean {
   const line = plan.split("\n").find((candidate) => candidate.startsWith(`### Task ${task}:`))
-  return line !== undefined && !line.toLowerCase().includes("(abandoned")
+  return line !== undefined && !/ \(abandoned — [^)]+\)$/.test(line)
+}
+
+function taskTitle(plan: string, task: number): string {
+  const prefix = `### Task ${task}: `
+  return plan.split("\n").find((candidate) => candidate.startsWith(prefix))?.slice(prefix.length) ?? ""
 }
 
 function seedChange(repo: string, artifacts: Artifacts = {}): string {
@@ -104,10 +109,10 @@ function seedChange(repo: string, artifacts: Artifacts = {}): string {
     ? taskOneHead
     : commitPaths(repo, "implement task two", `${CHANGE_PATH}/tasks/task-2/progress.md`)
   const taskOneFeedback = artifacts.taskOneFeedback === undefined
-    ? taskIsActive(plan, 1) ? feedback(1, "Add the auth | session", base, taskOneHead) : null
+    ? taskIsActive(plan, 1) ? feedback(1, taskTitle(plan, 1), base, taskOneHead) : null
     : artifacts.taskOneFeedback
   const taskTwoFeedback = artifacts.taskTwoFeedback === undefined
-    ? taskIsActive(plan, 2) ? feedback(2, "Wire it into the router", base, taskTwoHead) : null
+    ? taskIsActive(plan, 2) ? feedback(2, taskTitle(plan, 2), base, taskTwoHead) : null
     : artifacts.taskTwoFeedback
   const wholeReview = artifacts.review === undefined ? review(base, taskTwoHead) : artifacts.review
   if (taskOneFeedback !== null) {
@@ -209,6 +214,41 @@ describe("hamilton-precondition-check.sh gate 2 — tests", () => {
 })
 
 describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
+  it("rejects duplicate task declarations", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { plan: `${PLAN}\n### Task 1: Duplicate auth\n` })
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(1)
+    expect(result.stdout + result.stderr).toContain("duplicate Task 1")
+  })
+
+  it("ignores task headings inside HTML comments", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { plan: `${PLAN}\n<!-- ### Task 1: Hidden duplicate -->\n` })
+
+    const result = check(repo, dir)
+
+    expect(result.status, result.stdout + result.stderr).toBe(0)
+    expect(result.stdout).toContain("[PASS] Tasks (2/2 implemented)")
+  })
+
+  it("keeps malformed abandonment syntax active", () => {
+    const repo = makeRepo()
+    const title = "Wire it into the router (abandoned - not canonical)"
+    const dir = seedChange(repo, {
+      plan: PLAN.replace("Wire it into the router", title),
+      progress: PROGRESS.replace("Wire it into the router", title),
+      taskTwoProgress: TASK_TWO_PROGRESS.replace("Wire it into the router", title)
+    })
+
+    const result = check(repo, dir)
+
+    expect(result.status, result.stdout + result.stderr).toBe(0)
+    expect(result.stdout).toContain("[PASS] Tasks (2/2 implemented)")
+  })
+
   it("fails when an active task row is missing", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, {

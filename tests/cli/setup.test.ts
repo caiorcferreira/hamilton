@@ -24,6 +24,7 @@ const TEMPLATE_FILES = [
 const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md", "wayfinder/route.md"]
 
 const SCRIPT_FILES = [
+  "hamilton-artifact-contracts.sh",
   "hamilton-change-context.sh",
   "hamilton-diff-package.sh",
   "hamilton-isolate.sh",

@@ -2,6 +2,9 @@
 
 set -uo pipefail
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 2
+. "$SCRIPT_DIR/hamilton-artifact-contracts.sh" || exit 2
+
 usage() {
   cat <<'EOF'
 usage:
@@ -95,13 +98,18 @@ ensure_base_ignored() {
 }
 
 validate_task() {
-  local change_dir="$1" task="$2" plan title
-  [[ "$task" =~ ^[1-9][0-9]*$ ]] || die "task must be an exact positive task number"
+  local change_dir="$1" task="$2" plan title status
   plan="$change_dir/plan.md"
   [ -f "$plan" ] || die "task $task has no plan at $plan"
-  title=$(grep -E "^### Task ${task}:" "$plan")
-  [ -n "$title" ] || die "task $task is not active in $plan"
-  [[ "${title,,}" != *"(abandoned"* ]] || die "task $task is abandoned in $plan"
+  title=$(hamilton_resolve_active_task "$plan" "$task")
+  status=$?
+  case "$status" in
+    0) ;;
+    1) die "task $task is not active in $plan" ;;
+    2) die "task must be an exact positive task number and the plan must declare each task once" ;;
+    3) die "task $task is abandoned in $plan" ;;
+    *) die "cannot resolve task $task in $plan" ;;
+  esac
 }
 
 task_base_file() {

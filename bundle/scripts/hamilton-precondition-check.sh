@@ -17,6 +17,9 @@
 
 set -uo pipefail
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 2
+. "$SCRIPT_DIR/hamilton-artifact-contracts.sh" || exit 2
+
 usage() {
   cat <<'EOF'
 usage:
@@ -81,30 +84,6 @@ gate_tests() {
 }
 
 # --------------------------------------------------------------- gate 3: tasks
-
-plan_tasks() {
-  strip_comments "$1" | awk '
-    function normalize_atx(value) {
-      if (substr(value, 1, 4) == "    ") return value
-      if (substr(value, 1, 3) == "   ") return substr(value, 4)
-      if (substr(value, 1, 2) == "  ") return substr(value, 3)
-      if (substr(value, 1, 1) == " ") return substr(value, 2)
-      return value
-    }
-    {
-      line = normalize_atx($0)
-      if (line !~ /^### Task [1-9][0-9]*:/) next
-      sub(/^### /, "", line)
-      id = line
-      sub(/:.*/, "", id)
-      title = line
-      sub(/^Task [1-9][0-9]*:[ \t]*/, "", title)
-      sub(/[ \t]+$/, "", title)
-      state = (index(tolower(title), "(abandoned") > 0) ? "abandoned" : "active"
-      printf "%s\t%s\t%s\n", id, title, state
-    }
-  '
-}
 
 TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
 
@@ -332,7 +311,7 @@ gate_tasks() {
   [ -f "$plan" ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
   [ -f "$progress" ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
 
-  plans=$(plan_tasks "$plan")
+  plans=$(hamilton_plan_tasks "$plan") || { fail "Tasks (plan has invalid or duplicate task declarations)"; return; }
   while IFS=$'\t' read -r id title state; do
     [ -n "$id" ] || continue
     if [ "$state" = "abandoned" ]; then
@@ -591,7 +570,7 @@ latest_material_commit() {
     ":(exclude)$change_path/finish.md"
   )
   if [ -f "$plan" ]; then
-    plans=$(plan_tasks "$plan")
+    plans=$(hamilton_plan_tasks "$plan") || return 1
     while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "active" ] || continue
@@ -610,7 +589,7 @@ gate_reviews() {
   local change_dir="$1"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
   local root change_path problems=""
-  local id title state feedback parsed verdict base head blocking cannot_verify implementation standing
+  local plans id title state feedback parsed verdict base head blocking cannot_verify implementation standing
 
   [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
 
@@ -621,6 +600,7 @@ gate_reviews() {
   esac
 
   if [ -f "$plan" ]; then
+    plans=$(hamilton_plan_tasks "$plan") || { problems="${problems}${problems:+; }plan(task declarations malformed)"; plans=""; }
     while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "abandoned" ] && continue
@@ -660,7 +640,7 @@ gate_reviews() {
         *) problems="${problems}${problems:+; }$id(review range cannot be verified)" ;;
       esac
     done <<EOF
-$(plan_tasks "$plan")
+$plans
 EOF
   fi
 

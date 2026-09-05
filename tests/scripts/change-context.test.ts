@@ -137,6 +137,41 @@ function splitFiles(overrides: Record<string, string> = {}): Record<string, stri
 }
 
 describe("hamilton-change-context.sh <change-dir>", () => {
+  it("rejects duplicate task declarations", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({ "plan.md": `${PLAN}\n### Task 1: Duplicate auth\n` }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("duplicate Task 1")
+  })
+
+  it("ignores task headings inside HTML comments", () => {
+    const repo = makeRepo()
+    const dir = seed(repo, "add-auth", splitFiles({ "plan.md": `${PLAN}\n<!-- ### Task 1: Hidden duplicate -->\n` }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(field(result, "tasks")).toBe("1/2 done")
+  })
+
+  it("keeps malformed abandonment syntax active", () => {
+    const repo = makeRepo()
+    const title = "Wire it into the router (abandoned - not canonical)"
+    const dir = seed(repo, "add-auth", splitFiles({
+      "plan.md": PLAN.replace("Wire it into the router", title),
+      "progress.md": ROOT_PROGRESS.replace("Wire it into the router", title),
+      "tasks/task-2/progress.md": TASK_TWO_PROGRESS.replace("Wire it into the router", title)
+    }))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 2: blocked, feedback: absent")
+  })
+
   it.each([
     ["task-titled", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Task 1: Add the auth | session")],
     ["skipped", TASK_ONE_PROGRESS.replace("## Attempt 2", "## Attempt 3")],

@@ -2,6 +2,9 @@
 
 set -uo pipefail
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 2
+. "$SCRIPT_DIR/hamilton-artifact-contracts.sh" || exit 2
+
 usage() {
   cat <<'EOF'
 usage:
@@ -71,30 +74,6 @@ fmt_date() {
 
 first_header() {
   strip_comments "$1" | sed -n '/^ \{0,3\}#/ { s/^ \{0,3\}#\{1,\} *//; p; q; }'
-}
-
-plan_tasks() {
-  strip_comments "$1" | awk '
-    function normalize_atx(value) {
-      if (substr(value, 1, 4) == "    ") return value
-      if (substr(value, 1, 3) == "   ") return substr(value, 4)
-      if (substr(value, 1, 2) == "  ") return substr(value, 3)
-      if (substr(value, 1, 1) == " ") return substr(value, 2)
-      return value
-    }
-    {
-      line = normalize_atx($0)
-      if (line !~ /^### Task [1-9][0-9]*:/) next
-      sub(/^### /, "", line)
-      id = line
-      sub(/:.*/, "", id)
-      title = line
-      sub(/^Task [1-9][0-9]*:[ \t]*/, "", title)
-      sub(/[ \t]+$/, "", title)
-      state = (index(tolower(title), "(abandoned") > 0) ? "abandoned" : "active"
-      printf "%s\t%s\t%s\n", id, title, state
-    }
-  '
 }
 
 TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
@@ -322,7 +301,7 @@ validate_ledger() {
   local dir="$1" plan="$dir/plan.md" progress="$dir/progress.md"
   local plans rows_text index row id title state actual_task status link expected_task expected_link task_file outcome active row_count
 
-  plans=$(plan_tasks "$plan")
+  plans=$(hamilton_plan_tasks "$plan") || return 1
   rows_text=$(root_rows "$progress") || return 1
   [ -n "$plans" ] || { ledger_error "plan has no active task declarations"; return 1; }
   active=0
@@ -379,14 +358,17 @@ has_task_review_pass() {
 }
 
 format_of() {
-  local dir="$1" plan_row id title state
+  local dir="$1" plans id title state
   [ -f "$dir/plan.md" ] || { printf 'pre-plan\n'; return; }
+  plans=$(hamilton_plan_tasks "$dir/plan.md") || { printf 'invalid\n'; return 2; }
   [ -f "$dir/progress.md" ] && has_only_root_ledger_shape "$dir/progress.md" || { printf 'legacy-unsupported\n'; return; }
   [ ! -f "$dir/review.md" ] || ! has_task_review_pass "$dir/review.md" || { printf 'legacy-unsupported\n'; return; }
   while IFS=$'\t' read -r id title state; do
     [ "$state" = "active" ] || continue
     [ -f "$dir/tasks/task-${id#Task }/progress.md" ] || { printf 'legacy-unsupported\n'; return; }
-  done < <(plan_tasks "$dir/plan.md")
+  done <<EOF
+$plans
+EOF
   printf 'split\n'
 }
 
@@ -559,7 +541,7 @@ ARTIFACTS="proposal.md design.md plan.md progress.md review.md finish.md critiqu
 
 cmd_one() {
   local dir="$1" format artifact lines header route caps counts done_count total whole root change_path plans rows_text index row id title state actual_task status link feedback
-  format=$(format_of "$dir")
+  format=$(format_of "$dir") || die "task ledger: plan task declarations are invalid"
   printf 'change: %s\n' "$(basename "$dir")"
   printf 'path: %s\n' "$dir"
   printf 'format: %s\n' "$format"
@@ -597,7 +579,7 @@ cmd_one() {
       printf '\ntasks: %s/%s done\n' "$done_count" "$total"
       root=$(repo_root_for "$dir") || die "change dir is not inside a git repository"
       change_path=$(relative_to_root "$root" "$dir") || die "change dir is outside its git repository"
-      plans=$(plan_tasks "$dir/plan.md")
+      plans=$(hamilton_plan_tasks "$dir/plan.md") || die "task ledger: plan task declarations are invalid"
       rows_text=$(root_rows "$dir/progress.md")
       printf 'task state:\n'
       index=0
@@ -641,7 +623,7 @@ cmd_all() {
     [ -d "$dir/requirements" ] && present="$present,requirements"
     [ -n "$present" ] || present=",(none)"
     [ "$newest" -gt 0 ] || newest=$(mtime_epoch "$dir")
-    format=$(format_of "$dir")
+    format=$(format_of "$dir") || format="invalid"
     done_count="-"
     total="-"
     task_display="-"

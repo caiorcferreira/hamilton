@@ -41,6 +41,54 @@ function packageTask(changeDir: string, task: number, cwd: string): ReturnType<t
 }
 
 describe("hamilton-diff-package.sh --record", () => {
+  it("rejects duplicate task declarations", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: First\n### Task 2: Second\n")
+    commitAll(repo, "add duplicate tasks")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("duplicate Task 2")
+  })
+
+  it("ignores task headings inside HTML comments", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: Test task\n<!-- ### Task 2: Hidden duplicate -->\n")
+    commitAll(repo, "add commented task")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(0)
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(true)
+  })
+
+  it("rejects a task declared only inside an HTML comment", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    Fs.writeFileSync(Path.join(changeDir, "plan.md"), "<!--\n### Task 2: Hidden task\n-->\n")
+    commitAll(repo, "add hidden task")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain("not active")
+  })
+
+  it("does not treat malformed abandonment syntax as abandoned", () => {
+    const repo = makeRepo()
+    const changeDir = makeChangeDir(repo, "add-auth")
+    Fs.writeFileSync(Path.join(changeDir, "plan.md"), "### Task 2: Test task (abandoned - not canonical)\n")
+    commitAll(repo, "add malformed abandonment")
+
+    const result = record(changeDir, 2, repo)
+
+    expect(result.status).toBe(0)
+    expect(Fs.existsSync(basePath(changeDir, 2))).toBe(true)
+  })
+
   it("stores Task N's BASE = HEAD and leaves the tree clean", () => {
     const repo = makeRepo()
     const changeDir = makeChangeDir(repo, "add-auth")
