@@ -72,6 +72,17 @@ function review(base: string, head: string, verdict = "approved", blocking = "- 
 ${pass(1, base, head, verdict, blocking, suggestions)}`
 }
 
+const VERDICT_HISTORY_MUTATIONS = [
+  ["sectionless approval", (content: string) => content.replace(/\n### Blocking[\s\S]*/, "\n")],
+  ["gapped pass numbering", (content: string) => content.replace("## Pass 1", "## Pass 2")],
+  ["duplicate pass numbering", (content: string) => `${content}\n${content.slice(content.indexOf("## Pass 1"))}`],
+  ["approved blocking finding", (content: string) => content.replace("- None.", "- [src/auth.ts:1] Fix the auth flow.")],
+  ["wrong owner identity", (content: string) => content.replace(/^# (Code Feedback|Whole-branch Review):/, "# Wrong Owner:")],
+  ["unknown metadata", (content: string) => content.replace("\n### Blocking", "\nConfidence: high\n\n### Blocking")],
+  ["malformed list content", (content: string) => content.replace("- None.", "None.")],
+  ["out-of-order metadata", (content: string) => content.replace(/Base: ([^\n]+)\nHead: ([^\n]+)/, "Head: $2\nBase: $1")]
+] as const
+
 interface Artifacts {
   plan?: string
   progress?: string
@@ -505,6 +516,45 @@ No tasks were declared.
 })
 
 describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
+  for (const owner of ["task feedback", "whole-branch review"] as const) {
+    it.each(VERDICT_HISTORY_MUTATIONS)(`fails malformed ${owner} for %s`, (_name, mutate) => {
+      const repo = makeRepo()
+      const dir = seedChange(repo)
+      const path = owner === "task feedback"
+        ? `${CHANGE_PATH}/tasks/task-1/feedback.md`
+        : `${CHANGE_PATH}/review.md`
+      const content = Fs.readFileSync(Path.join(repo, path), "utf8")
+      record(repo, path, mutate(content), `record malformed ${owner}`)
+
+      const result = check(repo, dir)
+
+      expect(result.status).toBe(1)
+      expect(result.stdout).toContain(owner === "task feedback"
+        ? "Task 1(feedback malformed)"
+        : "whole-branch(review malformed)")
+    })
+  }
+
+  it("accepts resolved cannot verify from diff prose in Suggestions", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo)
+    const feedbackPath = `${CHANGE_PATH}/tasks/task-1/feedback.md`
+    const reviewPath = `${CHANGE_PATH}/review.md`
+    const suggestion = "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."
+    const feedbackContent = Fs.readFileSync(Path.join(repo, feedbackPath), "utf8")
+      .replace("### Suggestions\n\n- None.", `### Suggestions\n\n${suggestion}`)
+    const reviewContent = Fs.readFileSync(Path.join(repo, reviewPath), "utf8")
+      .replace("### Suggestions\n\n- None.", `### Suggestions\n\n${suggestion}`)
+    record(repo, feedbackPath, feedbackContent, "record resolved task suggestion")
+    record(repo, reviewPath, reviewContent, "record resolved whole-branch suggestion")
+
+    const result = check(repo, dir)
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain("[PASS] Reviews")
+    expect(result.lastLine).toBe("gate: open")
+  })
+
   it("fails when a task's latest verdict regressed to changes-requested", () => {
     const repo = makeRepo()
     const dir = seedChange(repo)
@@ -540,10 +590,10 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
 
     expect(result.status).toBe(1)
     expect(result.stdout).toContain("Task 1")
-    expect(result.stdout).toContain("approved with 1 blocking")
+    expect(result.stdout).toContain("feedback malformed")
   })
 
-  it("fails approved feedback with an unresolved cannot verify from diff item", () => {
+  it("fails unresolved cannot verify from diff feedback through its blocking verdict", () => {
     const repo = makeRepo()
     const dir = seedChange(repo)
     const base = initialCommit(repo)
@@ -551,7 +601,7 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
     record(
       repo,
       `${CHANGE_PATH}/tasks/task-1/feedback.md`,
-      feedback(1, "Add the auth | session", base, head, "approved", "- None.", "- [src/router.ts:1] Cannot verify from diff whether routing is safe."),
+      feedback(1, "Add the auth | session", base, head, "changes-requested", "- [src/router.ts:1] Cannot verify from diff whether routing is safe."),
       "record unresolved task feedback"
     )
 
@@ -559,7 +609,7 @@ describe("hamilton-precondition-check.sh gate 4 — reviews", () => {
 
     expect(result.status).toBe(1)
     expect(result.stdout).toContain("Task 1")
-    expect(result.stdout).toContain("cannot verify from diff")
+    expect(result.stdout).toContain("latest verdict: changes-requested")
   })
 
   it("fails feedback whose declared task differs from its owner directory", () => {
@@ -790,7 +840,7 @@ Verdict: approved
 
     expect(result.status).toBe(1)
     expect(result.stdout).toContain("whole-branch")
-    expect(result.stdout).toContain("approved with 1 blocking")
+    expect(result.stdout).toContain("review malformed")
   })
 
   it("does not fall back past the physically last malformed whole-branch pass", () => {

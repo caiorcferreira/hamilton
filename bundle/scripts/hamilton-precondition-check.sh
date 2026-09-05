@@ -379,147 +379,6 @@ EOF
 
 # ------------------------------------------------------------- gate 4: reviews
 
-latest_review_pass() {
-  local file="$1" expected_heading="$2"
-  strip_comments "$file" | awk -v expected_heading="$expected_heading" '
-    function normalize_atx(value) {
-      if (substr(value, 1, 4) == "    ") return value
-      if (substr(value, 1, 3) == "   ") return substr(value, 4)
-      if (substr(value, 1, 2) == "  ") return substr(value, 3)
-      if (substr(value, 1, 1) == " ") return substr(value, 2)
-      return value
-    }
-    function atx_level(value,    count, character) {
-      count = 0
-      while (substr(value, count + 1, 1) == "#") count++
-      if (count < 1 || count > 6) return 0
-      character = substr(value, count + 1, 1)
-      if (character != "" && character != " " && character != "\t") return 0
-      return count
-    }
-    function reset_pass() {
-      base = ""
-      head = ""
-      verdict = ""
-      base_count = 0
-      head_count = 0
-      verdict_count = 0
-      blocking_sections = 0
-      suggestion_sections = 0
-      blocking = 0
-      blocking_none = 0
-      suggestions = 0
-      suggestions_none = 0
-      cannot_verify = 0
-      section = ""
-      pass_valid = 1
-    }
-    {
-      raw = $0
-      sub(/\r$/, "", raw)
-      line = normalize_atx(raw)
-      level = atx_level(line)
-      if (level == 1) {
-        heading = line
-        sub(/^#[ \t]*/, "", heading)
-        heading_count++
-        if (heading != expected_heading) identity_valid = 0
-        next
-      }
-      if (level == 2) {
-        pass_seen = 1
-        reset_pass()
-        if (heading_count != 1 || !identity_valid) pass_valid = 0
-        heading = line
-        sub(/^##[ \t]*/, "", heading)
-        if (heading !~ /^Pass [1-9][0-9]* \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) pass_valid = 0
-        next
-      }
-      if (!pass_seen) {
-        if (raw !~ /^[ \t]*$/) outside_invalid = 1
-        next
-      }
-      if (level == 3) {
-        heading = line
-        sub(/^###[ \t]*/, "", heading)
-        if (heading == "Blocking") {
-          blocking_sections++
-          if (blocking_sections != 1 || suggestion_sections != 0 || base_count != 1 || head_count != 1 || verdict_count != 1) pass_valid = 0
-          section = "blocking"
-        } else if (heading == "Suggestions") {
-          suggestion_sections++
-          if (blocking_sections != 1 || suggestion_sections != 1) pass_valid = 0
-          section = "suggestions"
-        } else {
-          pass_valid = 0
-          section = "invalid"
-        }
-        next
-      }
-      if (level > 0) {
-        pass_valid = 0
-        next
-      }
-      lower = tolower(raw)
-      if (index(lower, "cannot verify from diff") > 0) cannot_verify = 1
-      if (raw ~ /^Base:/) {
-        if (section != "") pass_valid = 0
-        value = raw
-        sub(/^Base:[ \t]*/, "", value)
-        sub(/[ \t]+$/, "", value)
-        base = value
-        base_count++
-        next
-      }
-      if (raw ~ /^Head:/) {
-        if (section != "") pass_valid = 0
-        value = raw
-        sub(/^Head:[ \t]*/, "", value)
-        sub(/[ \t]+$/, "", value)
-        head = value
-        head_count++
-        next
-      }
-      if (raw ~ /^Verdict:/) {
-        if (section != "") pass_valid = 0
-        value = raw
-        sub(/^Verdict:[ \t]*/, "", value)
-        sub(/[ \t]+$/, "", value)
-        verdict = value
-        verdict_count++
-        next
-      }
-      if ((section == "blocking" || section == "suggestions") && raw ~ /^[ \t]*-[ \t]+/) {
-        value = raw
-        sub(/^[ \t]*-[ \t]+/, "", value)
-        sub(/[ \t]+$/, "", value)
-        marker = value
-        gsub(/[[:space:][:punct:]]/, "", marker)
-        marker = tolower(marker)
-        if (section == "blocking") {
-          if (raw == "- None.") blocking_none++
-          else if (marker == "" || marker == "none") pass_valid = 0
-          else blocking++
-        } else {
-          if (raw == "- None.") suggestions_none++
-          else if (marker == "" || marker == "none") pass_valid = 0
-          else suggestions++
-        }
-        next
-      }
-      if ((section == "blocking" || section == "suggestions") && raw !~ /^[ \t]*$/ && raw !~ /^[ \t]*-[ \t]+/) pass_valid = 0
-      else if (section == "" && raw !~ /^[ \t]*$/) pass_valid = 0
-    }
-    BEGIN { identity_valid = 1 }
-    END {
-      if (heading_count != 1 || !identity_valid || outside_invalid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || blocking_sections != 1 || suggestion_sections != 1 || (verdict != "approved" && verdict != "changes-requested")) exit 1
-      if (blocking + blocking_none < 1 || suggestions + suggestions_none < 1) exit 1
-      if ((blocking_none > 0 && (blocking > 0 || blocking_none != 1)) || (suggestions_none > 0 && (suggestions > 0 || suggestions_none != 1))) exit 1
-      printf "%s\t%s\t%s\t%d\t%d\n", verdict, base, head, blocking, cannot_verify
-    }
-  '
-}
-
 whole_review_pass() {
   local file="$1" heading
   heading=$(strip_comments "$file" | awk '
@@ -532,7 +391,7 @@ whole_review_pass() {
     }
   ')
   [ -n "$heading" ] || return 1
-  latest_review_pass "$file" "$heading"
+  hamilton_latest_verdict_pass "$file" "$heading"
 }
 
 full_commit() {
@@ -589,7 +448,7 @@ gate_reviews() {
   local change_dir="$1"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
   local root change_path problems=""
-  local plans id title state feedback parsed verdict base head blocking cannot_verify implementation standing
+  local plans id title state feedback parsed verdict base head blocking implementation standing
 
   [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
 
@@ -609,21 +468,13 @@ gate_reviews() {
         problems="${problems}${problems:+; }$id(feedback missing)"
         continue
       fi
-      parsed=$(latest_review_pass "$feedback" "Code Feedback: $id — $title") || {
+      parsed=$(hamilton_latest_verdict_pass "$feedback" "Code Feedback: $id — $title") || {
         problems="${problems}${problems:+; }$id(feedback malformed)"
         continue
       }
-      IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+      IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
       if [ "$verdict" != "approved" ]; then
         problems="${problems}${problems:+; }$id(latest verdict: $verdict)"
-        continue
-      fi
-      if [ "$cannot_verify" -gt 0 ]; then
-        problems="${problems}${problems:+; }$id(unresolved cannot verify from diff)"
-        continue
-      fi
-      if [ "$blocking" -gt 0 ]; then
-        problems="${problems}${problems:+; }$id(approved with $blocking blocking item(s))"
         continue
       fi
       implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${id#Task }/progress.md")
@@ -649,11 +500,9 @@ EOF
     parsed=""
   }
   if [ -n "$parsed" ]; then
-    IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+    IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
     if [ "$verdict" != "approved" ]; then
       problems="${problems}${problems:+; }whole-branch(latest verdict: $verdict)"
-    elif [ "$blocking" -gt 0 ]; then
-      problems="${problems}${problems:+; }whole-branch(approved with $blocking blocking item(s))"
     else
       standing=$(review_range_standing "$root" "$base" "$head" "")
       case "$standing" in
@@ -676,7 +525,7 @@ EOF
 
 gate_review_freshness() {
   local change_dir="$1" waiver="$2"
-  local review="$change_dir/review.md" root change_path parsed verdict base head blocking cannot_verify standing material
+  local review="$change_dir/review.md" root change_path parsed verdict base head blocking standing material
 
   [ -s "$review" ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
   root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || { fail "Whole-branch review freshness (change directory is not in a git repository)"; return; }
@@ -685,7 +534,7 @@ gate_review_freshness() {
     *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
   esac
   parsed=$(whole_review_pass "$review") || { fail "Whole-branch review freshness (review malformed)"; return; }
-  IFS=$'\t' read -r verdict base head blocking cannot_verify <<<"$parsed"
+  IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   standing=$(review_range_standing "$root" "$base" "$head" "")
   case "$standing" in
     malformed) fail "Whole-branch review freshness (review range is malformed)"; return ;;

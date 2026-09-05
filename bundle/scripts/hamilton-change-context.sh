@@ -392,85 +392,6 @@ capabilities() {
   find "$dir/requirements" -maxdepth 1 -name '*.md' -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' '
 }
 
-latest_pass() {
-  local file="$1" expected_heading="$2"
-  strip_comments "$file" | awk -v expected_heading="$expected_heading" '
-    function normalize_atx(value) {
-      if (substr(value, 1, 4) == "    ") return value
-      if (substr(value, 1, 3) == "   ") return substr(value, 4)
-      if (substr(value, 1, 2) == "  ") return substr(value, 3)
-      if (substr(value, 1, 1) == " ") return substr(value, 2)
-      return value
-    }
-    function atx_level(value,    count, character) {
-      count = 0
-      while (substr(value, count + 1, 1) == "#") count++
-      if (count < 1 || count > 6) return 0
-      character = substr(value, count + 1, 1)
-      if (character != "" && character != " " && character != "\t") return 0
-      return count
-    }
-    function reset_pass() {
-      base = ""
-      head = ""
-      verdict = ""
-      base_count = 0
-      head_count = 0
-      verdict_count = 0
-      pass_valid = 1
-    }
-    {
-      line = normalize_atx($0)
-      level = atx_level(line)
-      if (level == 1) {
-        heading = line
-        sub(/^#[ \t]*/, "", heading)
-        sub(/\r$/, "", heading)
-        heading_count++
-        if (heading != expected_heading) identity_valid = 0
-        next
-      }
-      if (level == 2) {
-        pass_seen = 1
-        reset_pass()
-        if (heading_count != 1 || !identity_valid) pass_valid = 0
-        heading = line
-        sub(/^##[ \t]*/, "", heading)
-        sub(/\r$/, "", heading)
-        if (heading !~ /^Pass [1-9][0-9]* \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) pass_valid = 0
-        next
-      }
-      if (!pass_seen) next
-      if ($0 ~ /^Base:/) {
-        value = $0
-        sub(/^Base:[ \t]*/, "", value)
-        sub(/[ \t\r]+$/, "", value)
-        base = value
-        base_count++
-      }
-      if ($0 ~ /^Head:/) {
-        value = $0
-        sub(/^Head:[ \t]*/, "", value)
-        sub(/[ \t\r]+$/, "", value)
-        head = value
-        head_count++
-      }
-      if ($0 ~ /^Verdict:/) {
-        value = $0
-        sub(/^Verdict:[ \t]*/, "", value)
-        sub(/[ \t\r]+$/, "", value)
-        verdict = value
-        verdict_count++
-      }
-    }
-    BEGIN { identity_valid = 1 }
-    END {
-      if (heading_count != 1 || !identity_valid || !pass_seen || !pass_valid || base_count != 1 || head_count != 1 || verdict_count != 1 || (verdict != "approved" && verdict != "changes-requested")) exit 1
-      printf "%s\t%s\t%s\n", verdict, base, head
-    }
-  '
-}
-
 repo_root_for() {
   local dir="$1"
   git -C "$dir" rev-parse --show-toplevel 2>/dev/null
@@ -516,10 +437,10 @@ latest_material_commit() {
 }
 
 task_feedback_state() {
-  local root="$1" change_path="$2" file="$3" task="$4" title="$5" parsed verdict base head implementation standing
+  local root="$1" change_path="$2" file="$3" task="$4" title="$5" parsed verdict base head blocking implementation standing
   [ -s "$file" ] || { printf 'absent\n'; return; }
-  parsed=$(latest_pass "$file" "Code Feedback: $task — $title") || { printf 'malformed\n'; return; }
-  IFS=$'\t' read -r verdict base head <<<"$parsed"
+  parsed=$(hamilton_latest_verdict_pass "$file" "Code Feedback: $task — $title") || { printf 'malformed\n'; return; }
+  IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${task#Task }/progress.md")
   standing=$(review_standing "$root" "$base" "$head" "$implementation")
   [ "$standing" != "malformed" ] || { printf 'malformed\n'; return; }
@@ -527,10 +448,10 @@ task_feedback_state() {
 }
 
 whole_review_state() {
-  local root="$1" change_path="$2" file="$3" parsed verdict base head material standing
+  local root="$1" change_path="$2" file="$3" parsed verdict base head blocking material standing
   [ -s "$file" ] || { printf 'not reviewed\n'; return; }
-  parsed=$(latest_pass "$file" "Whole-branch Review: $(first_header "$file" | sed 's/^Whole-branch Review: //')") || { printf 'malformed\n'; return; }
-  IFS=$'\t' read -r verdict base head <<<"$parsed"
+  parsed=$(hamilton_latest_verdict_pass "$file" "Whole-branch Review: $(first_header "$file" | sed 's/^Whole-branch Review: //')") || { printf 'malformed\n'; return; }
+  IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
   material=$(latest_material_commit "$root" "$change_path")
   standing=$(review_standing "$root" "$base" "$head" "$material")
   [ "$standing" != "malformed" ] || { printf 'malformed\n'; return; }

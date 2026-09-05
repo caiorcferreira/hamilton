@@ -68,7 +68,7 @@ Verdict: approved
 Verdict: approved
 `
 
-function feedback(task: number, title: string, base: string, head: string, verdict = "approved"): string {
+function feedback(task: number, title: string, base: string, head: string, verdict = "approved", blocking = "- None.", suggestions = "- None."): string {
   return `# Code Feedback: Task ${task} — ${title}
 
 ## Pass 1 — 2026-08-14
@@ -79,15 +79,15 @@ Verdict: ${verdict}
 
 ### Blocking
 
-- None.
+${blocking}
 
 ### Suggestions
 
-- None.
+${suggestions}
 `
 }
 
-function review(base: string, head: string, verdict = "approved"): string {
+function review(base: string, head: string, verdict = "approved", blocking = "- None.", suggestions = "- None."): string {
   return `# Whole-branch Review: add auth
 
 ## Pass 1 — 2026-08-14
@@ -98,13 +98,24 @@ Verdict: ${verdict}
 
 ### Blocking
 
-- None.
+${blocking}
 
 ### Suggestions
 
-- None.
+${suggestions}
 `
 }
+
+const VERDICT_HISTORY_MUTATIONS = [
+  ["sectionless approval", (content: string) => content.replace(/\n### Blocking[\s\S]*/, "\n")],
+  ["gapped pass numbering", (content: string) => content.replace("## Pass 1", "## Pass 2")],
+  ["duplicate pass numbering", (content: string) => `${content}\n${content.slice(content.indexOf("## Pass 1"))}`],
+  ["approved blocking finding", (content: string) => content.replace("- None.", "- [src/auth.ts:1] Fix the auth flow.")],
+  ["wrong owner identity", (content: string) => content.replace(/^# (Code Feedback|Whole-branch Review):/, "# Wrong Owner:")],
+  ["unknown metadata", (content: string) => content.replace("\n### Blocking", "\nConfidence: high\n\n### Blocking")],
+  ["malformed list content", (content: string) => content.replace("- None.", "None.")],
+  ["out-of-order metadata", (content: string) => content.replace(/Base: ([^\n]+)\nHead: ([^\n]+)/, "Head: $2\nBase: $1")]
+] as const
 
 function seedCommittedSplit(repo: string): { dir: string; base: string; head: string } {
   const base = git(repo, "rev-parse", "HEAD")
@@ -213,6 +224,41 @@ describe("hamilton-change-context.sh <change-dir>", () => {
     expect(result.stdout).toContain("Task 1: done, feedback: absent")
     expect(result.stdout).toContain("Task 2: blocked, feedback: absent")
     expect(result.stdout).toContain("whole change: not reviewed")
+  })
+
+  for (const owner of ["task feedback", "whole-branch review"] as const) {
+    it.each(VERDICT_HISTORY_MUTATIONS)(`reports malformed ${owner} for %s`, (_name, mutate) => {
+      const repo = makeRepo()
+      const { dir, base, head } = seedCommittedSplit(repo)
+      const content = owner === "task feedback"
+        ? feedback(1, "Add the auth | session", base, head)
+        : review(base, head)
+      const path = owner === "task feedback"
+        ? ".hamilton/changes/add-auth/tasks/task-1/feedback.md"
+        : ".hamilton/changes/add-auth/review.md"
+      write(repo, path, mutate(content))
+
+      const result = run(SCRIPT, [dir], repo)
+
+      expect(result.status, result.stderr).toBe(0)
+      expect(result.stdout).toContain(owner === "task feedback"
+        ? "Task 1: done, feedback: malformed"
+        : "whole change: malformed")
+    })
+  }
+
+  it("accepts resolved cannot verify from diff prose in Suggestions", () => {
+    const repo = makeRepo()
+    const { dir, base, head } = seedCommittedSplit(repo)
+    const suggestion = "- [src/router.ts:1] Resolved cannot verify from diff concern with routing coverage."
+    write(repo, ".hamilton/changes/add-auth/tasks/task-1/feedback.md", feedback(1, "Add the auth | session", base, head, "approved", "- None.", suggestion))
+    write(repo, ".hamilton/changes/add-auth/review.md", review(base, head, "approved", "- None.", suggestion))
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)")
+    expect(result.stdout).toContain("whole change: approved (fresh)")
   })
 
   it("does not fall back past the physically last malformed feedback pass", () => {
