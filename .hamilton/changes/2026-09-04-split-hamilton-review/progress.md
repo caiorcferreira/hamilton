@@ -16,3 +16,20 @@
 | Task 12: Move finish history into finish.md | done | [details](tasks/task-12/progress.md) |
 | Task 13: Synchronize the seven-step identity across live skills | done | [details](tasks/task-13/progress.md) |
 | Task 14: Publish the split workflow migration guidance | done | [details](tasks/task-14/progress.md) |
+| Task 15: Normalize bootstrap task attempt histories | pending | [details](tasks/task-15/progress.md) |
+| Task 16: Enforce canonical task attempt grammar | pending | [details](tasks/task-16/progress.md) |
+| Task 17: Centralize exact active-task resolution | pending | [details](tasks/task-17/progress.md) |
+| Task 18: Centralize exact verdict history parsing | pending | [details](tasks/task-18/progress.md) |
+| Task 19: Scope material exclusions to exact task owners | pending | [details](tasks/task-19/progress.md) |
+| Task 20: Bind diff packaging to the change repository | pending | [details](tasks/task-20/progress.md) |
+| Task 21: Guard checkpoint creation after durable task evidence | pending | [details](tasks/task-21/progress.md) |
+| Task 22: Run finish gates in the target repository | pending | [details](tasks/task-22/progress.md) |
+| Task 23: Require committed finish-gate evidence | pending | [details](tasks/task-23/progress.md) |
+| Task 24: Reject unsupported review generations | pending | [details](tasks/task-24/progress.md) |
+| Task 25: Route unresolved feedback evidence explicitly | pending | [details](tasks/task-25/progress.md) |
+| Task 26: Model lifecycle creation state in templates | pending | [details](tasks/task-26/progress.md) |
+| Task 27: Instantiate installed artifact templates in producers | pending | [details](tasks/task-27/progress.md) |
+| Task 28: Protect verdict bookkeeping commits before commit | pending | [details](tasks/task-28/progress.md) |
+| Task 29: Document the atomic installed-generation upgrade | pending | [details](tasks/task-29/progress.md) |
+| Task 30: Correct pipeline stage ordering | pending | [details](tasks/task-30/progress.md) |
+| Task 31: Correct artifact lifecycle reference claims | pending | [details](tasks/task-31/progress.md) |

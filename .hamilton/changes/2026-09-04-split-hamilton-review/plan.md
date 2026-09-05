@@ -6,8 +6,8 @@
 - Goal: Split task code feedback from whole-branch review and reorganize execution state so root `progress.md` is the authoritative task index, detailed task progress and feedback live under `tasks/task-N/`, and finish history has its own durable artifact.
 - Test: `bun --bun vitest run`
 - Build / typecheck: `bun run build`
-- Context notes: Follow `proposal.md`, `design.md`, and all four files under `requirements/`. Before recording Task 1's checkpoint, commit the currently untracked approved proposal, requirements, design, this plan, root progress index, and initialized task progress files as a planning-scaffold commit so no task diff absorbs upstream artifacts. Baseline verification after `bun install` found one existing GNU/Linux portability failure in `tests/scripts/change-context.test.ts` (`--all` orders `older-change` first because failed `stat -f` output contaminates the timestamp); Task 1 fixes that helper before any later task, while the other 97 tests pass and `bun run build` succeeds. Do not edit `.hamilton/specs/` during implementation; `hamilton-finish-work` distills the deltas into canonical specs after the final gate. Do not modify historical `.hamilton/changes/` or `.hamilton/maps/` artifacts. Delete only the explicitly listed legacy `.hamilton/templates/` mirror. Do not add comments to TypeScript, tests, or shell code; the instructional HTML blocks required inside artifact templates are template content, not source-code commentary. Every feedback and whole-branch review artifact must be committed alone before the driver advances. Run the task Verify command, then the full suite and build required by `hamilton-code` before each implementation commit.
-- Quality notes: Fourteen tasks follow one responsibility per executable helper, artifact family, or skill contract. Same-file evolutions are ordered: change-context ledger parsing precedes freshness reporting, and precondition task validation precedes review validation. The task-local checkpoint, progress, feedback, and review seams are covered through real temporary git repositories; prose-only skill contracts use narrow structural tests rather than snapshots. Documentation remains a final presentation task. No structural smell is accepted.
+- Context notes: Follow `proposal.md`, `design.md`, and all four files under `requirements/`. Before recording Task 1's checkpoint, commit the currently untracked approved proposal, requirements, design, this plan, root progress index, and initialized task progress files as a planning-scaffold commit so no task diff absorbs upstream artifacts. Baseline verification after `bun install` found one existing GNU/Linux portability failure in `tests/scripts/change-context.test.ts` (`--all` orders `older-change` first because failed `stat -f` output contaminates the timestamp); Task 1 fixes that helper before any later task, while the other 97 tests pass and `bun run build` succeeds. Whole-branch Review Pass 1 requested eighteen corrections after Tasks 1–14. The approved self-hosting bootstrap disposition resolves Finding 1 without rewriting history and authorizes only Task 15's forward normalization of the existing Task 1 and Task 4 attempt headings; Findings 2–18 remain implementation obligations. Tasks 1–14 and their existing rows and histories are frozen except for those two exact Task 15 heading normalizations. After Task 15's implementation commit, its edits make Task 1 and Task 4 feedback stale: before recording Task 16's checkpoint, the driver must obtain and commit fresh artifact-only `hamilton-code-feedback` passes for Task 1 and Task 4 at the normalization head, then obtain Task 15 feedback. After Task 27's producer correction, before recording Task 28's checkpoint, the driver must use `hamilton-code-feedback` to remove retained template instructions from the live Task 4, Task 5, Task 11, and Task 14 feedback artifacts while preserving every pass, append fresh canonical passes at the same material head, commit each artifact alone, and then obtain Task 27 feedback. Every new remediation task otherwise follows canonical `Attempt N` syntax and receives a committed artifact-only feedback pass before the next task checkpoint. Do not edit `.hamilton/specs/` during implementation; `hamilton-finish-work` distills the deltas into canonical specs after the final gate. Do not modify historical `.hamilton/changes/` or `.hamilton/maps/` artifacts outside this active change. Do not add comments to TypeScript, tests, or shell code; the instructional HTML blocks required inside artifact templates are template content, not source-code commentary. Run the task Verify command, then the full suite and build required by `hamilton-code` before each implementation commit.
+- Quality notes: Tasks 15–31 preserve the completed task definitions while slicing review remediation by parser boundary, gate boundary, producer boundary, template lifecycle, and documentation concern. Shared artifact grammar becomes one installed shell library before consumers tighten verdict semantics; same-file changes carry explicit dependencies; target-repository checks are separated from committed-evidence checks; template creation shapes precede producer consumption; migration, sequence, and catalog corrections remain separate presentation tasks. Real temporary repositories verify executable behavior, while Markdown contract tests assert stable lifecycle boundaries rather than prose snapshots. No structural smell is accepted.
 
 ## Tasks
 
@@ -332,11 +332,414 @@
 - Verify: `bun --bun vitest run && bun run build && git diff --check` → full tests and build pass, and the diff has no whitespace errors.
 - Commit: `docs: publish split execution and review workflow`
 
+### Task 15: Normalize bootstrap task attempt histories
+
+- Depends on: Task 14
+- Files:
+  - Created: none
+  - Modified:
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-1/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-4/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-15/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Task 1's nine physical attempts and Task 4's two physical attempts are headed contiguously as `## Attempt 1` through `## Attempt 9` and `## Attempt 1` through `## Attempt 2` respectively, with every original date, evidence body, and physical order preserved (requirements/artifact-templates.md — Approved bootstrap disposition for this change).
+  - No other completed task history, existing commit, root status other than Task 15, feedback pass, or product parser is changed; the repair is a forward commit and creates no accepted alternate grammar (requirements/execution.md — Approved bootstrap disposition for this change).
+  - The driver treats the normalization commit as the latest implementation evidence for Task 1 and Task 4 and completes the feedback-refresh barrier in the Overview before any Task 16 checkpoint is recorded (requirements/review.md — Task feedback freshness follows task implementation).
+- Steps:
+  1. Capture the existing Task 1 and Task 4 dates, attempt bodies, and physical order, then run a failing structural check that demonstrates their headings are not canonical and contiguous.
+  2. Replace only those two files' pre-contract H2 headings with physically ordered canonical attempt numbers, preserving all other bytes in their attempt bodies and leaving their root rows `done`.
+  3. Run the exact heading, body-preservation, and whitespace checks; do not edit a parser or any feedback artifact in this task.
+- Verify: `test "$(rg -c '^## Attempt [1-9][0-9]* — 2026-09-04$' .hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-1/progress.md)" -eq 9 && test "$(rg -c '^## Attempt [1-9][0-9]* — 2026-09-04$' .hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-4/progress.md)" -eq 2 && ! rg -n '^## Task [1-9][0-9]*:' .hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-{1,4}/progress.md && git diff --check` → both approved histories use only their exact contiguous canonical headings and the diff is clean.
+- Commit: `docs(change): normalize bootstrap task attempts`
+
+### Task 16: Enforce canonical task attempt grammar
+
+- Depends on: Task 15
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-16/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Both split-layout consumers accept only contiguous physical `## Attempt N — <date>` sections beginning at 1 and reject the removed `## Task N: <title> — <date>` form and every other alternate attempt boundary (requirements/artifact-templates.md — Task execution details have an installed template and nested instance path).
+  - The legacy acceptance fixture and every generic fallback branch are removed; neither this change slug nor any task number appears in product parsing logic (requirements/execution.md — Legacy formats are inventoried but never interpreted).
+  - The now-canonical Task 1 and Task 4 histories pass ordinary strict parsing without a compatibility exception.
+- Steps:
+  1. Replace the legacy-acceptance fixture with failing cases for task-titled, skipped, duplicated, and out-of-order attempt headings in both context and finish-gate consumers.
+  2. Remove the alternate heading branches and require one contiguous canonical sequence while retaining physical-boundary and latest-outcome validation.
+  3. Run both focused script suites and search live scripts and tests for any affirmative legacy-attempt fallback.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts` → both consumers reject alternate or non-contiguous task attempts and accept the normalized live shape.
+- Commit: `fix(scripts): reject legacy task attempt headings`
+
+### Task 17: Centralize exact active-task resolution
+
+- Depends on: Task 16
+- Files:
+  - Created:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+  - Modified:
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `bundle/scripts/hamilton-diff-package.sh`
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/diff-package.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `tests/cli/setup.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-17/progress.md`
+  - Deleted: none
+- Acceptance:
+  - One installed, portable parser supplies all three helpers with exact comment-aware `Task N` declarations, rejects duplicate positive ids and headings hidden in HTML comments, and recognizes abandonment only from the canonical `(abandoned — <reason>)` suffix (requirements/execution.md — exact active task and checkpoint ownership).
+  - Malformed abandonment markers remain active or malformed rather than being silently skipped, and no consumer uses Bash 4-only lowercase expansion, `mapfile`, or another Bash 3.2-incompatible construct.
+  - `hamilton setup` installs and reports the shared script dependency, and direct bundled-script tests resolve it from the scripts directory without relying on caller CWD.
+- Steps:
+  1. Add failing cross-helper fixtures for duplicate ids, commented headings, exact and malformed abandonment suffixes, and a setup expectation for the shared script.
+  2. Implement the narrow artifact-contract library with one comment-aware task resolver and make context, diff-package, and precondition consume it from their own script directory.
+  3. Remove the three divergent task classifiers, run the focused suites, and scan the installed scripts for Bash 4-only syntax.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/diff-package.test.ts tests/scripts/precondition-check.test.ts tests/cli/setup.test.ts` → every helper applies the same exact active-task grammar and setup installs its dependency.
+- Commit: `refactor(scripts): centralize active task parsing`
+
+### Task 18: Centralize exact verdict history parsing
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-artifact-contracts.sh`
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-18/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Context and precondition use one fail-closed grammar for task feedback and whole-branch review: exact owner H1, contiguous unique physical `Pass N` numbering beginning at 1, ordered Base/Head/Verdict and Blocking/Suggestions sections, nonempty canonical list semantics, and no fallback past a malformed physical last pass (requirements/review.md — task-owned and change-owned verdict histories).
+  - `approved` with a Blocking finding, missing findings sections, duplicate or gapped numbering, wrong identity, unknown metadata, or malformed list content is invalid in both consumers.
+  - The phrase `cannot verify from diff` is not searched in arbitrary prose: an unresolved item blocks through its canonical Blocking section and `changes-requested` verdict, while a Suggestions sentence describing resolved coverage remains valid (requirements/review.md — Unverified task impact is resolved before approval).
+- Steps:
+  1. Add the same failing verdict-history matrix to both consumers, including sectionless approval, pass-number gaps and duplicates, contradictions, and resolved `cannot verify from diff` prose under Suggestions.
+  2. Move physical pass parsing and semantic validation into the shared artifact-contract library and adapt each consumer to use its canonical result plus its own ancestry/freshness policy.
+  3. Delete the broad phrase flag and the inconsistent local verdict parsers, then run both focused suites.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts tests/scripts/precondition-check.test.ts` → both helpers accept and reject the same canonical verdict histories, including resolved-risk prose.
+- Commit: `fix(scripts): enforce canonical verdict histories`
+
+### Task 19: Scope material exclusions to exact task owners
+
+- Depends on: Task 18
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-change-context.sh`
+    - `tests/scripts/change-context.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-19/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Whole-branch freshness excludes bookkeeping only for exact numeric `tasks/task-N/progress.md` and `tasks/task-N/feedback.md` owners declared by the plan's active or retained history policy, matching the precondition gate (requirements/review.md — Whole-branch review has a change-owned verdict history).
+  - A path such as `tasks/task-not-a-task/feedback.md`, an undeclared numeric task path, or any near-match remains material and stales the review, while exact root progress, root review, root finish, and declared task bookkeeping retain their intended exclusions.
+- Steps:
+  1. Add failing context fixtures mirroring precondition's noncanonical task-like path regression and covering an undeclared numeric owner.
+  2. Replace broad `task-*` pathspec exclusions with exact paths derived from the shared plan-task result.
+  3. Run the context suite and compare representative freshness outcomes with the existing precondition fixtures.
+- Verify: `bun --bun vitest run tests/scripts/change-context.test.ts` → only exact declared bookkeeping owners are excluded from whole-branch material freshness.
+- Commit: `fix(scripts): scope material exclusions to task owners`
+
+### Task 20: Bind diff packaging to the change repository
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-diff-package.sh`
+    - `tests/scripts/diff-package.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-20/progress.md`
+  - Deleted: none
+- Acceptance:
+  - When `--change-dir` is supplied or discovered, every checkpoint, ignore, ancestry, HEAD, default-ref, diff, and path operation is performed against the one repository root resolved from that directory, independent of caller CWD (requirements/execution.md — Each task owns one stable diff checkpoint).
+  - A caller in repository A can package a change in repository B without reading or mutating A, and an invalid change directory outside a Git repository fails before writing a checkpoint or package.
+  - Whole-change mode retains its caller-repository merge-base behavior because it accepts no change directory.
+- Steps:
+  1. Add a failing two-repository fixture that invokes record, task package, and explicit-base package from repository A for a change under repository B and checks all output and ignore mutations remain in B.
+  2. Resolve the target root once from the change directory and route every relevant Git command and relative path through that root without changing whole-change semantics.
+  3. Run the diff-package suite and inspect both repositories after the cross-repository cases.
+- Verify: `bun --bun vitest run tests/scripts/diff-package.test.ts` → task and explicit-base modes are bound to the change repository and whole-change behavior remains green.
+- Commit: `fix(scripts): bind diff packaging to change repository`
+
+### Task 21: Guard checkpoint creation after durable task evidence
+
+- Depends on: Task 20
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-diff-package.sh`
+    - `tests/scripts/diff-package.test.ts`
+    - `skills/hamilton-code/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-21/progress.md`
+  - Deleted: none
+- Acceptance:
+  - `--record` creates a missing checkpoint only for a genuine first attempt whose row is pending, task log has no attempt, feedback is absent, and no durable task evidence conflicts; otherwise it rejects the write and requires unambiguous historical recovery (requirements/execution.md — Task checkpoint is missing on resume).
+  - Direct `hamilton-code` applies the same evidence-free guard and recovery/stop rules as orchestration before invoking record, so retry or correction work cannot silently rebase to current HEAD.
+  - An existing valid checkpoint remains idempotent and reusable regardless of later task evidence.
+- Steps:
+  1. Add failing helper cases for a missing checkpoint with done, blocked, attempted, or feedback-bearing evidence and skill-contract assertions for direct-code recovery parity.
+  2. Make record validate the split row and durable task artifacts before first creation while preserving validation of an existing checkpoint; update code's checkpoint process to distinguish first attempt from historical recovery.
+  3. Run both focused suites and confirm no path substitutes `HEAD~1` or current HEAD after evidence exists.
+- Verify: `bun --bun vitest run tests/scripts/diff-package.test.ts tests/skills/execution-contracts.test.ts` → checkpoint creation is evidence-free only and direct code stops or recovers historical work safely.
+- Commit: `fix(scripts): protect durable task checkpoints`
+
+### Task 22: Run finish gates in the target repository
+
+- Depends on: Task 18, Task 20
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-22/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Precondition resolves one repository root from `--change-dir` before any gate, checks cleanliness there, and executes the configured verification command with that root as its working directory rather than using caller CWD (requirements/review.md — Finish requires current implementation and both approval classes).
+  - The gate rechecks target-repository cleanliness immediately after verification and once more immediately before `gate: open`; a zero-exit command that dirties a tracked path closes the gate and names the mutation.
+  - A two-repository invocation cannot use repository A's clean tree or passing command context to open a dirty or failing repository B.
+- Steps:
+  1. Add failing two-repository tests and a zero-exit verification command that mutates a tracked target path.
+  2. Resolve and retain the target root at startup, run all repository-sensitive gates there, and add post-verification and final clean-tree checks without weakening existing waiver boundaries.
+  3. Run the focused precondition suite and inspect the ordering of clean, test, post-test, and final gate output.
+- Verify: `bun --bun vitest run tests/scripts/precondition-check.test.ts` → caller CWD cannot influence target gates and any verification-side mutation keeps the gate closed.
+- Commit: `fix(scripts): run finish gates in target repository`
+
+### Task 23: Require committed finish-gate evidence
+
+- Depends on: Task 22
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/scripts/hamilton-precondition-check.sh`
+    - `tests/scripts/precondition-check.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-23/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Before consuming evidence, the finish gate requires plan, root ledger, every active task progress and feedback file, and root review to be tracked at current HEAD with worktree content identical to committed content (requirements/review.md — task and whole-branch artifact-only commit requirements).
+  - An ignored untracked recreation, assume-unchanged modification, staged-only verdict, or tracked deletion cannot satisfy any task, review, or freshness gate even when its filesystem text is otherwise valid.
+  - Exact committed evidence passes without changing the existing structural, verdict, freshness, test, cleanliness, or waiver semantics.
+- Steps:
+  1. Add failing fixtures for valid-looking ignored-untracked, staged, modified, and deleted evidence at each owner class.
+  2. Add one target-root committed-content check and apply it to every artifact before its text is parsed.
+  3. Run the focused suite and verify failures identify the uncommitted owner rather than laundering it through later gates.
+- Verify: `bun --bun vitest run tests/scripts/precondition-check.test.ts` → only evidence tracked and committed exactly at HEAD can open the finish gate.
+- Commit: `fix(scripts): require committed gate evidence`
+
+### Task 24: Reject unsupported review generations
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-code-feedback/SKILL.md`
+    - `skills/hamilton-review/SKILL.md`
+    - `tests/skills/code-feedback-contract.test.ts`
+    - `tests/skills/review-contract.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-24/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Both direct review entry points run an early no-write generation gate: once plan exists, they require the exact split root ledger and every required active-task artifact before scope inspection or verdict mutation (requirements/execution.md — Legacy formats are inventoried but never interpreted).
+  - A planned monolithic, missing-scaffold, or partially split change stops as `legacy-unsupported` with between-changes upgrade guidance and cannot acquire a new-generation feedback or review artifact.
+  - A pre-plan request remains distinguishable from legacy, while a valid split change continues to the existing task-scope or whole-branch-scope validation.
+- Steps:
+  1. Add failing skill-contract cases for monolithic, partially scaffolded, and pre-plan inputs, asserting the gate precedes artifact writes.
+  2. Add the same exact split-generation preflight to code-feedback and review while retaining their distinct scope boundaries.
+  3. Run both focused contract suites and read the entry sequences for any route that appends a verdict before the generation gate.
+- Verify: `bun --bun vitest run tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts` → both review producers fail closed at the atomic-generation boundary.
+- Commit: `fix(skills): reject unsupported review generations`
+
+### Task 25: Route unresolved feedback evidence explicitly
+
+- Depends on: Task 24
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-orchestrate/SKILL.md`
+    - `skills/hamilton-orchestrate/references/code-feedback-prompt.md`
+    - `tests/skills/orchestrate-contract.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-25/progress.md`
+  - Deleted: none
+- Acceptance:
+  - The task resume matrix distinguishes ordinary fresh `changes-requested` from a fresh pass carrying a canonical unresolved `cannot verify from diff` Blocking item and routes the latter to driver adjudication before code or advancement (requirements/review.md — Unverified task impact is resolved before approval).
+  - The code-feedback dispatch prompt has an explicit located-evidence input that may be empty on an ordinary pass and carries exact named cross-task evidence for a same-Head re-feedback pass.
+  - Contract coverage proves satisfied-risk re-feedback keeps the unchanged reviewed Head and can approve only through a new physical pass, while a confirmed gap returns to code.
+- Steps:
+  1. Add failing resume-matrix and prompt-placeholder assertions for unresolved evidence, confirmed gaps, and satisfied same-Head re-feedback.
+  2. Split the matrix action, thread a located-evidence placeholder through the dispatch template, and align the numbered process with the existing bounded adjudication rule.
+  3. Run the orchestration contract suite and inspect the prompt with both empty and populated evidence inputs.
+- Verify: `bun --bun vitest run tests/skills/orchestrate-contract.test.ts` → unresolved verification is adjudicated explicitly and same-Head evidence-only re-feedback is dispatchable.
+- Commit: `fix(skills): route unresolved feedback evidence`
+
+### Task 26: Model lifecycle creation state in templates
+
+- Depends on: Task 2
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/templates/progress.md`
+    - `bundle/templates/task-progress.md`
+    - `bundle/templates/feedback.md`
+    - `bundle/templates/review.md`
+    - `bundle/templates/finish.md`
+    - `tests/templates/artifact-contracts.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-26/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Each lifecycle template's opening instruction names its producer and instance path and explicitly tells the producer to delete the block and every inline hint before finalizing (canonical `.hamilton/specs/artifact-templates.md` — The template idiom).
+  - `task-progress.md` represents plan-time creation without a future attempt stub; `finish.md` represents first-attempt creation without a future Outcome stub; other lifecycle templates contain only fields that exist when their producer instantiates them (canonical artifact-template creation-time-shape decision).
+  - Append-only attempt, pass, and outcome field semantics remain in their owning requirements and skills rather than being stamped prematurely into initialized artifacts.
+- Steps:
+  1. Add failing template-boundary assertions for instruction removal and creation-time absence of future sections.
+  2. Revise only the five bundled lifecycle shapes to the canonical idiom and creation-time state, retaining their exact owner headings and stable fields where they exist at creation.
+  3. Run the template contracts and inspect every changed template end to end.
+- Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts` → all five lifecycle templates satisfy the canonical idiom and creation-time boundary.
+- Commit: `fix(templates): model lifecycle creation state`
+
+### Task 27: Instantiate installed artifact templates in producers
+
+- Depends on: Task 24, Task 26
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-code/SKILL.md`
+    - `skills/hamilton-code-feedback/SKILL.md`
+    - `skills/hamilton-review/SKILL.md`
+    - `skills/hamilton-finish-work/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts`
+    - `tests/skills/code-feedback-contract.test.ts`
+    - `tests/skills/review-contract.test.ts`
+    - `tests/skills/finish-work-contract.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-27/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Code, code-feedback, review, and finish-work load and instantiate their exact installed named templates, remove all template instructions and inline hints, and preserve lifecycle validation and append-only semantics without carrying a second exact artifact shape in skill code fences (requirements/artifact-templates.md — The bundle is the only repository template source).
+  - Skill contract tests assert template filename, instantiation, hint removal, owner path, and lifecycle behavior; exact field/order assertions remain only in bundled-template tests.
+  - Existing feedback histories keep every prior pass while their owning feedback producer can remove a retained leading instruction block; the driver completes the live-artifact cleanup barrier in the Overview before Task 28 begins.
+- Steps:
+  1. Replace duplicated-shape contract assertions with failing installed-template consumption and hint-removal assertions across all four producers.
+  2. Rewrite producer instructions to instantiate and clean the installed template, then describe append validation semantically without duplicating the template's exact field/order block.
+  3. Run all four focused skill suites, search the producer bodies for copied full artifact skeletons, and hand control to the driver for the required artifact-only cleanup passes.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts tests/skills/finish-work-contract.test.ts` → every producer uses the installed template as the sole shape definition and retains its lifecycle gates.
+- Commit: `refactor(skills): instantiate installed artifact templates`
+
+### Task 28: Protect verdict bookkeeping commits before commit
+
+- Depends on: Task 27
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-code-feedback/SKILL.md`
+    - `skills/hamilton-review/SKILL.md`
+    - `tests/skills/code-feedback-contract.test.ts`
+    - `tests/skills/review-contract.test.ts`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-28/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Both verdict producers inspect the index before mutation and refuse to proceed when an unrelated staged path exists, or use an explicitly path-limited commit that provably cannot absorb it; the required verdict commit contains only its owner artifact (requirements/review.md — task and whole-branch artifact-only commit requirements).
+  - The pre-commit safety action occurs before creating the bookkeeping commit, and the existing post-commit path-list verification remains mandatory.
+  - Contract tests cover unrelated pre-staged production and change-artifact paths for both task feedback and whole-branch review without permitting destructive unstaging.
+- Steps:
+  1. Add failing contract cases that pre-stage an unrelated path and assert no verdict commit can include it.
+  2. Add the same non-destructive pre-commit index/path-set gate and path-limited commit instruction to both producers while retaining post-commit verification.
+  3. Run both focused suites and inspect the process order from preflight through handoff.
+- Verify: `bun --bun vitest run tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts` → pre-staged work cannot enter either verdict commit and artifact-only verification still runs afterward.
+- Commit: `fix(skills): protect verdict bookkeeping commits`
+
+### Task 29: Document the atomic installed-generation upgrade
+
+- Depends on: Task 20, Task 21, Task 22, Task 24, Task 25, Task 27, Task 28
+- Files:
+  - Created: none
+  - Modified:
+    - `README.md`
+    - `docs/skills.md`
+    - `docs/sdd-framework.md`
+    - `docs/modes.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-29/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Migration guidance tells users to finish an active old-format change first, update the complete skill/template/helper set, run `hamilton setup`, and verify the installed generation before starting the next change (requirements/framework-docs.md — Migration guidance makes the artifact split a between-changes upgrade).
+  - Maintained docs consistently state that installed helpers and setup are required for checkpoint, packaging, context, and finish gates, or provide a complete executable manual fallback at every call site; no blanket claim promises missing colocated recipes.
+  - The helper caller table names the actual consumers after remediation, including the shared artifact-contract dependency where relevant.
+- Steps:
+  1. Trace every live helper invocation and current setup output, then identify the migration and fallback claims that disagree with those dependencies.
+  2. Rewrite the four maintained documentation surfaces with one atomic upgrade procedure, explicit installed-generation verification, and the actual helper requirement/caller matrix.
+  3. Read the edited sections end to end, run stale-claim searches, and run repository verification.
+- Verify: `bun --bun vitest run && bun run build && git diff --check` → repository gates pass and the documented upgrade/setup/helper contract matches live consumers.
+- Commit: `docs: document atomic Hamilton upgrades`
+
+### Task 30: Correct pipeline stage ordering
+
+- Depends on: Task 29
+- Files:
+  - Created: none
+  - Modified:
+    - `README.md`
+    - `docs/sdd-framework.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-30/progress.md`
+  - Deleted: none
+- Acceptance:
+  - README quick start places canonical specification synchronization before finish intent/history recording, matching finish-work's gate, sync, attempt, action, and outcome order (requirements/execution.md — Finish history has a dedicated append-only artifact).
+  - Framework prose states step 0 runs once per project, step 1 is optional per change, and steps 2–6 form the per-change sequence; it does not claim all steps 1–6 are mandatory.
+- Steps:
+  1. Add a concrete checklist from the live finish-work sequence and compare it with both cited summaries.
+  2. Correct only the ordering and optionality claims while preserving the seven-step identity and migration guidance.
+  3. Read both complete pipeline summaries and run stale-sequence searches plus repository verification.
+- Verify: `bun --bun vitest run && bun run build && git diff --check` → repository gates pass and both summaries match the binding lifecycle order.
+- Commit: `docs: correct pipeline stage ordering`
+
+### Task 31: Correct artifact lifecycle reference claims
+
+- Depends on: Task 27, Task 30
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/templates/README.md`
+    - `docs/skills.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/progress.md`
+    - `.hamilton/changes/2026-09-04-split-hamilton-review/tasks/task-31/progress.md`
+  - Deleted: none
+- Acceptance:
+  - The template catalog identifies task progress as initialized by plan and appended by code, distinguishes the sole required declarative `plan.md` input from the required operational ledger and task files created with it, and removes the obsolete claim that every downstream stage can start from a raw description (requirements/artifact-templates.md — Template documentation presents all split execution and review artifacts).
+  - The code skill reference distinguishes a successful implementation commit from a graceful blocked artifact-only bookkeeping commit and accurately names its producer/updater ownership (requirements/framework-docs.md — Skill reference documents execution and review ownership).
+  - Catalog and reference prose agree with the installed-template producer behavior implemented by Task 27 and retain the exact split instance paths.
+- Steps:
+  1. Compare the catalog ownership and required-artifact paragraphs plus the code skill entry against the implemented plan/code contracts.
+  2. Correct producer/updater, declarative-versus-operational, start boundary, and success-versus-blocked claims without widening other documentation.
+  3. Run template contracts, read both edited documents end to end, and run repository verification.
+- Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts && bun run build && git diff --check` → template contracts and build pass and both reference surfaces state the implemented lifecycle accurately.
+- Commit: `docs: correct artifact lifecycle ownership`
+
 ## Done when
 
-- All fourteen active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest attempt reads `Outcome: done`.
+- All thirty-one active task rows in root `progress.md` read `done`, and each linked task progress file's physical latest canonical attempt reads `Outcome: done`.
 - Every task's physical latest feedback pass is valid, committed, `approved`, free of blocking items, and fresh for that task's latest progress commit.
+- Task 1 and Task 4 feedback is refreshed after their approved forward normalization; Task 4, Task 5, Task 11, and Task 14 feedback histories retain every pass but no installed-template instruction block; every new task feedback commit precedes the next task checkpoint.
 - Root `review.md` has a committed physical latest whole-branch pass that is valid, `approved`, free of blocking findings, and fresh for the latest material change commit.
 - `bun --bun vitest run` passes and `bun run build` succeeds.
-- `git diff --check` is clean; no tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
+- `git diff --check` is clean; no generic legacy attempt fallback, broad task-owner material glob, caller-CWD Git gate, uncommitted verdict acceptance, duplicated producer shape, unsafe verdict commit, tracked `.hamilton/templates/` path, shared change-level `.base`, task-scoped `hamilton-review`, shared reviewer prompt, duplicate implementer report file, mixed root-progress history, or ownerless final fix wave remains in live sources.
 - `hamilton-finish-work` folds `execution`, `review`, `artifact-templates`, and `framework-docs` deltas into canonical specs and records the verified finish strategy in `finish.md`.
