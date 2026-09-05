@@ -10,7 +10,7 @@
 | Task 6: Enforce task ledger completion in the finish gate | done | [details](tasks/task-6/progress.md) |
 | Task 7: Enforce split review gates | done | [details](tasks/task-7/progress.md) |
 | Task 8: Implement the task-local execution lifecycle in skills | done | [details](tasks/task-8/progress.md) |
-| Task 9: Add the task-scoped code-feedback skill | pending | [details](tasks/task-9/progress.md) |
+| Task 9: Add the task-scoped code-feedback skill | done | [details](tasks/task-9/progress.md) |
 | Task 10: Narrow hamilton-review to whole-branch inspection | pending | [details](tasks/task-10/progress.md) |
 | Task 11: Rebuild orchestration around split pipeline state | pending | [details](tasks/task-11/progress.md) |
 | Task 12: Move finish history into finish.md | pending | [details](tasks/task-12/progress.md) |
