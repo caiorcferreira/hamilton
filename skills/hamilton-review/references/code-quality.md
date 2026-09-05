@@ -1,109 +1,68 @@
-# Code quality reference
+# Whole-branch code-quality rubric
 
-A review rubric for the **code under review** — the structural quality of the diff itself. By
-review time the design and plan are fixed; what remains to judge is whether the code the coder
-wrote honors that structure and reads cleanly. Use this to turn "this feels off" into a
-located, named finding a coder can act on without guessing.
+Use this rubric after reading the complete merge-base-to-head diff. The diff is starting evidence,
+not an inspection boundary: whole-branch quality is visible only when changed causes are traced to
+unchanged consumers, composed behavior, and material work that is absent from the diff.
 
-## How to use this
+For every blocking finding, name the changed cause and affected repository location when they
+differ, explain the present failure, specify the correction, and cite the violated requirement,
+design decision, or project standard. Keep speculative refinements in Suggestions.
 
-- While inspecting the diff, walk each principle and check the changed code for the **smell** —
-  a trigger you can point at a line, not a vibe. If it trips, raise it as feedback naming the
-  file and place, tagged blocking (it will bite) or suggestion (a smell without a present
-  cost), with the **fix** as the suggested change.
-- **Scale scrutiny to the change.** A mechanical or one-file diff trips few of these; a new
-  subsystem trips many. Proportionality is itself a quality principle — do not demand
-  gold-plating on a small change. When in doubt, spend the scrutiny on decomposition and
-  boundaries, the expensive things to get wrong.
-- **Structural defects that trace to the design are the design's problem, not the coder's.** If
-  the smell is baked into what the plan mandated, say so beside the plan text and flag it as a
-  plan/design issue rather than asking the coder to deviate — the coder executes steps verbatim
-  and cannot invent quality the plan did not encode.
-- **The vocabulary is paradigm-neutral.** "A unit" means a module, class, or function,
-  whichever the codebase uses. Read "depends on an abstraction" as an interface, a passed
-  function, or an injected effect, as the code demands.
+## Integration and composition
 
-## Principles
+Check that the combined branch preserves invariants across task boundaries. Follow data, control,
+artifact ownership, and workflow state through the order in which components actually compose.
+Look for parallel implementations that pass alone but disagree on identity, state, ordering,
+freshness, failure behavior, or handoff contracts when combined.
 
-Each entry states the principle in one line, then the **smell** to look for in the diff and the
-**fix**, on their own lines.
+## Missing material changes
 
-### Single responsibility (cohesion)
-A unit has one reason to change.
-- **Smell:** you cannot state a function's or module's job without "and"; one commit mixes
-  unrelated changes.
-- **Fix:** split along the axes that change independently — one unit per reason to change.
+Inspect what should have changed but did not. A changed behavior may require an unchanged test,
+specification, map, command, skill, template, script, migration, or documentation page to be
+updated. Treat an omitted required change as a located defect even though its affected path is
+beyond the diff.
 
-### Low coupling / clear boundaries
-Units depend on as little of each other as possible, through narrow interfaces.
-- **Smell:** code reaches into another module's internals; a concrete, mutable structure is
-  passed across a boundary; a small change here forces edits across many files.
-- **Fix:** narrow the interface and hide what is behind it, so internals can change without
-  breaking consumers.
+Do not confuse absence with minimalism. Report an omission only when a requirement, changed
+contract, repository convention, or reachable behavior makes the missing update necessary.
 
-### Dependency inversion & testable seams
-High-level policy depends on abstractions, not concrete details, and every unit has a seam
-where a test can substitute its collaborators.
-- **Smell:** core logic constructs or names a concrete IO/DB/clock/network/randomness source
-  directly; behavior the tests can only exercise with real IO.
-- **Fix:** inject the dependency behind an interface or parameter so a test can substitute it.
+## Affected consumers and assumptions
 
-### Open for extension
-Adding a case does not mean editing the branching of the existing one.
-- **Smell:** a new `switch`/`if`-arm added per type; a change that reads "to add X you edit
-  function Y."
-- **Fix:** polymorphism, a lookup table, or a registry so new cases are additive.
+Trace every changed public or internal contract to all plausibly affected consumers. Check call
+sites, parsers, writers, validators, templates, fixtures, documentation, and operational scripts
+that encode its old shape or semantics. State the assumption each consumer makes and whether the
+new branch preserves it.
 
-### Substitutability
-Every variant honors the contract its callers rely on; no caller needs to know which variant it
-holds.
-- **Smell:** an implementation that throws on or silently no-ops part of the interface; callers
-  that type-check the concrete variant before acting.
-- **Fix:** rethink the hierarchy, or narrow the interface to what all variants truly share.
+Continue beyond the first unaffected consumer. Whole-branch review must account for the broader
+repository surface rather than treating one spot-check as proof of universal compatibility.
 
-### Interface segregation
-A client depends only on what it uses.
-- **Smell:** a fat interface whose implementers stub half its methods; a caller pulled into
-  depending on a large module for one function.
-- **Fix:** split into role-specific interfaces sized to each client.
+## Requirement and design completeness
 
-### DRY / single source of truth
-Each piece of knowledge — a rule, a constant, a shape — has one authoritative definition.
-- **Smell:** the same logic or value copied into two places; parallel structures that must be
-  changed together to stay correct.
-- **Fix:** name it once and reference it.
-- **Counter:** do not merge things that are only incidentally alike today; that couples them for
-  no reason.
+Map the complete implementation back to every binding requirement and design decision. Check
+failure scenarios and negative constraints as closely as the happy path. A defect mandated by an
+approved requirement or design is an upstream artifact problem; route it for proposal revision
+instead of asking implementation to silently depart from approved intent.
 
-### Right-sized abstraction (YAGNI)
-Structure matches real, present need — and no more.
-- **Smell:** a layer, generic, config knob, or extension point with exactly one caller and no
-  requirement asking for a second.
-- **Fix:** cut it; add the seam when the second case actually arrives. This is the counterweight
-  to every principle above — apply them to remove concrete pain, never to speculate.
+## Boundaries and ownership
 
-### Intention-revealing names
-Names state purpose.
-- **Smell:** `data`, `manager`, `helper`, `process()`, boolean flags whose meaning you must
-  trace the code to recover.
-- **Fix:** rename to the domain concept the reader is looking for.
+Check that each artifact and state transition has one owner, paths use the canonical layout, and no
+task or skill writes another component's evidence. Flag forbidden paths, duplicated authorities,
+scope leakage, and bookkeeping that changes implementation state.
 
-### Explicit error and edge handling
-Failure modes are handled, not incidental.
-- **Smell:** only a happy path; errors swallowed or flattened into strings; an edge case with
-  no test.
-- **Fix:** handle failure → expected behavior, and cover each with a test.
+## Structural coherence
 
-### Complexity budget
-Prefer the simplest structure that solves the actual problem; watch size, nesting, and
-indirection.
-- **Smell:** a function that outgrows a screen or nests past a few levels; more layers of
-  indirection than the problem has moving parts.
-- **Fix:** decompose, flatten with early returns, or remove the indirection.
+Judge cohesion, coupling, testable seams, sources of truth, abstraction size, naming, explicit
+failure handling, and complexity across the assembled branch. Prefer the simplest correction that
+restores a concrete invariant. Do not request speculative architecture or unrelated cleanup.
 
-## What this judges
+## Behavioral evidence
 
-The **diff under review** — the code the coder actually wrote. Structure, boundaries, naming,
-and error handling are what this rubric scores; correctness, tests, security, and scope are
-covered by the other review dimensions in `SKILL.md`. A finding here cites the file and place
-like any other, and is tagged blocking or suggestion.
+Tests should assert observable branch behavior and fail for the regression they claim to cover.
+Evaluate accumulated task-local test evidence and changed tests before executing anything. If code
+and evidence leave one concrete doubt, identify it and use only the narrowest focused check needed
+to resolve it; full-suite and build verification belong to finish-work.
+
+## Scope and hygiene
+
+Account for every changed path. Flag unrelated edits, secrets, unsafe handling, dead code, stubs,
+TODOs, debug output, commented-out blocks, weakened tests, and accidental generated artifacts.
+Confirm that non-code artifacts are intentional and consistent with their repository consumers.
