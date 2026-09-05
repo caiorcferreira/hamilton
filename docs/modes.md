@@ -13,16 +13,22 @@ Ambient memory layer were removed; the last full-feature state is preserved on t
 
 **Status: working. Start here.**
 
-Assisted mode is a bundle of **spec-driven development skills** that guide any coding agent (Claude
-Code, or any agent that can load a `SKILL.md`) — or a person — through a change, one disciplined
-step at a time:
+Assisted mode is a bundle of **seven core spec-driven development skills** that guide any coding
+agent (Claude Code, or any agent that can load a `SKILL.md`) — or a person — through a change, one
+disciplined step at a time:
 
 ```
-init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-feedback ) ──▶ review ──▶ finish-work
+  0        1 optional      2          3             4                5            6
+                                     repeat per task              once per change
 ```
+
+Wayfinder is an optional pre-change planning stage, and `hamilton-critique` is an optional
+design-phase gate. Neither belongs to the seven-skill core sequence. Planning writes the declarative
+`plan.md`, initializes root `progress.md` as the current task ledger, and creates each
+`tasks/task-N/progress.md`. Code and code-feedback then loop per task, with verdicts in
+`tasks/task-N/feedback.md`; one whole-branch review writes root `review.md`; finish-work records its
+paired history in root `finish.md`.
 
 Each step is a self-contained skill that names no tool and depends on no engine internals — only on
 the project's standards (`AGENTS.md`) and the shared artifacts under the project's `.hamilton/`
