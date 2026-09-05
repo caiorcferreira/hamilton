@@ -96,9 +96,9 @@ design-phase gate; neither is counted in this core sequence.
 | 0 | `hamilton-init` | Set up the project: write `AGENTS.md`, scaffold `.hamilton/` |
 | 1 | `hamilton-propose` | Idea → proposal (why), requirements (what), design (how) |
 | 2 | `hamilton-plan` | Design → `plan.md`: small, TDD-sized, independently verifiable tasks |
-| 3 | `hamilton-code` | Execute one task → tests + code + task progress |
-| 4 | `hamilton-code-feedback` | Judge that task's stable diff → task feedback verdict |
-| 5 | `hamilton-review` | Inspect the complete branch and broader repository → root review verdict |
+| 3 | `hamilton-code` | Implement one task, then enter its `code` ↔ `code-feedback` loop |
+| 4 | `hamilton-code-feedback` | Judge that task's stable diff; approve it or loop back to `code` |
+| 5 | `hamilton-review` | Run the single whole-branch gate after every task loop passes |
 | 6 | `hamilton-finish-work` | Gate, sync specs, record finish history, finish via merge / PR / no-op |
 
 ```
@@ -221,6 +221,8 @@ Legacy planned changes that mix task verdicts into root `review.md` or detailed 
 `progress.md` are `legacy-unsupported` under the new execution and finish contracts. They are not
 converted, resumed, or accepted by the new workflow. Finish an active legacy change with the
 Hamilton version that created it; do not switch formats in the middle of that change.
+`hamilton-change-context.sh --all` may inventory such planned changes as `legacy-unsupported`, but
+it declines to parse or infer their task or review state.
 
 ## Control flow
 
@@ -268,17 +270,9 @@ Hamilton's help, reviews and approves the artifacts, then hands off — the agen
 matching skill from `~/.claude/skills/` (or wherever
 your agent reads `SKILL.md` files) and follows it against the artifacts.
 
-## Status and open work
+## Status
 
-All seven core pipeline skills — plus the `hamilton-orchestrate` driver — are authored and usable today
-(Assisted mode). `hamilton setup` installs the
-artifact templates into `~/.hamilton/templates/`, so the pipeline runs end to end with any coding
-agent. The remaining work is integration with the Autonomous engine, not skill authoring:
-
-- Unify the framework with the existing bundle: refactor the `feature-dev` agents and the
-  merge / PR / worktree variants to *invoke* these skills instead of embedding their own
-  instructions.
-- Consolidate the legacy spec systems (`openspec/`, `.superpowers/`, `docs/superpowers/`) into
-  the `.hamilton/` model.
-- Run a real change end to end through the full human-to-Hamilton (Autonomous) pipeline and record
-  the friction.
+The seven core pipeline skills and the `hamilton-orchestrate` driver are the maintained workflow in
+this repository. `hamilton setup` installs the versioned templates, guidelines, and helper scripts
+under `~/.hamilton/`; users install the portable skills separately for their coding agent. The test
+suite covers the setup CLI, helper scripts, artifact templates, and skill contracts.
