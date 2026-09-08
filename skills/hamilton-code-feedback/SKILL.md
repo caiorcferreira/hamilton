@@ -204,3 +204,31 @@ after every task is approved, enter whole-branch `hamilton-review`. For ordinary
 `cannot verify from diff` blocker, the driver adjudicates only the named risk and then supplies
 located evidence for another feedback pass or sends a confirmed gap to code. Never invoke another
 pipeline skill yourself.
+
+## Process flow
+
+```dot
+digraph hamilton_code_feedback {
+    "Require split layout + exact Task N" [shape=box];
+    "Validate checkpoint + stable task diff" [shape=box];
+    "Inspect bounded task evidence" [shape=box];
+    "Decide verdict" [shape=box];
+    "Run commit safety preflight" [shape=box];
+    "Verdict?" [shape=diamond];
+    "Append approved pass" [shape=box];
+    "Append changes-requested pass" [shape=box];
+    "Feedback-only bookkeeping commit" [shape=doublecircle];
+    "Return control to driver" [shape=doublecircle];
+
+    "Require split layout + exact Task N" -> "Validate checkpoint + stable task diff";
+    "Validate checkpoint + stable task diff" -> "Inspect bounded task evidence";
+    "Inspect bounded task evidence" -> "Decide verdict";
+    "Decide verdict" -> "Run commit safety preflight";
+    "Run commit safety preflight" -> "Verdict?";
+    "Verdict?" -> "Append approved pass" [label="approved"];
+    "Verdict?" -> "Append changes-requested pass" [label="changes-requested"];
+    "Append approved pass" -> "Feedback-only bookkeeping commit";
+    "Append changes-requested pass" -> "Feedback-only bookkeeping commit";
+    "Feedback-only bookkeeping commit" -> "Return control to driver";
+}
+```

@@ -245,6 +245,43 @@ change a task implementation status. Whole-branch verdict history belongs only i
 
 ## Output and handoff
 
+Return the change identity, full reviewed Base and Head, verdict, blocking count, suggestion count,
+and review commit identifier. Do not create a separate detailed report.
+
+For `approved`, return control to the driver so it can invoke `hamilton-finish-work`. For
+`changes-requested`, return control so the findings can be resolved before another whole-branch
+review. Never invoke another pipeline skill yourself.
+
+## Process flow
+
+```dot
+digraph hamilton_review {
+    "Require split layout + approved tasks" [shape=box];
+    "Validate merge base + branch range" [shape=box];
+    "Inspect the complete branch" [shape=box];
+    "Run focused verification" [shape=box];
+    "Decide verdict" [shape=box];
+    "Run commit safety preflight" [shape=box];
+    "Verdict?" [shape=diamond];
+    "Append approved pass" [shape=box];
+    "Append changes-requested pass" [shape=box];
+    "Review-only bookkeeping commit" [shape=doublecircle];
+    "Return control to driver" [shape=doublecircle];
+
+    "Require split layout + approved tasks" -> "Validate merge base + branch range";
+    "Validate merge base + branch range" -> "Inspect the complete branch";
+    "Inspect the complete branch" -> "Run focused verification";
+    "Run focused verification" -> "Decide verdict";
+    "Decide verdict" -> "Run commit safety preflight";
+    "Run commit safety preflight" -> "Verdict?";
+    "Verdict?" -> "Append approved pass" [label="approved"];
+    "Verdict?" -> "Append changes-requested pass" [label="changes-requested"];
+    "Append approved pass" -> "Review-only bookkeeping commit";
+    "Append changes-requested pass" -> "Review-only bookkeeping commit";
+    "Review-only bookkeeping commit" -> "Return control to driver";
+}
+```
+
 Return the full reviewed Base and Head, verdict, blocking count, suggestion count, any focused
 verification performed, and the review commit identifier.
 
