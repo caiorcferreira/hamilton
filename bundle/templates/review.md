@@ -1,24 +1,25 @@
 <!--
-  Review — the review artifact for a change.
+  Whole-branch Review — verdict for a complete change branch.
+  Produced by: hamilton-review (step 5).
   Lives at: .hamilton/changes/<change>/review.md
-  Written by the review step each pass: the verdict plus located, actionable feedback the
-  coder acts on. Newest pass at the bottom. progress.md keeps the one-line timeline.
-  <scope reviewed> is machine-checkable: exactly "Task <N>" or "whole change" —
-  finish-work's gate reads these values.
+  Task-scoped feedback belongs in tasks/task-N/feedback.md.
+  Delete this instruction block and every inline hint before finalizing.
 -->
 
-# Review: <Change Title>
+# Whole-branch Review: <Change Title> <!-- hint: replace with the plan's exact change title -->
 
-## <scope reviewed> — <YYYY-MM-DD>
+## Pass N — <YYYY-MM-DD> <!-- hint: replace with the next pass number and current date -->
 
+Base: <full merge-base commit identifier>
+Head: <full head commit identifier>
 Verdict: approved | changes-requested
 
 ### Blocking
 
-- [<file>:<loc>] <what is wrong> — <what to change>  (violates: <criterion / standard>)
+<!-- hint: use "- None." when approval has no blocking findings -->
+- [<file>:<loc>] <what is wrong> — <what to change> (violates: <criterion / standard>)
 
 ### Suggestions
 
+<!-- hint: use "- None." when there are no suggestions -->
 - [<file>:<loc>] <optional improvement>
-
-<!-- When approved, replace the lists above with a short note of what was verified. -->

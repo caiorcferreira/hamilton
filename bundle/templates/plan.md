@@ -1,13 +1,19 @@
 <!--
   Plan — implementation ledger / "Steps"
-  Produced by: hamilton-plan (step 2).  Lives at: .hamilton/changes/<change>/plan.md
+  Produced by: hamilton-plan (step 2 of the seven-stage pipeline). Lives at:
+  .hamilton/changes/<change>/plan.md
   REQUIRED artifact — the one document every change has. It is the handoff contract
   between planning and coding, for a human OR a Hamilton agent.
 
   Consumption contract:
-    - hamilton-code consumes ONE task at a time (a single "### Task" block and its steps)
+    - hamilton-code (step 3) consumes ONE task at a time (a single "### Task" block and its steps)
       and nothing else — it must not read or implement sibling tasks. Keep each task
       self-contained.
+    - hamilton-plan initializes the root task index in progress.md and each task's
+      tasks/task-N/progress.md. hamilton-code updates only that task's row and log;
+      hamilton-code-feedback (step 4) owns tasks/task-N/feedback.md.
+    - hamilton-review (step 5) owns the whole-branch review.md after all task feedback;
+      hamilton-finish-work (step 6) owns finish.md.
     - Each task is a TDD-sized unit: small enough to implement and verify in isolation,
       carrying its own acceptance check. "Build authentication" is too big;
       "add a user-registration endpoint that validates email format" is right.
@@ -79,7 +85,8 @@
 ## Done when
 
 <!-- Plan-level definition of done — checked by hamilton-finish-work.
-     Task completion is tracked in progress.md, not on the tasks here. -->
+     Task completion is tracked by the root progress.md index and each linked task log,
+     not on the tasks here. -->
 
 - All tasks implemented (recorded in progress.md)
 - `<test command>` passes; build / typecheck is clean

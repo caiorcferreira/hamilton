@@ -8,10 +8,11 @@ description: "Set up an existing project for the spec-driven pipeline: explore t
 Prepare an existing project for the pipeline: capture how the project works in `AGENTS.md`
 and create the `.hamilton/` workspace the other steps rely on. Run this once, up front.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. Each step is a skill a person or an agent can run. This skill is
-**step 0** — it runs before any change, and produces the standing project standards every
-later step reads.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
+skill is **step 0** — it runs before any change, and produces the standing project standards
+every later step reads. Wayfinder and `hamilton-critique` are optional and remain outside the
+seven-step core count.
 
 ## What it produces
 

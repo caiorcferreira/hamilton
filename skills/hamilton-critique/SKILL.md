@@ -9,11 +9,12 @@ Review the proposal, requirements, and design a change committed to — before a
 planned — and return a numbered findings report a person or agent can act on without
 guessing which item you mean.
 
-The **pipeline** is Hamilton's spec-driven sequence for a change: propose → plan → code →
-review → finish-work. This skill is an **optional design-phase gate**: it critiques the
-output of `hamilton-propose` before `hamilton-plan` turns it into tasks. It is the
-design-phase counterpart to `hamilton-review` (which judges the code diff) — the cheapest
-place to catch a design defect, since here nothing has been built yet.
+The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. This skill is an **optional design-phase gate outside the
+seven-step core pipeline**: it critiques the proposal, requirements, and design produced by
+`hamilton-propose` before `hamilton-plan` turns them into tasks. Unlike `hamilton-review`, which
+is the final whole-branch inspection gate, critique judges propose-phase artifacts before
+implementation. Wayfinder is likewise optional and outside the core count.
 
 **Judge, don't fix.** You produce a verdict and located findings. You never modify
 `proposal.md`, `requirements/`, or `design.md`. The author revises and brings the artifacts

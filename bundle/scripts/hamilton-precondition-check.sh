@@ -4,15 +4,6 @@
 #
 #   hamilton-precondition-check.sh --change-dir <dir> --test-cmd '<command>' [--whole-change-waived]
 #
-# Gates, one line of output each:
-#   1 clean tree            git status --porcelain is empty
-#   2 tests                 --test-cmd exits 0
-#   3 tasks                 every non-abandoned plan task has a latest progress Outcome: done
-#   4 reviews               every task scope and "whole change" latest verdict is approved,
-#                           with no blocking items under an approved verdict
-#   5 review freshness      the commit that last touched review.md includes the commit that
-#                           last touched code — i.e. the whole-change review is not stale
-#
 # This script fails closed. Anything it cannot parse is a FAIL, never a PASS: a false
 # pass would launder an unreviewed change through the gate. It never infers the
 # whole-change waiver either — gate 5 is waived only when --whole-change-waived is
@@ -25,6 +16,9 @@
 # Exit: 0 all gates pass, 1 one or more gates fail, 2 usage or environment error.
 
 set -uo pipefail
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 2
+. "$SCRIPT_DIR/hamilton-artifact-contracts.sh" || exit 2
 
 usage() {
   cat <<'EOF'
@@ -63,22 +57,22 @@ strip_comments() {
 # ---------------------------------------------------------------- gate 1: tree
 
 gate_clean_tree() {
-  local dirty
-  dirty=$(git status --porcelain 2>/dev/null)
+  local root="$1" label="$2" dirty
+  dirty=$(git -C "$root" status --porcelain 2>/dev/null)
   if [ -z "$dirty" ]; then
-    pass "Clean tree"
+    pass "$label"
     return
   fi
-  fail "Clean tree ($(printf '%s\n' "$dirty" | wc -l | tr -d ' ') uncommitted path(s))"
+  fail "$label ($(printf '%s\n' "$dirty" | wc -l | tr -d ' ') uncommitted path(s))"
   printf '%s\n' "$dirty" | sed 's/^/       /'
 }
 
 # --------------------------------------------------------------- gate 2: tests
 
 gate_tests() {
-  local cmd="$1" out status
+  local root="$1" cmd="$2" out status
   out=$(mktemp "${TMPDIR:-/tmp}/hamilton-precheck-XXXXXX") || die "cannot create a scratch file"
-  bash -c "$cmd" >"$out" 2>&1
+  (cd "$root" && bash -c "$cmd") >"$out" 2>&1
   status=$?
   if [ "$status" -eq 0 ]; then
     pass "Tests ($cmd)"
@@ -89,241 +83,512 @@ gate_tests() {
   rm -f "$out"
 }
 
+committed_artifact() {
+  local root="$1" file="$2" path
+  case "$file" in
+    "$root"/*) path="${file#"$root"/}" ;;
+    *) return 1 ;;
+  esac
+  if ! git -C "$root" cat-file -e "HEAD:$path" 2>/dev/null; then
+    [ ! -e "$file" ] && return 2
+    return 1
+  fi
+  [ -f "$file" ] || return 1
+  git -C "$root" diff --cached --quiet HEAD -- "$path" 2>/dev/null || return 1
+  git -C "$root" cat-file blob "HEAD:$path" 2>/dev/null | cmp -s - "$file"
+}
+
 # --------------------------------------------------------------- gate 3: tasks
 
-# "Task 3<TAB>abandoned|active" per plan task, in file order.
-plan_tasks() {
-  strip_comments "$1" | awk '
-    /^### Task [0-9]+:/ {
-      match($0, /Task [0-9]+/)
-      id = substr($0, RSTART, RLENGTH)
-      state = (index(tolower($0), "(abandoned") > 0) ? "abandoned" : "active"
-      printf "%s\t%s\n", id, state
+TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
+
+root_rows() {
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
+    function trim(value) {
+      sub(/^[ \t]+/, "", value)
+      sub(/[ \t]+$/, "", value)
+      return value
     }
+    function emit_row(line,    value, i, character, cell, n, escaped) {
+      value = line
+      sub(/^[ \t]*\|[ \t]*/, "", value)
+      sub(/[ \t]*\|[ \t]*$/, "", value)
+      cell = ""
+      n = 0
+      escaped = 0
+      for (i = 1; i <= length(value); i++) {
+        character = substr(value, i, 1)
+        if (escaped) {
+          cell = cell "\\" character
+          escaped = 0
+        } else if (character == "\\") {
+          escaped = 1
+        } else if (character == "|") {
+          cells[++n] = trim(cell)
+          cell = ""
+        } else {
+          cell = cell character
+        }
+      }
+      if (escaped) cell = cell "\\"
+      cells[++n] = trim(cell)
+      if (n != 3) {
+        invalid = 1
+        return
+      }
+      printf "%s\t%s\t%s\n", cells[1], cells[2], cells[3]
+    }
+    $0 == "| Task | Status | Progress |" {
+      if (table_seen) {
+        invalid = 1
+        exit
+      }
+      table_seen = 1
+      found = 1
+      separator = 1
+      next
+    }
+    found && $0 ~ /^[ \t]*$/ {
+      found = 0
+      table_ended = 1
+      if (separator) invalid = 1
+      next
+    }
+    table_ended && $0 ~ /^[ \t]*\|/ {
+      invalid = 1
+      exit
+    }
+    found && separator {
+      if ($0 !~ table_separator_re) {
+        invalid = 1
+        exit
+      }
+      separator = 0
+      next
+    }
+    found && $0 ~ /^[ \t]*\|/ {
+      emit_row($0)
+      next
+    }
+    found && $0 !~ /^[ \t]*$/ {
+      found = 0
+    }
+    END { exit invalid }
   '
 }
 
-# "Task 3<TAB>done" for the LATEST entry per task — progress appends newest at the
-# bottom, so a task that went blocked then done reads as done, and done then blocked
-# reads as blocked.
-progress_outcomes() {
-  strip_comments "$1" | awk '
-    /^## Task [0-9]+:/ {
-      match($0, /Task [0-9]+/)
-      current = substr($0, RSTART, RLENGTH)
-      next
+has_only_root_ledger_shape() {
+  strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
     }
-    current != "" && /^[ \t]*-?[ \t]*Outcome:/ {
-      value = $0
-      sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
-      gsub(/[ \t\r]+$/, "", value)
-      outcome[current] = value
-      next
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line ~ /^[ \t]*$/) {
+        if (table) table_ended = 1
+        next
+      }
+      if (table_ended) {
+        invalid = 1
+        next
+      }
+      if (!heading) {
+        if (normalize_atx(line) ~ /^# Progress:/) heading = 1
+        else invalid = 1
+        next
+      }
+      if (!table) {
+        if (line == "| Task | Status | Progress |") table = 1
+        else invalid = 1
+        next
+      }
+      if (!separator) {
+        if (line ~ table_separator_re) separator = 1
+        else invalid = 1
+        next
+      }
+      if (line !~ /^[ \t]*\|/) invalid = 1
     }
-    END { for (t in outcome) printf "%s\t%s\n", t, outcome[t] }
+    END { exit !(heading && table && separator && !invalid) }
+  '
+}
+
+escape_table_title() {
+  printf '%s' "$1" | sed 's/|/\\|/g'
+}
+
+task_progress_state() {
+  local file="$1" task="$2" title="$3"
+  strip_comments "$file" | awk -v task="$task" -v title="$title" '
+    BEGIN { expected_attempt = 1 }
+    function normalize_atx(value) {
+      if (substr(value, 1, 4) == "    ") return value
+      if (substr(value, 1, 3) == "   ") return substr(value, 4)
+      if (substr(value, 1, 2) == "  ") return substr(value, 3)
+      if (substr(value, 1, 1) == " ") return substr(value, 2)
+      return value
+    }
+    function atx_level(value,    count, character) {
+      count = 0
+      while (substr(value, count + 1, 1) == "#") count++
+      if (count < 1 || count > 6) return 0
+      character = substr(value, count + 1, 1)
+      if (character != "" && character != " " && character != "\t") return 0
+      return count
+    }
+    function close_attempt() {
+      if (active && outcome_count != 1) invalid = 1
+      active = 0
+      outcome_count = 0
+    }
+    {
+      line = normalize_atx($0)
+      level = atx_level(line)
+      if (level == 1) {
+        if (title_seen || active || attempt_seen) {
+          close_attempt()
+          latest = ""
+          invalid = 1
+        }
+        heading = line
+        sub(/^#[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        if (heading != "Task Progress: " task " \342\200\224 " title) wrong_heading = 1
+        title_seen = 1
+        next
+      }
+      if (level == 2) {
+        close_attempt()
+        latest = ""
+        attempt_seen = 1
+        if (!title_seen) {
+          invalid = 1
+          next
+        }
+        heading = line
+        sub(/^##[ \t]*/, "", heading)
+        sub(/\r$/, "", heading)
+        suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        if (heading !~ ("^Attempt [1-9][0-9]*" suffix "$")) {
+          invalid = 1
+          next
+        }
+        attempt = heading
+        sub(/^Attempt /, "", attempt)
+        sub(suffix "$", "", attempt)
+        if (attempt + 0 != expected_attempt) invalid = 1
+        expected_attempt++
+        active = 1
+        next
+      }
+      if (level > 0) {
+        close_attempt()
+        latest = ""
+        invalid = 1
+        next
+      }
+      if ($0 ~ /^[ \t]*-?[ \t]*Outcome:/) {
+        if (!active) {
+          latest = ""
+          invalid = 1
+          next
+        }
+        value = $0
+        sub(/^[ \t]*-?[ \t]*Outcome:[ \t]*/, "", value)
+        sub(/[ \t\r]+$/, "", value)
+        outcome_count++
+        if (outcome_count != 1) invalid = 1
+        if (value != "done" && value != "blocked") invalid = 1
+        latest = value
+      }
+    }
+    END {
+      close_attempt()
+      if (!title_seen) wrong_heading = 1
+      if (wrong_heading) print "wrong-heading"
+      else if (invalid) print "invalid"
+      else print latest
+    }
   '
 }
 
 gate_tasks() {
-  local change_dir="$1"
+  local change_dir="$1" root="$2"
   local plan="$change_dir/plan.md" progress="$change_dir/progress.md"
-  local total=0 done_count=0 abandoned=0 missing=""
+  local plans rows_text expected_text="" first_active="" total=0 done_count=0 abandoned=0
+  local id title state expected_task actual_task status link count index row expected_link task_file evidence suffix="" committed
 
-  [ -f "$plan" ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
-  [ -f "$progress" ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
+  committed_artifact "$root" "$plan"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Tasks (no plan.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Tasks (plan.md is not tracked and committed exactly at HEAD)"; return; }
+  committed_artifact "$root" "$progress"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Tasks (no progress.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Tasks (progress.md is not tracked and committed exactly at HEAD)"; return; }
 
-  local outcomes
-  outcomes=$(progress_outcomes "$progress")
-
-  local id state outcome
-  while IFS=$'\t' read -r id state; do
+  plans=$(hamilton_plan_tasks "$plan") || { fail "Tasks (plan has invalid or duplicate task declarations)"; return; }
+  while IFS=$'\t' read -r id title state; do
     [ -n "$id" ] || continue
     if [ "$state" = "abandoned" ]; then
       abandoned=$((abandoned + 1))
       continue
     fi
+    [ -n "$first_active" ] || first_active="$id"
     total=$((total + 1))
-    outcome=$(printf '%s\n' "$outcomes" | awk -F'\t' -v t="$id" '$1 == t { print $2 }' | tail -1)
-    if [ "$outcome" = "done" ]; then
-      done_count=$((done_count + 1))
-    elif [ -z "$outcome" ]; then
-      missing="$missing $id(no entry)"
-    else
-      missing="$missing $id($outcome)"
-    fi
+    expected_task="$id: $(escape_table_title "$title")"
+    expected_text="${expected_text}${expected_text:+$'\n'}$id"$'\t'"$expected_task"
   done <<EOF
-$(plan_tasks "$plan")
+$plans
 EOF
 
-  if [ "$total" -eq 0 ]; then
-    fail "Tasks (plan.md declares no tasks)"
-    return
-  fi
-  local suffix=""
+  [ "$total" -gt 0 ] || [ "$abandoned" -gt 0 ] || { fail "Tasks (plan.md declares no recognizable tasks)"; return; }
+  has_only_root_ledger_shape "$progress" || { fail "Tasks ($first_active: legacy progress layout is unsupported)"; return; }
+  rows_text=$(root_rows "$progress") || { fail "Tasks ($first_active: invalid root task ledger)"; return; }
+
+  while IFS=$'\t' read -r id expected_task; do
+    [ -n "$id" ] || continue
+    count=$(printf '%s\n' "$rows_text" | awk -F'\t' -v task="$expected_task" '$1 == task { count++ } END { print count + 0 }')
+    [ "$count" -gt 0 ] || { fail "Tasks ($id: missing root ledger row)"; return; }
+    [ "$count" -eq 1 ] || { fail "Tasks ($id: duplicate root ledger row)"; return; }
+  done <<EOF
+$expected_text
+EOF
+
+  while IFS=$'\t' read -r actual_task status link; do
+    [ -n "$actual_task" ] || continue
+    id=$(printf '%s\n' "$expected_text" | awk -F'\t' -v task="$actual_task" '$2 == task { print $1 }')
+    [ -n "$id" ] || { fail "Tasks (${actual_task%%:*}: extra root ledger row)"; return; }
+  done <<EOF
+$rows_text
+EOF
+
+  index=0
+  while IFS=$'\t' read -r id expected_task; do
+    [ -n "$id" ] || continue
+    index=$((index + 1))
+    row=$(printf '%s\n' "$rows_text" | sed -n "${index}p")
+    IFS=$'\t' read -r actual_task status link <<<"$row"
+    [ "$actual_task" = "$expected_task" ] || { fail "Tasks ($id: root ledger row is out of plan order)"; return; }
+    case "$status" in
+      pending|in-progress|blocked|done) ;;
+      *) fail "Tasks ($id: invalid status: $status)"; return ;;
+    esac
+    expected_link="[details](tasks/task-${id#Task }/progress.md)"
+    [ "$link" = "$expected_link" ] || { fail "Tasks ($id: wrong link; expected $expected_link)"; return; }
+    task_file="$change_dir/tasks/task-${id#Task }/progress.md"
+    committed_artifact "$root" "$task_file"; committed=$?
+    [ "$committed" -ne 2 ] || { fail "Tasks ($id: progress file is missing)"; return; }
+    [ "$committed" -eq 0 ] || { fail "Tasks ($id: progress is not tracked and committed exactly at HEAD)"; return; }
+    title=$(printf '%s\n' "$plans" | awk -F'\t' -v task="$id" '$1 == task { print $2; exit }')
+    evidence=$(task_progress_state "$task_file" "$id" "$title")
+    [ "$evidence" != "wrong-heading" ] || { fail "Tasks ($id: wrong task heading in progress file)"; return; }
+    [ "$evidence" != "invalid" ] || { fail "Tasks ($id: invalid task attempt evidence; latest Outcome: done evidence is required)"; return; }
+    [ "$status" = "done" ] || { fail "Tasks ($id status: $status)"; return; }
+    [ "$evidence" = "done" ] || { fail "Tasks ($id: done row lacks latest Outcome: done evidence)"; return; }
+    done_count=$((done_count + 1))
+  done <<EOF
+$expected_text
+EOF
+
   [ "$abandoned" -gt 0 ] && suffix=", $abandoned abandoned"
-  if [ "$done_count" -eq "$total" ]; then
-    pass "Tasks ($done_count/$total implemented$suffix)"
-  else
-    fail "Tasks ($done_count/$total implemented$suffix —$missing)"
-  fi
+  pass "Tasks ($done_count/$total implemented$suffix)"
 }
 
 # ------------------------------------------------------------- gate 4: reviews
 
-# "<scope><TAB><verdict><TAB><blocking count>" per review section, in file order.
-review_sections() {
-  strip_comments "$1" | awk '
-    function flush() {
-      if (scope != "") printf "%s\t%s\t%d\n", scope, verdict, blocking
-    }
-    /^## / {
-      flush()
-      line = $0
-      sub(/^## /, "", line)
-      sub(/\r$/, "", line)
-      idx = index(line, " \342\200\224 ")           # em dash separator from the template
-      if (idx == 0) idx = index(line, " - ")
-      scope = (idx > 0) ? substr(line, 1, idx - 1) : line
-      gsub(/^[ \t]+|[ \t]+$/, "", scope)
-      scope = tolower(scope)
-      verdict = ""; blocking = 0; section = ""
-      next
-    }
-    /^### / {
-      section = tolower($0)
-      sub(/^### /, "", section)
-      gsub(/[ \t\r]+$/, "", section)
-      next
-    }
-    tolower($0) ~ /^verdict:/ {
-      value = $0
-      sub(/^[Vv]erdict:[ \t]*/, "", value)
-      gsub(/[ \t\r]+$/, "", value)
-      verdict = tolower(value)
-      next
-    }
-    section == "blocking" && /^[ \t]*-[ \t]+/ { blocking++ }
-    END { flush() }
-  '
+whole_review_pass() {
+  local file="$1" plan="$2" title
+  title=$(hamilton_plan_title "$plan") || return 1
+  hamilton_latest_verdict_pass "$file" "Whole-branch Review: $title"
 }
 
-# Sections are in file order and the newest pass is last, so the last verdict for a
-# scope is the one that governs.
-latest_verdict() {
-  printf '%s\n' "$1" | awk -F'\t' -v s="$2" '$1 == s { v = $2 } END { print v }'
+full_commit() {
+  local root="$1" commit="$2"
+  [[ "$commit" =~ ^[0-9a-f]{40}$|^[0-9a-f]{64}$ ]] || return 1
+  git -C "$root" cat-file -e "$commit^{commit}" 2>/dev/null
+}
+
+review_range_standing() {
+  local root="$1" base="$2" head="$3" required="$4"
+  if ! full_commit "$root" "$base" || ! full_commit "$root" "$head"; then
+    printf 'malformed\n'
+    return
+  fi
+  git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null || { printf 'malformed\n'; return; }
+  git -C "$root" merge-base --is-ancestor "$head" HEAD 2>/dev/null || { printf 'off-branch\n'; return; }
+  if [ -n "$required" ] && ! git -C "$root" merge-base --is-ancestor "$required" "$head" 2>/dev/null; then
+    printf 'stale\n'
+    return
+  fi
+  printf 'fresh\n'
+}
+
+latest_task_commit() {
+  local root="$1" path="$2"
+  git -C "$root" log -1 --format=%H HEAD -- "$path" 2>/dev/null
+}
+
+latest_material_commit() {
+  local root="$1" change_path="$2"
+  local plan="$root/$change_path/plan.md" plans id title state
+  local -a exclusions=(
+    ":(exclude)$change_path/progress.md"
+    ":(exclude)$change_path/review.md"
+    ":(exclude)$change_path/finish.md"
+  )
+  if [ -f "$plan" ]; then
+    plans=$(hamilton_plan_tasks "$plan") || return 1
+    while IFS=$'\t' read -r id title state; do
+      [ -n "$id" ] || continue
+      [ "$state" = "active" ] || continue
+      exclusions+=(
+        ":(exclude)$change_path/tasks/task-${id#Task }/progress.md"
+        ":(exclude)$change_path/tasks/task-${id#Task }/feedback.md"
+      )
+    done <<EOF
+$plans
+EOF
+  fi
+  git -C "$root" log -1 --format=%H HEAD -- . "${exclusions[@]}" 2>/dev/null
 }
 
 gate_reviews() {
-  local change_dir="$1"
+  local change_dir="$1" root="$2"
   local review="$change_dir/review.md" plan="$change_dir/plan.md"
-  local problems=""
+  local change_path problems=""
+  local plans id title state feedback parsed verdict base head blocking implementation standing committed
 
-  [ -f "$review" ] || { fail "Reviews (no review.md in $change_dir)"; return; }
+  committed_artifact "$root" "$review"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Reviews (no review.md in $change_dir)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Reviews (whole-branch(review is not tracked and committed exactly at HEAD))"; return; }
 
-  local sections
-  sections=$(review_sections "$review")
-  if [ -z "$sections" ]; then
-    fail "Reviews (review.md has no '## <scope> — <date>' sections)"
+  case "$change_dir" in
+    "$root"/*) change_path="${change_dir#"$root"/}" ;;
+    *) fail "Reviews (change directory is outside the repository)"; return ;;
+  esac
+
+  committed_artifact "$root" "$plan"; committed=$?
+  if [ "$committed" -eq 1 ]; then
+    fail "Reviews (plan.md is not tracked and committed exactly at HEAD)"
     return
   fi
-
-  # Any scope that is not "Task <N>" or "whole change" is unparseable, and this
-  # gate does not pass on text it cannot classify.
-  local unknown
-  unknown=$(printf '%s\n' "$sections" | awk -F'\t' '
-    $1 !~ /^task [0-9]+$/ && $1 != "whole change" { print $1 }
-  ' | sort -u | tr '\n' ' ')
-  if [ -n "${unknown// /}" ]; then
-    fail "Reviews (unrecognised scope(s): ${unknown% })"
-    return
-  fi
-
-  # An approved verdict carrying blocking items contradicts itself, whichever
-  # pass it belongs to.
-  local contradictory
-  contradictory=$(printf '%s\n' "$sections" | awk -F'\t' '
-    $2 == "approved" && $3 > 0 { printf "%s(%d blocking) ", $1, $3 }
-  ')
-  if [ -n "$contradictory" ]; then
-    fail "Reviews (approved with unaddressed blocking items: ${contradictory% })"
-    return
-  fi
-
-  # Every non-abandoned plan task needs a reviewed scope of its own.
-  if [ -f "$plan" ]; then
-    local id state verdict
-    while IFS=$'\t' read -r id state; do
+  if [ "$committed" -eq 0 ]; then
+    plans=$(hamilton_plan_tasks "$plan") || { problems="${problems}${problems:+; }plan(task declarations malformed)"; plans=""; }
+    while IFS=$'\t' read -r id title state; do
       [ -n "$id" ] || continue
       [ "$state" = "abandoned" ] && continue
-      verdict=$(latest_verdict "$sections" "$(printf '%s' "$id" | tr '[:upper:]' '[:lower:]')")
-      if [ -z "$verdict" ]; then
-        problems="$problems $id(never reviewed)"
-      elif [ "$verdict" != "approved" ]; then
-        problems="$problems $id(latest verdict: $verdict)"
+      feedback="$change_dir/tasks/task-${id#Task }/feedback.md"
+      committed_artifact "$root" "$feedback"; committed=$?
+      if [ "$committed" -eq 2 ]; then
+        problems="${problems}${problems:+; }$id(feedback missing)"
+        continue
       fi
+      if [ "$committed" -ne 0 ]; then
+        problems="${problems}${problems:+; }$id(feedback is not tracked and committed exactly at HEAD)"
+        continue
+      fi
+      if [ ! -s "$feedback" ]; then
+        problems="${problems}${problems:+; }$id(feedback missing)"
+        continue
+      fi
+      parsed=$(hamilton_latest_verdict_pass "$feedback" "Code Feedback: $id — $title") || {
+        problems="${problems}${problems:+; }$id(feedback malformed)"
+        continue
+      }
+      IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
+      if [ "$verdict" != "approved" ]; then
+        problems="${problems}${problems:+; }$id(latest verdict: $verdict)"
+        continue
+      fi
+      implementation=$(latest_task_commit "$root" "$change_path/tasks/task-${id#Task }/progress.md")
+      if [ -z "$implementation" ]; then
+        problems="${problems}${problems:+; }$id(feedback is stale)"
+        continue
+      fi
+      standing=$(review_range_standing "$root" "$base" "$head" "$implementation")
+      case "$standing" in
+        malformed) problems="${problems}${problems:+; }$id(review range is malformed)" ;;
+        off-branch) problems="${problems}${problems:+; }$id(review head is not on current branch)" ;;
+        stale) problems="${problems}${problems:+; }$id(feedback is stale)" ;;
+        fresh) ;;
+        *) problems="${problems}${problems:+; }$id(review range cannot be verified)" ;;
+      esac
     done <<EOF
-$(plan_tasks "$plan")
+$plans
 EOF
   fi
 
-  local whole
-  whole=$(latest_verdict "$sections" "whole change")
-  if [ -z "$whole" ]; then
-    problems="$problems whole-change(never reviewed)"
-  elif [ "$whole" != "approved" ]; then
-    problems="$problems whole-change(latest verdict: $whole)"
+  parsed=$(whole_review_pass "$review" "$plan") || {
+    problems="${problems}${problems:+; }whole-branch(review malformed)"
+    parsed=""
+  }
+  if [ -n "$parsed" ]; then
+    IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
+    if [ "$verdict" != "approved" ]; then
+      problems="${problems}${problems:+; }whole-branch(latest verdict: $verdict)"
+    else
+      standing=$(review_range_standing "$root" "$base" "$head" "")
+      case "$standing" in
+        malformed) problems="${problems}${problems:+; }whole-branch(review range is malformed)" ;;
+        off-branch) problems="${problems}${problems:+; }whole-branch(review head is not on current branch)" ;;
+        fresh) ;;
+        *) problems="${problems}${problems:+; }whole-branch(review range cannot be verified)" ;;
+      esac
+    fi
   fi
 
   if [ -n "$problems" ]; then
-    fail "Reviews ($(printf '%s' "${problems# }"))"
+    fail "Reviews ($problems)"
   else
-    pass "Reviews (all task scopes and whole change approved)"
+    pass "Reviews (all task feedback and whole-branch verdicts approved and current)"
   fi
 }
 
 # ----------------------------------------------------------- gate 5: freshness
 
-# Ancestry, not timestamps: the header dates in review.md are day-granularity and
-# cannot answer "is this review newer than the code?". A review commit that contains
-# the last code commit as an ancestor was necessarily made after it.
 gate_review_freshness() {
-  local change_dir="$1" waiver="$2"
-  local root rel_review review_commit code_commit
+  local change_dir="$1" waiver="$2" root="$3"
+  local review="$change_dir/review.md" plan="$change_dir/plan.md" change_path parsed verdict base head blocking standing material committed
 
+  committed_artifact "$root" "$review"; committed=$?
+  [ "$committed" -ne 2 ] || { fail "Whole-branch review freshness (review.md is missing)"; return; }
+  [ "$committed" -eq 0 ] || { fail "Whole-branch review freshness (review.md is not tracked and committed exactly at HEAD)"; return; }
+  case "$change_dir" in
+    "$root"/*) change_path="${change_dir#"$root"/}" ;;
+    *) fail "Whole-branch review freshness (change directory is outside the repository)"; return ;;
+  esac
+  parsed=$(whole_review_pass "$review" "$plan") || { fail "Whole-branch review freshness (review malformed)"; return; }
+  IFS=$'\t' read -r verdict base head blocking <<<"$parsed"
+  standing=$(review_range_standing "$root" "$base" "$head" "")
+  case "$standing" in
+    malformed) fail "Whole-branch review freshness (review range is malformed)"; return ;;
+    off-branch) fail "Whole-branch review freshness (review head is not on current branch)"; return ;;
+    fresh) ;;
+    *) fail "Whole-branch review freshness (review range cannot be verified)"; return ;;
+  esac
+  committed_artifact "$root" "$plan"; committed=$?
+  [ "$committed" -ne 1 ] || { fail "Whole-branch review freshness (plan.md is not tracked and committed exactly at HEAD)"; return; }
+  material=$(latest_material_commit "$root" "$change_path")
+  [ -n "$material" ] || { fail "Whole-branch review freshness (no material commit exists on the current branch)"; return; }
   if [ "$waiver" = "yes" ]; then
-    waived "Whole-change review freshness (waived by the user; record this in the finish entry)"
+    waived "Whole-branch review freshness (material ancestry waived by the user; record this in the finish entry)"
     return
   fi
-
-  root=$(abs_dir "$(git rev-parse --show-toplevel)")
-  rel_review="${change_dir#"$root"/}/review.md"
-
-  review_commit=$(git -C "$root" log -1 --format=%H -- "$rel_review" 2>/dev/null)
-  code_commit=$(git -C "$root" log -1 --format=%H -- . ':(exclude).hamilton' 2>/dev/null)
-
-  if [ -z "$review_commit" ]; then
-    fail "Whole-change review freshness (review.md has never been committed)"
-    return
-  fi
-  if [ -z "$code_commit" ]; then
-    fail "Whole-change review freshness (no commit touches anything outside .hamilton/)"
-    return
-  fi
-  if [ "$review_commit" = "$code_commit" ]; then
-    pass "Whole-change review freshness (review.md and code landed in $(git -C "$root" rev-parse --short "$code_commit"))"
-    return
-  fi
-  if git -C "$root" merge-base --is-ancestor "$code_commit" "$review_commit"; then
-    pass "Whole-change review freshness (review $(git -C "$root" rev-parse --short "$review_commit") postdates code $(git -C "$root" rev-parse --short "$code_commit"))"
+  if git -C "$root" merge-base --is-ancestor "$material" "$head" 2>/dev/null; then
+    pass "Whole-branch review freshness (review head $(git -C "$root" rev-parse --short "$head") contains material $(git -C "$root" rev-parse --short "$material"))"
   else
-    fail "Whole-change review freshness (code $(git -C "$root" rev-parse --short "$code_commit") is newer than review $(git -C "$root" rev-parse --short "$review_commit") — re-review the whole change, or pass --whole-change-waived if the user waived it)"
+    fail "Whole-branch review freshness (review head $(git -C "$root" rev-parse --short "$head") does not contain material $(git -C "$root" rev-parse --short "$material") — re-review the whole change, or pass --whole-change-waived if the user waived it)"
   fi
 }
 
 # ----------------------------------------------------------------------- main
 
 main() {
-  local change_dir="" test_cmd="" waiver="no"
+  local change_dir="" test_cmd="" waiver="no" target_root=""
 
   [ $# -gt 0 ] || { usage >&2; exit 2; }
 
@@ -344,16 +609,24 @@ main() {
   [ -n "$change_dir" ] || die "--change-dir is required"
   [ -n "$test_cmd" ] || die "--test-cmd is required (take it from AGENTS.md or plan.md; this script will not guess)"
   [ -d "$change_dir" ] || die "change dir does not exist: $change_dir"
-  git rev-parse --show-toplevel >/dev/null 2>&1 || die "not inside a git repository"
-
   change_dir=$(abs_dir "$change_dir")
+  target_root=$(git -C "$change_dir" rev-parse --show-toplevel 2>/dev/null) || die "change directory is not inside a git repository"
+  target_root=$(abs_dir "$target_root") || die "cannot resolve target repository root"
+  case "$change_dir" in
+    "$target_root"/*) ;;
+    *) die "change directory is outside the target repository" ;;
+  esac
 
-  gate_clean_tree
-  gate_tests "$test_cmd"
-  gate_tasks "$change_dir"
-  gate_reviews "$change_dir"
-  gate_review_freshness "$change_dir" "$waiver"
+  gate_clean_tree "$target_root" "Clean tree"
+  gate_tests "$target_root" "$test_cmd"
+  gate_clean_tree "$target_root" "Clean tree after verification"
+  gate_tasks "$change_dir" "$target_root"
+  gate_reviews "$change_dir" "$target_root"
+  gate_review_freshness "$change_dir" "$waiver" "$target_root"
 
+  if [ "$FAILURES" -eq 0 ]; then
+    gate_clean_tree "$target_root" "Final clean tree"
+  fi
   if [ "$FAILURES" -eq 0 ]; then
     printf 'gate: open\n'
     return 0

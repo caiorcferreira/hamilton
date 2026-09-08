@@ -15,33 +15,34 @@ this layer is installed and what the CLI does, see **[modes](./modes.md)**.
 ## The pipeline
 
 ```
-init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-feedback ) ──▶ review ──▶ finish-work
+  0        1 optional      2          3             4                5            6
+                                     repeat per task              once per change
 ```
 
-Six core skills in fixed sequence, plus an optional pre-change planning stage (wayfinder).
+Seven core skills run in fixed sequence, with an optional pre-change planning stage (Wayfinder).
 `hamilton-init` runs once per project. `hamilton-propose` is the optional heavyweight
-front door — a tactical change skips it and starts at `hamilton-plan`, the one required step. The
-`code` and `review` steps loop until the review passes. `hamilton-orchestrate` is a driver that runs
-the whole plan (code + review over every task) in one session using subagents. `hamilton-critique`
-is an optional design-phase gate — an on-demand review of the propose artifacts before planning
-begins; it is not part of the required line.
+front door — a tactical change skips it and starts at `hamilton-plan`, which creates the required
+plan. For every task, `code` and `code-feedback` loop until that task passes; one whole-branch
+`review` follows after all tasks pass, then `finish-work` closes the change. `hamilton-orchestrate`
+drives that sequence in one session using subagents. `hamilton-critique` is an optional design-phase
+gate before planning. Neither Wayfinder nor critique is part of the seven-skill core line.
 
 `hamilton-compose-spec` sits outside this per-change line: it authors canonical specs
 (`.hamilton/specs/`) directly — reformatting existing specs into the current human-readable shape,
 or writing them from the application code — for projects adopting Hamilton or migrating an old spec
 format. The pipeline never needs it; it is a maintenance and bootstrap tool.
 
-**Start anywhere.** The only required artifact is the plan. Each downstream step degrades gracefully —
-it uses the richer upstream artifact when present, and otherwise works from the raw request.
+**Start at planning when appropriate.** `plan.md` is the required declarative artifact; planning
+also initializes the required root ledger and task progress files. The planning step uses richer
+proposal, requirement, and design artifacts when present and otherwise works from the raw request.
 
 ## Setup
 
 Assisted mode needs two things in place:
 
-1. **Artifact templates and helper scripts**, installed once with the CLI:
+1. **Artifact templates and helper scripts**, installed for the current Hamilton generation with
+   the CLI:
 
    ```bash
    bun run install-local     # build + symlink the `hamilton` CLI
@@ -49,7 +50,8 @@ Assisted mode needs two things in place:
    ```
 
    The skills read the installed templates from `~/.hamilton/templates/<name>.md`, and call the
-   helper scripts at `~/.hamilton/scripts/<name>.sh` (see [Helper scripts](#helper-scripts)).
+   required helper scripts at `~/.hamilton/scripts/<name>.sh` (see
+   [Helper scripts](#helper-scripts)).
 
 2. **The skills available to your coding agent.** The pipeline skills live in `skills/hamilton-*/`.
    Make them discoverable to your agent — for Claude Code, copy or symlink the `skills/hamilton-*`
@@ -59,6 +61,11 @@ Assisted mode needs two things in place:
 
 Then, once per project, run the `hamilton-init` skill (below) to scaffold `.hamilton/` and write
 `AGENTS.md`.
+
+Treat the CLI bundle and agent-loaded skills as one installed generation. Finish an active change
+before updating either side, update both from the same release, run `hamilton setup`, and verify the
+installed generation before starting new work. The complete commands and checks are in
+[Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow).
 
 ## The skills
 
@@ -133,78 +140,115 @@ design-phase counterpart to `hamilton-review`. Returns a numbered findings repor
   changes-requested) and, working with a person, asks before proceeding.
 - Source: [`skills/hamilton-critique/SKILL.md`](../skills/hamilton-critique/SKILL.md)
 
-### `hamilton-plan` — change → `plan.md` *(step 2, required)*
+### `hamilton-plan` — change → executable task contract *(step 2, required)*
 
-Decomposes the work into small, TDD-sized, independently verifiable tasks. This is the one required
-artifact and the handoff contract between planning and coding. **It never writes production code.**
+Decomposes the work into small, TDD-sized, independently verifiable tasks. `plan.md` is the required
+declarative handoff contract between planning and coding. **This skill never writes production code.**
 
 - **When:** always — the pipeline's mandatory step. Plans from an existing design/requirements when
   present, or straight from a request.
 - **Inputs:** a change directory (created if missing); `design.md` / `requirements/` if they exist;
   `AGENTS.md`.
-- **Produces:** `plan.md` — an ordered task ledger, each task with its files, acceptance criteria,
-  verbatim steps (test-first where behavior is testable), a verify command, and a commit message.
-- **Notes:** all the sequencing thinking happens here, because the coder executes the steps verbatim.
-  On handoff it discloses the worktree it created and, when working with a person, asks before
-  proceeding to `hamilton-code` / `hamilton-orchestrate`.
+- **Produces:** the declarative `plan.md` task contract; root `progress.md`, initialized as the
+  current-status ledger with one linked row per active task; and one initialized
+  `tasks/task-N/progress.md` implementation-history file per task.
+- **Notes:** all sequencing happens here because code follows each task's steps verbatim. Re-plan
+  preserves done tasks and stable numeric task identities, appends remediation tasks, and reconciles
+  the root ledger without rewriting task histories. On handoff it names `hamilton-code` or
+  `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
 ### `hamilton-code` — implement one task *(step 3)*
 
-Implements exactly one planned task by following its steps as written, then self-reviews and commits.
+Implements exactly one active planned task, records its execution state, then self-reviews and
+commits.
 
-- **When:** once per task in the plan.
-- **Inputs:** the task — either by reference (`plan.md` + a task id) or as an inline task block; the
-  change directory; `AGENTS.md`; optionally, review feedback from a prior pass on this task.
-- **Produces:** the task's tests + code, a commit, and an entry appended to `progress.md`.
-- **Notes:** never redesigns, reorders, or touches sibling tasks; never edits `plan.md`. Designed to
-  run on a cheap model, since the plan carries the design. Working with a person it asks before
-  proceeding to review or the next task; dispatched unattended by `hamilton-orchestrate` it returns
-  without asking.
+- **When:** for each task's first implementation attempt, and again when fresh task feedback requests
+  changes.
+- **Inputs:** one exact active `Task N`; its root ledger row and linked
+  `tasks/task-N/progress.md`; its stable `tasks/task-N/.base` checkpoint; `AGENTS.md`; and, on a
+  correction, that task's `feedback.md`.
+- **Produces:** for a successful attempt, the task's tests and code plus one implementation commit
+  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root row's
+  transition through `in-progress` to `done`. For a graceful blocker, an artifact-only bookkeeping
+  commit contains the appended blocked attempt and the assigned row set to `blocked`; partial
+  production edits remain uncommitted.
+- **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
+  only its assigned row and appends to that task-local history among execution artifacts. It never
+  edits `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
+  fixed across corrections so code feedback always receives the complete task diff.
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
-### `hamilton-review` — judge the diff *(step 4, quality gate)*
+### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*
 
-Reviews the code produced for a change and returns a verdict with specific, actionable feedback.
-**Reviews only; never edits code or `plan.md`.**
+Reviews exactly one implemented task within its stable diff and records a tactical verdict.
+**Reviews only; never edits code, plan artifacts, or task status.**
 
-- **When:** after each `hamilton-code` pass.
-- **Inputs:** the change directory; the diff under review; `plan.md` (intent) and, if present,
-  `design.md` / `requirements/` (acceptance criteria); `progress.md`; `AGENTS.md`.
-- **Produces:** a verdict (`approved` / `changes-requested`) and located feedback in `review.md`.
-- **Notes:** the strong-model quality gate. On `changes-requested`, the driver re-invokes
-  `hamilton-code` with the feedback — the skills do not call each other. On handoff it names the
-  next step per the verdict (`finish-work` on approval, `code` on changes-requested) and, working
-  with a person, asks before proceeding.
+- **When:** after every `hamilton-code` attempt that leaves its task `done`.
+- **Inputs:** one exact `Task N`; the stable diff from `tasks/task-N/.base` through the supplied
+  implementation Head; the task's acceptance criteria and cited constraints; its physical latest
+  `tasks/task-N/progress.md` attempt; and `AGENTS.md`.
+- **Produces:** an `approved` or `changes-requested` pass appended to
+  `tasks/task-N/feedback.md`, committed in an artifact-only bookkeeping commit.
+- **Notes:** the task diff is the inspection boundary, except for one named outside risk. A pass is
+  fresh only when its reviewed Head contains the latest task-progress commit. Requested changes
+  return the same task to `hamilton-code`; approval advances to the next task or the whole review.
+- Source: [`skills/hamilton-code-feedback/SKILL.md`](../skills/hamilton-code-feedback/SKILL.md)
+
+### `hamilton-review` — inspect the whole branch *(step 5, merge gate)*
+
+Reviews how every implemented task composes across the complete branch and records the final
+inspection verdict before finish-work. **Reviews only; never edits implementation or task state.**
+
+- **When:** once all active tasks are `done` with fresh approved task feedback, and again after any
+  remediation tasks complete.
+- **Inputs:** the complete branch range from its actual target-branch merge base through a supplied
+  full Head; all change artifacts, the root ledger, every active task's latest implementation and
+  feedback evidence; the complete diff; and `AGENTS.md`.
+- **Produces:** an `approved` or `changes-requested` pass appended to root `review.md`, committed in
+  an artifact-only bookkeeping commit.
+- **Notes:** inspection starts with the diff but must trace affected consumers, cross-task
+  composition, omissions, and repository-wide assumptions. The reviewed Head must contain the
+  latest material change commit. Requested implementation changes return to `hamilton-plan` in
+  re-plan mode; an approved fresh pass hands off to finish-work.
 - Source: [`skills/hamilton-review/SKILL.md`](../skills/hamilton-review/SKILL.md)
 
-### `hamilton-finish-work` — close the change *(step 5)*
+### `hamilton-finish-work` — close the change *(step 6)*
 
-Gates the change, folds requirement deltas into the canonical specs, and finishes.
+Gates the change, folds approved requirement deltas into canonical specs, records finish history,
+and executes the selected finish strategy.
 
-- **When:** once, after every task is coded and the latest review is approved.
-- **Inputs:** the change directory (`plan.md`, `progress.md`, `review.md`, `requirements/`); the
-  finish strategy (`local-merge`, `pull-request`, or `no-op`); `AGENTS.md`.
-- **Produces:** updated `.hamilton/specs/<capability>.md` (deltas folded in, no delta markers), and
-  the change finished per strategy; a finish entry in `progress.md`.
-- **Notes:** hard gate — refuses to finish a dirty tree, failing tests, or an unapproved review;
-  never fabricates a merge or a pull request. If the change was done in a worktree, tears it down on
-  local-merge (leaving it in place for pull-request / no-op) and discloses where the work landed.
+- **When:** after every task is `done` with fresh approved task feedback and root `review.md` has a
+  fresh approved whole-branch pass.
+- **Inputs:** the plan and root task ledger; every task's latest progress and feedback; the latest
+  root review; approved proposal, design, and requirement deltas; existing `finish.md`; the finish
+  strategy (`local-merge`, `pull-request`, or `no-op`); and `AGENTS.md`.
+- **Produces:** synchronized `.hamilton/specs/<capability>.md` files, the verified merge / request /
+  no-op result, and a paired `Attempt N` and `Outcome N` history in root `finish.md`.
+- **Notes:** the hard gate treats these as separate requirements: the exact root ledger has every
+  row `done`; every row links to `tasks/task-N/progress.md`, where the exact matching H1 is
+  `# Task Progress: Task N — <title>` and the physical latest attempt has `Outcome: done`; every task
+  has fresh approved feedback; the whole branch has a fresh approved review; the tree is clean; and
+  full tests and build pass. It commits intent before external effects and records only observed
+  results afterward; a dangling attempt is reconciled from actual repository and provider state
+  before any new attempt.
 - Source: [`skills/hamilton-finish-work/SKILL.md`](../skills/hamilton-finish-work/SKILL.md)
 
 ### `hamilton-orchestrate` — run a whole plan *(driver)*
 
-Drives an entire `plan.md` to completion in one session by dispatching a fresh subagent per task —
-each runs `hamilton-code` on one task, followed by a `hamilton-review` pass — then a broad
-whole-branch review at the end. **Coordinates only; never edits code itself.**
+Drives an entire `plan.md` through task implementation, task feedback, and one whole-branch review.
+**Coordinates only; never edits code or stage-owned evidence itself.**
 
-- **When:** to execute a full plan unattended, instead of running the code↔review loop by hand.
-- **Inputs:** a change directory containing `plan.md`; `AGENTS.md`; optionally `design.md` /
-  `requirements/` and an existing `progress.md`.
-- **Produces:** every task implemented, reviewed, and recorded — driving the same `code` and `review`
-  skills across the plan.
-- **Notes:** one task per subagent (fresh context), by reference; artifacts hand off as file paths;
-  resumes from `progress.md` and `git log` after any compaction.
+- **When:** to execute a full plan unattended instead of driving each task's code↔code-feedback loop
+  and the final whole review by hand.
+- **Inputs:** a change directory containing the plan, root task ledger, linked task histories and
+  checkpoints, any task feedback and root review, approved design context, and `AGENTS.md`.
+- **Produces:** every task committed with `done` status and fresh approved feedback, followed by one
+  committed, fresh, approved whole-branch review and a clean handoff to `hamilton-finish-work`.
+- **Notes:** its resume matrix combines each root status with the physical latest feedback verdict
+  and reviewed-Head freshness; after all tasks pass, a second matrix governs root review freshness.
+  Whole-review implementation findings return to `hamilton-plan` for numbered remediation tasks,
+  which traverse the ordinary task loop before review runs again.
 - Source: [`skills/hamilton-orchestrate/SKILL.md`](../skills/hamilton-orchestrate/SKILL.md)
 
 ### `hamilton-compose-spec` — author canonical specs directly *(out-of-band)*
@@ -242,8 +286,13 @@ artifacts live under the project's `.hamilton/` directory:
       requirements/<capability>.md    # optional — what (delta form)
       critique.md                     # optional — design-phase review of the propose artifacts
       plan.md                         # required — the handoff contract
-      progress.md                     # execution ledger — what happened
-      review.md                       # review verdict + feedback
+      progress.md                     # required — current task ledger
+      tasks/
+        task-N/
+          progress.md                 # implementation attempt history
+          feedback.md                 # task-feedback verdict history
+      review.md                       # whole-branch review history
+      finish.md                       # finish attempt and outcome history
 ```
 
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and its
@@ -251,25 +300,32 @@ history, with requirements written as deltas (ADDED / MODIFIED / REMOVED / RENAM
 finishes, those deltas are folded into `specs/`, the project's consolidated, always-current
 requirements truth.
 
+`plan.md` remains the declarative task contract. Planning initializes the required root
+`progress.md` ledger and linked task progress files; code updates current status in the root and
+keeps detailed attempts under the task. Feedback, whole-branch review, and finish history each live
+in their separate owner artifact rather than being mixed into progress.
+
 ## Helper scripts
 
-`hamilton setup` installs five scripts to `~/.hamilton/scripts/`, executable, from the repository's
-`bundle/scripts/`. They exist to make the pipeline's *mechanical* steps deterministic — the recipes
-an agent would otherwise re-derive from prose on every run, and occasionally get wrong.
+`hamilton setup` installs six files to `~/.hamilton/scripts/`, executable, from the repository's
+`bundle/scripts/`. Five are entry-point helpers; one is their shared artifact-contract library.
+They make the pipeline's mechanical steps deterministic and fail closed when required state cannot
+be established.
 
-| Script | Does | Called by |
+| Script | Does | Consumers |
 |--------|------|-----------|
+| `hamilton-artifact-contracts.sh` | Provide the exact active-task and verdict-history parsers shared by other helpers | sourced by `diff-package`, `change-context`, and `precondition-check` |
 | `hamilton-isolate.sh` | Check whether the workspace is isolated (`--check`), create a worktree + branch (`<title>`), or confirm the `cd` landed (`--verify <title>`) | `propose`, `plan`, `code`, `orchestrate`, `finish-work` |
-| `hamilton-diff-package.sh` | Record BASE before an implementer runs (`--record`), then build the reviewer's diff package for that range, or for `merge-base(default)..HEAD` (`--whole-change`) | `orchestrate` |
+| `hamilton-diff-package.sh` | Record one task's stable checkpoint (`--record --task N`), package that task range (`--task N`), or package `merge-base(default)..HEAD` (`--whole-change`) | `code`, `orchestrate` |
 | `hamilton-precondition-check.sh` | Run the five finish-work gates — clean tree, tests, tasks done, reviews approved, whole-change review not stale — in one call | `finish-work` |
-| `hamilton-change-context.sh` | Summarise a change directory: which artifacts exist, task standings, latest verdict per scope (`--all` for one line per change) | `plan`, `code`, `review`, `critique`, `orchestrate`, `finish-work` |
+| `hamilton-change-context.sh` | Summarise a change directory: artifact inventory, root task standings, task-feedback freshness, and whole-review freshness (`--all` for one line per change) | `plan`, `critique`, `orchestrate`, `finish-work` |
 | `hamilton-prototype-branch.sh` | Create/resume `prototype/<map-name>/<ticket-name>` from the current branch (`<map> <ticket>`, `--standalone <slug>`) or confirm the checkout landed (`--verify <branch>`) | `wayfinder-prototype` |
 
-Three properties hold across all five:
+Three properties hold across the entry-point helpers:
 
-- **Optional.** Every skill that calls a script also states the manual recipe beside it, so a skill
-  runs end to end when `hamilton setup` has not been run. The scripts speed the pipeline up; they are
-  not a dependency of it.
+- **Required and generation-matched.** Checkpoint, packaging, context, and finish contracts depend
+  on these installed files. Run `hamilton setup` after updating the CLI bundle, and stop at the
+  between-changes boundary if a required helper or its shared library is missing or stale.
 - **Plain text out, result last.** Each prints human-readable lines and puts the load-bearing value —
   the verdict, the path, the range — on the **last** line, so a caller reads `tail -1`. Exit codes
   carry the same answer: `0` yes/success, `1` no/failed, `2` usage or environment error.
@@ -277,10 +333,17 @@ Three properties hold across all five:
   reports which gates failed and fails closed on anything it cannot parse; whether a failure is
   waivable is still the skill's call, and the user's.
 
-## The code–review loop
+## The task loop and whole-branch gate
 
-The pipeline reads as a line but runs as a loop with one gate. `hamilton-code` implements a task and
-`hamilton-review` judges it; on `changes-requested`, whoever drives the pipeline (a person, or
-`hamilton-orchestrate`) re-invokes `hamilton-code` with the feedback. The skills never call each
-other — the loop belongs to the driver. `hamilton-finish-work` is the final gate: it refuses to
-complete unless the tree is clean, tests pass, every task is done, and the latest review is approved.
+The pipeline reads as a line but contains two distinct review scopes. For each task,
+`hamilton-code` implements against one stable checkpoint and `hamilton-code-feedback` judges that
+complete task diff. A fresh `changes-requested` pass sends the same task back to code; a fresh
+approval lets the driver select the next task. The skills never call each other — a person or
+`hamilton-orchestrate` owns the loop.
+
+After every active task is `done` with fresh approved feedback, `hamilton-review` inspects the whole
+branch and its broader repository impact once. Implementation findings return to `hamilton-plan`
+in re-plan mode, become numbered remediation tasks, and pass through the same task loop before the
+whole review repeats. Only a fresh approved whole-branch review reaches `hamilton-finish-work`,
+whose final gate also requires a clean tree, full tests and build, an exact completed root ledger,
+and fresh approved task feedback.

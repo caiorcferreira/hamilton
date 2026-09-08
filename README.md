@@ -52,24 +52,24 @@ hamilton --help
 ## Assisted skills — start here
 
 The **[spec-driven development skills](docs/sdd-framework.md)** carry a change through a fixed
-sequence, one disciplined step at a time:
+seven-step sequence, one disciplined stage at a time:
 
 ```
-init ──▶ [ propose ] ──▶ plan ──▶ code ──▶ review ──▶ finish-work
- (once)   optional                  ▲         │
-                                    └─────────┘
-                          review requests changes → code
+init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-feedback ) ──▶ review ──▶ finish-work
+  0        1 optional      2          3             4                5            6
+                                     repeat per task              once per change
 ```
 
-Each step is a self-contained `SKILL.md` that names no tool and depends on no engine internals — only
-on the project's standards (`AGENTS.md`), the shared artifact templates Hamilton installs at
-`~/.hamilton/` (via `hamilton setup`), and the per-change artifacts under the project's own
+Each step is a self-contained `SKILL.md` that names no engine internals. It depends on the project's
+standards (`AGENTS.md`), the artifact templates and helper scripts Hamilton installs under
+`~/.hamilton/` with `hamilton setup`, and the per-change artifacts under the project's own
 `.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
-heavyweight front door (`propose`) is optional; the only required step is `plan`.
+heavyweight front door (`propose`) is optional; a tactical change starts at `plan`.
 
-Several steps also call a helper script from `~/.hamilton/scripts/` — creating a worktree, building a
-diff package, running the finish-work gate. Those are accelerators, not dependencies: every reference
-carries the manual recipe alongside it, so a skill still runs end to end without `hamilton setup`.
+The split workflow requires its installed helpers for stable checkpoints, diff packaging, change
+context, and finish gates. Individual isolation call sites retain the explicit manual procedure they
+document, but there is no blanket manual substitute for the helper set. Install templates and
+helpers from the same Hamilton generation as the skills before starting a change.
 
 ### Artifacts
 
@@ -85,12 +85,25 @@ The skills produce durable, per-project artifacts under `.hamilton/`:
       design.md                       # optional — how
       requirements/<capability>.md    # optional — what (delta form)
       plan.md                         # required — the handoff contract
-      progress.md                     # execution ledger — what happened
-      review.md                       # review verdict + feedback
+      progress.md                     # required — current task ledger
+      tasks/
+        task-N/
+          progress.md                 # implementation attempt history
+          feedback.md                 # task-feedback verdict history
+      review.md                       # whole-branch review history
+      finish.md                       # finish attempt and outcome history
 ```
 
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
 `specs/`, the project's always-current requirements truth.
+
+When upgrading to this split workflow, first finish any active old-format change with the Hamilton
+generation that created it. Between changes, update the CLI bundle and agent-loaded skills from one
+Hamilton release, run `hamilton setup`, verify the installed split templates and all helper scripts,
+then start the next change. See the
+**[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
+for the exact procedure. Never replace one part of the installed generation while a change is
+active.
 
 ## Requirements
 
@@ -121,10 +134,11 @@ hamilton setup                 # install bundle/{templates,guidelines,scripts}/ 
 # 3. In your project, run the skills through your agent, in order:
 #    hamilton-init         → scaffold .hamilton/ and write AGENTS.md (once)
 #    hamilton-propose      → proposal + requirements + design (optional)
-#    hamilton-plan         → plan.md (the required task ledger)
-#    hamilton-code         → implement one task
-#    hamilton-review       → judge the diff
-#    hamilton-finish-work  → gate, sync specs, merge / PR
+#    hamilton-plan         → plan.md + root task ledger + task progress files
+#    hamilton-code         → implement one task and record its attempt
+#    hamilton-code-feedback → review that task; loop with code until approved
+#    hamilton-review       → inspect the whole branch once after all tasks
+#    hamilton-finish-work  → gate, sync specs, record intent, merge / PR / no-op, verify, record outcome
 ```
 
 **Build and test commands** (for contributors):

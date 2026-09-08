@@ -1,71 +1,65 @@
 # Implementer dispatch template
 
-Use this when dispatching the implementer subagent for one task. The subagent's whole job is
-to run the **hamilton-code** skill on a single task, by reference. Hand it the plan path and
-the task id — not the plan's contents — so `hamilton-code` reads only its own task.
+Use this to dispatch `hamilton-code` for one exact active task, either for its first attempt or
+after fresh task feedback requests changes. The task's root row is current state; its task-local
+progress file is the only detailed implementation report.
 
-Fill every `[BRACKET]`. Choose the model per the SKILL's **Model selection** — an omitted
-model silently inherits the controller's most expensive one.
+Fill every `[BRACKET]`. Choose the model according to the orchestrator's model roles.
 
 ```
 Subagent:
-  description: "Implement Task [N]: [task title]"
-  model: [MODEL — REQUIRED: cheap floor for transcription-plus-testing tasks; standard for
-          multi-file / integration tasks]
+  description: "Implement Task [N]: [TASK_TITLE]"
+  model: [MODEL]
   prompt: |
-    Run the hamilton-code skill to implement exactly one planned task.
+    Run the hamilton-code skill for exactly one planned task.
 
-    ## Task (by reference)
+    ## Task
 
-    - Change directory: [.hamilton/changes/<change>/]
+    - Change directory: [<change-dir>]
     - Task id: Task [N]
+    - Root ledger row: [<change-dir>/progress.md row for Task N]
+    - Task log: [<change-dir>/tasks/task-N/progress.md]
+    - Task checkpoint: [<change-dir>/tasks/task-N/.base]
 
-    Read that task from plan.md in the change directory and implement it by following its
-    Steps exactly. Do not read or touch any sibling task. Do not redesign, reorder, or add
-    work — the plan already did the design.
+    Read only Task [N] from plan.md, its cited constraints, the root row named above, and this
+    task's own evidence. Do not read or touch a sibling task. Follow the task's Steps exactly;
+    do not redesign, reorder, or add work.
 
-    ## Context you need that the task cannot know
+    ## Context
 
-    [One line on where this task fits in the change.]
-    [Interfaces, signatures, or decisions established by earlier tasks that this task builds
-    on — the fresh subagent has none of this session's history.]
-    [Your resolution of any ambiguity you noticed in the task text.]
+    [ONE_LINE_CONTEXT]
+    [EARLIER_INTERFACES_OR_DECISIONS_NEEDED_BY_THIS_TASK]
 
-    ## Review feedback to address (only on a re-dispatch)
+    ## Feedback for this attempt
 
-    [Omit on the first pass. On a re-dispatch after review: paste the reviewer's located
-    findings verbatim. hamilton-code treats prior-pass feedback as an input and addresses it
-    within this same task.]
+    [FIRST_ATTEMPT_OR_READ_THE_LATEST_PHYSICAL_PASS_AT_<change-dir>/tasks/task-N/feedback.md]
 
-    ## Your job
+    ## Required outcome
 
-    Follow hamilton-code: execute the Steps in order, verify (task Verify + full suite +
-    build), check acceptance, run the code-quality self-review, append the progress.md entry,
-    and commit with the task's Commit message — the commit must include the change-dir updates
-    (progress.md and any other change-dir artifact touched), leaving nothing uncommitted under
-    the change directory. If a step is impossible or the task looks wrong, stop and report —
-    do not improvise.
+    The orchestrator has already established the checkpoint. Validate and preserve the
+    already-recorded task-local checkpoint; never create, reset, reconstruct, or replace it.
+    Follow hamilton-code completely: transition only Task [N]'s root row, execute and verify the
+    task, append exactly one canonical attempt to the task log, and commit the implementation plus
+    that synchronized evidence with the task's specified commit message. Leave plan.md, sibling
+    evidence, and feedback untouched.
 
-    ## Report
-
-    Write your full report to [REPORT_FILE], then return ONLY (under 15 lines):
+    The task log is the detailed report. Return only concise status and commit information:
     - Status: done | blocked
-    - Commits created (short SHA + subject)
-    - One-line test summary (e.g. "14/14 passing, output pristine")
-    - Concerns, if any
-    - The report file path
+    - Commit created: full SHA and subject, or none
+    - Test summary: one line
+    - Concerns: one line, or none
 
-    If blocked, put the specifics in the final message itself — the controller acts on it
-    directly. Never silently produce work you are unsure about.
-
-    You are running unattended as a subagent — there is no person in this loop. Do not pause
-    to ask whether to proceed; hamilton-code's Handoff returns without asking here. Complete
-    the work and return your report.
+    You are unattended. Do not ask whether to continue and do not invoke the next pipeline
+    skill. If a specified step is impossible, use hamilton-code's canonical blocked path.
 ```
 
-**Placeholders**
+## Placeholders
 
-- `[MODEL]` — required; per the SKILL's Model selection.
-- `[.hamilton/changes/<change>/]` — the change directory holding `plan.md` and `progress.md`.
-- `[N]` / `[task title]` — the task's stable number and title from `plan.md`.
-- `[REPORT_FILE]` — a uniquely named report file for this task (e.g. `…/task-N-report.md`).
+- `[MODEL]` is required for every dispatch.
+- `[<change-dir>]`, `[N]`, and `[TASK_TITLE]` identify one exact active task.
+- `[ONE_LINE_CONTEXT]` supplies only scene-setting information the task cannot derive.
+- `[EARLIER_INTERFACES_OR_DECISIONS_NEEDED_BY_THIS_TASK]` supplies only required established
+  interfaces or decisions.
+- `[FIRST_ATTEMPT_OR_READ_THE_LATEST_PHYSICAL_PASS_AT_<change-dir>/tasks/task-N/feedback.md]`
+  says `First attempt; no feedback input` or directs a correction to the task's physically last,
+  fresh `changes-requested` pass.
