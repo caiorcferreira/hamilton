@@ -258,7 +258,7 @@ task_progress_state() {
         heading = line
         sub(/^#[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
-        if (heading != "Task Progress: " task " \342\200\224 " title) wrong_heading = 1
+        if (heading != "Task Progress: " task " — " title) wrong_heading = 1
         title_seen = 1
         next
       }
@@ -273,7 +273,7 @@ task_progress_state() {
         heading = line
         sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
-        suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        suffix = " — [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
         if (heading !~ ("^Attempt [1-9][0-9]*" suffix "$")) {
           invalid = 1
           next
@@ -351,20 +351,30 @@ EOF
 
   while IFS=$'\t' read -r id expected_task; do
     [ -n "$id" ] || continue
-    count=$(printf '%s\n' "$rows_text" | awk -F'\t' -v task="$expected_task" '$1 == task { count++ } END { print count + 0 }')
+    count=0
+    while IFS=$'\t' read -r actual_task status link; do
+      [ "$actual_task" = "$expected_task" ] && count=$((count + 1))
+    done <<ROWS
+$rows_text
+ROWS
     [ "$count" -gt 0 ] || { fail "Tasks ($id: missing root ledger row)"; return; }
     [ "$count" -eq 1 ] || { fail "Tasks ($id: duplicate root ledger row)"; return; }
-  done <<EOF
+  done <<PLANS
 $expected_text
-EOF
+PLANS
 
   while IFS=$'\t' read -r actual_task status link; do
     [ -n "$actual_task" ] || continue
-    id=$(printf '%s\n' "$expected_text" | awk -F'\t' -v task="$actual_task" '$2 == task { print $1 }')
+    id=""
+    while IFS=$'\t' read -r expected_id expected_title; do
+      [ "$expected_title" = "$actual_task" ] && id="$expected_id"
+    done <<PLANS
+$expected_text
+PLANS
     [ -n "$id" ] || { fail "Tasks (${actual_task%%:*}: extra root ledger row)"; return; }
-  done <<EOF
+  done <<ROWS
 $rows_text
-EOF
+ROWS
 
   index=0
   while IFS=$'\t' read -r id expected_task; do

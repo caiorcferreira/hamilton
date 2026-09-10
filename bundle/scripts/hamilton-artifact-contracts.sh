@@ -252,10 +252,10 @@ hamilton_latest_verdict_pass() {
         close_pass()
         heading = line
         sub(/^##[ \t]*/, "", heading)
-        if (heading !~ /^Pass [1-9][0-9]* \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) invalid = 1
+        if (heading !~ /^Pass [1-9][0-9]* — [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) invalid = 1
         number = heading
         sub(/^Pass /, "", number)
-        sub(/ \342\200\224.*/, "", number)
+        sub(/ —.*/, "", number)
         if (number + 0 != expected_pass) invalid = 1
         expected_pass++
         if (!heading_seen) invalid = 1
