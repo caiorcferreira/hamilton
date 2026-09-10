@@ -234,7 +234,7 @@ latest_outcome() {
         heading = line
         sub(/^#[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
-        if (heading != "Task Progress: " task " \342\200\224 " title) invalid = 1
+        if (heading != "Task Progress: " task " — " title) invalid = 1
         title_seen = 1
         next
       }
@@ -249,7 +249,7 @@ latest_outcome() {
         heading = line
         sub(/^##[ \t]*/, "", heading)
         sub(/\r$/, "", heading)
-        suffix = " \342\200\224 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+        suffix = " — [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
         if (heading !~ ("^Attempt [1-9][0-9]*" suffix "$")) {
           invalid = 1
           next
