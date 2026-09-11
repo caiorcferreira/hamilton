@@ -1,3 +1,13 @@
+---
+artifact: proposal
+change: <YYYY-MM-DD-change-title>
+status: draft | approved | implemented
+decision: accepted | rejected | skipped
+author: <name or agent>
+created: <YYYY-MM-DD>
+route_unit: <.hamilton/maps/<effort>/route.md — unit N, or null>
+---
+
 <!--
   PRD — Proposal / "Why"
   Produced by: hamilton-propose (step 1)
@@ -7,14 +17,6 @@
 -->
 
 # Proposal: <Change Title>
-
-| Field      | Value                                                        |
-|------------|--------------------------------------------------------------|
-| Change     | <YYYY-MM-DD-change-title>                                    |
-| Status     | draft / approved / implemented                               |
-| Author     | <name or agent>                                              |
-| Created    | <YYYY-MM-DD>                                                 |
-| Route unit | <.hamilton/maps/<effort>/route.md — unit N; omit unless map-aware> |
 
 ## Why
 

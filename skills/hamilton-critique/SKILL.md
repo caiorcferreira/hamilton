@@ -29,8 +29,8 @@ back; that loop is driven by whoever runs the pipeline, not by this skill.
   code example — must be checked against the real repository, not taken on trust.
 - The project's canonical specs (`.hamilton/specs/`) — the current requirement truth each
   MODIFIED capability builds on.
-- The change's `Route unit` field (in the proposal's header), if present — follow it to the
-  route unit's `Backed by:` tickets; their Answers are committed decisions the artifacts
+- The change's `route_unit` frontmatter field (in the proposal), if present — follow it to the
+  route unit's `backed_by` tickets; their Answers are committed decisions the artifacts
   must honor.
 - The project's glossary (`.hamilton/specs/glossary.md`), when present — the committed
   ubiquitous language the artifacts must use.
@@ -92,7 +92,8 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    picks one. Unattended, skip the validation; the report is written from the unvalidated findings, and the handoff names the next step.
 7. **Write the report** — the numbered format below — printed to chat **and** persisted to
    `critique.md` in the change directory, written from the findings that survived
-   validation.
+   validation. Record `created`, `verdict`, and `decision` (`accepted`, `rejected`, or
+   `skipped`) in frontmatter; do not duplicate these fields as body metadata.
 
 ## Review dimensions
 
@@ -134,7 +135,8 @@ gate), or `[Minor]` (a documentation or naming gap):
 ## Scope
 <N artifacts cross-referenced against the codebase, the code-quality rubric, and each other>
 
-Verdict: approved | changes-requested — <one line>
+The frontmatter `verdict` is `approved`, `changes-requested`, or `skipped`, and `decision` records
+whether the verdict was accepted, rejected, or skipped.
 
 ## Findings
 1. **[Critical]** <title>

@@ -70,10 +70,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    at a `.hamilton/maps/<effort>/` folder containing a `route.md`, in which case enter
    map-aware mode: read `route.md` from the current working tree (step 2's worktree, if it
    creates one, is based off the current branch, so its copy matches what this step read),
-   scan the `### N.` units in order for the first whose `Status:` line reads `pending`, and
-   derive the title from that unit's name (the heading text after `### N.`); if no unit is
+   scan the `units` frontmatter list in order for the first whose `status` reads `pending`, and
+   derive the title from that unit's `name`; if no unit is
    `pending`, stop and tell the user that every unit is already in-progress or shipped.
-   Before entering the unit, verify each of its `Depends on:` units is `shipped` **and** its
+   Before entering the unit, verify each of its `depends_on` units is `shipped` **and** its
    work is reachable from the base branch; if a dependency is finished but unmerged, stop and
    ask the user — merge it, or deliberately branch from its branch.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Run
@@ -103,7 +103,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    directory and every artifact are created **inside** `.worktrees/<title>/`, never in the
    original checkout.
 
-   In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
+   In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
    copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
    `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding
    (step 3). The claim rides the branch, so it ships with the work it marks.
@@ -113,9 +113,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
    Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
-   also navigate the selected unit's `Backed by:` links — reading each linked
+   also navigate the selected unit's `backed_by` links — reading each linked
    `tickets/NN-slug.md` to pull the full decision context — and feed it into this exploration.
-   If the unit has no `Backed by:` line, proceed with its route entry's goal paragraph alone.
+   If the unit has no `backed_by` entry, proceed with its route entry's goal paragraph alone.
    If the request spans several independent subsystems, stop and help decompose it first —
    one change per spec.
 5. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
@@ -125,8 +125,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 6. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements. In
-   map-aware mode, fill the header's `Route unit` field with the route path and unit
-   number — it is the provenance link every downstream step follows back to the map.
+   map-aware mode, fill the frontmatter's `route_unit` field with the route path and unit
+   number — it is the provenance link every downstream step follows back to the map. Populate
+   the proposal frontmatter fields `change`, `status`, `author`, and `created`; do not recreate
+   them as a Markdown metadata table.
 
    **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
    capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so

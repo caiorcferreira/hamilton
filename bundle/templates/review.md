@@ -1,3 +1,14 @@
+---
+artifact: review
+change: <YYYY-MM-DD-change-title>
+created: <YYYY-MM-DD>
+status: open | complete
+verdict: approved | changes-requested | skipped
+decision: accepted | rejected | skipped
+base: <full merge-base commit identifier>
+head: <full head commit identifier>
+---
+
 <!--
   Whole-branch Review — verdict for a complete change branch.
   Produced by: hamilton-review (step 5).
@@ -10,9 +21,7 @@
 
 ## Pass N — <YYYY-MM-DD> <!-- hint: replace with the next pass number and current date -->
 
-Base: <full merge-base commit identifier>
-Head: <full head commit identifier>
-Verdict: approved | changes-requested
+<!-- Review metadata is recorded in frontmatter. -->
 
 ### Blocking
 

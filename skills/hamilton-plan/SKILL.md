@@ -74,10 +74,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 1. **Detect map-aware mode.** If the request points at a `.hamilton/maps/<effort>/` folder
    containing a `route.md`, enter map-aware mode: read `route.md` from the current working
-   tree, scan the `### N.` units in order for the first whose `Status:` line reads `pending`,
-   and derive the change title from that unit's name; if no unit is `pending`, stop and tell
+   tree, scan the `units` frontmatter list in order for the first whose `status` reads `pending`,
+   and derive the change title from that unit's `name`; if no unit is `pending`, stop and tell
    the user every unit is already in-progress or shipped. Before entering the unit, verify
-   each of its `Depends on:` units is `shipped` **and** its work is reachable from the base
+   each of its `depends_on` units is `shipped` **and** its work is reachable from the base
    branch; if a dependency is finished but unmerged, stop and ask the user — merge it, or
    deliberately branch from its branch. Otherwise proceed on the ordinary path.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Run
@@ -112,7 +112,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    original checkout. When in doubt, use the absolute worktree path returned by
    `git rev-parse --show-toplevel` as the base for file operations.
 
-   In map-aware mode, now flip the selected unit's `Status:` to `in-progress` in the worktree's
+   In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
    copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
    `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding. The
    claim rides the branch, so it ships with the work it marks.
@@ -124,11 +124,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    path, where the directory is new and empty, skip straight to the reading.
    Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
-   project standards (commands, structure, style, boundaries). If a `Route unit` field is
-   present (in the proposal's header, or in this plan's Overview), follow it to the unit's
-   `Backed by:` tickets and treat their Answers as committed decisions the plan must honor.
-   In map-aware mode, write the `Route unit` line (route path + unit number) into the plan's
-   Overview yourself — it is the provenance link finish-work uses to flip the unit's status. The specs carry the conventions
+   project standards (commands, structure, style, boundaries). If a `route_unit` field is
+   present in frontmatter, follow it to the unit's `backed_by` tickets and treat their Answers as committed decisions the plan must honor.
+   In map-aware mode, write the `route_unit` frontmatter field (route path + unit number) into
+   the plan yourself — it is the provenance link finish-work uses to flip the unit's status. The route metadata is machine-readable frontmatter; the specs carry the conventions
    and decisions already committed for those capabilities — follow them so the plan stays
    consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
    your primary source of existing behavior; write a two-line why/what for the Overview.

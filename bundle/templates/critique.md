@@ -1,3 +1,12 @@
+---
+artifact: critique
+change: <YYYY-MM-DD-change-title>
+created: <YYYY-MM-DD>
+verdict: approved | changes-requested | skipped
+decision: accepted | rejected | skipped
+scope: <artifacts and evidence reviewed>
+---
+
 <!--
   Critique — the design-phase review artifact for a change.
   Lives at: .hamilton/changes/<change>/critique.md
@@ -7,14 +16,14 @@
   Delete this comment block before finalizing.
 -->
 
-# Critique: <Change Title> — <YYYY-MM-DD>
+# Critique: <Change Title>
 
 ## Scope
 
 <!-- What was cross-referenced: which artifacts, against the codebase, the code-quality
      rubric, and each other. -->
 
-Verdict: approved | changes-requested — <one line>
+<!-- Verdict is recorded in frontmatter. -->
 
 ## Findings
 

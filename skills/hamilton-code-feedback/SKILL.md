@@ -160,13 +160,14 @@ or destroying unrelated work.
 Write only `<change-dir>/tasks/task-N/feedback.md`; the task directory segment is lowercase
 `task-N`. Load the exact installed `~/.hamilton/templates/feedback.md` template on every pass. When
 the file does not exist, instantiate a complete copy with the exact task id, title, current date,
-next pass number, full reviewed identifiers, verdict, and findings. Remove the opening instruction
+next pass number, full reviewed identifiers, verdict, decision, and findings. Populate the
+artifact frontmatter fields `created`, `status`, `verdict`, `decision`, `base`, and `head`. Remove the opening instruction
 block and every inline hint while substituting placeholders; neither authoring instructions nor
 hints may survive in the live artifact.
 
 When the file exists, validate it first, then use the cleaned record portion of that same installed
 template to append the next-numbered pass at the physical end. Preserve the task identity heading
-and every prior pass. A retained leading template instruction block or inline hint is authoring
+and every prior pass. Keep review metadata in frontmatter and do not duplicate it as body fields. A retained leading template instruction block or inline hint is authoring
 markup rather than verdict history: remove that markup before appending, but do not change, delete,
 reorder, or insert within any prior pass. Populate every template-defined value. An approval has no
 blocking findings and may briefly record useful verified coverage as a suggestion; both findings

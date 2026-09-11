@@ -63,6 +63,7 @@ describe("hamilton-code execution contract", () => {
 
     expect(skill).toContain("~/.hamilton/templates/task-progress.md")
     expect(skill).toMatch(/exact installed.*template/is)
+    expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
     expect(skill).toMatch(/instruction block.*inline hint/is)
     expect(skill).toMatch(/must not survive|remov(?:e|ing)/is)
     expect(process).toMatch(/Update only the assigned task's root row to `in-progress`/)

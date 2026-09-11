@@ -1,3 +1,13 @@
+---
+artifact: plan
+change: <YYYY-MM-DD-change-title>
+status: draft | approved | in-progress | complete | blocked
+created: <YYYY-MM-DD>
+author: <name or agent>
+decision: accepted | rejected | skipped
+route_unit: null
+---
+
 <!--
   Plan — implementation ledger / "Steps"
   Produced by: hamilton-plan (step 2 of the seven-stage pipeline). Lives at:
@@ -35,7 +45,7 @@
 ## Overview
 
 - Change: <this plan's change directory, .hamilton/changes/<change>/>
-- Route unit: <.hamilton/maps/<effort>/route.md — unit N; omit unless the change executes a route unit>
+- Route unit: recorded in frontmatter `route_unit`; omit unless the change executes a route unit
 - Goal: <1–2 sentences — what this plan delivers and why>
 - Test: `<command that runs the test suite>`
 - Build / typecheck: `<command>`

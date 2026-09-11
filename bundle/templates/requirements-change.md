@@ -1,3 +1,13 @@
+---
+artifact: requirements-change
+capability: <capability-name>
+change: <YYYY-MM-DD-change-title>
+status: draft
+created: <YYYY-MM-DD>
+author: <name or agent>
+decision: accepted | rejected | skipped
+---
+
 <!--
   SRS (change delta) — Requirements / "What"   (ISO/IEC/IEEE 29148-inspired)
   Produced by: hamilton-propose (step 1). One file per capability.

@@ -1,3 +1,14 @@
+---
+artifact: finish
+change: <YYYY-MM-DD-change-title>
+status: pending | completed | blocked
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+strategy: local-merge | pull-request | no-op
+result: completed | blocked | pending
+decision: accepted | rejected | skipped
+---
+
 <!--
   Finish History — completion history for a change.
   Produced by: hamilton-finish-work (step 6).

@@ -207,12 +207,13 @@ or destroying unrelated work.
 Write only `<change-dir>/review.md`. Load the exact installed
 `~/.hamilton/templates/review.md` template on every pass. When the file does not exist, instantiate
 a complete copy with the change title, current date, next pass number, full reviewed identifiers,
-verdict, and findings. Remove the opening instruction block and every inline hint while substituting
+verdict, decision, and findings. Populate the artifact frontmatter fields `created`, `status`,
+`verdict`, `decision`, `base`, and `head`. Remove the opening instruction block and every inline hint while substituting
 placeholders; neither authoring instructions nor hints may survive in the live artifact.
 
 When the file exists, validate it first, then use the cleaned record portion of that same installed
 template to append the next-numbered pass at the physical end. Preserve the heading and every prior
-pass. Retained template authoring markup may be removed before appending, but no recorded pass may
+pass. Keep review metadata in frontmatter and do not duplicate it as body fields. Retained template authoring markup may be removed before appending, but no recorded pass may
 be changed, deleted, reordered, or split. Populate every template-defined value. An approval has no
 blocking findings and may briefly record useful verified coverage as a suggestion; both findings
 groups remain present. Record any focused command and result without changing the template-defined
@@ -249,8 +250,10 @@ Return the change identity, full reviewed Base and Head, verdict, blocking count
 and review commit identifier. Do not create a separate detailed report.
 
 For `approved`, return control to the driver so it can invoke `hamilton-finish-work`. For
-`changes-requested`, return control so the findings can be resolved before another whole-branch
-review. Never invoke another pipeline skill yourself.
+`changes-requested`, return the complete finding set so it can be decomposed into independently verifiable, multiple
+remediation tasks through `hamilton-plan` re-plan mode before another whole-branch review.
+If a finding invalidates an approved requirement or design, return it to `hamilton-propose` instead.
+Never send whole-branch findings directly to `hamilton-code`; never invoke another pipeline skill yourself.
 
 ## Process flow
 

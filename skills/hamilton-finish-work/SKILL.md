@@ -26,7 +26,7 @@ optional and remain outside the seven-step core count.
   - The append-only finish history at `<change-dir>/finish.md`, if it exists.
 - The already approved specification inputs: `proposal.md`, `design.md`, and `requirements/`
   where present, plus the current canonical `.hamilton/specs/` documents.
-- The `Route unit` field in `proposal.md` or the plan Overview, when the change executes a route
+- The `route_unit` frontmatter field in `proposal.md` or `plan.md`, when the change executes a route
   unit, and that unit's exact `route.md` and `map.md` paths.
 - The finish strategy: `local-merge`, `pull-request`, or `no-op`. If unspecified, use the
   project's explicit default or ask the user.
@@ -158,9 +158,9 @@ synchronization for this attempt, but it does not make an unrelated edit safe.
 ## Finish history
 
 `<change-dir>/finish.md` is the only finish-history artifact. On the first admitted attempt,
-load and instantiate the exact installed `~/.hamilton/templates/finish.md` template. Substitute the
-real change title and first complete attempt, remove the opening instruction block and every inline
-hint, and ensure no authoring instruction or hint survives in the live file. Otherwise validate the
+load and instantiate the exact installed `~/.hamilton/templates/finish.md` template. Populate its frontmatter fields `change`, `status`, `created`, `updated`, `strategy`,
+`result`, and `decision`. Substitute the real change title and first complete attempt, remove the opening instruction block and every
+inline hint, and ensure no authoring instruction or hint survives in the live file. Otherwise validate the
 existing body before use and derive the next attempt from the cleaned record portion of that same
 installed template. Retained authoring markup may be removed, but `finish.md` is otherwise
 append-only: never alter or reorder a recorded attempt or outcome, and never write root

@@ -1,5 +1,86 @@
 #!/usr/bin/env bash
 
+hamilton_frontmatter_field() {
+  local file="$1" field="$2"
+  awk -v field="$field" '
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { exit }
+    in_frontmatter {
+      prefix = field ":"
+      if (index($0, prefix) == 1) {
+        value = substr($0, length(prefix) + 1)
+        sub(/^[[:space:]]+/, "", value)
+        sub(/[[:space:]]+$/, "", value)
+        print value
+        exit
+      }
+    }
+  ' "$file"
+}
+
+hamilton_has_frontmatter() {
+  [ "$(head -n 1 "$1")" = "---" ]
+}
+
+hamilton_strip_markup() {
+  awk '
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { in_frontmatter = 0; next }
+    in_frontmatter { next }
+    /<!--/ { in_comment = 1 }
+    !in_comment { print }
+    /-->/ { in_comment = 0 }
+  ' "$1"
+}
+
+hamilton_progress_rows() {
+  awk '
+    function trim(value) {
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      return value
+    }
+    function emit() {
+      if (!active || id == "" || title == "" || status == "" || progress == "") return
+      if (substr(title, 1, 1) == "\"" && substr(title, length(title), 1) == "\"") {
+        title = substr(title, 2, length(title) - 2)
+        gsub(/\\\\\"/, "\"", title)
+      }
+      escaped = title
+      gsub(/\|/, "\\|", escaped)
+      printf "Task %s: %s\\t%s\\t[details](%s)\\n", id, escaped, status, progress
+      active = 0
+      id = title = status = progress = ""
+    }
+    NR == 1 && $0 == "---" { frontmatter = 1; next }
+    frontmatter && $0 == "---" { emit(); exit }
+    !frontmatter { next }
+    /^  - id:[[:space:]]*/ {
+      emit()
+      id = $0
+      sub(/^  - id:[[:space:]]*/, "", id)
+      active = 1
+      next
+    }
+    active && /^    title:[[:space:]]*/ {
+      title = $0
+      sub(/^    title:[[:space:]]*/, "", title)
+      next
+    }
+    active && /^    status:[[:space:]]*/ {
+      status = $0
+      sub(/^    status:[[:space:]]*/, "", status)
+      next
+    }
+    active && /^    progress:[[:space:]]*/ {
+      progress = $0
+      sub(/^    progress:[[:space:]]*/, "", progress)
+      next
+    }
+    END { emit() }
+  ' "$1"
+}
+
 hamilton_plan_tasks() {
   awk '
     function normalize_atx(value) {
@@ -188,10 +269,10 @@ hamilton_latest_verdict_pass() {
       return 1
     }
     function reset_pass() {
-      base = ""
-      head = ""
-      verdict = ""
-      metadata = 0
+      base = frontmatter_base
+      head = frontmatter_head
+      verdict = frontmatter_verdict
+      metadata = frontmatter_valid ? 3 : 0
       section = ""
       blocking = 0
       blocking_none = 0
@@ -238,6 +319,32 @@ hamilton_latest_verdict_pass() {
       }
       raw = visible
       sub(/\r$/, "", raw)
+      if (NR == 1 && raw == "---") {
+        in_frontmatter = 1
+        next
+      }
+      if (in_frontmatter && raw == "---") {
+        if (frontmatter_base == "" || frontmatter_head == "" || frontmatter_verdict == "") invalid = 1
+        else frontmatter_valid = 1
+        in_frontmatter = 0
+        next
+      }
+      if (in_frontmatter) {
+        if (raw ~ /^base:[ \t]*[^ \t]/) {
+          frontmatter_base = raw
+          sub(/^base:[ \t]*/, "", frontmatter_base)
+          sub(/[ \t]+$/, "", frontmatter_base)
+        } else if (raw ~ /^head:[ \t]*[^ \t]/) {
+          frontmatter_head = raw
+          sub(/^head:[ \t]*/, "", frontmatter_head)
+          sub(/[ \t]+$/, "", frontmatter_head)
+        } else if (raw ~ /^verdict:[ \t]*(approved|changes-requested|skipped)[ \t]*$/) {
+          frontmatter_verdict = raw
+          sub(/^verdict:[ \t]*/, "", frontmatter_verdict)
+          sub(/[ \t]+$/, "", frontmatter_verdict)
+        }
+        next
+      }
       line = normalize_atx(raw)
       level = atx_level(line)
       if (level == 1) {
@@ -285,6 +392,7 @@ hamilton_latest_verdict_pass() {
         next
       }
       if (section == "") {
+        if (metadata == 0 && raw ~ /^[ \t]*$/) next
         if (metadata == 0 && raw ~ /^Base:[ \t]*[^ \t]/) {
           base = raw
           sub(/^Base:[ \t]*/, "", base)

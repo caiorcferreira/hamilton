@@ -1,3 +1,15 @@
+---
+artifact: ticket
+effort: <effort-name>
+ticket: <NN>
+type: research | prototype | grilling | task
+status: open | claimed | resolved
+blocked_by: []
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+decision: accepted | rejected | skipped
+---
+
 <!--
   Decision ticket — one question whose resolution is a decision.
   Produced by: hamilton-wayfinder
@@ -6,12 +18,6 @@
   flipped to resolved when the ticket closes.
   Delete this comment block and every inline hint comment before finalizing.
 -->
-
----
-type: <research|prototype|grilling|task>
-status: open
-blocked_by: []
----
 
 # <Ticket Title>
 
