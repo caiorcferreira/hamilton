@@ -1,3 +1,13 @@
+---
+artifact: design
+change: <YYYY-MM-DD-change-title>
+status: draft
+created: <YYYY-MM-DD>
+author: <name or agent>
+decision: accepted | rejected | skipped
+route_unit: null
+---
+
 <!--
   SDD — Design / "How"   (IEEE 1016-inspired, right-sized)
   Produced by: hamilton-propose (step 1 of the seven-stage pipeline).

@@ -146,6 +146,10 @@ read_task_checkpoint() {
 
 task_row_status() {
   local progress="$1" task="$2"
+  if hamilton_has_frontmatter "$progress" && hamilton_frontmatter_field "$progress" artifact | grep -qx 'progress'; then
+    hamilton_progress_rows "$progress" | awk -F '\t' -v task="Task $task:" '$1 ~ ("^" task) { print $2; found = 1 } END { exit !found }'
+    return
+  fi
   awk -v task="$task" '
     BEGIN {
       link = "\\[details\\]\\(tasks/task-" task "/progress\\.md\\)"

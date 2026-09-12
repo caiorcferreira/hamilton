@@ -48,6 +48,9 @@ waived() { printf '[WAIVED] %s\n' "$1"; }
 # and verdict values parsed below. Strip them before reading anything.
 strip_comments() {
   awk '
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { in_frontmatter = 0; next }
+    in_frontmatter { next }
     /<!--/ { in_comment = 1 }
     !in_comment { print }
     /-->/ { in_comment = 0 }
@@ -103,6 +106,10 @@ committed_artifact() {
 TABLE_SEPARATOR_RE='^[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*---+[ \t]*[|][ \t]*$'
 
 root_rows() {
+  if hamilton_has_frontmatter "$1" && hamilton_frontmatter_field "$1" artifact | grep -qx 'progress'; then
+    hamilton_progress_rows "$1"
+    return
+  fi
   strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
     function trim(value) {
       sub(/^[ \t]+/, "", value)
@@ -178,6 +185,10 @@ root_rows() {
 }
 
 has_only_root_ledger_shape() {
+  if hamilton_has_frontmatter "$1" && hamilton_frontmatter_field "$1" artifact | grep -qx 'progress'; then
+    hamilton_progress_rows "$1" >/dev/null
+    return $?
+  fi
   strip_comments "$1" | awk -v table_separator_re="$TABLE_SEPARATOR_RE" '
     function normalize_atx(value) {
       if (substr(value, 1, 4) == "    ") return value

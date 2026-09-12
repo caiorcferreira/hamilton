@@ -1,3 +1,13 @@
+---
+artifact: map
+effort: <effort-name>
+status: open | cleared | shipping | shipped
+branch: <branch-name>
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+decision: accepted | rejected | skipped
+---
+
 <!--
   Map — the shared chart for one wayfinding effort.
   Produced by: hamilton-wayfinder
@@ -7,11 +17,6 @@
   below becomes the first line of the file once this block is deleted.
   Delete this comment block and every inline hint comment before finalizing.
 -->
-
----
-status: open
-branch:
----
 
 <!-- hint: branch names the branch the effort works from and merges back into, set at map creation -->
 

@@ -23,9 +23,10 @@ describe("split execution artifact templates", () => {
 
     for (const [name, producer, instancePath] of lifecycleTemplates) {
       const template = readTemplate(name)
-      const instructions = template.match(/^<!--([\s\S]*?)-->/)?.[1]
+      const instructions = template.match(/<!--([\s\S]*?)-->/)?.[1]
 
       expect(instructions).toBeDefined()
+      expect(template.startsWith("---\n")).toBe(true)
       expect(instructions).toContain(`Produced by: ${producer}`)
       expect(instructions).toContain(`Lives at: ${instancePath}`)
       expect(instructions).toMatch(/Delete this instruction block and every inline hint before finalizing\./)
@@ -35,9 +36,11 @@ describe("split execution artifact templates", () => {
   it("defines the root task index", () => {
     const template = readTemplate("progress.md")
 
-    expect(template).toContain("| Task | Status | Progress |")
-    expect(template).toContain("| Task N: <Markdown-escaped title> | pending | [details](tasks/task-N/progress.md) |")
-    expect(template).toContain("pending | in-progress | blocked | done")
+    expect(template).toContain("artifact: progress")
+    expect(template).toContain("tasks:")
+    expect(template).toContain("title: \"<task title>\"")
+    expect(template).toContain("progress: tasks/task-N/progress.md")
+    expect(template).toContain("status: pending | in-progress | blocked | complete")
   })
 
   it("defines the task-local progress artifact", () => {
@@ -53,9 +56,10 @@ describe("split execution artifact templates", () => {
     const template = readTemplate("feedback.md")
 
     expect(template).toContain("# Code Feedback: Task N — <title>")
-    expect(template).toContain("Base: <full commit identifier>")
-    expect(template).toContain("Head: <full commit identifier>")
-    expect(template).toContain("Verdict: approved | changes-requested")
+    expect(template).toContain("base: <full commit identifier>")
+    expect(template).toContain("head: <full commit identifier>")
+    expect(template).toContain("verdict: approved | changes-requested | skipped")
+    expect(template).toContain("decision: accepted | rejected | skipped")
     expect(template).toContain("### Blocking")
     expect(template).toContain("### Suggestions")
   })
@@ -64,9 +68,10 @@ describe("split execution artifact templates", () => {
     const template = readTemplate("review.md")
 
     expect(template).toContain("# Whole-branch Review: <Change Title>")
-    expect(template).toContain("Base: <full merge-base commit identifier>")
-    expect(template).toContain("Head: <full head commit identifier>")
-    expect(template).toContain("Verdict: approved | changes-requested")
+    expect(template).toContain("base: <full merge-base commit identifier>")
+    expect(template).toContain("head: <full head commit identifier>")
+    expect(template).toContain("verdict: approved | changes-requested | skipped")
+    expect(template).toContain("decision: accepted | rejected | skipped")
     expect(template).not.toContain("<scope reviewed>")
   })
 
@@ -74,8 +79,9 @@ describe("split execution artifact templates", () => {
     const template = readTemplate("finish.md")
 
     expect(template).toContain("## Attempt N — <YYYY-MM-DD>")
-    expect(template).not.toContain("## Outcome N — <YYYY-MM-DD>")
-    expect(template).not.toContain("- Result: completed | blocked")
+    expect(template).toContain("strategy: local-merge | pull-request | no-op")
+    expect(template).toContain("result: completed | blocked | pending")
+    expect(template).toContain("decision: accepted | rejected | skipped")
   })
 
   it("documents the split artifact owners and instance paths", () => {

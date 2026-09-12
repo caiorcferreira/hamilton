@@ -1,3 +1,15 @@
+---
+artifact: feedback
+change: <YYYY-MM-DD-change-title>
+task: <N>
+created: <YYYY-MM-DD>
+status: open | resolved
+verdict: approved | changes-requested | skipped
+decision: accepted | rejected | skipped
+base: <full commit identifier>
+head: <full commit identifier>
+---
+
 <!--
   Code Feedback — review history for one plan task.
   Produced by: hamilton-code-feedback (step 4).
@@ -10,9 +22,7 @@
 
 ## Pass N — <YYYY-MM-DD> <!-- hint: replace with the next pass number and current date -->
 
-Base: <full commit identifier>
-Head: <full commit identifier>
-Verdict: approved | changes-requested
+<!-- Review metadata is recorded in frontmatter. -->
 
 ### Blocking
 

@@ -44,11 +44,13 @@ describe("seven-step pipeline identity", () => {
   it("uses the split task and whole-branch handoffs", () => {
     expect(readSkill("hamilton-init")).toMatch(/ready for `hamilton-propose`.*`hamilton-plan`/s)
     expect(section(readSkill("hamilton-propose"), "## Handoff")).toContain("`hamilton-plan`")
+    expect(readSkill("hamilton-propose")).toMatch(/frontmatter.*`route_unit`/is)
     expect(section(readSkill("hamilton-plan"), "## Handoff")).toMatch(/`hamilton-code`.*`hamilton-orchestrate`/s)
     expect(section(readSkill("hamilton-code"), "## Handoff")).toMatch(/done commit.*`hamilton-code-feedback`/s)
     expect(section(readSkill("hamilton-code-feedback"), "## Output and handoff")).toMatch(/next task.*`hamilton-code`.*whole-branch.*`hamilton-review`/s)
     expect(section(readSkill("hamilton-review"), "## Output and handoff")).toMatch(/approved.*`hamilton-finish-work`/s)
     expect(readSkill("hamilton-finish-work")).toMatch(/step 6.*last/is)
+    expect(readSkill("hamilton-finish-work")).toMatch(/frontmatter.*`decision`/is)
   })
 
   it("describes orchestration as the code-feedback loop followed by final review and finish", () => {

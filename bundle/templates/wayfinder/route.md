@@ -1,3 +1,19 @@
+---
+artifact: route
+effort: <effort-name>
+status: open | shipping | shipped
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+decision: accepted | rejected | skipped
+units:
+  - id: 1
+    name: <unit-name>
+    status: pending | in-progress | shipped
+    depends_on: []
+    backed_by:
+      - tickets/NN-slug.md
+---
+
 <!--
   Route — the handoff from a cleared map to the SDD loop.
   Produced by: hamilton-wayfinder
@@ -24,9 +40,8 @@
 
 ### 1. <Unit name>
 
-Status: pending
-Depends on: —
-Backed by: [<ticket title>](tickets/NN-slug.md)
+<!-- Unit metadata is represented by the matching entry in the document frontmatter `units` list. -->
+
 Decisions:
 - Decided: <outcome in one line> ([<ticket title>](tickets/NN-slug.md))
 

@@ -85,7 +85,7 @@ This section is the contract between the wayfinder methodology and its file-nati
 
 **Frontmatter.** Every ticket and the map carry YAML frontmatter. Tickets use `type:` (`research` / `prototype` / `grilling` / `task`), `status:` (`open` / `claimed` / `resolved`), and `blocked_by:` (a list of ticket numbers). The map uses `status:` (`open` / `cleared` / `shipping` / `shipped`) and `branch:` (the branch the effort works from and merges back into, set at map creation; a map created before this field falls back to the repository's default branch).
 
-**Route units.** Each unit in `route.md` carries a `Status:` line with values `pending` / `in-progress` / `shipped`. The executing process flips it (see The route).
+**Route units.** The `units` frontmatter list in `route.md` carries each unit's `id`, `name`, `status`, `depends_on`, and `backed_by`. The executing process flips the matching `status` between `pending`, `in-progress`, and `shipped` (see The route).
 
 **Frontier.** The frontier is the set of tickets with `status: open` — excluding `claimed` and `resolved` — whose every `blocked_by` entry is resolved, taken in file order. "Open" always names the status value; use "unresolved" for any ticket not yet resolved.
 

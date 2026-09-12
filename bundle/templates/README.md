@@ -1,5 +1,14 @@
 # SDD artifact templates
 
+Every generated artifact begins with one YAML frontmatter block. Scalar identity,
+lifecycle, provenance, and review metadata belong in frontmatter; Markdown headings,
+prose, lists, tables, and append-only findings remain in the body. Repeated records,
+such as plan tasks and route units, remain body collections unless the record carries
+independent state; those records use a nested frontmatter list or a dedicated file.
+
+Frontmatter is the machine-readable source of truth. Do not duplicate a frontmatter
+field as a `Key: value` body line or a metadata table row.
+
 Templates for the seven-stage spec-driven pipeline. Each maps to a well-known standard,
 taken in spirit (right-sized), not by conformance.
 

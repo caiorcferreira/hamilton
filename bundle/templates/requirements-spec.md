@@ -1,3 +1,12 @@
+---
+artifact: requirements-spec
+capability: <capability-name>
+status: current
+updated: <YYYY-MM-DD>
+author: <name or agent>
+decision: accepted | rejected | skipped
+---
+
 <!--
   SRS (canonical) — the durable spec for one capability
   Lives at: .hamilton/specs/<capability>.md

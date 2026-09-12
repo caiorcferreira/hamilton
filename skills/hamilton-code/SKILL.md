@@ -69,8 +69,9 @@ Plus:
    Read its Acceptance, cited requirement or design sections, and project standards. Do not load
    other task blocks.
 3. **Require the split execution layout.** Before implementation, load the exact installed
-   `~/.hamilton/templates/task-progress.md` template. Instantiate a cleaned in-memory copy with the
-   assigned task id and title by removing its opening instruction block and every inline hint, then
+   `~/.hamilton/templates/task-progress.md` template. Its YAML frontmatter is the machine-readable
+   metadata source. Instantiate a cleaned in-memory copy with the assigned task id and title by
+   removing its opening instruction block and every inline hint, then
    require `plan.md`, the root
    `<change-dir>/progress.md` task table, exactly one active row for the assigned task, and the
    linked `<change-dir>/tasks/task-N/progress.md`. The linked file's creation portion must match
