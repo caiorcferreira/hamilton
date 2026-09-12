@@ -68,36 +68,41 @@ The workbench operations SHALL preserve the former helper exit-code contract: `0
 - WHEN a workbench operation cannot create the requested worktree, branch, checkpoint, or diff package
 - THEN it exits nonzero, identifies the failed operation, and does not report a successful result
 
-### Requirement: Lint accepts an explicit file or directory boundary
+### Requirement: Lint accepts an explicit file or change-directory scope
 
-The system SHALL provide `hamilton workbench lint <path>` with exactly one required path argument accepting either a regular file or a directory. When the path is a directory, lint SHALL recursively inspect only regular files contained within that directory and SHALL not inspect files outside the supplied path.
+The system SHALL provide `hamilton workbench lint` with exactly one required scope selector: `--file <file>` or `--change-dir <dir>`. `--file` SHALL validate only the named regular file. `--change-dir` SHALL recursively inspect only regular files contained within the supplied Hamilton change directory and SHALL not inspect files outside that directory.
 
 - Priority: must
-- Rationale: an explicit boundary prevents accidental repository-wide scans and makes lint usable for a single artifact, change directory, or nested artifact tree.
+- Rationale: mutually exclusive selectors make the validation boundary explicit and uniform with change-oriented workbench commands without introducing an unsupported arbitrary artifact subtree mode.
 
 #### Scenario: Lint a single file
 
-- WHEN the caller supplies a regular file path
+- WHEN the caller supplies `--file <file>` naming a regular file
 - THEN lint validates only that file and reports its result
 
 #### Scenario: Lint a change directory
 
-- WHEN the caller supplies a change directory
+- WHEN the caller supplies `--change-dir <dir>` naming a Hamilton change directory
 - THEN lint recursively considers regular files below that directory and does not validate sibling changes or files outside the directory
 
-#### Scenario: Lint receives no path
+#### Scenario: Lint receives no scope selector
 
-- WHEN the caller omits the path
+- WHEN the caller supplies neither `--file` nor `--change-dir`
 - THEN lint exits `2` with a usage error and does not default to the current directory
 
-#### Scenario: Lint receives an invalid path
+#### Scenario: Lint receives both scope selectors
 
-- WHEN the supplied path does not exist or is neither a regular file nor a directory
-- THEN lint exits `2` with an error naming the path
+- WHEN the caller supplies both `--file` and `--change-dir`
+- THEN lint exits `2` with a usage error and inspects neither scope
 
-#### Scenario: A directory contains an unrelated symlink
+#### Scenario: Lint receives an invalid scope
 
-- WHEN a supplied directory contains a symlink whose target is outside the supplied directory
+- WHEN `--file` names a missing or non-regular path, or `--change-dir` names a missing or non-directory path
+- THEN lint exits `2` with an error naming the selector and path
+
+#### Scenario: A change directory contains an unrelated symlink
+
+- WHEN a supplied change directory contains a symlink whose target is outside the supplied directory
 - THEN lint does not follow the symlink or validate the outside target
 
 ### Requirement: Lint recognizes artifacts from frontmatter and filename signals

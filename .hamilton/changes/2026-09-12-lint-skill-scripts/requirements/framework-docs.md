@@ -43,7 +43,7 @@ Every maintained Hamilton skill that previously invokes a Hamilton-owned helper 
 
 ### Requirement: Documentation presents the workbench migration accurately
 
-The README, mode and framework documentation, skills reference, and any contributor mapping affected by setup or CLI behavior SHALL describe `hamilton workbench` and its subcommands as the supported workflow-mechanics surface, SHALL explain that lint requires an explicit file or directory path, and SHALL no longer instruct users to install or verify the six helper scripts.
+The README, mode and framework documentation, skills reference, and any contributor mapping affected by setup or CLI behavior SHALL describe `hamilton workbench` and its subcommands as the supported workflow-mechanics surface, SHALL explain that lint requires exactly one of `--file <file>` or `--change-dir <dir>`, and SHALL no longer instruct users to install or verify the six helper scripts.
 
 - Priority: must
 - Rationale: the documented setup and skill contracts must match the distributed CLI or users will follow a path that the new generation no longer supports.
@@ -56,7 +56,7 @@ The README, mode and framework documentation, skills reference, and any contribu
 #### Scenario: Reader learns artifact validation
 
 - WHEN a reader consults the workbench documentation
-- THEN they can find the explicit `hamilton workbench lint <path>` invocation, its recursive directory boundary, skipped-file behavior, and fail-closed artifact validation
+- THEN they can find the explicit `hamilton workbench lint --file <file>` and `hamilton workbench lint --change-dir <dir>` invocations, the recursive change-directory boundary, skipped-file behavior, and fail-closed artifact validation
 
 #### Scenario: Reader follows migration guidance
 
