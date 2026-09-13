@@ -7,13 +7,7 @@ import {
   prototype,
   type PrototypeGitPort,
 } from "../../src/workbench/prototype.js";
-import {
-  cleanupRepos,
-  git,
-  makeRepo,
-  runCommand,
-  write,
-} from "./helpers.js";
+import { cleanupRepos, git, makeRepo, runCommand, write } from "./helpers.js";
 
 const originalDirectory = process.cwd();
 
@@ -152,7 +146,9 @@ describe("prototype verify", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("not on prototype/payments-redesign/03-storage-model");
+    expect(result.stderr).toContain(
+      "not on prototype/payments-redesign/03-storage-model",
+    );
   });
 });
 
@@ -182,7 +178,9 @@ describe("prototype usage and environment errors", () => {
   });
 
   it("exits 2 outside a git repository", async () => {
-    const directory = Fs.mkdtempSync(Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"));
+    const directory = Fs.mkdtempSync(
+      Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"),
+    );
     try {
       inDirectory(directory);
       const result = await prototype({

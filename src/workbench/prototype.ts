@@ -199,7 +199,11 @@ const switchBranch = async (
   }
 
   if (!successful(mutation))
-    return commandError(operation, `git branch mutation for ${branch} failed`, mutation);
+    return commandError(
+      operation,
+      `git branch mutation for ${branch} failed`,
+      mutation,
+    );
   return result(operation, "success", 0, `mode: ${mode}\n${branch}\n`);
 };
 
@@ -253,7 +257,8 @@ export const createStandalonePrototypeBranch = (
 export const verifyPrototypeBranch = (
   expectedBranch: string,
   runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> => prototype({ mode: "verify", expectedBranch }, runtime);
+): Promise<PrototypeResult> =>
+  prototype({ mode: "verify", expectedBranch }, runtime);
 
 export const renderPrototypeResult = (
   prototypeResult: PrototypeResult,
