@@ -41,17 +41,17 @@ proposal, requirement, and design artifacts when present and otherwise works fro
 
 Assisted mode needs two things in place:
 
-1. **Artifact templates and helper scripts**, installed for the current Hamilton generation with
-   the CLI:
+1. **Artifact templates, guidelines, and the workbench CLI**, installed for the current Hamilton
+   generation:
 
    ```bash
    bun run install-local     # build + symlink the `hamilton` CLI
-   hamilton setup            # installs bundle/{templates,guidelines,scripts}/ → ~/.hamilton/
+   hamilton setup            # installs bundle/{templates,guidelines}/ → ~/.hamilton/
+   hamilton workbench --help
    ```
 
-   The skills read the installed templates from `~/.hamilton/templates/<name>.md`, and call the
-   required helper scripts at `~/.hamilton/scripts/<name>.sh` (see
-   [Helper scripts](#helper-scripts)).
+   The skills read the installed templates from `~/.hamilton/templates/<name>.md` and use the
+   distributed `hamilton workbench` command for workflow mechanics.
 
 2. **The skills available to your coding agent.** The pipeline skills live in `skills/hamilton-*/`.
    Make them discoverable to your agent — for Claude Code, copy or symlink the `skills/hamilton-*`
@@ -62,10 +62,36 @@ Assisted mode needs two things in place:
 Then, once per project, run the `hamilton-init` skill (below) to scaffold `.hamilton/` and write
 `AGENTS.md`.
 
-Treat the CLI bundle and agent-loaded skills as one installed generation. Finish an active change
-before updating either side, update both from the same release, run `hamilton setup`, and verify the
-installed generation before starting new work. The complete commands and checks are in
-[Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow).
+Treat the CLI and agent-loaded skills as one installed generation. Finish an active change before
+updating either side, update both from the same release, run `hamilton setup`, and verify
+`hamilton workbench --help` before starting new work. Setup does not delete stale helper files from
+an older generation; use `hamilton purge` for explicit cleanup. The complete migration guidance is
+in [Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow).
+
+## Workbench
+
+The distributed `hamilton workbench` command is the supported workflow-mechanics surface used by
+these skills. Its subcommands are:
+
+- `hamilton workbench isolate` — check, create, or verify an isolated workspace.
+- `hamilton workbench diff` — record checkpoints and package task or change diffs.
+- `hamilton workbench precondition` — evaluate finish-work gates.
+- `hamilton workbench context` — inspect change artifacts and lifecycle state.
+- `hamilton workbench prototype` — create, resume, or verify prototype branches.
+- `hamilton workbench lint` — validate one file or one change directory.
+
+Lint requires exactly one scope selector:
+
+```bash
+hamilton workbench lint --file <file>
+hamilton workbench lint --change-dir <dir>
+```
+
+`--file` validates only the named regular file. `--change-dir` recursively visits regular files
+within the supplied change directory and never crosses that recursive boundary. Unrelated files are
+reported as skipped. Conventional artifact filenames without frontmatter produce warnings, while
+malformed recognized artifacts fail closed; lint returns success only when no errors or warnings
+remain.
 
 ## The skills
 
@@ -304,34 +330,6 @@ requirements truth.
 `progress.md` ledger and linked task progress files; code updates current status in the root and
 keeps detailed attempts under the task. Feedback, whole-branch review, and finish history each live
 in their separate owner artifact rather than being mixed into progress.
-
-## Helper scripts
-
-`hamilton setup` installs six files to `~/.hamilton/scripts/`, executable, from the repository's
-`bundle/scripts/`. Five are entry-point helpers; one is their shared artifact-contract library.
-They make the pipeline's mechanical steps deterministic and fail closed when required state cannot
-be established.
-
-| Script | Does | Consumers |
-|--------|------|-----------|
-| `hamilton-artifact-contracts.sh` | Provide the exact active-task and verdict-history parsers shared by other helpers | sourced by `diff-package`, `change-context`, and `precondition-check` |
-| `hamilton-isolate.sh` | Check whether the workspace is isolated (`--check`), create a worktree + branch (`<title>`), or confirm the `cd` landed (`--verify <title>`) | `propose`, `plan`, `code`, `orchestrate`, `finish-work` |
-| `hamilton-diff-package.sh` | Record one task's stable checkpoint (`--record --task N`), package that task range (`--task N`), or package `merge-base(default)..HEAD` (`--whole-change`) | `code`, `orchestrate` |
-| `hamilton-precondition-check.sh` | Run the five finish-work gates — clean tree, tests, tasks done, reviews approved, whole-change review not stale — in one call | `finish-work` |
-| `hamilton-change-context.sh` | Summarise a change directory: artifact inventory, root task standings, task-feedback freshness, and whole-review freshness (`--all` for one line per change) | `plan`, `critique`, `orchestrate`, `finish-work` |
-| `hamilton-prototype-branch.sh` | Create/resume `prototype/<map-name>/<ticket-name>` from the current branch (`<map> <ticket>`, `--standalone <slug>`) or confirm the checkout landed (`--verify <branch>`) | `wayfinder-prototype` |
-
-Three properties hold across the entry-point helpers:
-
-- **Required and generation-matched.** Checkpoint, packaging, context, and finish contracts depend
-  on these installed files. Run `hamilton setup` after updating the CLI bundle, and stop at the
-  between-changes boundary if a required helper or its shared library is missing or stale.
-- **Plain text out, result last.** Each prints human-readable lines and puts the load-bearing value —
-  the verdict, the path, the range — on the **last** line, so a caller reads `tail -1`. Exit codes
-  carry the same answer: `0` yes/success, `1` no/failed, `2` usage or environment error.
-- **Judgment stays in the skill.** They move recipes, never decisions. `hamilton-precondition-check.sh`
-  reports which gates failed and fails closed on anything it cannot parse; whether a failure is
-  waivable is still the skill's call, and the user's.
 
 ## The task loop and whole-branch gate
 

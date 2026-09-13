@@ -214,28 +214,23 @@ each stage has one durable owner.
 Treat this artifact split as a clean break between changes. Finish every active old-format change
 with the Hamilton generation that created it. Only then, between changes:
 
-1. Update the Hamilton CLI and bundle, and update the skills loaded by your agent from the same
-   release or checkout.
-2. Run `hamilton setup` even when the release installer already ran it. This copies that bundle's
-   templates, guidelines, helper entry points, and shared helper library into `~/.hamilton/`.
-3. Verify the setup output lists the split templates and all six script files, then run these checks
-   against the installed generation:
+1. Update the Hamilton CLI and the skills loaded by your agent together from the same release or
+   checkout.
+2. Run `hamilton setup` even when the release installer already ran it. This installs that
+   generation's templates and guidelines into `~/.hamilton/`.
+3. Verify the supported CLI surface against the installed generation:
 
    ```bash
    test -f ~/.hamilton/templates/task-progress.md
    test -f ~/.hamilton/templates/feedback.md
    test -f ~/.hamilton/templates/review.md
    test -f ~/.hamilton/templates/finish.md
-   for helper in hamilton-artifact-contracts.sh hamilton-change-context.sh \
-     hamilton-diff-package.sh hamilton-isolate.sh hamilton-precondition-check.sh \
-     hamilton-prototype-branch.sh; do
-     test -x ~/.hamilton/scripts/$helper || exit 1
-   done
+   hamilton workbench --help
    ```
 
-   Reload the coding-agent session and confirm it exposes `hamilton-code-feedback` as step 4 and
-   `hamilton-review` as the whole-branch-only step 5. A missing file, failed executable check, or
-   older skill definition means the generation is not installed; stop before planning.
+   Reload the coding-agent session and confirm it exposes the matching skill generation. A missing
+   template, failed workbench check, or older skill definition means the generation is not installed;
+   stop before planning.
 4. Start the next change with the verified generation.
 
 New work uses the seven-stage pipeline, skipping only the optional propose stage when appropriate,
@@ -244,12 +239,9 @@ with root `progress.md` only as the task index and ledger, `tasks/task-N/progres
 `finish.md` for finish history. Replace task-scoped `hamilton-review` invocations with
 `hamilton-code-feedback`.
 
-Legacy planned changes that mix task verdicts into root `review.md` or detailed attempts into root
-`progress.md` are `legacy-unsupported` under the new execution and finish contracts. They are not
-converted, resumed, or accepted by the new workflow. Do not switch formats or replace only the
-skills, templates, or helpers in the middle of a change.
-`hamilton-change-context.sh --all` may inventory such planned changes as `legacy-unsupported`, but
-it declines to parse or infer their task or review state.
+Setup does not delete stale helper files left by an older generation. Use `hamilton purge` for
+explicit cleanup when desired. Do not replace only the CLI or only the skills while a change is
+active.
 
 ## Control flow
 
@@ -282,10 +274,7 @@ Four locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
   to `~/.hamilton/templates/` by `hamilton setup`.
-- `bundle/scripts/` — the helper entry points and their shared artifact-contract library, installed
-  executable to `~/.hamilton/scripts/` by the same command. The split workflow requires this set for
-  stable checkpoints, diff packaging, change context, and finish gates. A call site may use an
-  explicit complete fallback where its skill defines one, but no blanket fallback covers the set.
+- `src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
 - `skills/hamilton-*/` — the seven core pipeline skills and their optional companion skills, each a
   self-contained `SKILL.md`.
 - a project's `.hamilton/` — the per-project specs and change artifacts, created by
@@ -300,7 +289,8 @@ your agent reads `SKILL.md` files) and follows it against the artifacts.
 
 ## Status
 
-The seven core pipeline skills and the `hamilton-orchestrate` driver are the maintained workflow in
-this repository. `hamilton setup` installs the versioned templates, guidelines, and helper scripts
-under `~/.hamilton/`; users install the portable skills separately for their coding agent. The test
-suite covers the setup CLI, helper scripts, artifact templates, and skill contracts.
+The seven core pipeline skills, the `hamilton-orchestrate` driver, and the distributed workbench
+are the maintained workflow in this repository. `hamilton setup` installs the versioned templates
+and guidelines under `~/.hamilton/`; users install the portable skills separately for their coding
+agent. The test suite covers the setup CLI, workbench operations, artifact templates, and skill
+contracts.

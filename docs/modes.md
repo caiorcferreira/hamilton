@@ -44,16 +44,34 @@ The code and skills live in:
   `hamilton setup`.
 - `bundle/guidelines/` — coding guidelines, installed to `~/.hamilton/guidelines/` by
   `hamilton setup`.
-- `bundle/scripts/` — the helper entry points and shared artifact-contract library, installed
-  executable to `~/.hamilton/scripts/` by `hamilton setup`. The split workflow requires them for
-  stable checkpoints, diff packaging, change context, and finish gates except where an individual
-  skill supplies a complete explicit fallback.
+- `src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
 - a project's `.hamilton/` — per-project specs and change artifacts, created by the `hamilton-init`
   skill.
 
-Upgrade the Assisted bundle only between changes. Finish an active old-format change with the
-generation that created it, update the CLI bundle and agent-loaded skills from one release, run
-`hamilton setup`, verify the installed split templates, all six script files, and the seven-step
-skill catalog, then start the next change. See
-[Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow) for the exact
-checks. There is no blanket manual fallback for a missing required helper.
+The distributed workbench is the supported workflow-mechanics surface. Its operations are:
+
+- `hamilton workbench isolate` — check, create, or verify an isolated workspace.
+- `hamilton workbench diff` — record checkpoints and package task or change diffs.
+- `hamilton workbench precondition` — evaluate finish-work gates.
+- `hamilton workbench context` — inspect change artifacts and lifecycle state.
+- `hamilton workbench prototype` — create, resume, or verify prototype branches.
+- `hamilton workbench lint` — validate one file or one change directory.
+
+For lint, provide exactly one of `--file <file>` or `--change-dir <dir>`:
+
+```bash
+hamilton workbench lint --file <file>
+hamilton workbench lint --change-dir <dir>
+```
+
+The file selector validates only the named regular file. The change-directory selector recursively
+visits regular files within that directory and does not cross its boundary. Unrelated files are
+reported as skipped; conventional artifact filenames without frontmatter produce warnings, and
+malformed recognized artifacts fail closed. Lint succeeds only when no errors or warnings remain.
+
+Upgrade the Assisted bundle only between changes. Finish an active change with the Hamilton
+generation that created it, update the CLI and the agent-loaded skills together from one release,
+run `hamilton setup`, verify `hamilton workbench --help`, and then start the next change. Setup does
+not delete stale helper files from an older generation; use `hamilton purge` for explicit cleanup
+when desired. See [Upgrading to the split workflow](./sdd-framework.md#upgrading-to-the-split-workflow)
+for the exact checks. Never replace one part of the installed generation while a change is active.
