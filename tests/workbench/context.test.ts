@@ -201,6 +201,11 @@ describe("change context", () => {
     const directory = makeChangeDir(repository, "current");
     write(
       directory,
+      "proposal.md",
+      "# Proposal: current\n\n| Route unit | legacy-body |\n",
+    );
+    write(
+      directory,
       "plan.md",
       `---
 artifact: plan
@@ -265,7 +270,70 @@ decision: accepted
     expect(result.exitCode).toBe(0);
     expect(result.changes[0]?.format).toBe("split");
     expect(result.stdout).not.toContain("route-unit: body-invented");
+    expect(result.stdout).not.toContain("route-unit: legacy-body");
     expect(result.stdout).toContain("Task 1: in-progress");
+  });
+
+  it("rejects malformed recognized inventory artifacts before format discovery", async () => {
+    for (const [filename, artifact] of [
+      ["proposal.md", "proposal"],
+      ["design.md", "design"],
+      ["finish.md", "finish"],
+      ["critique.md", "critique"],
+    ] as const) {
+      const repository = makeRepo();
+      const directory = seed(repository, `malformed-${artifact}`, {
+        [filename]: `---\nartifact: ${artifact}\n---\n# ${artifact}\n`,
+      });
+      const result = await context({ changeDir: directory });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.changes[0]?.format).toBe("invalid");
+      expect(result.lastLine).toBe(
+        `summary: malformed-${artifact} — invalid`,
+      );
+    }
+  });
+
+  it("classifies recognized task artifacts in legacy layouts", async () => {
+    for (const [taskSource, expectedFormat] of [
+      [
+        `---\nartifact: task-progress\nchange: legacy-task\n---\n# Task Progress: Task 1 — Build it\n\n## Attempt 1 — 2026-09-12\n\n- Outcome: done\n`,
+        "invalid",
+      ],
+      [
+        `---\nartifact: task-progress\nchange: legacy-task\ntask: 1\nstatus: done\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Build it\n\n## Attempt 1 — 2026-09-12\n\n- Outcome: done\n`,
+        "legacy-unsupported",
+      ],
+    ] as const) {
+      const repository = makeRepo();
+      const directory = seed(repository, "legacy-task", {
+        "plan.md": "# Plan: legacy-task\n\n### Task 1: Build it\n",
+        "progress.md":
+          "# Progress: legacy-task\n\n| Task | Status | Progress |\n|---|---|---|\n| Task 1: Build it | done | [details](tasks/task-1/progress.md) |\n",
+        "tasks/task-1/progress.md": taskSource,
+      });
+      const result = await context({ changeDir: directory });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.changes[0]?.format).toBe(expectedFormat);
+    }
+  });
+
+  it("propagates unreadable artifact path errors", async () => {
+    const repository = makeRepo();
+    const blocked = Path.join(repository, "blocked");
+    Fs.mkdirSync(blocked);
+    Fs.chmodSync(blocked, 0o000);
+    try {
+      await expect(
+        createContextRuntime().fileSystem.pathExists(
+          Path.join(blocked, "proposal.md"),
+        ),
+      ).rejects.toMatchObject({ code: "EACCES" });
+    } finally {
+      Fs.chmodSync(blocked, 0o755);
+    }
   });
 
   it("rejects malformed current feedback instead of parsing its legacy body", async () => {

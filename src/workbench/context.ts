@@ -165,8 +165,9 @@ const productionFileSystem: ContextFileSystemPort = {
     try {
       await Fs.lstat(sourcePath);
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
     }
   },
   directoryExists: async (sourcePath) => {
@@ -549,31 +550,33 @@ const currentInvalid = (artifact: ArtifactReadResult): boolean =>
   (artifact._tag === "recognized" &&
     metadataContract(artifact)?._tag === "invalid");
 
-const routeUnit = async (
-  runtime: ContextRuntime,
-  dir: string,
+const routeUnit = (
   sources: ReadonlyMap<string, string>,
-): Promise<string | undefined> => {
+  inspected: ReadonlyMap<string, ArtifactReadResult>,
+): string | undefined => {
+  let recognized = false;
+  let legacyRoute: string | undefined;
   for (const name of ["proposal.md", "plan.md"]) {
     const source = sources.get(name);
-    if (!source) continue;
-    const artifact = await createArtifactReader({ readFile: () => source })(
-      Path.join(dir, name),
-    );
-    if (
-      artifact._tag === "recognized" &&
-      typeof artifact.metadata.route_unit === "string" &&
-      artifact.metadata.route_unit !== ""
-    )
-      return artifact.metadata.route_unit;
-    if (artifact._tag !== "unrelated") continue;
+    const artifact = inspected.get(name);
+    if (source === undefined || artifact === undefined) continue;
+    if (artifact._tag === "recognized") {
+      recognized = true;
+      if (
+        typeof artifact.metadata.route_unit === "string" &&
+        artifact.metadata.route_unit !== ""
+      )
+        return artifact.metadata.route_unit;
+      continue;
+    }
+    if (artifact._tag !== "unrelated" || legacyRoute) continue;
     const match =
       stripComments(source).match(/^\| *Route unit *\| *(.+?) *\|$/m) ??
       stripComments(source).match(/^- *Route unit: *(.+)$/m);
     const value = match?.[1]?.trim();
-    if (value && !value.startsWith("<") && value !== "null") return value;
+    if (value && !value.startsWith("<") && value !== "null") legacyRoute = value;
   }
-  return undefined;
+  return recognized ? undefined : legacyRoute;
 };
 
 const formatChange = async (
@@ -586,6 +589,7 @@ const formatChange = async (
 }> => {
   const name = Path.basename(dir);
   const sources = new Map<string, string>();
+  const inspected = new Map<string, ArtifactReadResult>();
   let newest = 0;
   for (const artifact of ARTIFACTS) {
     const path = Path.join(dir, artifact);
@@ -608,6 +612,10 @@ const formatChange = async (
       };
     }
     sources.set(artifact, source);
+    const inspectedArtifact = await createArtifactReader({
+      readFile: () => source,
+    })(path);
+    inspected.set(artifact, inspectedArtifact);
     newest = Math.max(newest, await runtime.fileSystem.modificationTime(path));
   }
   const requirementsDir = Path.join(dir, "requirements");
@@ -647,8 +655,20 @@ const formatChange = async (
       { lines: lineCount(source), header: firstHeader(source) },
     ]),
   );
+  if ([...inspected.values()].some(currentInvalid))
+    return {
+      change: {
+        name,
+        path: dir,
+        format: "invalid",
+        artifacts,
+        requirements,
+        lastModified: newest,
+      },
+      sources,
+    };
   const plan = sources.get("plan.md");
-  const route = await routeUnit(runtime, dir, sources);
+  const route = routeUnit(sources, inspected);
   if (!plan)
     return {
       change: {
@@ -830,7 +850,31 @@ const formatChange = async (
           },
           sources,
         };
-    } else if (!taskAttempts(taskSource, task.title, task.task).valid)
+    } else if (currentInvalid(taskRead.artifact))
+      return {
+        change: {
+          name,
+          path: dir,
+          format: "invalid",
+          artifacts,
+          requirements,
+          lastModified: newest,
+        },
+        sources,
+      };
+    else if (taskRead.artifact._tag === "recognized")
+      return {
+        change: {
+          name,
+          path: dir,
+          format: "legacy-unsupported",
+          artifacts,
+          requirements,
+          lastModified: newest,
+        },
+        sources,
+      };
+    else if (!taskAttempts(taskSource, task.title, task.task).valid)
       return {
         change: {
           name,
