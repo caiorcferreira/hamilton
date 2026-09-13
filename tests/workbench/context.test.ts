@@ -289,9 +289,7 @@ decision: accepted
 
       expect(result.exitCode).toBe(0);
       expect(result.changes[0]?.format).toBe("invalid");
-      expect(result.lastLine).toBe(
-        `summary: malformed-${artifact} — invalid`,
-      );
+      expect(result.lastLine).toBe(`summary: malformed-${artifact} — invalid`);
     }
   });
 

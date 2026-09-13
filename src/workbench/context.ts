@@ -574,7 +574,8 @@ const routeUnit = (
       stripComments(source).match(/^\| *Route unit *\| *(.+?) *\|$/m) ??
       stripComments(source).match(/^- *Route unit: *(.+)$/m);
     const value = match?.[1]?.trim();
-    if (value && !value.startsWith("<") && value !== "null") legacyRoute = value;
+    if (value && !value.startsWith("<") && value !== "null")
+      legacyRoute = value;
   }
   return recognized ? undefined : legacyRoute;
 };
