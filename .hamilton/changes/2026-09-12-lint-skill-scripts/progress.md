@@ -6,7 +6,7 @@
 | Task 2: Register artifact metadata contracts | done | [details](tasks/task-2/progress.md) |
 | Task 3: Validate artifact bodies and workflow records | done | [details](tasks/task-3/progress.md) |
 | Task 4: Implement explicitly scoped linting | done | [details](tasks/task-4/progress.md) |
-| Task 5: Establish runtime seams for isolation | pending | [details](tasks/task-5/progress.md) |
+| Task 5: Establish runtime seams for isolation | done | [details](tasks/task-5/progress.md) |
 | Task 6: Port prototype branching | pending | [details](tasks/task-6/progress.md) |
 | Task 7: Port diff packaging | pending | [details](tasks/task-7/progress.md) |
 | Task 8: Port change context | pending | [details](tasks/task-8/progress.md) |
