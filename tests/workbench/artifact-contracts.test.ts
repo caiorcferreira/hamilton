@@ -391,8 +391,7 @@ describe("artifact metadata contracts", () => {
     const planBody = validateArtifactBody(plan, "plan");
     expect(planBody.diagnostics).toEqual([]);
     expect(planBody.workflow.records.map((record) => record.number)).toEqual([
-      1,
-      2,
+      1, 2,
     ]);
     const progress = recognized(
       ".hamilton/changes/demo/progress.md",

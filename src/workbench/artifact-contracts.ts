@@ -1185,9 +1185,7 @@ const readWorkflow = (
 
 const tableCells = (line: string): readonly string[] | undefined => {
   const match = /^\s*\|(.*)\|\s*$/.exec(line);
-  return match
-    ? match[1].split("|").map((cell) => cell.trim())
-    : undefined;
+  return match ? match[1].split("|").map((cell) => cell.trim()) : undefined;
 };
 
 const isTableSeparator = (cells: readonly string[]): boolean =>
@@ -1297,9 +1295,10 @@ const readTaskLedger = (
         const status = ["pending", "in-progress", "blocked", "done"].includes(
           cells[1],
         );
-        const progress = /^\[details\]\(tasks\/task-([1-9][0-9]*)\/progress\.md\)$/.exec(
-          cells[2],
-        );
+        const progress =
+          /^\[details\]\(tasks\/task-([1-9][0-9]*)\/progress\.md\)$/.exec(
+            cells[2],
+          );
         if (!task || !status || !progress || progress[1] !== task[1]) {
           diagnostics.push(
             bodyDiagnostic(
@@ -1398,7 +1397,9 @@ export const validateArtifactBody = (
   if (contract.ledger) {
     const ledger = readTaskLedger(artifact, contract.ledger, headings);
     diagnostics.push(...ledger.diagnostics);
-    (workflow.state.records as ArtifactWorkflowRecord[]).push(...ledger.records);
+    (workflow.state.records as ArtifactWorkflowRecord[]).push(
+      ...ledger.records,
+    );
   }
   return {
     headings,
