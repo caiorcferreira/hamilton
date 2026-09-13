@@ -146,7 +146,9 @@ const cleanTree = async (
   runtime: PreconditionRuntime,
   root: string,
   label: string,
-): Promise<{ readonly output: string; readonly clean: boolean } | PreconditionResult> => {
+): Promise<
+  { readonly output: string; readonly clean: boolean } | PreconditionResult
+> => {
   let command: ProcessResult;
   try {
     command = await runtime.git.statusPorcelain(root);
@@ -214,7 +216,9 @@ const resolveTarget = async (
   try {
     changeDir = await runtime.fileSystem.realpath(args.changeDir);
   } catch (error) {
-    return failure(`cannot resolve change dir ${args.changeDir}: ${String(error)}`);
+    return failure(
+      `cannot resolve change dir ${args.changeDir}: ${String(error)}`,
+    );
   }
   let repository: ProcessResult;
   try {
@@ -225,7 +229,8 @@ const resolveTarget = async (
   if (repository.status !== 0)
     return commandFailure("not inside a git repository", repository);
   const reportedRoot = text(repository);
-  if (reportedRoot === "") return failure("cannot resolve target repository root");
+  if (reportedRoot === "")
+    return failure("cannot resolve target repository root");
   let root: string;
   try {
     root = await runtime.fileSystem.realpath(reportedRoot);
@@ -257,7 +262,11 @@ export const precondition = async (
   output += tests.output;
   if (!tests.passed) failures += 1;
 
-  const after = await cleanTree(runtime, target, "Clean tree after verification");
+  const after = await cleanTree(
+    runtime,
+    target,
+    "Clean tree after verification",
+  );
   if ("exitCode" in after) return result("error", 2, output, after.stderr);
   output += after.output;
   if (!after.clean) failures += 1;

@@ -54,7 +54,9 @@ describe("precondition repository gates", () => {
     });
 
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain("[FAIL] Clean tree (1 uncommitted path(s))");
+    expect(result.stdout).toContain(
+      "[FAIL] Clean tree (1 uncommitted path(s))",
+    );
     expect(result.stdout).toContain("?? stray.ts");
     expect(result.lastLine).toContain("gate: closed");
   });
@@ -190,7 +192,11 @@ it("preserves a target repository environment failure", async () => {
         realpath: () => changeDir,
       },
       git: {
-        repositoryRoot: () => ({ status: 128, stdout: "", stderr: "not a repo" }),
+        repositoryRoot: () => ({
+          status: 128,
+          stdout: "",
+          stderr: "not a repo",
+        }),
         statusPorcelain: () => ({ status: 0, stdout: "", stderr: "" }),
       },
     }),
@@ -199,4 +205,3 @@ it("preserves a target repository environment failure", async () => {
   expect(result.exitCode).toBe(2);
   expect(result.stderr).toContain("not inside a git repository");
 });
-
