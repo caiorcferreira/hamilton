@@ -45,13 +45,16 @@ export interface LintResult {
 export interface LintDependencies {
   readonly fileSystem?: LintFileSystem;
   readonly readArtifact?: (sourcePath: string) => Promise<ArtifactReadResult>;
-  readonly validateArtifact?: (result: ArtifactReadResult) => ArtifactContractResult;
+  readonly validateArtifact?: (
+    result: ArtifactReadResult,
+  ) => ArtifactContractResult;
 }
 
 const defaultFileSystem: LintFileSystem = {
   readFile: (sourcePath) => Fs.readFile(sourcePath, "utf8"),
   stat: (sourcePath) => Fs.stat(sourcePath),
-  readdir: async (sourcePath) => Fs.readdir(sourcePath, { withFileTypes: true }),
+  readdir: async (sourcePath) =>
+    Fs.readdir(sourcePath, { withFileTypes: true }),
   realpath: (sourcePath) => Fs.realpath(sourcePath),
 };
 
@@ -76,7 +79,8 @@ const finding = (
   column?: number,
 ): LintFinding => {
   const base = { kind, sourcePath, message, line: Math.max(line, 1) };
-  if (code !== undefined && column !== undefined) return { ...base, code, column };
+  if (code !== undefined && column !== undefined)
+    return { ...base, code, column };
   if (code !== undefined) return { ...base, code };
   if (column !== undefined) return { ...base, column };
   return base;
@@ -168,25 +172,23 @@ const invalidScope = (message: string, sourcePath?: string): LintResult => ({
   status: "invalid-scope",
   exitCode: 2,
   findings: [
-    finding(
-      "error",
-      sourcePath ?? "<scope>",
-      message,
-      1,
-      "invalid-scope",
-    ),
+    finding("error", sourcePath ?? "<scope>", message, 1, "invalid-scope"),
   ],
 });
 
 const collectFiles = async (
   root: string,
   fileSystem: LintFileSystem,
-): Promise<{ readonly paths: readonly string[] } | { readonly error: string }> => {
+): Promise<
+  { readonly paths: readonly string[] } | { readonly error: string }
+> => {
   let rootRealPath: string;
   try {
     rootRealPath = await fileSystem.realpath(root);
   } catch (error) {
-    return { error: `Unable to resolve change directory ${root}: ${String(error)}` };
+    return {
+      error: `Unable to resolve change directory ${root}: ${String(error)}`,
+    };
   }
   const files: string[] = [];
   const visitedDirectories = new Set<string>();
@@ -206,7 +208,9 @@ const collectFiles = async (
     } catch (error) {
       return `Unable to inspect ${directory}: ${String(error)}`;
     }
-    for (const entry of [...entries].sort((left, right) => comparePaths(left.name, right.name))) {
+    for (const entry of [...entries].sort((left, right) =>
+      comparePaths(left.name, right.name),
+    )) {
       const candidate = Path.join(directory, entry.name);
       if (entry.isDirectory()) {
         const error = await visit(candidate);
@@ -261,9 +265,16 @@ export const lintScope = async (
     try {
       stats = await fileSystem.stat(sourcePath);
     } catch (error) {
-      return invalidScope(`Unable to inspect file ${sourcePath}: ${String(error)}`, sourcePath);
+      return invalidScope(
+        `Unable to inspect file ${sourcePath}: ${String(error)}`,
+        sourcePath,
+      );
     }
-    if (!stats.isFile()) return invalidScope(`File selector is not a regular file: ${sourcePath}`, sourcePath);
+    if (!stats.isFile())
+      return invalidScope(
+        `File selector is not a regular file: ${sourcePath}`,
+        sourcePath,
+      );
     candidates = [sourcePath];
   } else {
     const changeDirectory = scope.changeDir as string;
@@ -271,11 +282,19 @@ export const lintScope = async (
     try {
       stats = await fileSystem.stat(changeDirectory);
     } catch (error) {
-      return invalidScope(`Unable to inspect changeDir ${changeDirectory}: ${String(error)}`, changeDirectory);
+      return invalidScope(
+        `Unable to inspect changeDir ${changeDirectory}: ${String(error)}`,
+        changeDirectory,
+      );
     }
-    if (!stats.isDirectory()) return invalidScope(`changeDir selector is not a directory: ${changeDirectory}`, changeDirectory);
+    if (!stats.isDirectory())
+      return invalidScope(
+        `changeDir selector is not a directory: ${changeDirectory}`,
+        changeDirectory,
+      );
     const collected = await collectFiles(changeDirectory, fileSystem);
-    if ("error" in collected) return invalidScope(collected.error, changeDirectory);
+    if ("error" in collected)
+      return invalidScope(collected.error, changeDirectory);
     candidates = collected.paths;
   }
 
@@ -284,14 +303,17 @@ export const lintScope = async (
   const validate = dependencies.validateArtifact ?? validateArtifact;
   const findings = (
     await Promise.all(
-      candidates.map((sourcePath) => validateCandidate(sourcePath, readArtifact, validate)),
+      candidates.map((sourcePath) =>
+        validateCandidate(sourcePath, readArtifact, validate),
+      ),
     )
   ).flat();
   findings.sort((left, right) => {
     const pathOrder = comparePaths(left.sourcePath, right.sourcePath);
     if (pathOrder !== 0) return pathOrder;
     if (left.line !== right.line) return left.line - right.line;
-    if ((left.column ?? 0) !== (right.column ?? 0)) return (left.column ?? 0) - (right.column ?? 0);
+    if ((left.column ?? 0) !== (right.column ?? 0))
+      return (left.column ?? 0) - (right.column ?? 0);
     return left.kind < right.kind ? -1 : left.kind > right.kind ? 1 : 0;
   });
   const hasFindings = findings.some(

@@ -16,17 +16,23 @@ const temporaryDirectory = async () => {
   return directory;
 };
 
-const proposal = (body = "# Proposal: Demo\n## Why\n## Goals & Success Criteria\n## Non-Goals\n## Proposed Change\n## Capabilities\n## Impact\n") =>
+const proposal = (
+  body = "# Proposal: Demo\n## Why\n## Goals & Success Criteria\n## Non-Goals\n## Proposed Change\n## Capabilities\n## Impact\n",
+) =>
   `---\nartifact: proposal\nchange: demo\nstatus: approved\ndecision: accepted\nauthor: caio\ncreated: 2026-09-12\nroute_unit: null\n---\n${body}`;
 
 const expectExit = (result: LintResult, exitCode: 0 | 1 | 2) => {
   expect(result.exitCode).toBe(exitCode);
-  expect(renderLintResult(result)).toContain(`lint: ${exitCode === 0 ? "success" : exitCode === 1 ? "findings" : "invalid scope"}`);
+  expect(renderLintResult(result)).toContain(
+    `lint: ${exitCode === 0 ? "success" : exitCode === 1 ? "findings" : "invalid scope"}`,
+  );
 };
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) => Fs.rm(directory, { recursive: true, force: true })),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => Fs.rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -53,7 +59,10 @@ describe("scoped artifact lint", () => {
       readFile: Fs.readFile,
     };
     expectExit(await lintScope({}, { fileSystem }), 2);
-    expectExit(await lintScope({ file, changeDir: directory }, { fileSystem }), 2);
+    expectExit(
+      await lintScope({ file, changeDir: directory }, { fileSystem }),
+      2,
+    );
     expect(reads).toBe(0);
   });
 
@@ -61,28 +70,47 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const file = Path.join(directory, "artifact.md");
     await Fs.writeFile(file, "text");
-    expectExit(await lintScope({ file: Path.join(directory, "missing.md") }), 2);
+    expectExit(
+      await lintScope({ file: Path.join(directory, "missing.md") }),
+      2,
+    );
     expectExit(await lintScope({ file: directory }), 2);
-    expectExit(await lintScope({ changeDir: Path.join(directory, "missing") }), 2);
+    expectExit(
+      await lintScope({ changeDir: Path.join(directory, "missing") }),
+      2,
+    );
     expectExit(await lintScope({ changeDir: file }), 2);
   });
 
   it("validates only the selected regular file", async () => {
     const directory = await temporaryDirectory();
-    const file = Path.join(directory, ".hamilton", "changes", "demo", "proposal.md");
+    const file = Path.join(
+      directory,
+      ".hamilton",
+      "changes",
+      "demo",
+      "proposal.md",
+    );
     const outside = Path.join(directory, "outside.md");
     await Fs.mkdir(Path.dirname(file), { recursive: true });
     await Fs.writeFile(file, proposal());
     await Fs.writeFile(outside, "# unrelated");
     const result = await lintScope({ file });
     expectExit(result, 0);
-    expect(result.findings.map((finding) => finding.sourcePath)).toEqual([file]);
+    expect(result.findings.map((finding) => finding.sourcePath)).toEqual([
+      file,
+    ]);
     expect(result.findings[0]?.kind).toBe("success");
   });
 
   it("recursively considers nested regular files and ignores outside symlinks", async () => {
     const directory = await temporaryDirectory();
-    const changeDirectory = Path.join(directory, ".hamilton", "changes", "demo");
+    const changeDirectory = Path.join(
+      directory,
+      ".hamilton",
+      "changes",
+      "demo",
+    );
     const nested = Path.join(changeDirectory, "nested");
     const outside = Path.join(directory, "outside.md");
     await Fs.mkdir(nested, { recursive: true });
@@ -118,8 +146,14 @@ describe("scoped artifact lint", () => {
     await Fs.writeFile(file, proposal("# Proposal: Demo\n## Why\n"));
     const result = await lintScope({ file });
     expectExit(result, 1);
-    expect(result.findings.filter((finding) => finding.kind === "error").length).toBeGreaterThan(1);
-    expect(result.findings.every((finding) => finding.sourcePath === file && finding.line > 0)).toBe(true);
+    expect(
+      result.findings.filter((finding) => finding.kind === "error").length,
+    ).toBeGreaterThan(1);
+    expect(
+      result.findings.every(
+        (finding) => finding.sourcePath === file && finding.line > 0,
+      ),
+    ).toBe(true);
     expect(renderLintResult(result)).toContain(`${file}:`);
     expect(renderLintResult(result)).toContain("missing-section");
   });
@@ -150,9 +184,13 @@ describe("scoped artifact lint", () => {
     await Fs.writeFile(second, proposal("# Proposal: Demo\n"));
     const result = await lintScope({ changeDir: directory });
     expectExit(result, 1);
-    const paths = result.findings.filter((finding) => finding.kind === "error").map((finding) => finding.sourcePath);
+    const paths = result.findings
+      .filter((finding) => finding.kind === "error")
+      .map((finding) => finding.sourcePath);
     expect(paths).toEqual([...paths].sort());
-    expect(renderLintResult(result).indexOf(first)).toBeLessThan(renderLintResult(result).indexOf(second));
+    expect(renderLintResult(result).indexOf(first)).toBeLessThan(
+      renderLintResult(result).indexOf(second),
+    );
   });
 
   it("maps success, findings, and invalid scope to 0, 1, and 2", async () => {
