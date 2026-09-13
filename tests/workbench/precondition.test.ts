@@ -22,7 +22,10 @@ const evidencePath = (slug: string, file: string): string =>
 
 const makeEvidence = (
   repository: string,
-  options: { readonly blockingFeedback?: boolean } = {},
+  options: {
+    readonly blockingFeedback?: boolean;
+    readonly taskProgressStatus?: string;
+  } = {},
 ): {
   readonly base: string;
   readonly material: string;
@@ -43,7 +46,7 @@ const makeEvidence = (
   write(
     repository,
     evidencePath("demo", "tasks/task-1/progress.md"),
-    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: done\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
+`---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
   );
   const material = commitAll(repository, "material");
   const blocking = options.blockingFeedback
@@ -281,6 +284,22 @@ it("fails closed when split ledgers or task evidence contradict", async () => {
   expect(result.stdout).toContain("[FAIL] Clean tree");
   expect(result.lastLine).toContain("gate: closed");
 });
+
+it.each(["pending", "blocked"])(
+  "rejects a task progress status that contradicts its done attempt (%s)",
+  async (status) => {
+    const repository = makeRepo();
+    const { changeDir } = makeEvidence(repository, {
+      taskProgressStatus: status,
+    });
+
+    const result = await precondition({ changeDir, testCommand: "true" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain(`Task 1 progress status: ${status}`);
+    expect(result.lastLine).toContain("gate: closed");
+  },
+);
 
 it("rejects contradictory approved blocking findings", async () => {
   const repository = makeRepo();
