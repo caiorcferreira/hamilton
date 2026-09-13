@@ -986,17 +986,29 @@ const bodyDiagnostic = (
   location: { line },
 });
 
+const recordLabel = (kind: ArtifactWorkflowRecordKind): string =>
+  kind === "pass"
+    ? "Pass"
+    : kind === "attempt"
+      ? "Attempt"
+      : kind === "outcome"
+        ? "Outcome"
+        : kind === "unit"
+          ? "Unit"
+          : "Task";
+
+const recordHeadingMatches = (
+  kind: ArtifactWorkflowRecordKind,
+  text: string,
+): boolean =>
+  text.startsWith(recordLabel(kind) + " ") ||
+  (kind === "unit" && /^[1-9][0-9]*\. /.test(text));
+
+const recordLevel = (kind: ArtifactWorkflowRecordKind): number =>
+  kind === "unit" ? 3 : 2;
+
 const recordHeading = (kind: ArtifactWorkflowRecordKind, text: string) => {
-  const label =
-    kind === "pass"
-      ? "Pass"
-      : kind === "attempt"
-        ? "Attempt"
-        : kind === "outcome"
-          ? "Outcome"
-          : kind === "unit"
-            ? "Unit"
-            : "Task";
+  const label = recordLabel(kind);
   if (kind === "unit") {
     const unit = /^([1-9][0-9]*)\. (.+)$/.exec(text);
     return unit ? { number: Number(unit[1]), title: unit[2] } : undefined;
@@ -1006,6 +1018,31 @@ const recordHeading = (kind: ArtifactWorkflowRecordKind, text: string) => {
   ).exec(text);
   if (!match) return undefined;
   return { number: Number(match[1]), date: match[2] };
+};
+
+const commentedRecordHeadings = (
+  artifact: RecognizedArtifact,
+  kinds: readonly ArtifactWorkflowRecordKind[],
+): readonly ArtifactHeading[] => {
+  const headings: ArtifactHeading[] = [];
+  const comments = /<!--[\s\S]*?-->/g;
+  let match: RegExpExecArray | null;
+  while ((match = comments.exec(artifact.body)) !== null) {
+    const startLine =
+      artifact.locations.body.startLine +
+      artifact.body.slice(0, match.index).split(/\r\n|\n|\r/).length -
+      1;
+    for (const [index, line] of match[0]
+      .split(/\r\n|\n|\r/)
+      .entries()) {
+      const heading = bodyHeading(
+        line.replace(/^\s*<!--/, "").replace(/-->\s*$/, ""),
+      );
+      if (heading && kinds.some((kind) => recordHeadingMatches(kind, heading.text)))
+        headings.push({ ...heading, line: startLine + index });
+    }
+  }
+  return headings;
 };
 
 const recordFields = (
@@ -1048,23 +1085,10 @@ const readWorkflow = (
   const records: ArtifactWorkflowRecord[] = [];
   const diagnostics: ArtifactContractDiagnostic[] = [];
   let sawLegacy = false;
-  for (const heading of candidates) {
-    const matchingKind = kinds.find((candidate) => {
-      const label =
-        candidate === "pass"
-          ? "Pass"
-          : candidate === "attempt"
-            ? "Attempt"
-            : candidate === "outcome"
-              ? "Outcome"
-              : candidate === "unit"
-                ? "Unit"
-                : "Task";
-      return (
-        heading.text.startsWith(label + " ") ||
-        (candidate === "unit" && /^[1-9][0-9]*\. /.test(heading.text))
-      );
-    });
+  for (const heading of headings.filter((candidate) => candidate.level > 1)) {
+    const matchingKind = kinds.find((candidate) =>
+      recordHeadingMatches(candidate, heading.text),
+    );
     if (!matchingKind) {
       const legacy = /^(Pass|Attempt|Outcome|Task|Unit)\b/.exec(heading.text);
       if (legacy) {
@@ -1082,50 +1106,78 @@ const readWorkflow = (
       }
       continue;
     }
-    const parsed = recordHeading(matchingKind, heading.text);
-    const label =
-      matchingKind === "pass"
-        ? "Pass"
-        : matchingKind === "attempt"
-          ? "Attempt"
-          : matchingKind === "outcome"
-            ? "Outcome"
-            : matchingKind === "unit"
-              ? "Unit"
-              : "Task";
-    if (matchingKind === "unit" || heading.text.startsWith(label + " ")) {
-      if (!parsed) {
-        sawLegacy = true;
-        diagnostics.push(
-          bodyDiagnostic(
-            artifact,
-            "invalid-record",
-            `Malformed ${label.toLowerCase()} record`,
-            heading.line,
-            `${label} N — YYYY-MM-DD`,
-            heading.text,
-          ),
-        );
-        continue;
-      }
-      const start = heading.line - artifact.locations.body.startLine;
-      const next = candidates.find(
-        (candidate) => candidate.line > heading.line,
+    const label = recordLabel(matchingKind);
+    if (heading.level !== recordLevel(matchingKind)) {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "invalid-record",
+          `${label} records must use level ${recordLevel(matchingKind)} headings`,
+          heading.line,
+          `${"#".repeat(recordLevel(matchingKind))} ${label} N — YYYY-MM-DD`,
+          heading.text,
+        ),
       );
-      const end = next
-        ? next.line - artifact.locations.body.startLine
-        : lines.length;
-      records.push({
-        kind: matchingKind,
-        number: parsed.number,
-        date: "date" in parsed ? parsed.date : undefined,
-        title: "title" in parsed ? parsed.title : undefined,
-        line: heading.line,
-        fields: recordFields(lines, start, end),
-      });
+      continue;
     }
+    const parsed = recordHeading(matchingKind, heading.text);
+    if (!parsed) {
+      sawLegacy = true;
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "invalid-record",
+          `Malformed ${label.toLowerCase()} record`,
+          heading.line,
+          matchingKind === "unit" ? "N. title" : `${label} N — YYYY-MM-DD`,
+          heading.text,
+        ),
+      );
+      continue;
+    }
+    const start = heading.line - artifact.locations.body.startLine;
+    const next = candidates.find((candidate) => candidate.line > heading.line);
+    const end = next
+      ? next.line - artifact.locations.body.startLine
+      : lines.length;
+    records.push({
+      kind: matchingKind,
+      number: parsed.number,
+      date: "date" in parsed ? parsed.date : undefined,
+      title: "title" in parsed ? parsed.title : undefined,
+      line: heading.line,
+      fields: recordFields(lines, start, end),
+    });
+  }
+  for (const heading of commentedRecordHeadings(artifact, kinds)) {
+    const matchingKind = kinds.find((candidate) =>
+      recordHeadingMatches(candidate, heading.text),
+    );
+    if (!matchingKind) continue;
+    diagnostics.push(
+      bodyDiagnostic(
+        artifact,
+        "invalid-record",
+        `${recordLabel(matchingKind)} records cannot be declared in HTML comments`,
+        heading.line,
+        `${"#".repeat(recordLevel(matchingKind))} ${recordLabel(matchingKind)} N — YYYY-MM-DD`,
+        heading.text,
+      ),
+    );
   }
   for (const recordKind of kinds) {
+    if (!records.some((record) => record.kind === recordKind)) {
+      const label = recordLabel(recordKind);
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "missing-section",
+          `Body must declare at least one ${label.toLowerCase()} record`,
+          artifact.locations.body.startLine,
+          recordKind === "unit" ? "N. title" : `${label} N — YYYY-MM-DD`,
+        ),
+      );
+    }
     const numbered = records.filter(
       (record) => record.kind === recordKind && record.number !== undefined,
     );

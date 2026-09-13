@@ -44,10 +44,10 @@ const bodyFor = (artifact: string): string => {
       "| --- | --- | --- |",
       "| Task 1: Lint | done | [details](tasks/task-1/progress.md) |",
     ],
-    "task-progress": [],
+    "task-progress": ["Attempt 1 — 2026-09-12"],
     feedback: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
     review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
-    finish: ["Attempt 1 — 2026-09-12"],
+    finish: ["Attempt 1 — 2026-09-12", "Outcome 1 — 2026-09-12"],
     critique: ["Scope", "Findings", "Quality Lens", "Summary"],
     map: [
       "Destination",
@@ -469,6 +469,55 @@ describe("artifact metadata contracts", () => {
     expect(body.workflow.classification).toBe("legacy-unsupported");
     expect(body.diagnostics.map((item) => item.code)).toContain(
       "invalid-record",
+    );
+  });
+
+  it("requires valid records for every declared workflow shape", () => {
+    const commentOnly = validateArtifactBody(
+      recognized(
+        ".hamilton/changes/demo/feedback.md",
+        validArtifacts[7][1],
+        "# Code Feedback: Task 2\n<!-- ## Pass 1 — 2026-09-12 -->\n### Blocking\n### Suggestions",
+      ),
+      "feedback",
+    );
+    const commentDiagnostic = commentOnly.diagnostics.find(
+      (item) => item.code === "invalid-record",
+    );
+    expect(commentOnly.workflow.records).toEqual([]);
+    expect(commentDiagnostic?.location?.line).toBe(4);
+
+    const wrongLevel = validateArtifactBody(
+      recognized(
+        ".hamilton/changes/demo/review.md",
+        validArtifacts[8][1],
+        "# Whole-branch Review: Demo\n### Pass 1 — 2026-09-12\n### Blocking\n### Suggestions",
+      ),
+      "review",
+    );
+    const wrongLevelDiagnostic = wrongLevel.diagnostics.find(
+      (item) => item.code === "invalid-record",
+    );
+    expect(wrongLevel.workflow.records).toEqual([]);
+    expect(wrongLevelDiagnostic?.location?.line).toBe(4);
+
+    const missingOutcome = validateArtifactBody(
+      recognized(
+        ".hamilton/changes/demo/finish.md",
+        validArtifacts[9][1],
+        "# Finish History: Demo\n## Attempt 1 — 2026-09-12",
+      ),
+      "finish",
+    );
+    expect(missingOutcome.workflow.records.map((record) => record.kind)).toEqual([
+      "attempt",
+    ]);
+    expect(missingOutcome.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "missing-section",
+        expected: "Outcome N — YYYY-MM-DD",
+        location: { line: 3 },
+      }),
     );
   });
 

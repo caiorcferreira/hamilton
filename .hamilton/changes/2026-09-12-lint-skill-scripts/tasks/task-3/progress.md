@@ -73,3 +73,19 @@ decision: accepted
   - `bun run test && bun run build` — passed, 571 tests across 17 files; TypeScript build passed.
   - `git diff --check` — passed.
 - Notes: Resumed the interrupted Task 3 correction, preserved the task-owned implementation and regression coverage for progress-ledger extraction and anchored append-only record headings, and retained the stable `.base` checkpoint. No checkbox-list validation was added.
+
+## Attempt 5 — 2026-09-12
+
+- Outcome: done
+- Created: none
+- Modified:
+  - `src/workbench/artifact-contracts.ts`
+  - `tests/workbench/artifact-contracts.test.ts`
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/progress.md`
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-3/progress.md`
+- Deleted: none
+- Verification:
+  - `bun --bun vitest run tests/workbench/artifact-contracts.test.ts && bun run build` — passed, 29 tests; TypeScript build passed.
+  - `bun --bun vitest run && bun run build` — passed, 572 tests across 17 files; TypeScript build passed.
+  - `git diff --check` — passed.
+- Notes: Required at least one valid workflow record for every declared record-bearing contract, with location-bearing diagnostics for comment-only and wrong-level record headings. Preserved ledger extraction, anchored record grammar, physical-last-pass classification, legacy-unsupported handling, and the stable `.base` checkpoint. No checkbox-list validation was added.
