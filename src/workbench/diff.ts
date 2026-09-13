@@ -79,9 +79,7 @@ export interface DiffGitPort {
   readonly commonDirectory: (
     cwd: string,
   ) => ProcessResult | Promise<ProcessResult>;
-  readonly currentHead: (
-    cwd: string,
-  ) => ProcessResult | Promise<ProcessResult>;
+  readonly currentHead: (cwd: string) => ProcessResult | Promise<ProcessResult>;
   readonly resolveCommit: (
     cwd: string,
     ref: string,
@@ -251,7 +249,8 @@ const failure = (
   operation: DiffOperation,
   message: string,
   exitCode: 1 | 2 = 2,
-): DiffResult => result(operation, "error", exitCode, "", `error: ${message}\n`);
+): DiffResult =>
+  result(operation, "error", exitCode, "", `error: ${message}\n`);
 
 const negative = (operation: DiffOperation, message: string): DiffResult =>
   result(operation, "negative", 1, "", `error: ${message}\n`);
@@ -327,17 +326,21 @@ const resolveTask = async (
   if (artifact?._tag === "recognized") {
     const contract = validateArtifact(artifact);
     if (contract._tag === "invalid")
-      return failure(operation, contract.diagnostics[0]?.message ?? "invalid plan");
+      return failure(
+        operation,
+        contract.diagnostics[0]?.message ?? "invalid plan",
+      );
   }
   const visible = stripComments(source);
-  const matches = [...visible.matchAll(/^### Task ([1-9][0-9]*):[ \t]+(.+)$/gm)].filter(
-    (match) => match[1] === task,
-  );
+  const matches = [
+    ...visible.matchAll(/^### Task ([1-9][0-9]*):[ \t]+(.+)$/gm),
+  ].filter((match) => match[1] === task);
   const all = [...visible.matchAll(/^### Task ([1-9][0-9]*):[ \t]+(.+)$/gm)];
   if (all.filter((match) => match[1] === task).length > 1)
     return failure(operation, `duplicate Task ${task} in ${planPath}`);
   const match = matches[0];
-  if (!match) return failure(operation, `task ${task} is not active in ${planPath}`);
+  if (!match)
+    return failure(operation, `task ${task} is not active in ${planPath}`);
   if (/\(abandoned — .+\)$/.test(match[2] ?? ""))
     return failure(operation, `task ${task} is abandoned in ${planPath}`);
   return match[2] ?? "";
@@ -361,11 +364,15 @@ const taskRowStatus = async (
   );
   const matches = [...visible.matchAll(pattern)];
   if (matches.length !== 1)
-    return failure("record", `cannot create a checkpoint without one exact split row for Task ${task}`);
+    return failure(
+      "record",
+      `cannot create a checkpoint without one exact split row for Task ${task}`,
+    );
   return matches[0]?.[1] ?? "";
 };
 
-const hasAttempt = (source: string): boolean => /^##(?:[ \t]|$)/m.test(stripComments(source));
+const hasAttempt = (source: string): boolean =>
+  /^##(?:[ \t]|$)/m.test(stripComments(source));
 
 const canRecordFirst = async (
   runtime: DiffRuntime,
@@ -373,12 +380,23 @@ const canRecordFirst = async (
   task: string,
 ): Promise<DiffResult | undefined> => {
   const rootProgress = Path.join(changeDir, "progress.md");
-  const taskProgress = Path.join(changeDir, "tasks", `task-${task}`, "progress.md");
+  const taskProgress = Path.join(
+    changeDir,
+    "tasks",
+    `task-${task}`,
+    "progress.md",
+  );
   const feedback = Path.join(changeDir, "tasks", `task-${task}`, "feedback.md");
   if (!(await runtime.fileSystem.pathExists(rootProgress)))
-    return failure("record", `cannot create a checkpoint without the split root task ledger: ${rootProgress}`);
+    return failure(
+      "record",
+      `cannot create a checkpoint without the split root task ledger: ${rootProgress}`,
+    );
   if (!(await runtime.fileSystem.pathExists(taskProgress)))
-    return failure("record", `cannot create a checkpoint without the task progress file: ${taskProgress}`);
+    return failure(
+      "record",
+      `cannot create a checkpoint without the task progress file: ${taskProgress}`,
+    );
   const status = await taskRowStatus(runtime, changeDir, task);
   if (typeof status !== "string") return status;
   let progressSource: string;
@@ -387,8 +405,15 @@ const canRecordFirst = async (
   } catch (error) {
     return failure("record", `cannot read ${taskProgress}: ${String(error)}`);
   }
-  if (status !== "pending" || hasAttempt(progressSource) || (await runtime.fileSystem.pathExists(feedback)))
-    return failure("record", `cannot create missing checkpoint for Task ${task} after durable task evidence; historical recovery requires unambiguous durable git and task evidence or intervention`);
+  if (
+    status !== "pending" ||
+    hasAttempt(progressSource) ||
+    (await runtime.fileSystem.pathExists(feedback))
+  )
+    return failure(
+      "record",
+      `cannot create missing checkpoint for Task ${task} after durable task evidence; historical recovery requires unambiguous durable git and task evidence or intervention`,
+    );
   return undefined;
 };
 
@@ -403,14 +428,20 @@ const resolveChangeDir = async (
     try {
       return await runtime.fileSystem.realpath(supplied);
     } catch (error) {
-      return failure(operation, `cannot resolve change dir ${supplied}: ${String(error)}`);
+      return failure(
+        operation,
+        `cannot resolve change dir ${supplied}: ${String(error)}`,
+      );
     }
   }
   let current: string;
   try {
     current = await runtime.fileSystem.realpath(runtime.cwd());
   } catch (error) {
-    return failure(operation, `cannot resolve current directory: ${String(error)}`);
+    return failure(
+      operation,
+      `cannot resolve current directory: ${String(error)}`,
+    );
   }
   const parts = current.split(Path.sep);
   const index = parts.lastIndexOf(".hamilton");
@@ -427,9 +458,12 @@ const repositoryRoot = async (
   cwd: string,
 ): Promise<string | DiffResult> => {
   const command = await runtime.git.repositoryRoot(cwd);
-  if (!successful(command)) return commandError(operation, "not inside a git repository", command);
+  if (!successful(command))
+    return commandError(operation, "not inside a git repository", command);
   const root = text(command);
-  return root === "" ? failure(operation, "cannot resolve repository root") : root;
+  return root === ""
+    ? failure(operation, "cannot resolve repository root")
+    : root;
 };
 
 const fullCommit = async (
@@ -442,7 +476,10 @@ const fullCommit = async (
   const command = await runtime.git.resolveCommit(root, reference);
   const resolved = text(command);
   if (!successful(command) || !/^[0-9a-f]{40}$/.test(resolved))
-    return failure(operation, `${label} is not a commit in this repository: ${reference}`);
+    return failure(
+      operation,
+      `${label} is not a commit in this repository: ${reference}`,
+    );
   return resolved;
 };
 
@@ -464,10 +501,23 @@ const readCheckpoint = async (
       operation,
       `task checkpoint ${checkpoint} must contain exactly one full commit ID`,
     );
-  const resolved = await fullCommit(runtime, operation, root, candidate, `task checkpoint ${checkpoint}`);
-  if (typeof resolved !== "string") return failure(operation, `task checkpoint ${checkpoint} must contain exactly one full commit ID`);
+  const resolved = await fullCommit(
+    runtime,
+    operation,
+    root,
+    candidate,
+    `task checkpoint ${checkpoint}`,
+  );
+  if (typeof resolved !== "string")
+    return failure(
+      operation,
+      `task checkpoint ${checkpoint} must contain exactly one full commit ID`,
+    );
   if (resolved !== candidate)
-    return failure(operation, `task checkpoint ${checkpoint} must contain exactly one full commit ID`);
+    return failure(
+      operation,
+      `task checkpoint ${checkpoint} must contain exactly one full commit ID`,
+    );
   return candidate;
 };
 
@@ -479,9 +529,19 @@ const ensureIgnored = async (
 ): Promise<string | DiffResult> => {
   const ignored = await runtime.git.ignored(root, checkpoint);
   if (ignored.status === 0) return "";
-  if (ignored.status !== 1) return commandError(operation, "cannot inspect checkpoint ignore rule", ignored);
+  if (ignored.status !== 1)
+    return commandError(
+      operation,
+      "cannot inspect checkpoint ignore rule",
+      ignored,
+    );
   const common = await runtime.git.commonDirectory(root);
-  if (!successful(common)) return commandError(operation, "cannot resolve Git common directory", common);
+  if (!successful(common))
+    return commandError(
+      operation,
+      "cannot resolve Git common directory",
+      common,
+    );
   const commonPath = text(common);
   const exclude = Path.isAbsolute(commonPath)
     ? Path.join(commonPath, "info", "exclude")
@@ -498,7 +558,10 @@ const ensureIgnored = async (
   if (existing.split(/\r?\n/).some((line) => line === relative)) return "";
   try {
     await runtime.fileSystem.mkdir(Path.dirname(exclude));
-    await runtime.fileSystem.appendFile(exclude, `${existing !== "" && !existing.endsWith("\n") ? "\n" : ""}${relative}\n`);
+    await runtime.fileSystem.appendFile(
+      exclude,
+      `${existing !== "" && !existing.endsWith("\n") ? "\n" : ""}${relative}\n`,
+    );
   } catch (error) {
     return failure(operation, `cannot write ${exclude}: ${String(error)}`);
   }
@@ -512,7 +575,14 @@ const recordCheckpoint = async (
   const operation = args.mode;
   const task = taskNumber(args.task);
   const change = await resolveChangeDir(runtime, args.changeDir, operation);
-  if (typeof change !== "string") return change ?? failure(operation, "not inside a change directory — pass --change-dir <dir>");
+  if (typeof change !== "string")
+    return (
+      change ??
+      failure(
+        operation,
+        "not inside a change directory — pass --change-dir <dir>",
+      )
+    );
   const root = await repositoryRoot(runtime, operation, change);
   if (typeof root !== "string") return root;
   const taskValidation = await resolveTask(runtime, operation, change, task);
@@ -524,15 +594,31 @@ const recordCheckpoint = async (
     const checked = await readCheckpoint(runtime, operation, checkpoint, root);
     if (typeof checked !== "string") return checked;
     base = checked;
-    const head = await fullCommit(runtime, operation, root, "HEAD", "cannot resolve HEAD");
+    const head = await fullCommit(
+      runtime,
+      operation,
+      root,
+      "HEAD",
+      "cannot resolve HEAD",
+    );
     if (typeof head !== "string") return head;
     const ancestor = await runtime.git.isAncestor(root, base, head);
     if (ancestor.status !== 0)
-      return commandError(operation, `task checkpoint is not an ancestor of HEAD: ${base}`, ancestor);
+      return commandError(
+        operation,
+        `task checkpoint is not an ancestor of HEAD: ${base}`,
+        ancestor,
+      );
   } else {
     const first = await canRecordFirst(runtime, change, task);
     if (first) return first;
-    base = await fullCommit(runtime, operation, root, "HEAD", "cannot resolve HEAD") as string;
+    base = (await fullCommit(
+      runtime,
+      operation,
+      root,
+      "HEAD",
+      "cannot resolve HEAD",
+    )) as string;
     if (typeof base !== "string") return base;
     try {
       await runtime.fileSystem.mkdir(Path.dirname(checkpoint));
@@ -558,22 +644,32 @@ const packageRange = async (
   out: string | undefined,
 ): Promise<DiffResult> => {
   const stat = await runtime.git.diffStat(root, base, head);
-  if (!successful(stat)) return commandError(operation, "git diff --stat failed", stat);
+  if (!successful(stat))
+    return commandError(operation, "git diff --stat failed", stat);
   const patch = await runtime.git.diff(root, base, head);
-  if (!successful(patch)) return commandError(operation, "git diff failed", patch);
+  if (!successful(patch))
+    return commandError(operation, "git diff failed", patch);
   const files = await runtime.git.changedFiles(root, base, head);
-  if (!successful(files)) return commandError(operation, "git diff --name-only failed", files);
+  if (!successful(files))
+    return commandError(operation, "git diff --name-only failed", files);
   let output: string;
   try {
-    output = out === undefined
-      ? await runtime.fileSystem.makeTempFile(label)
-      : Path.isAbsolute(out) ? out : Path.join(root, out);
+    output =
+      out === undefined
+        ? await runtime.fileSystem.makeTempFile(label)
+        : Path.isAbsolute(out)
+          ? out
+          : Path.join(root, out);
     const content = `# Hamilton diff package\n# range: ${base}..${head}\n\n## git diff --stat ${base}..${head}\n\n${stat.stdout}\n## git diff -U10 ${base}..${head}\n\n${patch.stdout}`;
     await runtime.fileSystem.writeFile(output, content);
   } catch (error) {
-    return failure(operation, `cannot write ${out ?? "scratch package"}: ${String(error)}`);
+    return failure(
+      operation,
+      `cannot write ${out ?? "scratch package"}: ${String(error)}`,
+    );
   }
-  const fileCount = files.stdout === "" ? 0 : files.stdout.trimEnd().split("\n").length;
+  const fileCount =
+    files.stdout === "" ? 0 : files.stdout.trimEnd().split("\n").length;
   const stdout = `Base: ${base}\nHead: ${head}\nrange: ${base}..${head}\nfiles-changed: ${fileCount}\nPackage: ${output}\n${output}\n`;
   return result(operation, "success", 0, stdout);
 };
@@ -585,30 +681,66 @@ const packageTask = async (
   const operation = args.mode;
   const task = taskNumber(args.task);
   const change = await resolveChangeDir(runtime, args.changeDir, operation);
-  if (typeof change !== "string") return change ?? failure(operation, "not inside a change directory — pass --change-dir <dir>");
+  if (typeof change !== "string")
+    return (
+      change ??
+      failure(
+        operation,
+        "not inside a change directory — pass --change-dir <dir>",
+      )
+    );
   const root = await repositoryRoot(runtime, operation, change);
   if (typeof root !== "string") return root;
   const validation = await resolveTask(runtime, operation, change, task);
   if (typeof validation !== "string") return validation;
   const checkpoint = taskBaseFile(change, task);
   if (!(await runtime.fileSystem.pathExists(checkpoint)))
-    return negative(operation, `no BASE recorded for Task ${task} — run --record before dispatching an implementer`);
+    return negative(
+      operation,
+      `no BASE recorded for Task ${task} — run --record before dispatching an implementer`,
+    );
   let content: string;
   try {
     content = await runtime.fileSystem.readFile(checkpoint);
   } catch (error) {
-    return negative(operation, `${checkpoint} is unreadable — re-run --record: ${String(error)}`);
+    return negative(
+      operation,
+      `${checkpoint} is unreadable — re-run --record: ${String(error)}`,
+    );
   }
-  if (content.trim() === "") return negative(operation, `${checkpoint} is empty — re-run --record`);
+  if (content.trim() === "")
+    return negative(operation, `${checkpoint} is empty — re-run --record`);
   const base = await readCheckpoint(runtime, operation, checkpoint, root);
   if (typeof base !== "string") return base;
-  const head = await fullCommit(runtime, operation, root, "HEAD", "cannot resolve HEAD");
+  const head = await fullCommit(
+    runtime,
+    operation,
+    root,
+    "HEAD",
+    "cannot resolve HEAD",
+  );
   if (typeof head !== "string") return head;
   const ancestor = await runtime.git.isAncestor(root, base, head);
   if (ancestor.status !== 0)
-    return commandError(operation, `BASE is not an ancestor of HEAD: ${base}`, ancestor);
-  if (base === head) return negative(operation, `BASE equals HEAD (${base}) — nothing has been committed since --record`);
-  return packageRange(runtime, operation, root, base, head, `task-${task}`, args.out);
+    return commandError(
+      operation,
+      `BASE is not an ancestor of HEAD: ${base}`,
+      ancestor,
+    );
+  if (base === head)
+    return negative(
+      operation,
+      `BASE equals HEAD (${base}) — nothing has been committed since --record`,
+    );
+  return packageRange(
+    runtime,
+    operation,
+    root,
+    base,
+    head,
+    `task-${task}`,
+    args.out,
+  );
 };
 
 const baseForArguments = async (
@@ -618,8 +750,11 @@ const baseForArguments = async (
   const operation = args.mode;
   const change = await resolveChangeDir(runtime, args.changeDir, operation);
   let root: string | DiffResult;
-  if (typeof change === "string") root = await repositoryRoot(runtime, operation, change);
-  else if (change === undefined) root = await repositoryRoot(runtime, operation, runtime.cwd()); else return change;
+  if (typeof change === "string")
+    root = await repositoryRoot(runtime, operation, change);
+  else if (change === undefined)
+    root = await repositoryRoot(runtime, operation, runtime.cwd());
+  else return change;
   if (typeof root !== "string") return root;
   const base = await fullCommit(runtime, operation, root, args.base, "BASE");
   return typeof base === "string" ? { root, base } : base;
@@ -631,10 +766,28 @@ const packageBase = async (
 ): Promise<DiffResult> => {
   const resolved = await baseForArguments(args, runtime);
   if ("exitCode" in resolved) return resolved;
-  const head = await fullCommit(runtime, args.mode, resolved.root, "HEAD", "cannot resolve HEAD");
+  const head = await fullCommit(
+    runtime,
+    args.mode,
+    resolved.root,
+    "HEAD",
+    "cannot resolve HEAD",
+  );
   if (typeof head !== "string") return head;
-  if (resolved.base === head) return negative(args.mode, `BASE equals HEAD (${resolved.base}) — nothing has been committed since --record`);
-  return packageRange(runtime, args.mode, resolved.root, resolved.base, head, "explicit-base", args.out);
+  if (resolved.base === head)
+    return negative(
+      args.mode,
+      `BASE equals HEAD (${resolved.base}) — nothing has been committed since --record`,
+    );
+  return packageRange(
+    runtime,
+    args.mode,
+    resolved.root,
+    resolved.base,
+    head,
+    "explicit-base",
+    args.out,
+  );
 };
 
 const defaultBranch = async (
@@ -644,13 +797,27 @@ const defaultBranch = async (
   const remoteHead = await runtime.git.remoteDefaultBranch(root);
   if (successful(remoteHead)) {
     const ref = text(remoteHead).replace(/^refs\/remotes\//, "");
-    if (ref !== "" && typeof (await fullCommit(runtime, "whole-change", root, ref, "default branch")) === "string") return ref;
+    if (
+      ref !== "" &&
+      typeof (await fullCommit(
+        runtime,
+        "whole-change",
+        root,
+        ref,
+        "default branch",
+      )) === "string"
+    )
+      return ref;
   }
   for (const candidate of ["origin/main", "origin/master", "main", "master"]) {
     const commit = await runtime.git.resolveCommit(root, candidate);
-    if (successful(commit) && /^[0-9a-f]{40}$/.test(text(commit))) return candidate;
+    if (successful(commit) && /^[0-9a-f]{40}$/.test(text(commit)))
+      return candidate;
   }
-  return failure("whole-change", "cannot determine the default branch (no origin/HEAD, main, or master)");
+  return failure(
+    "whole-change",
+    "cannot determine the default branch (no origin/HEAD, main, or master)",
+  );
 };
 
 const packageWholeChange = async (
@@ -661,16 +828,45 @@ const packageWholeChange = async (
   if (typeof root !== "string") return root;
   const ref = await defaultBranch(runtime, root);
   if (typeof ref !== "string") return ref;
-  const head = await fullCommit(runtime, args.mode, root, "HEAD", "cannot resolve HEAD");
+  const head = await fullCommit(
+    runtime,
+    args.mode,
+    root,
+    "HEAD",
+    "cannot resolve HEAD",
+  );
   if (typeof head !== "string") return head;
   const merge = await runtime.git.mergeBase(root, ref, head);
-  if (!successful(merge)) return commandError(args.mode, `cannot compute merge-base against ${ref}`, merge);
+  if (!successful(merge))
+    return commandError(
+      args.mode,
+      `cannot compute merge-base against ${ref}`,
+      merge,
+    );
   const base = text(merge);
-  if (!/^[0-9a-f]{40}$/.test(base)) return failure(args.mode, `cannot compute merge-base against ${ref}`);
-  if (base === head) return negative(args.mode, `HEAD is at the merge-base with ${ref} — this branch has no commits to review`);
-  const packaged = await packageRange(runtime, args.mode, root, base, head, "whole-change", args.out);
+  if (!/^[0-9a-f]{40}$/.test(base))
+    return failure(args.mode, `cannot compute merge-base against ${ref}`);
+  if (base === head)
+    return negative(
+      args.mode,
+      `HEAD is at the merge-base with ${ref} — this branch has no commits to review`,
+    );
+  const packaged = await packageRange(
+    runtime,
+    args.mode,
+    root,
+    base,
+    head,
+    "whole-change",
+    args.out,
+  );
   if (packaged.exitCode !== 0) return packaged;
-  return result(args.mode, "success", 0, `default-branch: ${ref}\n${packaged.stdout}`);
+  return result(
+    args.mode,
+    "success",
+    0,
+    `default-branch: ${ref}\n${packaged.stdout}`,
+  );
 };
 
 export const diff = async (
@@ -680,7 +876,11 @@ export const diff = async (
   if (args.mode === "record") return recordCheckpoint(args, runtime);
   if (args.mode === "task") return packageTask(args, runtime);
   if (args.mode === "base") return packageBase(args, runtime);
-  if (args.changeDir !== undefined) return failure(args.mode, "--change-dir is meaningless with --whole-change");
+  if (args.changeDir !== undefined)
+    return failure(
+      args.mode,
+      "--change-dir is meaningless with --whole-change",
+    );
   return packageWholeChange(args, runtime);
 };
 
