@@ -13,10 +13,31 @@ const sha = "0123456789abcdef0123456789abcdef01234567";
 
 const bodyFor = (artifact: string): string => {
   const sections: Record<string, string[]> = {
-    proposal: ["Why", "Goals & Success Criteria", "Non-Goals", "Proposed Change", "Capabilities", "Impact"],
-    design: ["Context", "Goals / Non-Goals", "Decisions", "Architecture & Components", "Testing Strategy", "Constraints & Boundaries", "Risks / Trade-offs"],
+    proposal: [
+      "Why",
+      "Goals & Success Criteria",
+      "Non-Goals",
+      "Proposed Change",
+      "Capabilities",
+      "Impact",
+    ],
+    design: [
+      "Context",
+      "Goals / Non-Goals",
+      "Decisions",
+      "Architecture & Components",
+      "Testing Strategy",
+      "Constraints & Boundaries",
+      "Risks / Trade-offs",
+    ],
     "requirements-change": ["ADDED Requirements"],
-    "requirements-spec": ["Overview", "Contract", "Behavior", "Invariants", "Decisions"],
+    "requirements-spec": [
+      "Overview",
+      "Contract",
+      "Behavior",
+      "Invariants",
+      "Decisions",
+    ],
     plan: ["Overview", "Tasks", "Done when", "### Task 1: Validate"],
     progress: [],
     "task-progress": [],
@@ -24,7 +45,14 @@ const bodyFor = (artifact: string): string => {
     review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
     finish: ["Attempt 1 — 2026-09-12"],
     critique: ["Scope", "Findings", "Quality Lens", "Summary"],
-    map: ["Destination", "Notes", "Operation rules", "Decisions so far", "Not yet specified", "Out of scope"],
+    map: [
+      "Destination",
+      "Notes",
+      "Operation rules",
+      "Decisions so far",
+      "Not yet specified",
+      "Out of scope",
+    ],
     ticket: ["Question", "Answer", "Outdated decisions"],
     route: ["Shipping rules", "Units", "### 1. Research"],
   };
@@ -45,7 +73,13 @@ const bodyFor = (artifact: string): string => {
     route: "Route — Effort",
   };
   const title = titles[artifact];
-  return [`# ${title}`, ...(sections[artifact] ?? []).map((section) => `${section.startsWith("###") ? section : `## ${section}`}`), artifact === "plan" ? "- Depends on: none" : ""].join("\n");
+  return [
+    `# ${title}`,
+    ...(sections[artifact] ?? []).map(
+      (section) => `${section.startsWith("###") ? section : `## ${section}`}`,
+    ),
+    artifact === "plan" ? "- Depends on: none" : "",
+  ].join("\n");
 };
 
 const recognized = (
@@ -321,7 +355,9 @@ describe("artifact metadata contracts", () => {
       "<!-- # Proposal: Demo -->\n<!-- ## Why -->",
     );
     const body = validateArtifactBody(artifact, "proposal");
-    expect(body.diagnostics.map((item) => item.code)).toContain("missing-heading");
+    expect(body.diagnostics.map((item) => item.code)).toContain(
+      "missing-heading",
+    );
     expect(body.diagnostics[0]?.location?.line).toBeGreaterThan(0);
   });
 
@@ -335,7 +371,9 @@ describe("artifact metadata contracts", () => {
     expect(body.diagnostics).toEqual([]);
     expect(body.workflow.classification).toBe("physical-last-pass");
     expect(body.workflow.physicalLastPass).toBe(2);
-    expect(body.workflow.records.map((record) => record.number)).toEqual([1, 2]);
+    expect(body.workflow.records.map((record) => record.number)).toEqual([
+      1, 2,
+    ]);
   });
 
   it("reports malformed and non-monotonic records", () => {
@@ -361,7 +399,9 @@ describe("artifact metadata contracts", () => {
     );
     const body = validateArtifactBody(legacy, "task-progress");
     expect(body.workflow.classification).toBe("legacy-unsupported");
-    expect(body.diagnostics.map((item) => item.code)).toContain("invalid-record");
+    expect(body.diagnostics.map((item) => item.code)).toContain(
+      "invalid-record",
+    );
   });
 
   it("preserves unrelated files as skipped and reader failures as invalid", () => {

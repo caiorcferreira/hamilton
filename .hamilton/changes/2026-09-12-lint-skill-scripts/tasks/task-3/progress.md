@@ -25,3 +25,19 @@ decision: accepted
   - `bun run test` — passed, 570 tests across 17 files.
   - `git diff --check` — passed.
 - Notes: Added comment-aware heading views, contract-specific body structure checks, workflow record extraction for ledgers, passes, attempts, outcomes, and units, contiguous numbering diagnostics, physical-last-pass state, and legacy-unsupported classification. No checkbox-list validation was added.
+
+## Attempt 2 — 2026-09-12
+
+- Outcome: done
+- Created: none
+- Modified:
+  - `src/workbench/artifact-contracts.ts`
+  - `tests/workbench/artifact-contracts.test.ts`
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/progress.md`
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-3/progress.md`
+- Deleted: none
+- Verification:
+  - `bun --bun vitest run tests/workbench/artifact-contracts.test.ts && bun run build` — passed, 27 tests; TypeScript build passed.
+  - `bun run test && bun run build` — passed, 570 tests across 17 files; TypeScript build passed.
+  - `git diff --check` — passed.
+- Notes: Reconciled task-owned completion drift already present after the prior implementation commit. The source and test changes were formatting-only, were preserved, and retained all Task 3 behavior. No checkbox-list validation was added; the stable `.base` checkpoint was preserved.
