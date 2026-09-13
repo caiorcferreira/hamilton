@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   validateArtifact,
+  validateArtifactBody,
   type ArtifactContractResult,
 } from "../../src/workbench/artifact-contracts.js";
 import type {
@@ -10,14 +11,52 @@ import type {
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
 
+const bodyFor = (artifact: string): string => {
+  const sections: Record<string, string[]> = {
+    proposal: ["Why", "Goals & Success Criteria", "Non-Goals", "Proposed Change", "Capabilities", "Impact"],
+    design: ["Context", "Goals / Non-Goals", "Decisions", "Architecture & Components", "Testing Strategy", "Constraints & Boundaries", "Risks / Trade-offs"],
+    "requirements-change": ["ADDED Requirements"],
+    "requirements-spec": ["Overview", "Contract", "Behavior", "Invariants", "Decisions"],
+    plan: ["Overview", "Tasks", "Done when", "### Task 1: Validate"],
+    progress: [],
+    "task-progress": [],
+    feedback: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
+    review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
+    finish: ["Attempt 1 — 2026-09-12"],
+    critique: ["Scope", "Findings", "Quality Lens", "Summary"],
+    map: ["Destination", "Notes", "Operation rules", "Decisions so far", "Not yet specified", "Out of scope"],
+    ticket: ["Question", "Answer", "Outdated decisions"],
+    route: ["Shipping rules", "Units", "### 1. Research"],
+  };
+  const titles: Record<string, string> = {
+    proposal: "Proposal: Demo",
+    design: "Design: Demo",
+    "requirements-change": "Capability: workbench",
+    "requirements-spec": "Capability: workbench",
+    plan: "Plan: Demo",
+    progress: "Progress: Demo",
+    "task-progress": "Task Progress: Task 2 — Validate",
+    feedback: "Code Feedback: Task 2 — Validate",
+    review: "Whole-branch Review: Demo",
+    finish: "Finish History: Demo",
+    critique: "Critique: Demo",
+    map: "Effort",
+    ticket: "Ticket",
+    route: "Route — Effort",
+  };
+  const title = titles[artifact];
+  return [`# ${title}`, ...(sections[artifact] ?? []).map((section) => `${section.startsWith("###") ? section : `## ${section}`}`), artifact === "plan" ? "- Depends on: none" : ""].join("\n");
+};
+
 const recognized = (
   sourcePath: string,
   metadata: Record<string, unknown>,
+  body = bodyFor(String(metadata.artifact)),
 ): RecognizedArtifact => ({
   _tag: "recognized",
   sourcePath,
   metadata,
-  body: "",
+  body,
   locations: {
     frontmatter: { startLine: 1, endLine: 2 },
     metadata: { startLine: 2, endLine: 2 },
@@ -224,13 +263,14 @@ const expectInvalid = (result: ArtifactContractResult, code: string) => {
 
 describe("artifact metadata contracts", () => {
   it.each(validArtifacts)("accepts %s", (sourcePath, metadata) => {
-    expect(validateArtifact(recognized(sourcePath, metadata))).toEqual({
-      _tag: "valid",
-      artifact: metadata.artifact,
-      sourcePath,
-      metadata,
-      diagnostics: [],
-    });
+    const result = validateArtifact(recognized(sourcePath, metadata));
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.artifact).toBe(metadata.artifact);
+      expect(result.sourcePath).toBe(sourcePath);
+      expect(result.metadata).toEqual(metadata);
+      expect(result.body.diagnostics).toEqual([]);
+    }
   });
 
   it("requires every declared metadata field", () => {
@@ -272,6 +312,56 @@ describe("artifact metadata contracts", () => {
       validateArtifact(recognized(sourcePath, metadata)),
       "path-mismatch",
     );
+  });
+
+  it("rejects headings supplied only by HTML comments", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/proposal.md",
+      validArtifacts[0][1],
+      "<!-- # Proposal: Demo -->\n<!-- ## Why -->",
+    );
+    const body = validateArtifactBody(artifact, "proposal");
+    expect(body.diagnostics.map((item) => item.code)).toContain("missing-heading");
+    expect(body.diagnostics[0]?.location?.line).toBeGreaterThan(0);
+  });
+
+  it("extracts physical-last pass records", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      validArtifacts[8][1],
+      "# Whole-branch Review: Demo\n## Pass 1 — 2026-09-12\n### Blocking\n- None.\n### Suggestions\n- None.\n## Pass 2 — 2026-09-13\n### Blocking\n- None.\n### Suggestions\n- None.",
+    );
+    const body = validateArtifactBody(artifact, "review");
+    expect(body.diagnostics).toEqual([]);
+    expect(body.workflow.classification).toBe("physical-last-pass");
+    expect(body.workflow.physicalLastPass).toBe(2);
+    expect(body.workflow.records.map((record) => record.number)).toEqual([1, 2]);
+  });
+
+  it("reports malformed and non-monotonic records", () => {
+    const malformed = recognized(
+      ".hamilton/changes/demo/feedback.md",
+      validArtifacts[7][1],
+      "# Code Feedback: Task 2\n## Pass 1 - 2026-09-12\n### Blocking\n- None.\n### Suggestions\n- None.",
+    );
+    expectInvalid(validateArtifact(malformed), "invalid-record");
+    const stale = recognized(
+      ".hamilton/changes/demo/feedback.md",
+      validArtifacts[7][1],
+      "# Code Feedback: Task 2\n## Pass 1 — 2026-09-12\n### Blocking\n- None.\n### Suggestions\n- None.\n## Pass 3 — 2026-09-13\n### Blocking\n- None.\n### Suggestions\n- None.",
+    );
+    expectInvalid(validateArtifact(stale), "non-monotonic-record");
+  });
+
+  it("classifies unsupported legacy record layouts", () => {
+    const legacy = recognized(
+      ".hamilton/changes/demo/tasks/task-2/progress.md",
+      validArtifacts[6][1],
+      "# Task Progress: Task 2\n## Attempt 1 - 2026-09-12",
+    );
+    const body = validateArtifactBody(legacy, "task-progress");
+    expect(body.workflow.classification).toBe("legacy-unsupported");
+    expect(body.diagnostics.map((item) => item.code)).toContain("invalid-record");
   });
 
   it("preserves unrelated files as skipped and reader failures as invalid", () => {

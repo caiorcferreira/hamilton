@@ -25,7 +25,12 @@ export type ArtifactContractDiagnosticCode =
   | "missing-field"
   | "invalid-type"
   | "invalid-value"
-  | "path-mismatch";
+  | "path-mismatch"
+  | "missing-heading"
+  | "missing-section"
+  | "invalid-record"
+  | "non-monotonic-record"
+  | "legacy-unsupported";
 
 export interface ArtifactContractDiagnostic {
   readonly _tag: "ArtifactContractDiagnostic";
@@ -38,11 +43,53 @@ export interface ArtifactContractDiagnostic {
   readonly location?: { readonly line: number; readonly column?: number };
 }
 
+export interface ArtifactHeading {
+  readonly level: number;
+  readonly text: string;
+  readonly line: number;
+}
+
+export type ArtifactWorkflowRecordKind =
+  | "task"
+  | "attempt"
+  | "pass"
+  | "outcome"
+  | "unit";
+
+export interface ArtifactWorkflowRecord {
+  readonly kind: ArtifactWorkflowRecordKind;
+  readonly number?: number;
+  readonly date?: string;
+  readonly title?: string;
+  readonly line: number;
+  readonly fields: Readonly<Record<string, string>>;
+}
+
+export type ArtifactBodyClassification =
+  | "supported"
+  | "physical-last-pass"
+  | "legacy-unsupported";
+
+export interface ArtifactWorkflowState {
+  readonly classification: ArtifactBodyClassification;
+  readonly records: readonly ArtifactWorkflowRecord[];
+  readonly physicalLastPass?: number;
+  readonly lastPass?: number;
+}
+
+export interface ArtifactBodyValidation {
+  readonly headings: readonly ArtifactHeading[];
+  readonly sections: readonly string[];
+  readonly workflow: ArtifactWorkflowState;
+  readonly diagnostics: readonly ArtifactContractDiagnostic[];
+}
+
 export interface ValidArtifactContract {
   readonly _tag: "valid";
   readonly artifact: SupportedArtifact;
   readonly sourcePath: string;
   readonly metadata: Record<string, unknown>;
+  readonly body: ArtifactBodyValidation;
   readonly diagnostics: readonly [];
 }
 
@@ -71,6 +118,7 @@ export interface ArtifactContract {
   readonly validate: (
     artifact: RecognizedArtifact,
   ) => readonly ArtifactContractDiagnostic[];
+  readonly validateBody: (artifact: RecognizedArtifact) => ArtifactBodyValidation;
 }
 
 type MetadataValidator = (
@@ -792,6 +840,235 @@ const validateNestedLists = (
   return diagnostics;
 };
 
+interface BodyContract {
+  readonly heading: string;
+  readonly sections: readonly string[];
+  readonly records?: ArtifactWorkflowRecordKind | readonly ArtifactWorkflowRecordKind[];
+}
+
+const bodyContracts: Record<SupportedArtifact, BodyContract> = {
+  proposal: {
+    heading: "Proposal:",
+    sections: [
+      "Why",
+      "Goals & Success Criteria",
+      "Non-Goals",
+      "Proposed Change",
+      "Capabilities",
+      "Impact",
+    ],
+  },
+  design: {
+    heading: "Design:",
+    sections: [
+      "Context",
+      "Goals / Non-Goals",
+      "Decisions",
+      "Architecture & Components",
+      "Testing Strategy",
+      "Constraints & Boundaries",
+      "Risks / Trade-offs",
+    ],
+  },
+  "requirements-change": {
+    heading: "Capability:",
+    sections: ["ADDED Requirements"],
+  },
+  "requirements-spec": {
+    heading: "Capability:",
+    sections: ["Overview", "Contract", "Behavior", "Invariants", "Decisions"],
+  },
+  plan: { heading: "Plan:", sections: ["Overview", "Tasks", "Done when"], records: "task" },
+  progress: { heading: "Progress:", sections: [] },
+  "task-progress": { heading: "Task Progress:", sections: [], records: "attempt" },
+  feedback: { heading: "Code Feedback:", sections: ["Blocking", "Suggestions"], records: "pass" },
+  review: { heading: "Whole-branch Review:", sections: ["Blocking", "Suggestions"], records: "pass" },
+  finish: { heading: "Finish History:", sections: [], records: ["attempt", "outcome"] },
+  critique: { heading: "Critique:", sections: ["Scope", "Findings", "Quality Lens", "Summary"] },
+  map: {
+    heading: "",
+    sections: ["Destination", "Notes", "Operation rules", "Decisions so far", "Not yet specified", "Out of scope"],
+  },
+  route: { heading: "Route —", sections: ["Shipping rules", "Units"], records: "unit" },
+  ticket: { heading: "", sections: ["Question", "Answer", "Outdated decisions"] },
+};
+
+export interface ArtifactBodyView {
+  readonly source: string;
+  readonly lines: readonly string[];
+}
+
+export const createArtifactBodyView = (body: string): ArtifactBodyView => {
+  let visible = body.replace(/<!--[\s\S]*?-->/g, (comment) =>
+    comment.replace(/[^\r\n]/g, " "),
+  );
+  visible = visible.replace(/<!--?[\s\S]*$/g, (comment) =>
+    comment.replace(/[^\r\n]/g, " "),
+  );
+  return { source: visible, lines: visible.split(/\r\n|\n|\r/) };
+};
+
+const bodyLines = (artifact: RecognizedArtifact): readonly string[] =>
+  createArtifactBodyView(artifact.body).lines;
+
+const bodyHeading = (line: string) => {
+  const match = /^( {0,3})(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/.exec(line);
+  if (!match) return undefined;
+  return { level: match[2].length, text: match[3].trim() };
+};
+
+const readBodyHeadings = (
+  artifact: RecognizedArtifact,
+): readonly ArtifactHeading[] =>
+  bodyLines(artifact).flatMap((line, index) => {
+    const heading = bodyHeading(line);
+    return heading
+      ? [{ ...heading, line: artifact.locations.body.startLine + index }]
+      : [];
+  });
+
+const bodyDiagnostic = (
+  artifact: RecognizedArtifact,
+  code: ArtifactContractDiagnosticCode,
+  message: string,
+  line: number,
+  expected?: string,
+  actual?: unknown,
+): ArtifactContractDiagnostic => ({
+  _tag: "ArtifactContractDiagnostic",
+  code,
+  message,
+  sourcePath: artifact.sourcePath,
+  expected,
+  actual,
+  location: { line },
+});
+
+const recordHeading = (kind: ArtifactWorkflowRecordKind, text: string) => {
+  const label = kind === "pass" ? "Pass" : kind === "attempt" ? "Attempt" : kind === "outcome" ? "Outcome" : kind === "unit" ? "Unit" : "Task";
+  if (kind === "unit") {
+    const unit = /^([1-9][0-9]*)\. (.+)$/.exec(text);
+    return unit ? { number: Number(unit[1]), title: unit[2] } : undefined;
+  }
+  const match = new RegExp("^" + label + " ([1-9][0-9]*) — ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:$| )").exec(text);
+  if (!match) return undefined;
+  return { number: Number(match[1]), date: match[2] };
+};
+
+const recordFields = (
+  lines: readonly string[],
+  start: number,
+  end: number,
+): Readonly<Record<string, string>> => {
+  const fields: Record<string, string> = {};
+  for (let index = start + 1; index < end; index += 1) {
+    const match = /^- ([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/.exec(lines[index] ?? "");
+    if (match) fields[match[1].trim()] = match[2].trim();
+  }
+  return fields;
+};
+
+const readWorkflow = (
+  artifact: RecognizedArtifact,
+  kind: ArtifactWorkflowRecordKind | readonly ArtifactWorkflowRecordKind[] | undefined,
+  headings: readonly ArtifactHeading[],
+): { readonly state: ArtifactWorkflowState; readonly diagnostics: readonly ArtifactContractDiagnostic[] } => {
+  if (!kind) return { state: { classification: "supported", records: [] }, diagnostics: [] };
+  const kinds = Array.isArray(kind) ? kind : [kind];
+  const lines = bodyLines(artifact);
+  const candidates = headings.filter((heading) => heading.level === 2 || kinds.includes("unit") && heading.level === 3);
+  const records: ArtifactWorkflowRecord[] = [];
+  const diagnostics: ArtifactContractDiagnostic[] = [];
+  let sawLegacy = false;
+  for (const heading of candidates) {
+    const matchingKind = kinds.find((candidate) => {
+      const label = candidate === "pass" ? "Pass" : candidate === "attempt" ? "Attempt" : candidate === "outcome" ? "Outcome" : candidate === "unit" ? "Unit" : "Task";
+      return heading.text.startsWith(label + " ") || candidate === "unit" && /^[1-9][0-9]*\. /.test(heading.text);
+    });
+    if (!matchingKind) {
+      const legacy = /^(Pass|Attempt|Outcome|Task|Unit)\b/.exec(heading.text);
+      if (legacy) {
+        sawLegacy = true;
+        diagnostics.push(bodyDiagnostic(artifact, "legacy-unsupported", `Unsupported legacy ${legacy[1].toLowerCase()} record`, heading.line, kinds.join(" | "), heading.text));
+      }
+      continue;
+    }
+    const parsed = recordHeading(matchingKind, heading.text);
+    const label = matchingKind === "pass" ? "Pass" : matchingKind === "attempt" ? "Attempt" : matchingKind === "outcome" ? "Outcome" : matchingKind === "unit" ? "Unit" : "Task";
+    if (matchingKind === "unit" || heading.text.startsWith(label + " ")) {
+      if (!parsed) {
+        sawLegacy = true;
+        diagnostics.push(bodyDiagnostic(artifact, "invalid-record", `Malformed ${label.toLowerCase()} record`, heading.line, `${label} N — YYYY-MM-DD`, heading.text));
+        continue;
+      }
+      const start = heading.line - artifact.locations.body.startLine;
+      const next = candidates.find((candidate) => candidate.line > heading.line);
+      const end = next ? next.line - artifact.locations.body.startLine : lines.length;
+      records.push({ kind: matchingKind, number: parsed.number, date: "date" in parsed ? parsed.date : undefined, title: "title" in parsed ? parsed.title : undefined, line: heading.line, fields: recordFields(lines, start, end) });
+    }
+  }
+  for (const recordKind of kinds) {
+    const numbered = records.filter((record) => record.kind === recordKind && record.number !== undefined);
+    for (let index = 0; index < numbered.length; index += 1) {
+      const expected = index + 1;
+      if (numbered[index]?.number !== expected) {
+        diagnostics.push(bodyDiagnostic(artifact, "non-monotonic-record", "Record numbering must be append-only and contiguous", numbered[index]?.line ?? artifact.locations.body.startLine, String(expected), numbered[index]?.number));
+        break;
+      }
+    }
+  }
+  const passRecords = records.filter((record) => record.kind === "pass");
+  const passNumbers = passRecords.flatMap((record) => record.number === undefined ? [] : [record.number]);
+  const lastPass = passNumbers.length > 0 ? Math.max(...passNumbers) : undefined;
+  const physicalLastPass = passNumbers.length > 0 ? passNumbers[passNumbers.length - 1] : undefined;
+  const levelTwo = headings.filter((heading) => heading.level === 2);
+  const physicalPass = passRecords.length > 0 && levelTwo.at(-1)?.line === passRecords.at(-1)?.line;
+  if (passRecords.length > 0 && !physicalPass) {
+    diagnostics.push(bodyDiagnostic(artifact, "invalid-record", "The latest pass must be the physical last pass", passRecords.at(-1)?.line ?? artifact.locations.body.startLine, "physical last pass"));
+  }
+  const classification: ArtifactBodyClassification = sawLegacy
+    ? "legacy-unsupported"
+    : physicalPass
+      ? "physical-last-pass"
+      : "supported";
+  const state: ArtifactWorkflowState = {
+    classification,
+    records,
+    ...(physicalLastPass === undefined ? {} : { physicalLastPass }),
+    ...(lastPass === undefined ? {} : { lastPass }),
+  };
+  return { state, diagnostics };
+};
+
+export const validateArtifactBody = (
+  artifact: RecognizedArtifact,
+  kind: SupportedArtifact,
+): ArtifactBodyValidation => {
+  const headings = readBodyHeadings(artifact);
+  const contract = bodyContracts[kind];
+  const diagnostics: ArtifactContractDiagnostic[] = [];
+  const title = headings.find((heading) => heading.level === 1);
+  if (!title || (contract.heading && !title.text.startsWith(contract.heading))) {
+    diagnostics.push(bodyDiagnostic(artifact, "missing-heading", `Body is missing the # ${contract.heading || "artifact title"} heading`, title?.line ?? artifact.locations.body.startLine, contract.heading || "# title", title?.text));
+  }
+  for (const section of contract.sections) {
+    if (!headings.some((heading) => heading.level >= 2 && heading.text === section)) {
+      diagnostics.push(bodyDiagnostic(artifact, "missing-section", `Body is missing the ## ${section} section`, artifact.locations.body.startLine, section));
+    }
+  }
+  const workflow = readWorkflow(artifact, contract.records, headings);
+  diagnostics.push(...workflow.diagnostics);
+  if (kind === "plan" && contract.records) {
+    const tasks = headings.filter((heading) => heading.level === 3 && /^Task [1-9][0-9]*:/.test(heading.text));
+    if (tasks.length === 0) diagnostics.push(bodyDiagnostic(artifact, "missing-section", "Plan must declare at least one task", artifact.locations.body.startLine, "### Task N: title"));
+    for (let index = 0; index < tasks.length; index += 1) {
+      const match = /^Task ([1-9][0-9]*):[ \t]*(.*)$/.exec(tasks[index].text);
+      if (match) (workflow.state.records as ArtifactWorkflowRecord[]).push({ kind: "task", number: Number(match[1]), title: match[2], line: tasks[index].line, fields: {} });
+    }
+  }
+  return { headings, sections: headings.filter((heading) => heading.level === 2).map((heading) => heading.text), workflow: workflow.state, diagnostics };
+};
+
 const validateContract = (
   contract: ArtifactContract,
   artifact: RecognizedArtifact,
@@ -866,6 +1143,7 @@ export const artifactContracts: Readonly<
       requiredFields: requiredFields[artifact],
       validate: (source) =>
         validateContract(artifactContracts[artifact], source),
+      validateBody: (source) => validateArtifactBody(source, artifact),
     },
   ]),
 ) as Record<SupportedArtifact, ArtifactContract>;
@@ -904,13 +1182,15 @@ export const validateArtifact = (
     };
   }
   const contract = artifactContracts[artifact as SupportedArtifact];
-  const diagnostics = contract.validate(result);
+  const body = contract.validateBody(result);
+  const diagnostics = [...contract.validate(result), ...body.diagnostics];
   return diagnostics.length === 0
     ? {
         _tag: "valid",
         artifact: contract.artifact,
         sourcePath: result.sourcePath,
         metadata: result.metadata,
+        body,
         diagnostics: [],
       }
     : { _tag: "invalid", sourcePath: result.sourcePath, diagnostics };
