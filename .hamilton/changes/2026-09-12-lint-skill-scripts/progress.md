@@ -1,3 +1,71 @@
+---
+artifact: progress
+change: 2026-09-12-lint-skill-scripts
+status: complete
+updated: 2026-09-13
+decision: accepted
+tasks:
+  - id: 1
+    title: Add the shared artifact reader
+    status: done
+    progress: tasks/task-1/progress.md
+  - id: 2
+    title: Register artifact metadata contracts
+    status: done
+    progress: tasks/task-2/progress.md
+  - id: 3
+    title: Validate artifact bodies and workflow records
+    status: done
+    progress: tasks/task-3/progress.md
+  - id: 4
+    title: Implement explicitly scoped linting
+    status: done
+    progress: tasks/task-4/progress.md
+  - id: 5
+    title: Establish runtime seams for isolation
+    status: done
+    progress: tasks/task-5/progress.md
+  - id: 6
+    title: Port prototype branching
+    status: done
+    progress: tasks/task-6/progress.md
+  - id: 7
+    title: Port diff packaging
+    status: done
+    progress: tasks/task-7/progress.md
+  - id: 8
+    title: Port change context
+    status: done
+    progress: tasks/task-8/progress.md
+  - id: 9
+    title: Port repository precondition gates
+    status: done
+    progress: tasks/task-9/progress.md
+  - id: 10
+    title: Port evidence freshness gates
+    status: done
+    progress: tasks/task-10/progress.md
+  - id: 11
+    title: Compose the workbench CLI
+    status: done
+    progress: tasks/task-11/progress.md
+  - id: 12
+    title: Remove script installation from setup
+    status: done
+    progress: tasks/task-12/progress.md
+  - id: 13
+    title: Migrate skills to workbench commands
+    status: done
+    progress: tasks/task-13/progress.md
+  - id: 14
+    title: Update framework documentation
+    status: done
+    progress: tasks/task-14/progress.md
+  - id: 15
+    title: Delete obsolete shell helpers and tests
+    status: done
+    progress: tasks/task-15/progress.md
+---
 # Progress: Replace Hamilton Helper Scripts with the Workbench CLI
 
 | Task | Status | Progress |
