@@ -7,7 +7,7 @@ status: open
 verdict: changes-requested
 decision: accepted
 base: 22d8d1a6a78717344b36350f160b9171480168b7
-head: 30837fb4baaee8d4aff0de0a860cc11bee2f1cfd
+head: af441b8f139374ab29031dc1a625085e4aaec34d
 ---
 
 # Code Feedback: Task 8 — Port change context
@@ -29,6 +29,19 @@ head: 30837fb4baaee8d4aff0de0a860cc11bee2f1cfd
 ### Blocking
 
 - [src/workbench/context.ts:1263-1270] The all-scope discovery check calls `directoryExists(changesDir)` outside the discovery error boundary, and the production adapter converts every stat failure into `false`; an unreadable `.hamilton/changes` directory can therefore be reported as the normal exit-1 “no changes” result (or reject through an injected port) instead of the required exit-2 environment error. Preserve the distinction between a missing directory and discovery I/O failure, catch the check, and return an error result with no context output (violates: invalid paths and unreadable changes, including all-scope discovery I/O, return exit-2 environment errors without successful context output).
+
+### Suggestions
+
+- None.
+
+## Pass 3 — 2026-09-13
+
+### Blocking
+
+- [src/workbench/context.ts:590-612, 650-680] The inventory loop reads every listed artifact as raw text but contract-inspects only plan/progress/task progress/review, so malformed recognized proposal.md, design.md, finish.md, or critique.md can still produce a successful pre-plan or split context instead of failing closed. Run shared typed inspection for every recognized frontmatter artifact before format discovery, retaining body fallback only for unrelated legacy input (violates: current frontmatter artifacts use shared typed inspection and malformed recognized artifacts fail closed).
+- [src/workbench/context.ts:552-574] routeUnit can fall through from a recognized proposal or plan with null/absent route_unit to an unrelated sibling's legacy body route table, allowing current route metadata to be invented by legacy text. Treat any recognized proposal/plan as authoritative across the pair and use body fallback only when neither is recognized (violates: current frontmatter is authoritative).
+- [src/workbench/context.ts:816-833] When the change-level progress is legacy/unrelated, a recognized but contract-invalid task progress artifact is passed to taskAttempts and can be accepted from its legacy-shaped body. Only use that parser for an unrelated task artifact; classify recognized invalid input as malformed and mixed current/legacy layouts as legacy-unsupported (violates: shared typed inspection and fail-closed legacy classification).
+- [src/workbench/context.ts:164-170] The production pathExists adapter converts every lstat failure into false, so EACCES or another unreadable-artifact error is treated as an absent file and can yield a normal pre-plan/legacy result instead of an exit-2 environment error. Return false only for ENOENT and rethrow other failures (violates: invalid paths and unreadable changes return environment errors without successful context output).
 
 ### Suggestions
 
