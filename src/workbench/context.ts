@@ -1096,7 +1096,7 @@ const latestReview = async (
       readResult.artifact.metadata.change !== Path.basename(dir) ||
       !readResult.artifact.body.match(
         new RegExp(
-          `^# Whole-branch Review: ${expectedTitle.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}$`,
+          `^# Whole-branch Review: ${expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
           "m",
         ),
       )
@@ -1120,6 +1120,20 @@ const latestReview = async (
     base = parsed.base;
     head = parsed.head;
   } else return "malformed";
+  if (!(await durableArtifact(runtime, root, path)))
+    return `${String(verdict)} (uncommitted)`;
+  const commit = text(
+    await runtime.git.latestCommit(root, relative(root, path)),
+  );
+  if (
+    !fullCommit(commit) ||
+    (await runtime.git.commitFiles(root, commit)).stdout
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .join("\n") !== relative(root, path)
+  )
+    return `${String(verdict)} (uncommitted)`;
   const required =
     material ??
     text(

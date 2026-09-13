@@ -71,3 +71,19 @@ decision: accepted
   - `bun --bun vitest run && bun run build` — passed; 22 test files and 645 tests passed and TypeScript built cleanly.
   - `git diff --check` — passed; no whitespace errors.
 - Notes: Contract-inspected every recognized inventory artifact before format discovery, made recognized proposal/plan route metadata authoritative, rejected malformed or mixed-layout recognized task artifacts, and propagated non-ENOENT path errors. Preserved the existing .base checkpoint. Existing .base checkpoint was validated and preserved.
+
+## Attempt 5 — 2026-09-13
+
+- Outcome: done
+- Created: none
+- Modified:
+  - src/workbench/context.ts
+  - tests/workbench/context.test.ts
+  - .hamilton/changes/2026-09-12-lint-skill-scripts/progress.md
+  - .hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-8/progress.md
+- Deleted: none
+- Verification:
+  - `bun --bun vitest run tests/workbench/context.test.ts && bun run build` — passed; 15 context tests passed and TypeScript built cleanly.
+  - `bun --bun vitest run && bun run build` — passed; 22 test files and 647 tests passed and TypeScript built cleanly.
+  - `git diff --check` — passed; no whitespace errors.
+- Notes: Review freshness now fails closed for uncommitted or staged-only review artifacts before range evaluation, and current review titles escape regex metacharacters correctly. Preserved the existing .base checkpoint.

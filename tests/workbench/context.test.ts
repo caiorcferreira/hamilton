@@ -6,7 +6,15 @@ import {
   createContextRuntime,
   renderContextResult,
 } from "../../src/workbench/context.js";
-import { cleanupRepos, makeChangeDir, makeRepo, write } from "./helpers.js";
+import {
+  cleanupRepos,
+  commitAll,
+  commitPaths,
+  git,
+  makeChangeDir,
+  makeRepo,
+  write,
+} from "./helpers.js";
 
 const proposal = `# Proposal: Add auth
 
@@ -49,6 +57,32 @@ const splitFiles = {
   ),
   "requirements/auth.md": "# Auth\n",
 };
+const currentReview = (
+  change: string,
+  title: string,
+  base: string,
+  head = base,
+) => `---
+artifact: review
+change: ${change}
+created: 2026-09-13
+status: complete
+verdict: approved
+decision: accepted
+base: ${base}
+head: ${head}
+---
+# Whole-branch Review: ${title}
+
+## Pass 1 — 2026-09-13
+Base: ${base}
+Head: ${head}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+`;
 
 const seed = (
   repository: string,
@@ -366,6 +400,46 @@ Verdict: approved
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Task 1: done, feedback: malformed");
+  });
+
+  it("reports uncommitted current review evidence before freshness", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "uncommitted-review", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const review = currentReview("uncommitted-review", "add auth", base);
+    write(directory, "review.md", review);
+    commitPaths(repository, "review", ".hamilton/changes/uncommitted-review/review.md");
+
+    write(directory, "review.md", `${review}\n`);
+    const unstaged = await context({ changeDir: directory });
+    expect(unstaged.stdout).toContain("whole change: approved (uncommitted)");
+
+    write(directory, "review.md", `${review}\n`);
+    git(
+      repository,
+      "add",
+      "--",
+      ".hamilton/changes/uncommitted-review/review.md",
+    );
+    const staged = await context({ changeDir: directory });
+    expect(staged.stdout).toContain("whole change: approved (uncommitted)");
+  });
+
+  it("matches current reviews whose plan titles contain regex metacharacters", async () => {
+    const repository = makeRepo();
+    const title = "add auth [v1].";
+    const directory = seed(repository, "regex-review", {
+      ...splitFiles,
+      "plan.md": splitFiles["plan.md"].replace("# Plan: add auth", `# Plan: ${title}`),
+    });
+    const base = commitAll(repository, "change artifacts");
+    write(directory, "review.md", currentReview("regex-review", title, base));
+    commitPaths(repository, "review", ".hamilton/changes/regex-review/review.md");
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("whole change: approved (fresh)");
   });
 
   it("rejects malformed current review instead of parsing its legacy body", async () => {
