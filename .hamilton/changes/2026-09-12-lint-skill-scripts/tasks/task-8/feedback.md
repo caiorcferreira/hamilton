@@ -7,7 +7,7 @@ status: open
 verdict: changes-requested
 decision: accepted
 base: 22d8d1a6a78717344b36350f160b9171480168b7
-head: af441b8f139374ab29031dc1a625085e4aaec34d
+head: d36b2fa478d662016876e082bce7702505da0e49
 ---
 
 # Code Feedback: Task 8 — Port change context
@@ -42,6 +42,17 @@ head: af441b8f139374ab29031dc1a625085e4aaec34d
 - [src/workbench/context.ts:552-574] routeUnit can fall through from a recognized proposal or plan with null/absent route_unit to an unrelated sibling's legacy body route table, allowing current route metadata to be invented by legacy text. Treat any recognized proposal/plan as authoritative across the pair and use body fallback only when neither is recognized (violates: current frontmatter is authoritative).
 - [src/workbench/context.ts:816-833] When the change-level progress is legacy/unrelated, a recognized but contract-invalid task progress artifact is passed to taskAttempts and can be accepted from its legacy-shaped body. Only use that parser for an unrelated task artifact; classify recognized invalid input as malformed and mixed current/legacy layouts as legacy-unsupported (violates: shared typed inspection and fail-closed legacy classification).
 - [src/workbench/context.ts:164-170] The production pathExists adapter converts every lstat failure into false, so EACCES or another unreadable-artifact error is treated as an absent file and can yield a normal pre-plan/legacy result instead of an exit-2 environment error. Return false only for ENOENT and rethrow other failures (violates: invalid paths and unreadable changes return environment errors without successful context output).
+
+### Suggestions
+
+- None.
+
+## Pass 4 — 2026-09-13
+
+### Blocking
+
+- [src/workbench/context.ts:1087-1133] `latestReview` never verifies that `review.md` is durable and committed before evaluating its Base/Head range, unlike `latestFeedback`; a valid uncommitted or staged-only review can therefore be reported as `approved (fresh)`. Check the review artifact's worktree/staged state and commit ownership, returning an uncommitted standing before freshness evaluation (violates: feedback/review freshness and fail-closed context reporting).
+- [src/workbench/context.ts:1097-1101] The current-review title regex uses `"\\\\$&"`, which double-escapes regex metacharacters. A valid current review whose plan title contains characters such as `.` or `[` is consequently classified as `malformed` instead of retaining its review standing. Escape each metacharacter with one backslash (violates: current frontmatter context correctness and preservation of review freshness).
 
 ### Suggestions
 
