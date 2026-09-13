@@ -23,15 +23,6 @@ const TEMPLATE_FILES = [
 
 const WAYFINDER_TEMPLATE_FILES = ["wayfinder/map.md", "wayfinder/ticket.md", "wayfinder/route.md"]
 
-const SCRIPT_FILES = [
-  "hamilton-artifact-contracts.sh",
-  "hamilton-change-context.sh",
-  "hamilton-diff-package.sh",
-  "hamilton-isolate.sh",
-  "hamilton-precondition-check.sh",
-  "hamilton-prototype-branch.sh"
-]
-
 describe("setupHamilton", () => {
   let tmpHome: string
   const originalHome = process.env.HOME
@@ -54,7 +45,7 @@ describe("setupHamilton", () => {
     expect(Fs.existsSync(home)).toBe(true)
     expect(Fs.existsSync(Path.join(home, "templates"))).toBe(true)
     expect(Fs.existsSync(Path.join(home, "guidelines"))).toBe(true)
-    expect(Fs.existsSync(Path.join(home, "scripts"))).toBe(true)
+    expect(Fs.existsSync(Path.join(home, "scripts"))).toBe(false)
   })
 
   it("copies artifact templates", async () => {
@@ -74,27 +65,6 @@ describe("setupHamilton", () => {
     const templatesBase = Path.join(tmpHome, ".hamilton", "templates")
     for (const file of WAYFINDER_TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true)
-    }
-  })
-
-  it("copies helper scripts", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts")
-    for (const file of SCRIPT_FILES) {
-      expect(Fs.existsSync(Path.join(scriptsBase, file))).toBe(true)
-    }
-  })
-
-  it("installs helper scripts as executable", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton())
-    expect(Exit.isSuccess(exit)).toBe(true)
-
-    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts")
-    for (const file of SCRIPT_FILES) {
-      const mode = Fs.statSync(Path.join(scriptsBase, file)).mode
-      expect(mode & 0o111).toBe(0o111)
     }
   })
 
@@ -122,13 +92,30 @@ describe("setupHamilton", () => {
     }
   })
 
-  it("returns installed script filenames", async () => {
+  it("does not expose installed script filenames", async () => {
     const exit = await Effect.runPromiseExit(setupHamilton())
     if (Exit.isSuccess(exit)) {
-      expect(exit.value.scripts).toEqual(SCRIPT_FILES)
+      expect(Object.keys(exit.value)).toEqual(["templates"])
     } else {
       expect.unreachable("Expected success")
     }
+  })
+
+  it("leaves an existing helper script directory unchanged", async () => {
+    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts")
+    Fs.mkdirSync(Path.join(scriptsBase, "nested"), { recursive: true })
+    Fs.writeFileSync(Path.join(scriptsBase, "legacy.sh"), "legacy helper\n")
+    Fs.writeFileSync(Path.join(scriptsBase, "nested", "config"), Buffer.from([0, 1, 2, 255]))
+    const before = [
+      Fs.readFileSync(Path.join(scriptsBase, "legacy.sh")),
+      Fs.readFileSync(Path.join(scriptsBase, "nested", "config"))
+    ]
+
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+    expect(Fs.readdirSync(scriptsBase).sort()).toEqual(["legacy.sh", "nested"])
+    expect(Fs.readFileSync(Path.join(scriptsBase, "legacy.sh"))).toEqual(before[0])
+    expect(Fs.readFileSync(Path.join(scriptsBase, "nested", "config"))).toEqual(before[1])
   })
 
   it("is idempotent", async () => {
@@ -224,5 +211,17 @@ describe("bundle root resolution", () => {
     expect(Fs.existsSync(copiedTemplate)).toBe(true)
     const content = Fs.readFileSync(copiedTemplate, "utf-8")
     expect(content).toBe("# Plan Template")
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "scripts"))).toBe(false)
+  })
+
+  it("succeeds when the bundle has no helper scripts", async () => {
+    const bundleTemplatesDir = Path.join(tmpBundleDir, "templates")
+    Fs.mkdirSync(bundleTemplatesDir, { recursive: true })
+    Fs.writeFileSync(Path.join(bundleTemplatesDir, "plan.md"), "# Plan Template")
+
+    process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir
+    const exit = await Effect.runPromiseExit(setupHamilton())
+    expect(Exit.isSuccess(exit)).toBe(true)
+    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "scripts"))).toBe(false)
   })
 })
