@@ -172,8 +172,9 @@ const productionFileSystem: ContextFileSystemPort = {
   directoryExists: async (sourcePath) => {
     try {
       return (await Fs.stat(sourcePath)).isDirectory();
-    } catch {
-      return false;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
     }
   },
   realpath: (sourcePath) => Fs.realpath(sourcePath),
@@ -1214,7 +1215,16 @@ const discover = async (
 ): Promise<string | ContextResult> => {
   const candidate = supplied;
   if (candidate !== undefined) {
-    if (!(await runtime.fileSystem.directoryExists(candidate)))
+    let exists: boolean;
+    try {
+      exists = await runtime.fileSystem.directoryExists(candidate);
+    } catch (error) {
+      return failure(
+        "one",
+        `cannot inspect change dir ${candidate}: ${String(error)}`,
+      );
+    }
+    if (!exists)
       return failure("one", `change dir does not exist: ${candidate}`);
     try {
       return await runtime.fileSystem.realpath(candidate);
@@ -1239,9 +1249,16 @@ const discover = async (
       "not inside a change directory — pass one as an argument, or use --all",
     );
   const dir = parts.slice(0, marker + 3).join(Path.sep) || Path.sep;
-  return (await runtime.fileSystem.directoryExists(dir))
-    ? dir
-    : failure("one", `change dir does not exist: ${dir}`);
+  try {
+    return (await runtime.fileSystem.directoryExists(dir))
+      ? dir
+      : failure("one", `change dir does not exist: ${dir}`);
+  } catch (error) {
+    return failure(
+      "one",
+      `cannot inspect change dir ${dir}: ${String(error)}`,
+    );
+  }
 };
 
 const contextOne = async (
@@ -1260,7 +1277,17 @@ const contextAll = async (runtime: ContextRuntime): Promise<ContextResult> => {
   if (!successful(rootResult))
     return failure("all", "not inside a git repository");
   const changesDir = Path.join(text(rootResult), ".hamilton", "changes");
-  if (!(await runtime.fileSystem.directoryExists(changesDir)))
+  let changesDirectoryExists: boolean;
+  try {
+    changesDirectoryExists =
+      await runtime.fileSystem.directoryExists(changesDir);
+  } catch (error) {
+    return failure(
+      "all",
+      `cannot discover changes under ${changesDir}: ${String(error)}`,
+    );
+  }
+  if (!changesDirectoryExists)
     return result(
       "all",
       "negative",

@@ -158,6 +158,33 @@ describe("change context", () => {
     expect(result.stderr).toContain("cannot discover changes");
   });
 
+  it("returns an environment error when all-scope directory discovery fails", async () => {
+    const repository = makeRepo();
+    const runtime = createContextRuntime({ cwd: () => repository });
+    const changesDir = Path.join(repository, ".hamilton", "changes");
+    const result = await context(
+      { all: true },
+      createContextRuntime({
+        cwd: () => repository,
+        fileSystem: {
+          ...runtime.fileSystem,
+          directoryExists: (sourcePath) => {
+            if (sourcePath === changesDir)
+              throw new Error("permission denied");
+            return runtime.fileSystem.directoryExists(sourcePath);
+          },
+        },
+        git: runtime.git,
+      }),
+    );
+
+    expect(result.exitCode).toBe(2);
+    expect(result.status).toBe("error");
+    expect(result.stdout).toBe("");
+    expect(result.changes).toHaveLength(0);
+    expect(result.stderr).toContain("cannot discover changes");
+  });
+
   it("returns an environment error for invalid paths", async () => {
     const repository = makeRepo();
     const result = await context({

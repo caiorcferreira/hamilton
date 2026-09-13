@@ -39,3 +39,19 @@ decision: accepted
   - `bun --bun vitest run && bun run build` — passed; 22 test files and 641 tests passed and TypeScript built cleanly.
   - `git diff --check` — passed; no whitespace errors.
 - Notes: Rejected malformed current feedback and review artifacts instead of legacy body fallback, preserved authoritative current route metadata when route_unit is null, and converted all-scope discovery I/O failures to exit-2 environment results. Existing .base checkpoint was validated and preserved.
+
+## Attempt 3 — 2026-09-13
+
+- Outcome: done
+- Created: none
+- Modified:
+  - src/workbench/context.ts
+  - tests/workbench/context.test.ts
+  - .hamilton/changes/2026-09-12-lint-skill-scripts/progress.md
+  - .hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-8/progress.md
+- Deleted: none
+- Verification:
+  - `bun --bun vitest run tests/workbench/context.test.ts && bun run build` — passed; 10 context tests passed and TypeScript built cleanly.
+  - `bun --bun vitest run && bun run build` — passed; 22 test files and 642 tests passed and TypeScript built cleanly.
+  - `git diff --check` — passed; no whitespace errors.
+- Notes: Preserved missing-directory negative results while propagating directory discovery I/O failures to exit-2 errors with empty context output; added regression coverage for a failing all-scope directoryExists check. Existing .base checkpoint was validated and preserved.
