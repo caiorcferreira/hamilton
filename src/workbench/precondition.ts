@@ -44,7 +44,9 @@ export interface PreconditionGitPort {
   readonly statusPorcelain: (
     cwd: string,
   ) => ProcessResult | Promise<ProcessResult>;
-  readonly currentHead?: (cwd: string) => ProcessResult | Promise<ProcessResult>;
+  readonly currentHead?: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
   readonly resolveCommit?: (
     cwd: string,
     reference: string,
@@ -274,7 +276,11 @@ const gitResolveCommit = async (
 ): Promise<ProcessResult> =>
   runtime.git.resolveCommit
     ? runtime.git.resolveCommit(root, reference)
-    : gitCommand(runtime, ["rev-parse", "--verify", `${reference}^{commit}`], root);
+    : gitCommand(
+        runtime,
+        ["rev-parse", "--verify", `${reference}^{commit}`],
+        root,
+      );
 
 const gitIsAncestor = async (
   runtime: PreconditionRuntime,
@@ -311,7 +317,11 @@ const gitStagedDiff = async (
 ): Promise<ProcessResult> =>
   runtime.git.stagedDiff
     ? runtime.git.stagedDiff(root, sourcePath)
-    : gitCommand(runtime, ["diff", "--cached", "--quiet", "HEAD", "--", sourcePath], root);
+    : gitCommand(
+        runtime,
+        ["diff", "--cached", "--quiet", "HEAD", "--", sourcePath],
+        root,
+      );
 
 const gitLatestCommit = async (
   runtime: PreconditionRuntime,
@@ -320,7 +330,11 @@ const gitLatestCommit = async (
 ): Promise<ProcessResult> =>
   runtime.git.latestCommit
     ? runtime.git.latestCommit(root, sourcePath)
-    : gitCommand(runtime, ["log", "-1", "--format=%H", "HEAD", "--", sourcePath], root);
+    : gitCommand(
+        runtime,
+        ["log", "-1", "--format=%H", "HEAD", "--", sourcePath],
+        root,
+      );
 
 const gitCommitFiles = async (
   runtime: PreconditionRuntime,
@@ -370,7 +384,8 @@ const readContract = async (
   path: string,
   expected: ValidArtifactContract["artifact"],
 ): Promise<EvidenceRead> => {
-  if (!(await runtime.fileSystem.pathExists(path))) return { reason: "missing" };
+  if (!(await runtime.fileSystem.pathExists(path)))
+    return { reason: "missing" };
   if (!runtime.fileSystem.readFile) return { reason: "cannot read" };
   let source: string;
   try {
@@ -394,7 +409,11 @@ const durableArtifact = async (
   if (relative.startsWith("..") || Path.isAbsolute(relative)) return false;
   const head = await gitHeadBlob(runtime, root, relative);
   const worktree = await gitWorktreeBlob(runtime, root, relative);
-  if (!successful(head) || !successful(worktree) || text(head) !== text(worktree))
+  if (
+    !successful(head) ||
+    !successful(worktree) ||
+    text(head) !== text(worktree)
+  )
     return false;
   return (await gitStagedDiff(runtime, root, relative)).status === 0;
 };
@@ -405,7 +424,9 @@ const exactArtifactCommit = async (
   path: string,
 ): Promise<boolean> => {
   if (!(await durableArtifact(runtime, root, path))) return false;
-  const commit = text(await gitLatestCommit(runtime, root, relativePath(root, path)));
+  const commit = text(
+    await gitLatestCommit(runtime, root, relativePath(root, path)),
+  );
   if (!fullCommit(commit)) return false;
   const files = (await gitCommitFiles(runtime, root, commit)).stdout
     .trim()
@@ -431,9 +452,15 @@ interface TaskInspection {
   readonly changePath: string;
 }
 
-const titleOf = (artifact: ValidArtifactContract, prefix: string): string | undefined => {
-  const titles = artifact.body.headings.filter((heading) => heading.level === 1);
-  if (titles.length !== 1 || !titles[0]?.text.startsWith(prefix)) return undefined;
+const titleOf = (
+  artifact: ValidArtifactContract,
+  prefix: string,
+): string | undefined => {
+  const titles = artifact.body.headings.filter(
+    (heading) => heading.level === 1,
+  );
+  if (titles.length !== 1 || !titles[0]?.text.startsWith(prefix))
+    return undefined;
   return titles[0].text.slice(prefix.length);
 };
 
@@ -451,13 +478,18 @@ const inspectTasks = async (
   const problems: string[] = [];
   const planDurable = await durableArtifact(runtime, root, planPath);
   const progressDurable = await durableArtifact(runtime, root, progressPath);
-  if (!planDurable) problems.push("plan.md is not tracked and committed exactly at HEAD");
-  if (!progressDurable) problems.push("progress.md is not tracked and committed exactly at HEAD");
+  if (!planDurable)
+    problems.push("plan.md is not tracked and committed exactly at HEAD");
+  if (!progressDurable)
+    problems.push("progress.md is not tracked and committed exactly at HEAD");
   const planRead = await readContract(runtime, planPath, "plan");
   const progressRead = await readContract(runtime, progressPath, "progress");
-  const planTitle = planRead.artifact ? titleOf(planRead.artifact, "Plan: ") : undefined;
+  const planTitle = planRead.artifact
+    ? titleOf(planRead.artifact, "Plan: ")
+    : undefined;
   if (!planRead.artifact) problems.push(`plan.md ${planRead.reason}`);
-  if (!progressRead.artifact) problems.push(`progress.md ${progressRead.reason}`);
+  if (!progressRead.artifact)
+    problems.push(`progress.md ${progressRead.reason}`);
   if (!planTitle) problems.push("plan title is malformed");
   if (problems.length > 0)
     return {
@@ -496,7 +528,10 @@ const inspectTasks = async (
   )
     problems.push("plan and progress ledgers do not match");
   const metadataTasks = progressArtifact.metadata.tasks;
-  if (!Array.isArray(metadataTasks) || metadataTasks.length !== progressRecords.length) {
+  if (
+    !Array.isArray(metadataTasks) ||
+    metadataTasks.length !== progressRecords.length
+  ) {
     problems.push("progress metadata ledger does not match");
   } else {
     for (const [index, value] of metadataTasks.entries()) {
@@ -517,10 +552,18 @@ const inspectTasks = async (
   const tasks: TaskEvidence[] = [];
   for (const record of activePlans) {
     const task = record.number ?? 0;
-    const progressRecord = progressRecords.find((candidate) => candidate.number === task);
+    const progressRecord = progressRecords.find(
+      (candidate) => candidate.number === task,
+    );
     const status = progressRecord?.fields.Status ?? "";
-    if (status !== "done") problems.push(`Task ${task} status: ${status || "missing"}`);
-    const taskPath = Path.join(changeDir, "tasks", `task-${task}`, "progress.md");
+    if (status !== "done")
+      problems.push(`Task ${task} status: ${status || "missing"}`);
+    const taskPath = Path.join(
+      changeDir,
+      "tasks",
+      `task-${task}`,
+      "progress.md",
+    );
     const taskRead = await readContract(runtime, taskPath, "task-progress");
     if (!taskRead.artifact) {
       problems.push(`Task ${task} progress ${taskRead.reason}`);
@@ -589,7 +632,12 @@ const passSections = (
   artifact: ValidArtifactContract,
   source: string,
   pass: ValidArtifactContract["body"]["workflow"]["records"][number],
-): { readonly blocking: readonly string[]; readonly suggestions: readonly string[] } | undefined => {
+):
+  | {
+      readonly blocking: readonly string[];
+      readonly suggestions: readonly string[];
+    }
+  | undefined => {
   if (pass.kind !== "pass") return undefined;
   const allLines = source.split(/\r\n|\n|\r/);
   let delimiters = 0;
@@ -599,14 +647,20 @@ const passSections = (
     return delimiters === 2;
   });
   if (closeIndex < 0) return undefined;
-  const lines = createArtifactBodyView(allLines.slice(closeIndex + 1).join("\n")).lines;
+  const lines = createArtifactBodyView(
+    allLines.slice(closeIndex + 1).join("\n"),
+  ).lines;
   const passIndex = pass.line - (closeIndex + 2);
   const end = lines.findIndex(
     (line, index) => index > passIndex && /^##[ \t]+/.test(line),
   );
   const sectionLines = lines.slice(passIndex + 1, end < 0 ? lines.length : end);
-  const blockingIndex = sectionLines.findIndex((line) => /^###[ \t]+Blocking$/.test(line));
-  const suggestionsIndex = sectionLines.findIndex((line) => /^###[ \t]+Suggestions$/.test(line));
+  const blockingIndex = sectionLines.findIndex((line) =>
+    /^###[ \t]+Blocking$/.test(line),
+  );
+  const suggestionsIndex = sectionLines.findIndex((line) =>
+    /^###[ \t]+Suggestions$/.test(line),
+  );
   if (blockingIndex < 0 || suggestionsIndex < blockingIndex) return undefined;
   return {
     blocking: sectionLines
@@ -686,11 +740,18 @@ const validRange = async (
     text(resolvedHead) !== head
   )
     return "malformed";
-  if (!successful(await gitIsAncestor(runtime, root, base, head))) return "malformed";
+  if (!successful(await gitIsAncestor(runtime, root, base, head)))
+    return "malformed";
   const current = text(await gitCurrentHead(runtime, root));
-  if (!fullCommit(current) || !successful(await gitIsAncestor(runtime, root, head, current)))
+  if (
+    !fullCommit(current) ||
+    !successful(await gitIsAncestor(runtime, root, head, current))
+  )
     return "off-branch";
-  if (required && !successful(await gitIsAncestor(runtime, root, required, head)))
+  if (
+    required &&
+    !successful(await gitIsAncestor(runtime, root, required, head))
+  )
     return "stale";
   return "fresh";
 };
@@ -716,7 +777,10 @@ const readReview = async (
     expected === "feedback" ? "Code Feedback: " : "Whole-branch Review: ",
   );
   const verdict = String(read.artifact.metadata.verdict ?? "");
-  if (title !== expectedTitle || !validPassContent(read.artifact, read.source, verdict))
+  if (
+    title !== expectedTitle ||
+    !validPassContent(read.artifact, read.source, verdict)
+  )
     return "malformed";
   return {
     artifact: read.artifact,
@@ -735,7 +799,12 @@ const inspectReviews = async (
 ): Promise<{ readonly output: string; readonly passed: boolean }> => {
   const problems: string[] = [];
   for (const task of inspection.tasks) {
-    const path = Path.join(changeDir, "tasks", `task-${task.task}`, "feedback.md");
+    const path = Path.join(
+      changeDir,
+      "tasks",
+      `task-${task.task}`,
+      "feedback.md",
+    );
     const feedback = await readReview(
       runtime,
       path,
@@ -746,21 +815,41 @@ const inspectReviews = async (
       problems.push(`Task ${task.task} feedback ${feedback}`);
       continue;
     }
-    if (feedback.verdict !== "approved") problems.push(`Task ${task.task} latest verdict: ${feedback.verdict}`);
+    if (feedback.verdict !== "approved")
+      problems.push(`Task ${task.task} latest verdict: ${feedback.verdict}`);
     if (!(await exactArtifactCommit(runtime, root, path)))
-      problems.push(`Task ${task.task} feedback is not tracked and committed exactly at HEAD`);
-    const standing = await validRange(runtime, root, feedback.base, feedback.head, task.implementation);
-    if (standing !== "fresh") problems.push(`Task ${task.task} feedback is ${standing}`);
+      problems.push(
+        `Task ${task.task} feedback is not tracked and committed exactly at HEAD`,
+      );
+    const standing = await validRange(
+      runtime,
+      root,
+      feedback.base,
+      feedback.head,
+      task.implementation,
+    );
+    if (standing !== "fresh")
+      problems.push(`Task ${task.task} feedback is ${standing}`);
   }
   const reviewPath = Path.join(changeDir, "review.md");
-  const review = await readReview(runtime, reviewPath, inspection.planTitle ?? "", "review");
-  if (typeof review === "string") problems.push(`whole-branch review ${review}`);
+  const review = await readReview(
+    runtime,
+    reviewPath,
+    inspection.planTitle ?? "",
+    "review",
+  );
+  if (typeof review === "string")
+    problems.push(`whole-branch review ${review}`);
   else {
-    if (review.verdict !== "approved") problems.push(`whole-branch latest verdict: ${review.verdict}`);
+    if (review.verdict !== "approved")
+      problems.push(`whole-branch latest verdict: ${review.verdict}`);
     if (!(await exactArtifactCommit(runtime, root, reviewPath)))
-      problems.push("whole-branch review is not tracked and committed exactly at HEAD");
+      problems.push(
+        "whole-branch review is not tracked and committed exactly at HEAD",
+      );
     const standing = await validRange(runtime, root, review.base, review.head);
-    if (standing !== "fresh") problems.push(`whole-branch review range is ${standing}`);
+    if (standing !== "fresh")
+      problems.push(`whole-branch review range is ${standing}`);
   }
   return {
     passed: problems.length === 0,
@@ -779,20 +868,41 @@ const inspectFreshness = async (
   waived: boolean,
 ): Promise<{ readonly output: string; readonly passed: boolean }> => {
   const reviewPath = Path.join(changeDir, "review.md");
-  const review = await readReview(runtime, reviewPath, inspection.planTitle ?? "", "review");
+  const review = await readReview(
+    runtime,
+    reviewPath,
+    inspection.planTitle ?? "",
+    "review",
+  );
   const problems: string[] = [];
   if (typeof review === "string") problems.push(`review ${review}`);
   else {
-    if (!(await exactArtifactCommit(runtime, root, reviewPath))) problems.push("review is not tracked and committed exactly at HEAD");
+    if (!(await exactArtifactCommit(runtime, root, reviewPath)))
+      problems.push("review is not tracked and committed exactly at HEAD");
     const standing = await validRange(runtime, root, review.base, review.head);
     if (standing !== "fresh") problems.push(`review range is ${standing}`);
-    if (review.verdict !== "approved") problems.push(`latest verdict: ${review.verdict}`);
+    if (review.verdict !== "approved")
+      problems.push(`latest verdict: ${review.verdict}`);
   }
   const planPath = Path.join(changeDir, "plan.md");
-  if (!(await durableArtifact(runtime, root, planPath))) problems.push("plan.md is not tracked and committed exactly at HEAD");
-  const material = text(await gitLatestMaterialCommit(runtime, root, inspection.changePath, inspection.tasks.map((task) => task.progressPath)));
-  if (!fullCommit(material)) problems.push("no material commit exists on the current branch");
-  if (problems.length === 0 && !waived && typeof review !== "string" && fullCommit(material)) {
+  if (!(await durableArtifact(runtime, root, planPath)))
+    problems.push("plan.md is not tracked and committed exactly at HEAD");
+  const material = text(
+    await gitLatestMaterialCommit(
+      runtime,
+      root,
+      inspection.changePath,
+      inspection.tasks.map((task) => task.progressPath),
+    ),
+  );
+  if (!fullCommit(material))
+    problems.push("no material commit exists on the current branch");
+  if (
+    problems.length === 0 &&
+    !waived &&
+    typeof review !== "string" &&
+    fullCommit(material)
+  ) {
     if (
       !fullCommit(review.head) ||
       !successful(await gitIsAncestor(runtime, root, material, review.head))
@@ -800,11 +910,15 @@ const inspectFreshness = async (
       problems.push(`review head does not contain material ${material}`);
   }
   if (problems.length > 0)
-    return { passed: false, output: `[FAIL] Whole-branch review freshness (${problems.join("; ")})\n` };
+    return {
+      passed: false,
+      output: `[FAIL] Whole-branch review freshness (${problems.join("; ")})\n`,
+    };
   if (waived)
     return {
       passed: true,
-      output: "[WAIVED] Whole-branch review freshness (material ancestry waived by the user; record this in the finish entry)\n",
+      output:
+        "[WAIVED] Whole-branch review freshness (material ancestry waived by the user; record this in the finish entry)\n",
     };
   return {
     passed: true,
@@ -841,7 +955,11 @@ export const precondition = async (
   output += after.output;
   if (!after.clean) failures += 1;
 
-  const tasks = await inspectTasks(runtime, target, Path.resolve(args.changeDir));
+  const tasks = await inspectTasks(
+    runtime,
+    target,
+    Path.resolve(args.changeDir),
+  );
   output += tasks.output;
   if (!tasks.passed) failures += 1;
   const reviews = await inspectReviews(

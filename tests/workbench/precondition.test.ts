@@ -23,7 +23,11 @@ const evidencePath = (slug: string, file: string): string =>
 const makeEvidence = (
   repository: string,
   options: { readonly blockingFeedback?: boolean } = {},
-): { readonly base: string; readonly material: string; readonly changeDir: string } => {
+): {
+  readonly base: string;
+  readonly material: string;
+  readonly changeDir: string;
+} => {
   const changeDir = makeChangeDir(repository, "demo");
   const base = git(repository, "rev-parse", "HEAD");
   write(
@@ -315,9 +319,16 @@ it("rejects a stale task feedback range", async () => {
   const feedback = Fs.readFileSync(
     Path.join(changeDir, "tasks", "task-1", "feedback.md"),
     "utf8",
-  ).replace(/head: [0-9a-f]{40}/, `head: ${git(repository, "rev-parse", "HEAD~3")}`);
+  ).replace(
+    /head: [0-9a-f]{40}/,
+    `head: ${git(repository, "rev-parse", "HEAD~3")}`,
+  );
   write(repository, evidencePath("demo", "tasks/task-1/feedback.md"), feedback);
-  commitPaths(repository, "stale feedback", evidencePath("demo", "tasks/task-1/feedback.md"));
+  commitPaths(
+    repository,
+    "stale feedback",
+    evidencePath("demo", "tasks/task-1/feedback.md"),
+  );
 
   const result = await precondition({ changeDir, testCommand: "true" });
 
@@ -344,7 +355,9 @@ it("rejects a mixed feedback commit", async () => {
   const result = await precondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
-  expect(result.stdout).toContain("Task 1 feedback is not tracked and committed exactly at HEAD");
+  expect(result.stdout).toContain(
+    "Task 1 feedback is not tracked and committed exactly at HEAD",
+  );
   expect(result.lastLine).toContain("gate: closed");
 });
 
