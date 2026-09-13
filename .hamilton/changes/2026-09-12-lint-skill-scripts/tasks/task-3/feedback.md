@@ -3,11 +3,11 @@ artifact: feedback
 change: 2026-09-12-lint-skill-scripts
 task: 3
 created: 2026-09-12
-status: open
-verdict: changes-requested
-decision: rejected
+status: resolved
+verdict: approved
+decision: accepted
 base: b76aa669fdf0173074940d9c83cfc5a8926bf11d
-head: cddec52e40d9eb24d9d592dd3b20a87992f3e787
+head: 922bce234e7357589e1e4a037f2df5f32d3be576
 ---
 
 # Code Feedback: Task 3 — Validate artifact bodies and workflow records
@@ -28,6 +28,16 @@ head: cddec52e40d9eb24d9d592dd3b20a87992f3e787
 ### Blocking
 
 - [src/workbench/artifact-contracts.ts:1026] Record-bearing contracts are accepted with no workflow records: after comment removal, a feedback, review, task-progress, finish, or route body containing only its title and structural sections yields `workflow.records: []` with no diagnostic, and a record-shaped heading at an unsupported level is ignored. Require each declared record shape to contain the required valid record(s), reject comment-only or wrong-level records with location-bearing diagnostics, and add regression tests (violates: Task 3 acceptance for append-only record grammar and structured workflow data, plus the constraint that HTML comments cannot satisfy required records).
+
+### Suggestions
+
+- None.
+
+## Pass 3 — 2026-09-12
+
+### Blocking
+
+- None.
 
 ### Suggestions
 
