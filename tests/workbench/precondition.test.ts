@@ -46,7 +46,7 @@ const makeEvidence = (
   write(
     repository,
     evidencePath("demo", "tasks/task-1/progress.md"),
-`---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
+    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
   );
   const material = commitAll(repository, "material");
   const blocking = options.blockingFeedback
