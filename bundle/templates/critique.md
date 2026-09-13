@@ -3,7 +3,7 @@ artifact: critique
 change: <YYYY-MM-DD-change-title>
 created: <YYYY-MM-DD>
 verdict: approved | changes-requested | skipped
-decision: accepted | rejected | skipped
+decision: accepted | applied | rejected | skipped
 scope: <artifacts and evidence reviewed>
 ---
 

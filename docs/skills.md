@@ -135,9 +135,11 @@ design-phase counterpart to `hamilton-review`. Returns a numbered findings repor
 - **Notes:** checks logical consistency, semantic coherence (ubiquitous language), and — the load-
   bearing step — that every referenced type/function/file/example actually exists in the codebase
   and nothing is planned against code the change removes. Applies the same `references/code-quality.md`
-  rubric `hamilton-propose` self-reviews against, capturing a Quality Lens. On handoff it names the
-  next step per the verdict (`plan` on approval, back to revising the artifacts on
-  changes-requested) and, working with a person, asks before proceeding.
+  rubric `hamilton-propose` self-reviews against, capturing a Quality Lens. Its single `decision`
+  field records whether the user accepted an approval, applied requested changes, rejected the
+  critique, or skipped the decision. Accepted, applied, and rejected critiques are settled and do
+  not require another critique pass. On handoff the skill names the applicable next core stage and,
+  working with a person, asks before proceeding.
 - Source: [`skills/hamilton-critique/SKILL.md`](../skills/hamilton-critique/SKILL.md)
 
 ### `hamilton-plan` — change → executable task contract *(step 2, required)*

@@ -35,6 +35,21 @@ describe("seven-step pipeline identity", () => {
     expect(critique).toMatch(/hamilton-review.*whole-branch/is)
   })
 
+  it("treats the single critique decision as its terminal disposition", () => {
+    const critique = readSkill("hamilton-critique")
+    const handoff = section(readSkill("hamilton-critique"), "## Handoff")
+
+    expect(critique).toMatch(/single `decision` field.*critique is settled/is)
+    expect(critique).toMatch(/`accepted`.*needs no remediation.*`applied`.*accepts and applies.*`rejected`.*dismisses/is)
+    expect(critique).toMatch(/never add a second resolution\s+field/i)
+    expect(handoff).toMatch(/changes-requested.*`decision: applied`.*cleared/is)
+    expect(handoff).toMatch(/`decision: rejected`.*settled.*findings are not worked/is)
+    expect(handoff).toMatch(/never rerun.*`hamilton-critique`/is)
+    expect(handoff).toMatch(/no `plan\.md`.*`hamilton-plan`/is)
+    expect(handoff).toMatch(/existing plan.*`hamilton-code`.*`hamilton-orchestrate`/is)
+    expect(handoff).toMatch(/invalidate an existing plan.*`hamilton-plan` in re-plan mode/is)
+  })
+
   it("keeps Wayfinder outside the core count", () => {
     for (const [name] of coreSkills) {
       expect(readSkill(name)).toMatch(/Wayfinder.*optional.*outside\s+the\s+(?:seven-step\s+)?core\s+count/is)
