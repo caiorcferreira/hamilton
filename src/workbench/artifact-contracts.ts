@@ -1032,13 +1032,14 @@ const commentedRecordHeadings = (
       artifact.locations.body.startLine +
       artifact.body.slice(0, match.index).split(/\r\n|\n|\r/).length -
       1;
-    for (const [index, line] of match[0]
-      .split(/\r\n|\n|\r/)
-      .entries()) {
+    for (const [index, line] of match[0].split(/\r\n|\n|\r/).entries()) {
       const heading = bodyHeading(
         line.replace(/^\s*<!--/, "").replace(/-->\s*$/, ""),
       );
-      if (heading && kinds.some((kind) => recordHeadingMatches(kind, heading.text)))
+      if (
+        heading &&
+        kinds.some((kind) => recordHeadingMatches(kind, heading.text))
+      )
         headings.push({ ...heading, line: startLine + index });
     }
   }
