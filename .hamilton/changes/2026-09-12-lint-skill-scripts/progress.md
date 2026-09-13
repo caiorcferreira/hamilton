@@ -8,7 +8,7 @@
 | Task 4: Implement explicitly scoped linting | done | [details](tasks/task-4/progress.md) |
 | Task 5: Establish runtime seams for isolation | done | [details](tasks/task-5/progress.md) |
 | Task 6: Port prototype branching | done | [details](tasks/task-6/progress.md) |
-| Task 7: Port diff packaging | pending | [details](tasks/task-7/progress.md) |
+| Task 7: Port diff packaging | done | [details](tasks/task-7/progress.md) |
 | Task 8: Port change context | pending | [details](tasks/task-8/progress.md) |
 | Task 9: Port repository precondition gates | pending | [details](tasks/task-9/progress.md) |
 | Task 10: Port evidence freshness gates | pending | [details](tasks/task-10/progress.md) |
