@@ -639,6 +639,45 @@ Verdict: changes-requested
     expect(result.stdout).toContain("whole change: approved (stale)")
   })
 
+  it("reads each frontmatter task as a separate ledger row", () => {
+    const repo = makeRepo()
+    const tasks = Array.from({ length: 7 }, (_, index) => index + 1)
+    const plan = `# Plan: seven tasks
+
+## Tasks
+
+${tasks.map((task) => `### Task ${task}: Work item ${task}`).join("\n\n")}
+`
+    const progress = `---
+artifact: progress
+change: seven-tasks
+status: pending
+updated: 2026-09-13
+decision: accepted
+tasks:
+${tasks.map((task) => `  - id: ${task}
+    title: "Work item ${task}"
+    status: pending
+    progress: tasks/task-${task}/progress.md`).join("\n")}
+---
+
+# Progress: seven tasks
+`
+    const files = Object.fromEntries([
+      ["plan.md", plan],
+      ["progress.md", progress],
+      ...tasks.map((task) => [`tasks/task-${task}/progress.md`, `# Task Progress: Task ${task} — Work item ${task}\n`])
+    ])
+    const dir = seed(repo, "seven-tasks", files)
+
+    const result = run(SCRIPT, [dir], repo)
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(field(result, "format")).toBe("split")
+    expect(field(result, "tasks")).toBe("0/7 done")
+    expect(result.stderr).not.toContain("root rows do not match active plan tasks")
+  })
+
   it("summarizes a validated split task ledger", () => {
     const repo = makeRepo()
     const dir = seed(repo, "add-auth", splitFiles())

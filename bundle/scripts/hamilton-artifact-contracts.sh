@@ -48,7 +48,7 @@ hamilton_progress_rows() {
       }
       escaped = title
       gsub(/\|/, "\\|", escaped)
-      printf "Task %s: %s\\t%s\\t[details](%s)\\n", id, escaped, status, progress
+      printf "Task %s: %s\t%s\t[details](%s)\n", id, escaped, status, progress
       active = 0
       id = title = status = progress = ""
     }

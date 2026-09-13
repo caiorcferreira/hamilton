@@ -26,6 +26,26 @@ const PROGRESS = `# Progress: add auth
 | Task 2: Wire it into the router | done | [details](tasks/task-2/progress.md) |
 `
 
+const FRONTMATTER_PROGRESS = `---
+artifact: progress
+change: add-auth
+status: complete
+updated: 2026-09-13
+decision: accepted
+tasks:
+  - id: 1
+    title: "Add the auth | session"
+    status: done
+    progress: tasks/task-1/progress.md
+  - id: 2
+    title: "Wire it into the router"
+    status: done
+    progress: tasks/task-2/progress.md
+---
+
+# Progress: add auth
+`
+
 const TASK_ONE_PROGRESS = `# Task Progress: Task 1 — Add the auth | session
 
 ## Attempt 1 — 2026-08-13
@@ -400,6 +420,16 @@ describe("hamilton-precondition-check.sh gate 2 — tests", () => {
 })
 
 describe("hamilton-precondition-check.sh gate 3 — tasks", () => {
+  it("validates each frontmatter task as a separate ledger row", () => {
+    const repo = makeRepo()
+    const dir = seedChange(repo, { progress: FRONTMATTER_PROGRESS })
+
+    const result = check(repo, dir)
+
+    expect(result.status, result.stdout + result.stderr).toBe(0)
+    expect(result.stdout).toContain("[PASS] Tasks (2/2 implemented)")
+  })
+
   it("rejects duplicate task declarations", () => {
     const repo = makeRepo()
     const dir = seedChange(repo, { plan: `${PLAN}\n### Task 1: Duplicate auth\n` })
