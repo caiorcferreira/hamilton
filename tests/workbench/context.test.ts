@@ -131,6 +131,33 @@ describe("change context", () => {
     expect(result.changes).toHaveLength(2);
   });
 
+  it("returns an environment error for unreadable all-scope discovery", async () => {
+    const repository = makeRepo();
+    Fs.mkdirSync(Path.join(repository, ".hamilton", "changes"), {
+      recursive: true,
+    });
+    const runtime = createContextRuntime({ cwd: () => repository });
+    const result = await context(
+      { all: true },
+      createContextRuntime({
+        cwd: () => repository,
+        fileSystem: {
+          ...runtime.fileSystem,
+          readDirectory: () => {
+            throw new Error("permission denied");
+          },
+        },
+        git: runtime.git,
+      }),
+    );
+
+    expect(result.exitCode).toBe(2);
+    expect(result.status).toBe("error");
+    expect(result.stdout).toBe("");
+    expect(result.changes).toHaveLength(0);
+    expect(result.stderr).toContain("cannot discover changes");
+  });
+
   it("returns an environment error for invalid paths", async () => {
     const repository = makeRepo();
     const result = await context({
@@ -159,6 +186,7 @@ decision: accepted
 route_unit: null
 ---
 # Plan: current
+| Route unit | body-invented |
 ## Overview
 ## Tasks
 ## Done when
@@ -210,7 +238,76 @@ decision: accepted
 
     expect(result.exitCode).toBe(0);
     expect(result.changes[0]?.format).toBe("split");
+    expect(result.stdout).not.toContain("route-unit: body-invented");
     expect(result.stdout).toContain("Task 1: in-progress");
+  });
+
+  it("rejects malformed current feedback instead of parsing its legacy body", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "malformed-feedback", {
+      ...splitFiles,
+      "tasks/task-1/feedback.md": `---
+artifact: feedback
+change: malformed-feedback
+task: 1
+created: 2026-09-12
+status: invalid
+verdict: approved
+decision: accepted
+base: 0000000000000000000000000000000000000000
+head: 0000000000000000000000000000000000000000
+---
+# Code Feedback: Task 1 — Add the auth | session
+
+## Pass 1 — 2026-09-12
+Base: 0000000000000000000000000000000000000000
+Head: 0000000000000000000000000000000000000000
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+`,
+    });
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Task 1: done, feedback: malformed");
+  });
+
+  it("rejects malformed current review instead of parsing its legacy body", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "malformed-review", {
+      ...splitFiles,
+      "review.md": `---
+artifact: review
+change: malformed-review
+created: 2026-09-12
+status: invalid
+verdict: approved
+decision: accepted
+base: 0000000000000000000000000000000000000000
+head: 0000000000000000000000000000000000000000
+---
+# Whole-branch Review: add auth
+
+## Pass 1 — 2026-09-12
+Base: 0000000000000000000000000000000000000000
+Head: 0000000000000000000000000000000000000000
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+`,
+    });
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("format: invalid");
+    expect(result.stdout).not.toContain("legacy-unsupported");
   });
 
   it("returns invalid context for malformed current artifacts", async () => {

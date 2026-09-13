@@ -565,6 +565,7 @@ const routeUnit = async (
       artifact.metadata.route_unit !== ""
     )
       return artifact.metadata.route_unit;
+    if (artifact._tag !== "unrelated") continue;
     const match =
       stripComments(source).match(/^\| *Route unit *\| *(.+?) *\|$/m) ??
       stripComments(source).match(/^- *Route unit: *(.+)$/m);
@@ -871,7 +872,7 @@ const formatChange = async (
           sources,
         };
     } else if (
-      currentInvalid(reviewRead.artifact) ||
+      reviewRead.artifact._tag === "unrelated" &&
       /^ {0,3}##[ \t]+Task\b/m.test(stripComments(review))
     )
       return {
@@ -879,6 +880,18 @@ const formatChange = async (
           name,
           path: dir,
           format: "legacy-unsupported",
+          artifacts,
+          requirements,
+          lastModified: newest,
+        },
+        sources,
+      };
+    else if (currentInvalid(reviewRead.artifact))
+      return {
+        change: {
+          name,
+          path: dir,
+          format: "invalid",
           artifacts,
           requirements,
           lastModified: newest,
@@ -987,7 +1000,7 @@ const latestFeedback = async (
     head = readResult.artifact.metadata.head;
     if (readResult.artifact.body.match(/^##[ \t]+Pass /m) === null)
       return "malformed";
-  } else {
+  } else if (readResult.artifact._tag === "unrelated") {
     const visible = stripComments(readResult.source);
     const owner = visible.match(
       /^# Code Feedback: Task ([1-9][0-9]*) — (.+)$/m,
@@ -998,7 +1011,7 @@ const latestFeedback = async (
     verdict = parsed.verdict;
     base = parsed.base;
     head = parsed.head;
-  }
+  } else return "malformed";
   if (!(await durableArtifact(runtime, root, path)))
     return `${String(verdict)} (uncommitted)`;
   const commit = text(
@@ -1046,7 +1059,7 @@ const latestReview = async (
     verdict = readResult.artifact.metadata.verdict;
     base = readResult.artifact.metadata.base;
     head = readResult.artifact.metadata.head;
-  } else {
+  } else if (readResult.artifact._tag === "unrelated") {
     const visible = stripComments(readResult.source);
     const owner = visible.match(/^# Whole-branch Review: (.+)$/m);
     const parsed = legacyPasses(readResult.source);
@@ -1060,7 +1073,7 @@ const latestReview = async (
     verdict = parsed.verdict;
     base = parsed.base;
     head = parsed.head;
-  }
+  } else return "malformed";
   const required =
     material ??
     text(
@@ -1256,9 +1269,16 @@ const contextAll = async (runtime: ContextRuntime): Promise<ContextResult> => {
       `no .hamilton/changes/ under ${text(rootResult)}\n`,
     );
   const changeNames: string[] = [];
-  for (const name of await runtime.fileSystem.readDirectory(changesDir))
-    if (await runtime.fileSystem.directoryExists(Path.join(changesDir, name)))
-      changeNames.push(name);
+  try {
+    for (const name of await runtime.fileSystem.readDirectory(changesDir))
+      if (await runtime.fileSystem.directoryExists(Path.join(changesDir, name)))
+        changeNames.push(name);
+  } catch (error) {
+    return failure(
+      "all",
+      `cannot discover changes under ${changesDir}: ${String(error)}`,
+    );
+  }
   if (changeNames.length === 0)
     return result("all", "negative", 1, "", `no changes under ${changesDir}\n`);
   const changes: ContextChange[] = [];
