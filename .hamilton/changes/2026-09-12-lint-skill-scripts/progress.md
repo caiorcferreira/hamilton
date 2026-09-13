@@ -12,7 +12,7 @@
 | Task 8: Port change context | done | [details](tasks/task-8/progress.md) |
 | Task 9: Port repository precondition gates | done | [details](tasks/task-9/progress.md) |
 | Task 10: Port evidence freshness gates | done | [details](tasks/task-10/progress.md) |
-| Task 11: Compose the workbench CLI | pending | [details](tasks/task-11/progress.md) |
+| Task 11: Compose the workbench CLI | done | [details](tasks/task-11/progress.md) |
 | Task 12: Remove script installation from setup | pending | [details](tasks/task-12/progress.md) |
 | Task 13: Migrate skills to workbench commands | pending | [details](tasks/task-13/progress.md) |
 | Task 14: Update framework documentation | pending | [details](tasks/task-14/progress.md) |
