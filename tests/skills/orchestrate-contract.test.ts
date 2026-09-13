@@ -97,7 +97,6 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   const checkpointRules = singleLine(
     section(skill, "## Checkpoint establishment and recovery"),
   )
-  const implementer = singleLine(readReference("implementer-prompt.md"))
   const codeFeedback = readReference("code-feedback-prompt.md")
   const wholeBranch = readReference("whole-branch-review-prompt.md")
 
@@ -151,6 +150,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   })
 
   it("makes the implementer preserve rather than create a checkpoint", () => {
+    const implementer = singleLine(readReference("implementer-prompt.md"))
     expect(implementer).not.toMatch(/preserve or create/i)
     expect(implementer).toMatch(
       /validate and preserve the already-recorded task-local checkpoint.*never create/is,
@@ -158,6 +158,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   })
 
   it("uses task progress as the sole detailed implementer report", () => {
+    const implementer = singleLine(readReference("implementer-prompt.md"))
     expect(skill).toMatch(/task progress is the only detailed implementer report/i)
     expect(implementer).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(implementer).toMatch(/return only.*status.*commit/is)
