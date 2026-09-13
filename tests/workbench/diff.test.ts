@@ -218,6 +218,30 @@ describe("diff package ranges", () => {
     Fs.rmSync(result.lastLine);
   });
 
+  it("rejects an explicit base that is not an ancestor of HEAD", async () => {
+    const repo = inDirectory(makeRepo());
+    const changeDir = makeChangeDir(repo, "add-auth");
+    git(repo, "checkout", "-q", "-b", "side");
+    write(repo, "src/side.ts", "export const side = true\n");
+    const base = commitAll(repo, "add side change");
+    git(repo, "checkout", "-q", "main");
+    write(repo, "src/main.ts", "export const main = true\n");
+    commitAll(repo, "add main change");
+    const output = Path.join(repo, "explicit.diff");
+
+    const result = await diff({
+      mode: "base",
+      base,
+      changeDir,
+      out: "explicit.diff",
+    });
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("not an ancestor");
+    expect(Fs.existsSync(output)).toBe(false);
+  });
+
   it("packages the whole change from origin default branch", async () => {
     const repo = inDirectory(makeRepo());
     const base = git(repo, "rev-parse", "HEAD");

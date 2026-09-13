@@ -774,6 +774,17 @@ const packageBase = async (
     "cannot resolve HEAD",
   );
   if (typeof head !== "string") return head;
+  const ancestor = await runtime.git.isAncestor(
+    resolved.root,
+    resolved.base,
+    head,
+  );
+  if (ancestor.status !== 0)
+    return commandError(
+      args.mode,
+      `BASE is not an ancestor of HEAD: ${resolved.base}`,
+      ancestor,
+    );
   if (resolved.base === head)
     return negative(
       args.mode,
