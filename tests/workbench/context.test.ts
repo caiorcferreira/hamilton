@@ -169,8 +169,7 @@ describe("change context", () => {
         fileSystem: {
           ...runtime.fileSystem,
           directoryExists: (sourcePath) => {
-            if (sourcePath === changesDir)
-              throw new Error("permission denied");
+            if (sourcePath === changesDir) throw new Error("permission denied");
             return runtime.fileSystem.directoryExists(sourcePath);
           },
         },

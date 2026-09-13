@@ -1254,10 +1254,7 @@ const discover = async (
       ? dir
       : failure("one", `change dir does not exist: ${dir}`);
   } catch (error) {
-    return failure(
-      "one",
-      `cannot inspect change dir ${dir}: ${String(error)}`,
-    );
+    return failure("one", `cannot inspect change dir ${dir}: ${String(error)}`);
   }
 };
 
