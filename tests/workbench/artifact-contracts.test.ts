@@ -39,7 +39,11 @@ const bodyFor = (artifact: string): string => {
       "Decisions",
     ],
     plan: ["Overview", "Tasks", "Done when", "### Task 1: Validate"],
-    progress: [],
+    progress: [
+      "| Task | Status | Progress |",
+      "| --- | --- | --- |",
+      "| Task 1: Lint | done | [details](tasks/task-1/progress.md) |",
+    ],
     "task-progress": [],
     feedback: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
     review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
@@ -75,8 +79,10 @@ const bodyFor = (artifact: string): string => {
   const title = titles[artifact];
   return [
     `# ${title}`,
-    ...(sections[artifact] ?? []).map(
-      (section) => `${section.startsWith("###") ? section : `## ${section}`}`,
+    ...(sections[artifact] ?? []).map((section) =>
+      section.startsWith("###") || section.startsWith("|")
+        ? section
+        : `## ${section}`,
     ),
     artifact === "plan" ? "- Depends on: none" : "",
   ].join("\n");
@@ -376,6 +382,36 @@ describe("artifact metadata contracts", () => {
     ]);
   });
 
+  it("extracts and validates plan and progress task ledgers", () => {
+    const plan = recognized(
+      ".hamilton/changes/demo/plan.md",
+      validArtifacts[4][1],
+      "# Plan: Demo\n## Overview\n## Tasks\n### Task 1: Validate\n### Task 2: Ship\n## Done when",
+    );
+    const planBody = validateArtifactBody(plan, "plan");
+    expect(planBody.diagnostics).toEqual([]);
+    expect(planBody.workflow.records.map((record) => record.number)).toEqual([
+      1,
+      2,
+    ]);
+    const progress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      validArtifacts[5][1],
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Lint | done | [details](tasks/task-1/progress.md) |\n| Task 2: Ship | pending | [details](tasks/task-2/progress.md) |",
+    );
+    const progressBody = validateArtifactBody(progress, "progress");
+    expect(progressBody.diagnostics).toEqual([]);
+    expect(progressBody.workflow.records).toMatchObject([
+      { kind: "task", number: 1, title: "Lint", fields: { Status: "done" } },
+      {
+        kind: "task",
+        number: 2,
+        title: "Ship",
+        fields: { Status: "pending" },
+      },
+    ]);
+  });
+
   it("reports malformed and non-monotonic records", () => {
     const malformed = recognized(
       ".hamilton/changes/demo/feedback.md",
@@ -389,6 +425,39 @@ describe("artifact metadata contracts", () => {
       "# Code Feedback: Task 2\n## Pass 1 — 2026-09-12\n### Blocking\n- None.\n### Suggestions\n- None.\n## Pass 3 — 2026-09-13\n### Blocking\n- None.\n### Suggestions\n- None.",
     );
     expectInvalid(validateArtifact(stale), "non-monotonic-record");
+    const trailing = recognized(
+      ".hamilton/changes/demo/feedback.md",
+      validArtifacts[7][1],
+      "# Code Feedback: Task 2\n## Pass 1 — 2026-09-12 garbage\n### Blocking\n- None.\n### Suggestions\n- None.",
+    );
+    const trailingBody = validateArtifactBody(trailing, "feedback");
+    const invalidRecord = trailingBody.diagnostics.find(
+      (diagnostic) => diagnostic.code === "invalid-record",
+    );
+    expect(invalidRecord?.location?.line).toBe(4);
+    expect(invalidRecord?.actual).toBe("Pass 1 — 2026-09-12 garbage");
+    const malformedProgress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      validArtifacts[5][1],
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2 Lint | done | [details](tasks/task-2/progress.md) |",
+    );
+    const malformedProgressBody = validateArtifactBody(
+      malformedProgress,
+      "progress",
+    );
+    const progressDiagnostic = malformedProgressBody.diagnostics.find(
+      (diagnostic) => diagnostic.code === "invalid-record",
+    );
+    expect(progressDiagnostic?.location?.line).toBe(6);
+    const staleProgress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      validArtifacts[5][1],
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2: Lint | done | [details](tasks/task-2/progress.md) |",
+    );
+    const staleProgressBody = validateArtifactBody(staleProgress, "progress");
+    expect(staleProgressBody.diagnostics.map((item) => item.code)).toContain(
+      "non-monotonic-record",
+    );
   });
 
   it("classifies unsupported legacy record layouts", () => {

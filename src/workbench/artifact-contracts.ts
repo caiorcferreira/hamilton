@@ -848,6 +848,7 @@ interface BodyContract {
   readonly records?:
     | ArtifactWorkflowRecordKind
     | readonly ArtifactWorkflowRecordKind[];
+  readonly ledger?: "plan" | "progress";
 }
 
 const bodyContracts: Record<SupportedArtifact, BodyContract> = {
@@ -885,9 +886,9 @@ const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   plan: {
     heading: "Plan:",
     sections: ["Overview", "Tasks", "Done when"],
-    records: "task",
+    ledger: "plan",
   },
-  progress: { heading: "Progress:", sections: [] },
+  progress: { heading: "Progress:", sections: [], ledger: "progress" },
   "task-progress": {
     heading: "Task Progress:",
     sections: [],
@@ -1001,7 +1002,7 @@ const recordHeading = (kind: ArtifactWorkflowRecordKind, text: string) => {
     return unit ? { number: Number(unit[1]), title: unit[2] } : undefined;
   }
   const match = new RegExp(
-    "^" + label + " ([1-9][0-9]*) — ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:$| )",
+    "^" + label + " ([1-9][0-9]*) — ([0-9]{4}-[0-9]{2}-[0-9]{2})$",
   ).exec(text);
   if (!match) return undefined;
   return { number: Number(match[1]), date: match[2] };
@@ -1182,6 +1183,176 @@ const readWorkflow = (
   return { state, diagnostics };
 };
 
+const tableCells = (line: string): readonly string[] | undefined => {
+  const match = /^\s*\|(.*)\|\s*$/.exec(line);
+  return match
+    ? match[1].split("|").map((cell) => cell.trim())
+    : undefined;
+};
+
+const isTableSeparator = (cells: readonly string[]): boolean =>
+  cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+
+const readTaskLedger = (
+  artifact: RecognizedArtifact,
+  ledger: "plan" | "progress",
+  headings: readonly ArtifactHeading[],
+): {
+  readonly records: readonly ArtifactWorkflowRecord[];
+  readonly diagnostics: readonly ArtifactContractDiagnostic[];
+} => {
+  const records: ArtifactWorkflowRecord[] = [];
+  const diagnostics: ArtifactContractDiagnostic[] = [];
+  const lines = bodyLines(artifact);
+  if (ledger === "plan") {
+    const taskHeadings = headings.filter(
+      (heading) => heading.level === 3 && heading.text.startsWith("Task "),
+    );
+    if (taskHeadings.length === 0) {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "missing-section",
+          "Plan must declare at least one task",
+          artifact.locations.body.startLine,
+          "### Task N: title",
+        ),
+      );
+    }
+    for (const heading of taskHeadings) {
+      const match = /^Task ([1-9][0-9]*):[ \t]+(.+)$/.exec(heading.text);
+      if (!match) {
+        diagnostics.push(
+          bodyDiagnostic(
+            artifact,
+            "invalid-record",
+            "Malformed task record",
+            heading.line,
+            "Task N: title",
+            heading.text,
+          ),
+        );
+        continue;
+      }
+      records.push({
+        kind: "task",
+        number: Number(match[1]),
+        title: match[2],
+        line: heading.line,
+        fields: {},
+      });
+    }
+  } else {
+    const headerIndex = lines.findIndex((line) => {
+      const cells = tableCells(line);
+      return (
+        cells?.length === 3 &&
+        cells[0] === "Task" &&
+        cells[1] === "Status" &&
+        cells[2] === "Progress"
+      );
+    });
+    if (headerIndex === -1) {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "missing-section",
+          "Progress must declare a task ledger",
+          artifact.locations.body.startLine,
+          "| Task | Status | Progress |",
+        ),
+      );
+    } else {
+      const separator = tableCells(lines[headerIndex + 1] ?? "");
+      if (!separator || !isTableSeparator(separator)) {
+        diagnostics.push(
+          bodyDiagnostic(
+            artifact,
+            "invalid-record",
+            "Progress task ledger must declare a separator row",
+            artifact.locations.body.startLine + headerIndex + 1,
+            "| --- | --- | --- |",
+            lines[headerIndex + 1],
+          ),
+        );
+      }
+      for (let index = headerIndex + 1; index < lines.length; index += 1) {
+        const cells = tableCells(lines[index] ?? "");
+        if (!cells || isTableSeparator(cells)) continue;
+        const line = artifact.locations.body.startLine + index;
+        if (cells.length !== 3) {
+          diagnostics.push(
+            bodyDiagnostic(
+              artifact,
+              "invalid-record",
+              "Malformed progress task record",
+              line,
+              "| Task N: title | status | [details](tasks/task-N/progress.md) |",
+              lines[index],
+            ),
+          );
+          continue;
+        }
+        const task = /^Task ([1-9][0-9]*):[ \t]+(.+)$/.exec(cells[0]);
+        const status = ["pending", "in-progress", "blocked", "done"].includes(
+          cells[1],
+        );
+        const progress = /^\[details\]\(tasks\/task-([1-9][0-9]*)\/progress\.md\)$/.exec(
+          cells[2],
+        );
+        if (!task || !status || !progress || progress[1] !== task[1]) {
+          diagnostics.push(
+            bodyDiagnostic(
+              artifact,
+              "invalid-record",
+              "Malformed progress task record",
+              line,
+              "| Task N: title | status | [details](tasks/task-N/progress.md) |",
+              lines[index],
+            ),
+          );
+          continue;
+        }
+        records.push({
+          kind: "task",
+          number: Number(task[1]),
+          title: task[2],
+          line,
+          fields: { Status: cells[1], Progress: cells[2] },
+        });
+      }
+      if (records.length === 0) {
+        diagnostics.push(
+          bodyDiagnostic(
+            artifact,
+            "missing-section",
+            "Progress must declare at least one task record",
+            artifact.locations.body.startLine + headerIndex,
+            "| Task N: title | status | progress |",
+          ),
+        );
+      }
+    }
+  }
+  for (let index = 0; index < records.length; index += 1) {
+    const expected = index + 1;
+    if (records[index]?.number !== expected) {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "non-monotonic-record",
+          "Task numbering must be append-only and contiguous",
+          records[index]?.line ?? artifact.locations.body.startLine,
+          String(expected),
+          records[index]?.number,
+        ),
+      );
+      break;
+    }
+  }
+  return { records, diagnostics };
+};
+
 export const validateArtifactBody = (
   artifact: RecognizedArtifact,
   kind: SupportedArtifact,
@@ -1224,32 +1395,10 @@ export const validateArtifactBody = (
   }
   const workflow = readWorkflow(artifact, contract.records, headings);
   diagnostics.push(...workflow.diagnostics);
-  if (kind === "plan" && contract.records) {
-    const tasks = headings.filter(
-      (heading) =>
-        heading.level === 3 && /^Task [1-9][0-9]*:/.test(heading.text),
-    );
-    if (tasks.length === 0)
-      diagnostics.push(
-        bodyDiagnostic(
-          artifact,
-          "missing-section",
-          "Plan must declare at least one task",
-          artifact.locations.body.startLine,
-          "### Task N: title",
-        ),
-      );
-    for (let index = 0; index < tasks.length; index += 1) {
-      const match = /^Task ([1-9][0-9]*):[ \t]*(.*)$/.exec(tasks[index].text);
-      if (match)
-        (workflow.state.records as ArtifactWorkflowRecord[]).push({
-          kind: "task",
-          number: Number(match[1]),
-          title: match[2],
-          line: tasks[index].line,
-          fields: {},
-        });
-    }
+  if (contract.ledger) {
+    const ledger = readTaskLedger(artifact, contract.ledger, headings);
+    diagnostics.push(...ledger.diagnostics);
+    (workflow.state.records as ArtifactWorkflowRecord[]).push(...ledger.records);
   }
   return {
     headings,
