@@ -58,7 +58,7 @@ Plus:
 ## Process
 
 1. **Confirm the workspace.** Run
-   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`. Its last line must
+   `hamilton workbench isolate --check --change-dir <change-dir>`. Its last line must
    read `isolated: yes`. Anything else means stop and report its output. If the script is not
    installed, verify by hand that the repository is off its default branch and the change
    directory resolves under `git rev-parse --show-toplevel`.
@@ -84,7 +84,7 @@ Plus:
    planned legacy layout.
 4. **Record the stable task checkpoint.** Immediately before the first implementation attempt,
    first inspect the task's durable state. Run
-   `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>` only
+   `hamilton workbench diff --record --task N --change-dir <change-dir>` only
    when the row is `pending`, the task log has no attempt, feedback is absent, and the working tree
    and task history contain no task-owned implementation changes. It writes the full commit identifier
    to `<change-dir>/tasks/task-N/.base` and excludes that path from git tracking. If the

@@ -29,12 +29,12 @@ The two flavours produce very different artifacts — getting this wrong wastes 
 
 Before any prototype artifact is written, create or resume the prototype branch from the current branch. **No prototype code exists before this gate has run.**
 
-- Resolving a map ticket: `~/.hamilton/scripts/hamilton-prototype-branch.sh <map-name> <ticket-name>`, where `<map-name>` is the effort's slug and `<ticket-name>` is the ticket file's `NN-slug`. This creates (or resumes) `prototype/<map-name>/<ticket-name>` and switches to it.
-- Invoked standalone, with no map ticket in play: `~/.hamilton/scripts/hamilton-prototype-branch.sh --standalone <question-slug>`, creating or resuming `prototype/<question-slug>`.
+- Resolving a map ticket: `hamilton workbench prototype <map-name> <ticket-name>`, where `<map-name>` is the effort's slug and `<ticket-name>` is the ticket file's `NN-slug`. This creates (or resumes) `prototype/<map-name>/<ticket-name>` and switches to it.
+- Invoked standalone, with no map ticket in play: `hamilton workbench prototype --standalone <question-slug>`, creating or resuming `prototype/<question-slug>`.
 
-Either call's last line is the branch name; confirm the switch took effect with `~/.hamilton/scripts/hamilton-prototype-branch.sh --verify <that branch>` before writing anything. If the script reports `mode: resumed`, an earlier session already started this prototype — pick up where it left off rather than starting over.
+Either call's last line is the branch name; confirm the switch took effect with `hamilton workbench prototype --verify <that branch>` before writing anything. If the command reports `mode: resumed`, an earlier session already started this prototype — pick up where it left off rather than starting over.
 
-If the script is not installed (`hamilton setup` has not run), do the same by hand — the pattern hamilton-propose already uses for isolate: `git switch -c prototype/<map-name>/<ticket-name>` (or `git switch prototype/<map-name>/<ticket-name>` if the branch already exists), same naming, same order.
+If the Hamilton CLI is not installed (`hamilton setup` has not run), do the same by hand — the pattern hamilton-propose already uses for isolate: `git switch -c prototype/<map-name>/<ticket-name>` (or `git switch prototype/<map-name>/<ticket-name>` if the branch already exists), same naming, same order.
 
 ## Rules that apply to every prototype
 

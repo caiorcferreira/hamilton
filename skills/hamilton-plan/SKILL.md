@@ -81,20 +81,20 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    branch; if a dependency is finished but unmerged, stop and ask the user — merge it, or
    deliberately branch from its branch. Otherwise proceed on the ordinary path.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Run
-   `~/.hamilton/scripts/hamilton-isolate.sh --check`; its last line is the verdict.
+   `hamilton workbench isolate --check`; its last line is the verdict.
    `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
    in place. `isolated: no` means derive a kebab-case title from the change (its existing
    directory name, the selected unit's name in map-aware mode, or the request on the minimal
    path) and create one:
 
    ```bash
-   ~/.hamilton/scripts/hamilton-isolate.sh <title>   # last line: the new worktree's path
+   hamilton workbench isolate <title>   # last line: the new worktree's path
    cd <that path>
-   ~/.hamilton/scripts/hamilton-isolate.sh --verify <title>
+   hamilton workbench isolate --verify <title>
    ```
 
    If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
-   ask — resume it, or pick a suffixed name; never silently reuse it. If the script is not
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the Hamilton CLI is not
    installed (`hamilton setup` has not run), do the same by hand: you are isolated if
    `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
    in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
@@ -118,9 +118,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    claim rides the branch, so it ships with the work it marks.
 3. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 4. **Gather context.** When the change directory already holds artifacts — the rich path, or a
-   re-plan — open with `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to see which
+   re-plan — open with `hamilton workbench context <change-dir>` to see which
    exist, how large they are, and where the tasks and reviews stand, then read in full only what
-   it says is there. (If the script is not installed, list the directory instead.) On the minimal
+   it says is there. (If the Hamilton CLI is not installed, list the directory instead.) On the minimal
    path, where the directory is new and empty, skip straight to the reading.
    Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
@@ -179,7 +179,7 @@ When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missi
 re-enter this skill in re-plan mode. Require the split layout before making changes; a planned
 legacy layout is `legacy-unsupported`, so stop rather than migrating or reconstructing it. Read
 `plan.md` and the root `<change-dir>/progress.md` current-status table —
-`~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` summarizes them in one call — and
+`hamilton workbench context <change-dir>` summarizes them in one call — and
 amend the plan without reading or rewriting sibling attempt histories.
 
 - Tasks the root ledger marks `done` are frozen: do not alter their task definition, title,

@@ -120,7 +120,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   it("creates a task-local base only before a genuine first attempt", () => {
     expect(skill).toContain("<change-dir>/tasks/task-N/.base")
     expect(process).toContain(
-      "hamilton-diff-package.sh --record --task N --change-dir <change-dir>",
+      "hamilton workbench diff --record --task N --change-dir <change-dir>",
     )
     expect(checkpointRules).toMatch(
       /only when.*root row is `pending`.*task log has no `## Attempt`.*feedback.*absent.*no task-owned implementation changes/is,

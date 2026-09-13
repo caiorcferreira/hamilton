@@ -68,7 +68,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Process
 
-1. **Establish scope.** Run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to
+1. **Establish scope.** Run `hamilton workbench context <change-dir>` to
    learn which propose artifacts are present and which capabilities the change carries (list
    the directory yourself if the script is not installed), then read every one of them
    (`proposal.md`, `requirements/`, `design.md`) and the canonical specs the change builds on.

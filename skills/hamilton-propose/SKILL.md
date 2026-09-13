@@ -77,18 +77,18 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    work is reachable from the base branch; if a dependency is finished but unmerged, stop and
    ask the user — merge it, or deliberately branch from its branch.
 2. **Ensure an isolated workspace — then confirm you are inside it.** Run
-   `~/.hamilton/scripts/hamilton-isolate.sh --check`; its last line is the verdict.
+   `hamilton workbench isolate --check`; its last line is the verdict.
    `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
    in place. `isolated: no` means create one:
 
    ```bash
-   ~/.hamilton/scripts/hamilton-isolate.sh <title>   # last line: the new worktree's path
+   hamilton workbench isolate <title>   # last line: the new worktree's path
    cd <that path>
-   ~/.hamilton/scripts/hamilton-isolate.sh --verify <title>
+   hamilton workbench isolate --verify <title>
    ```
 
    If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
-   ask — resume it, or pick a suffixed name; never silently reuse it. If the script is not
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the Hamilton CLI is not
    installed (`hamilton setup` has not run), do the same by hand: you are isolated if
    `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
    in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
