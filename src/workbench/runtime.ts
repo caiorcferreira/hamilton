@@ -59,6 +59,7 @@ export interface IsolationGitPort {
 }
 
 export interface IsolationRuntime {
+  readonly cwd: () => string;
   readonly process: ProcessPort;
   readonly fileSystem: IsolationFileSystemPort;
   readonly git: IsolationGitPort;
@@ -137,6 +138,7 @@ const gitPort = (processPort: ProcessPort): IsolationGitPort => ({
 });
 
 export interface RuntimeOverrides {
+  readonly cwd?: () => string;
   readonly process?: ProcessPort;
   readonly fileSystem?: IsolationFileSystemPort;
   readonly git?: IsolationGitPort;
@@ -147,6 +149,7 @@ export const createRuntime = (
 ): IsolationRuntime => {
   const processPort = overrides.process ?? productionProcess;
   return {
+    cwd: overrides.cwd ?? (() => process.cwd()),
     process: processPort,
     fileSystem: overrides.fileSystem ?? productionFileSystem,
     git: overrides.git ?? gitPort(processPort),

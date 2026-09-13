@@ -180,9 +180,10 @@ const check = async (
   args: CheckIsolationArguments,
   runtime: IsolationRuntime,
 ): Promise<IsolationResult> => {
-  const rootResult = await repositoryRoot(process.cwd(), args.mode, runtime);
+  const cwd = runtime.cwd();
+  const rootResult = await repositoryRoot(cwd, args.mode, runtime);
   if (typeof rootResult !== "string") return rootResult;
-  const branchCommand = await runtime.git.currentBranch(process.cwd());
+  const branchCommand = await runtime.git.currentBranch(cwd);
   if (!successful(branchCommand))
     return commandError(
       args.mode,
@@ -190,9 +191,9 @@ const check = async (
       branchCommand,
     );
   const branch = text(branchCommand);
-  const defaultResult = await defaultBranch(process.cwd(), args.mode, runtime);
+  const defaultResult = await defaultBranch(cwd, args.mode, runtime);
   if (typeof defaultResult !== "string") return defaultResult;
-  const linkedResult = await linkedWorktree(process.cwd(), args.mode, runtime);
+  const linkedResult = await linkedWorktree(cwd, args.mode, runtime);
   if (typeof linkedResult !== "boolean") return linkedResult;
 
   let mode: string;
@@ -247,9 +248,10 @@ const create = async (
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(args.title))
     return failure(args.mode, `title must be kebab-case (got: ${args.title})`);
 
-  const rootResult = await repositoryRoot(process.cwd(), args.mode, runtime);
+  const cwd = runtime.cwd();
+  const rootResult = await repositoryRoot(cwd, args.mode, runtime);
   if (typeof rootResult !== "string") return rootResult;
-  const linkedResult = await linkedWorktree(process.cwd(), args.mode, runtime);
+  const linkedResult = await linkedWorktree(cwd, args.mode, runtime);
   if (typeof linkedResult !== "boolean") return linkedResult;
   if (linkedResult)
     return result(
@@ -327,7 +329,7 @@ const verify = async (
   args: VerifyIsolationArguments,
   runtime: IsolationRuntime,
 ): Promise<IsolationResult> => {
-  const rootResult = await repositoryRoot(process.cwd(), args.mode, runtime);
+  const rootResult = await repositoryRoot(runtime.cwd(), args.mode, runtime);
   if (typeof rootResult !== "string") return rootResult;
   const expectedSuffix = `${Path.sep}.worktrees${Path.sep}${args.title}`;
   if (rootResult.endsWith(expectedSuffix))

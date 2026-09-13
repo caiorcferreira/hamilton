@@ -47,6 +47,27 @@ const failingWorktreeProcess = (): ProcessPort => ({
 });
 
 describe("isolation check", () => {
+  it("uses the injected cwd instead of the process cwd", async () => {
+    const repo = makeRepo();
+    process.chdir(Os.tmpdir());
+    const runtime = createRuntime({ cwd: () => repo });
+
+    const checkResult = await checkIsolation(undefined, runtime);
+    expect(checkResult.exitCode).toBe(1);
+    expect(outputField(checkResult.stdout, "root")).toBe(repo);
+
+    const created = await createIsolation("add-auth", runtime);
+    expect(created.exitCode).toBe(0);
+
+    const worktree = Path.join(repo, ".worktrees", "add-auth");
+    const verifyResult = await verifyIsolation(
+      "add-auth",
+      createRuntime({ cwd: () => worktree }),
+    );
+    expect(verifyResult.exitCode).toBe(0);
+    expect(verifyResult.lastLine).toContain(worktree);
+  });
+
   it("reports not isolated on the default branch", async () => {
     const repo = inDirectory(makeRepo());
     const result = await checkIsolation(undefined);
