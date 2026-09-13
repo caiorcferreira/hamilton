@@ -6,12 +6,7 @@ import {
   createContextRuntime,
   renderContextResult,
 } from "../../src/workbench/context.js";
-import {
-  cleanupRepos,
-  makeChangeDir,
-  makeRepo,
-  write,
-} from "./helpers.js";
+import { cleanupRepos, makeChangeDir, makeRepo, write } from "./helpers.js";
 
 const proposal = `# Proposal: Add auth
 
@@ -32,7 +27,11 @@ const progress = `# Progress: add auth
 | Task 1: Add the auth \\| session | done | [details](tasks/task-1/progress.md) |
 | Task 2: Wire it into the router | blocked | [details](tasks/task-2/progress.md) |
 `;
-const taskProgress = (task: number, title: string, outcome = "done") => `# Task Progress: Task ${task} — ${title}
+const taskProgress = (
+  task: number,
+  title: string,
+  outcome = "done",
+) => `# Task Progress: Task ${task} — ${title}
 
 ## Attempt 1 — 2026-09-12
 
@@ -43,13 +42,22 @@ const splitFiles = {
   "plan.md": plan,
   "progress.md": progress,
   "tasks/task-1/progress.md": taskProgress(1, "Add the auth | session"),
-  "tasks/task-2/progress.md": taskProgress(2, "Wire it into the router", "blocked"),
+  "tasks/task-2/progress.md": taskProgress(
+    2,
+    "Wire it into the router",
+    "blocked",
+  ),
   "requirements/auth.md": "# Auth\n",
 };
 
-const seed = (repository: string, slug: string, files: Record<string, string>) => {
+const seed = (
+  repository: string,
+  slug: string,
+  files: Record<string, string>,
+) => {
   const directory = makeChangeDir(repository, slug);
-  for (const [file, content] of Object.entries(files)) write(directory, file, content);
+  for (const [file, content] of Object.entries(files))
+    write(directory, file, content);
   return directory;
 };
 
@@ -65,12 +73,16 @@ describe("change context", () => {
     expect(first.exitCode).toBe(0);
     expect(first.stdout).toBe(second.stdout);
     expect(first.stdout).toContain("format: split");
-    expect(first.stdout).toContain("route-unit: .hamilton/maps/auth/route.md — unit 2");
+    expect(first.stdout).toContain(
+      "route-unit: .hamilton/maps/auth/route.md — unit 2",
+    );
     expect(first.stdout).toMatch(/proposal\.md\s+present/);
     expect(first.stdout).toContain("requirements/  present  auth");
     expect(first.stdout).toContain("Task 1: done, feedback: absent");
     expect(first.stdout).toContain("Task 2: blocked, feedback: absent");
-    expect(first.lastLine).toBe("summary: add-auth — 1/2 tasks done, whole change: not reviewed");
+    expect(first.lastLine).toBe(
+      "summary: add-auth — 1/2 tasks done, whole change: not reviewed",
+    );
     expect(renderContextResult(first)).toBe(first.stdout.trimEnd());
   });
 
@@ -79,7 +91,8 @@ describe("change context", () => {
     const prePlan = seed(repository, "pre-plan", { "proposal.md": proposal });
     const legacy = seed(repository, "legacy", {
       "plan.md": plan,
-      "progress.md": "# Progress: add auth\n\n## Task 1: Add auth — 2026-09-12\n\n- Outcome: done\n",
+      "progress.md":
+        "# Progress: add auth\n\n## Task 1: Add auth — 2026-09-12\n\n- Outcome: done\n",
     });
 
     const prePlanResult = await context({ changeDir: prePlan });
@@ -99,8 +112,15 @@ describe("change context", () => {
     const newer = seed(repository, "newer", splitFiles);
     const stamp = new Date("2026-01-02T12:00:00Z");
     Fs.utimesSync(older, stamp, stamp);
-    Fs.utimesSync(newer, new Date("2026-01-03T12:00:00Z"), new Date("2026-01-03T12:00:00Z"));
-    const result = await context({ all: true }, createContextRuntime({ cwd: () => repository }));
+    Fs.utimesSync(
+      newer,
+      new Date("2026-01-03T12:00:00Z"),
+      new Date("2026-01-03T12:00:00Z"),
+    );
+    const result = await context(
+      { all: true },
+      createContextRuntime({ cwd: () => repository }),
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.lines[0]).toMatch(/^change\s+format\s+artifacts/);
@@ -113,7 +133,9 @@ describe("change context", () => {
 
   it("returns an environment error for invalid paths", async () => {
     const repository = makeRepo();
-    const result = await context({ changeDir: Path.join(repository, "missing") });
+    const result = await context({
+      changeDir: Path.join(repository, "missing"),
+    });
 
     expect(result.exitCode).toBe(2);
     expect(result.status).toBe("error");
@@ -124,7 +146,10 @@ describe("change context", () => {
   it("accepts current frontmatter artifacts through shared inspection", async () => {
     const repository = makeRepo();
     const directory = makeChangeDir(repository, "current");
-    write(directory, "plan.md", `---
+    write(
+      directory,
+      "plan.md",
+      `---
 artifact: plan
 change: current
 status: approved
@@ -138,8 +163,12 @@ route_unit: null
 ## Tasks
 ## Done when
 ### Task 1: Build it
-`);
-    write(directory, "progress.md", `---
+`,
+    );
+    write(
+      directory,
+      "progress.md",
+      `---
 artifact: progress
 change: current
 status: in-progress
@@ -156,8 +185,12 @@ tasks:
 | Task | Status | Progress |
 |---|---|---|
 | Task 1: Build it | in-progress | [details](tasks/task-1/progress.md) |
-`);
-    write(directory, "tasks/task-1/progress.md", `---
+`,
+    );
+    write(
+      directory,
+      "tasks/task-1/progress.md",
+      `---
 artifact: task-progress
 change: current
 task: 1
@@ -170,7 +203,8 @@ decision: accepted
 ## Attempt 1 — 2026-09-12
 
 - Outcome: blocked
-`);
+`,
+    );
 
     const result = await context({ changeDir: directory });
 
@@ -182,7 +216,8 @@ decision: accepted
   it("returns invalid context for malformed current artifacts", async () => {
     const repository = makeRepo();
     const directory = seed(repository, "malformed", {
-      "plan.md": "---\nartifact: plan\nchange: malformed\n: bad\n---\n# Plan: malformed\n",
+      "plan.md":
+        "---\nartifact: plan\nchange: malformed\n: bad\n---\n# Plan: malformed\n",
     });
 
     const result = await context({ changeDir: directory });
