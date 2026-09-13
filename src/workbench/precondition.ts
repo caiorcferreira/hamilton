@@ -62,12 +62,10 @@ export const createPreconditionRuntime = (
     cwd: runtime.cwd,
     process: runtime.process,
     fileSystem: overrides.fileSystem ?? runtime.fileSystem,
-    git:
-      overrides.git ??
-      {
-        repositoryRoot: runtime.git.repositoryRoot,
-        statusPorcelain: runtime.git.statusPorcelain,
-      },
+    git: overrides.git ?? {
+      repositoryRoot: runtime.git.repositoryRoot,
+      statusPorcelain: runtime.git.statusPorcelain,
+    },
   };
 };
 

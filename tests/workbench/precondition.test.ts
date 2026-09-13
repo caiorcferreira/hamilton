@@ -145,7 +145,8 @@ describe("precondition repository gates", () => {
       status: "error",
       exitCode: 2,
       stdout: "",
-      stderr: "error: cannot execute test command: Error: command unavailable\n",
+      stderr:
+        "error: cannot execute test command: Error: command unavailable\n",
       lines: [],
       lastLine: "",
     });
