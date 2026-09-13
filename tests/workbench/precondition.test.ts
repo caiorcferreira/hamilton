@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import * as Fs from "node:fs";
 import * as Path from "node:path";
 import {
   createPreconditionRuntime,
@@ -7,6 +8,8 @@ import {
 import {
   cleanupRepos,
   commitAll,
+  commitPaths,
+  git,
   makeChangeDir,
   makeRepo,
   write,
@@ -14,8 +17,55 @@ import {
 
 afterEach(cleanupRepos);
 
+const evidencePath = (slug: string, file: string): string =>
+  `.hamilton/changes/${slug}/${file}`;
+
+const makeEvidence = (
+  repository: string,
+  options: { readonly blockingFeedback?: boolean } = {},
+): { readonly base: string; readonly material: string; readonly changeDir: string } => {
+  const changeDir = makeChangeDir(repository, "demo");
+  const base = git(repository, "rev-parse", "HEAD");
+  write(
+    repository,
+    evidencePath("demo", "plan.md"),
+    `---\nartifact: plan\nchange: demo\nstatus: approved\ncreated: 2026-09-12\nauthor: test\ndecision: accepted\nroute_unit: null\n---\n# Plan: Demo\n\n## Overview\nA plan.\n\n## Tasks\n\n### Task 1: Implement\n\n## Done when\nIt works.\n`,
+  );
+  write(
+    repository,
+    evidencePath("demo", "progress.md"),
+    `---\nartifact: progress\nchange: demo\nstatus: complete\nupdated: 2026-09-12\ndecision: accepted\ntasks:\n  - id: 1\n    title: Implement\n    status: done\n    progress: tasks/task-1/progress.md\n---\n# Progress: Demo\n\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Implement | done | [details](tasks/task-1/progress.md) |\n`,
+  );
+  write(
+    repository,
+    evidencePath("demo", "tasks/task-1/progress.md"),
+    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: done\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
+  );
+  const material = commitAll(repository, "material");
+  const blocking = options.blockingFeedback
+    ? "- [src/main.ts:1] Fix this (violates: acceptance)"
+    : "- None.";
+  write(
+    repository,
+    evidencePath("demo", "tasks/task-1/feedback.md"),
+    `---\nartifact: feedback\nchange: demo\ntask: 1\ncreated: 2026-09-12\nstatus: resolved\nverdict: approved\ndecision: accepted\nbase: ${base}\nhead: ${material}\n---\n# Code Feedback: Task 1 — Implement\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n${blocking}\n\n### Suggestions\n- None.\n`,
+  );
+  commitPaths(
+    repository,
+    "feedback",
+    evidencePath("demo", "tasks/task-1/feedback.md"),
+  );
+  write(
+    repository,
+    evidencePath("demo", "review.md"),
+    `---\nartifact: review\nchange: demo\ncreated: 2026-09-12\nstatus: complete\nverdict: approved\ndecision: accepted\nbase: ${base}\nhead: ${material}\n---\n# Whole-branch Review: Demo\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`,
+  );
+  commitPaths(repository, "review", evidencePath("demo", "review.md"));
+  return { base, material, changeDir };
+};
+
 describe("precondition repository gates", () => {
-  it("opens the gate for a clean target repository", async () => {
+  it("closes the gate when workflow evidence is absent", async () => {
     const repository = makeRepo();
     const changeDir = makeChangeDir(repository, "add-auth");
 
@@ -24,12 +74,12 @@ describe("precondition repository gates", () => {
       testCommand: "true",
     });
 
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(1);
     expect(result.stdout).toContain("[PASS] Clean tree");
     expect(result.stdout).toContain("[PASS] Tests (true)");
     expect(result.stdout).toContain("[PASS] Clean tree after verification");
-    expect(result.stdout).toContain("[PASS] Final clean tree");
-    expect(result.lastLine).toBe("gate: open");
+    expect(result.stdout).toContain("[FAIL] Tasks");
+    expect(result.lastLine).toContain("gate: closed");
   });
 
   it("requires a supplied test command", async () => {
@@ -76,9 +126,10 @@ describe("precondition repository gates", () => {
       createPreconditionRuntime({ cwd: () => caller }),
     );
 
-    expect(result.exitCode, result.stdout + result.stderr).toBe(0);
+    expect(result.exitCode, result.stdout + result.stderr).toBe(1);
     expect(result.stdout).toContain("[PASS] Tests (test -f target-only.txt)");
-    expect(result.lastLine).toBe("gate: open");
+    expect(result.stdout).toContain("[FAIL] Tasks");
+    expect(result.lastLine).toContain("gate: closed");
   });
 
   it("does not borrow a passing command from the caller repository", async () => {
@@ -196,10 +247,118 @@ describe("precondition repository gates", () => {
       runtime,
     );
 
-    expect(result.exitCode).toBe(0);
-    expect(calls).toEqual(["bash -c injected-test @ " + repository]);
-    expect(result.lastLine).toBe("gate: open");
+    expect(result.exitCode).toBe(1);
+    expect(calls[0]).toBe("bash -c injected-test @ " + repository);
+    expect(result.lastLine).toContain("gate: closed");
   });
+});
+
+it("opens the gate with current split evidence", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Tasks (1 implemented)");
+  expect(result.stdout).toContain("[PASS] Reviews");
+  expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
+  expect(result.stdout).toContain("[PASS] Final clean tree");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("fails closed when split ledgers or task evidence contradict", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+  write(repository, evidencePath("demo", "progress.md"), "broken\n");
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("[FAIL] Clean tree");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects contradictory approved blocking findings", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, { blockingFeedback: true });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback malformed");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("waives only whole-change material freshness", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+  write(repository, "material.txt", "new material\n");
+  commitAll(repository, "material after review");
+
+  const closed = await precondition({ changeDir, testCommand: "true" });
+  const waived = await precondition({
+    changeDir,
+    testCommand: "true",
+    wholeChangeWaived: true,
+  });
+
+  expect(closed.exitCode).toBe(1);
+  expect(closed.stdout).toContain("review head does not contain material");
+  expect(waived.exitCode, waived.stdout).toBe(0);
+  expect(waived.stdout).toContain("[WAIVED] Whole-branch review freshness");
+  expect(waived.lastLine).toBe("gate: open");
+});
+
+it("rejects a stale task feedback range", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+  const feedback = Fs.readFileSync(
+    Path.join(changeDir, "tasks", "task-1", "feedback.md"),
+    "utf8",
+  ).replace(/head: [0-9a-f]{40}/, `head: ${git(repository, "rev-parse", "HEAD~3")}`);
+  write(repository, evidencePath("demo", "tasks/task-1/feedback.md"), feedback);
+  commitPaths(repository, "stale feedback", evidencePath("demo", "tasks/task-1/feedback.md"));
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback is stale");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects a mixed feedback commit", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+  const feedback = Fs.readFileSync(
+    Path.join(changeDir, "tasks", "task-1", "feedback.md"),
+    "utf8",
+  );
+  write(
+    repository,
+    evidencePath("demo", "tasks/task-1/feedback.md"),
+    `${feedback}\n## Pass 2 — 2026-09-13\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`,
+  );
+  write(repository, "mixed.txt", "mixed\n");
+  commitAll(repository, "mixed feedback");
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback is not tracked and committed exactly at HEAD");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects a missing review without inheriting task approval", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository);
+  Fs.unlinkSync(Path.join(changeDir, "review.md"));
+  commitAll(repository, "remove review");
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("whole-branch review missing");
+  expect(result.lastLine).toContain("gate: closed");
 });
 
 it("rejects a missing change directory before running gates", async () => {
