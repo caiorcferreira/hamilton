@@ -3,11 +3,11 @@ artifact: feedback
 change: 2026-09-12-lint-skill-scripts
 task: 8
 created: 2026-09-13
-status: open
-verdict: changes-requested
+status: resolved
+verdict: approved
 decision: accepted
 base: 22d8d1a6a78717344b36350f160b9171480168b7
-head: d36b2fa478d662016876e082bce7702505da0e49
+head: 28ed5c59b3818b020f275c282ed46aab05d7b33e
 ---
 
 # Code Feedback: Task 8 — Port change context
@@ -53,6 +53,16 @@ head: d36b2fa478d662016876e082bce7702505da0e49
 
 - [src/workbench/context.ts:1087-1133] `latestReview` never verifies that `review.md` is durable and committed before evaluating its Base/Head range, unlike `latestFeedback`; a valid uncommitted or staged-only review can therefore be reported as `approved (fresh)`. Check the review artifact's worktree/staged state and commit ownership, returning an uncommitted standing before freshness evaluation (violates: feedback/review freshness and fail-closed context reporting).
 - [src/workbench/context.ts:1097-1101] The current-review title regex uses `"\\\\$&"`, which double-escapes regex metacharacters. A valid current review whose plan title contains characters such as `.` or `[` is consequently classified as `malformed` instead of retaining its review standing. Escape each metacharacter with one backslash (violates: current frontmatter context correctness and preservation of review freshness).
+
+### Suggestions
+
+- None.
+
+## Pass 5 — 2026-09-13
+
+### Blocking
+
+- None.
 
 ### Suggestions
 
