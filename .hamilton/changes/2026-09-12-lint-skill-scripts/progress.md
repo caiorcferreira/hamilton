@@ -16,4 +16,4 @@
 | Task 12: Remove script installation from setup | done | [details](tasks/task-12/progress.md) |
 | Task 13: Migrate skills to workbench commands | done | [details](tasks/task-13/progress.md) |
 | Task 14: Update framework documentation | done | [details](tasks/task-14/progress.md) |
-| Task 15: Delete obsolete shell helpers and tests | pending | [details](tasks/task-15/progress.md) |
+| Task 15: Delete obsolete shell helpers and tests | done | [details](tasks/task-15/progress.md) |
