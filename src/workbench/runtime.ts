@@ -21,15 +21,28 @@ export interface IsolationFileSystemPort {
   readonly realpath: (sourcePath: string) => string | Promise<string>;
   readonly readFile: (sourcePath: string) => string | Promise<string>;
   readonly mkdir: (sourcePath: string) => void | Promise<void>;
-  readonly appendFile: (sourcePath: string, content: string) => void | Promise<void>;
+  readonly appendFile: (
+    sourcePath: string,
+    content: string,
+  ) => void | Promise<void>;
 }
 
 export interface IsolationGitPort {
-  readonly repositoryRoot: (cwd: string) => ProcessResult | Promise<ProcessResult>;
-  readonly gitDirectory: (cwd: string) => ProcessResult | Promise<ProcessResult>;
-  readonly gitCommonDirectory: (cwd: string) => ProcessResult | Promise<ProcessResult>;
-  readonly currentBranch: (cwd: string) => ProcessResult | Promise<ProcessResult>;
-  readonly remoteDefaultBranch: (cwd: string) => ProcessResult | Promise<ProcessResult>;
+  readonly repositoryRoot: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
+  readonly gitDirectory: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
+  readonly gitCommonDirectory: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
+  readonly currentBranch: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
+  readonly remoteDefaultBranch: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
   readonly branchExists: (
     cwd: string,
     branch: string,
@@ -129,7 +142,9 @@ export interface RuntimeOverrides {
   readonly git?: IsolationGitPort;
 }
 
-export const createRuntime = (overrides: RuntimeOverrides = {}): IsolationRuntime => {
+export const createRuntime = (
+  overrides: RuntimeOverrides = {},
+): IsolationRuntime => {
   const processPort = overrides.process ?? productionProcess;
   return {
     process: processPort,

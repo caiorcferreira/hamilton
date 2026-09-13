@@ -65,7 +65,8 @@ const failure = (
   operation: IsolationArguments["mode"],
   message: string,
   exitCode: 1 | 2 = 2,
-): IsolationResult => result(operation, "error", exitCode, "", `error: ${message}\n`);
+): IsolationResult =>
+  result(operation, "error", exitCode, "", `error: ${message}\n`);
 
 const commandError = (
   operation: IsolationArguments["mode"],
@@ -84,7 +85,8 @@ const output = (
   operation: IsolationArguments["mode"],
   status: "success" | "negative",
   stdout: string,
-): IsolationResult => result(operation, status, status === "success" ? 0 : 1, stdout);
+): IsolationResult =>
+  result(operation, status, status === "success" ? 0 : 1, stdout);
 
 const text = (command: ProcessResult): string => command.stdout.trim();
 
@@ -107,7 +109,8 @@ const repositoryRoot = async (
   runtime: IsolationRuntime,
 ): Promise<string | IsolationResult> => {
   const command = await runtime.git.repositoryRoot(cwd);
-  if (!successful(command)) return commandError(operation, "not inside a git repository", command);
+  if (!successful(command))
+    return commandError(operation, "not inside a git repository", command);
   const root = await absolutePath(text(command), runtime);
   return root === undefined
     ? failure(operation, `cannot resolve repository root: ${text(command)}`)
@@ -120,11 +123,14 @@ const pathFromGit = async (
   operation: IsolationArguments["mode"],
   runtime: IsolationRuntime,
 ): Promise<string | IsolationResult> => {
-  if (!successful(command)) return commandError(operation, "cannot resolve Git directory", command);
+  if (!successful(command))
+    return commandError(operation, "cannot resolve Git directory", command);
   const path = text(command);
   const resolved = Path.isAbsolute(path) ? path : Path.resolve(cwd, path);
   const real = await absolutePath(resolved, runtime);
-  return real === undefined ? failure(operation, `cannot resolve Git directory: ${resolved}`) : real;
+  return real === undefined
+    ? failure(operation, `cannot resolve Git directory: ${resolved}`)
+    : real;
 };
 
 const linkedWorktree = async (
@@ -136,9 +142,19 @@ const linkedWorktree = async (
     runtime.git.gitDirectory(cwd),
     runtime.git.gitCommonDirectory(cwd),
   ]);
-  const gitDirectory = await pathFromGit(cwd, gitDirectoryCommand, operation, runtime);
+  const gitDirectory = await pathFromGit(
+    cwd,
+    gitDirectoryCommand,
+    operation,
+    runtime,
+  );
   if (typeof gitDirectory !== "string") return gitDirectory;
-  const commonDirectory = await pathFromGit(cwd, commonDirectoryCommand, operation, runtime);
+  const commonDirectory = await pathFromGit(
+    cwd,
+    commonDirectoryCommand,
+    operation,
+    runtime,
+  );
   if (typeof commonDirectory !== "string") return commonDirectory;
   return gitDirectory !== commonDirectory;
 };
@@ -167,7 +183,12 @@ const check = async (
   const rootResult = await repositoryRoot(process.cwd(), args.mode, runtime);
   if (typeof rootResult !== "string") return rootResult;
   const branchCommand = await runtime.git.currentBranch(process.cwd());
-  if (!successful(branchCommand)) return commandError(args.mode, "cannot determine current branch", branchCommand);
+  if (!successful(branchCommand))
+    return commandError(
+      args.mode,
+      "cannot determine current branch",
+      branchCommand,
+    );
   const branch = text(branchCommand);
   const defaultResult = await defaultBranch(process.cwd(), args.mode, runtime);
   if (typeof defaultResult !== "string") return defaultResult;
@@ -196,7 +217,10 @@ const check = async (
   let stdout = `root: ${rootResult}\nbranch: ${branch}\ndefault-branch: ${defaultResult}\nmode: ${mode}\n`;
   if (args.changeDir !== undefined) {
     const resolved = await absolutePath(args.changeDir, runtime);
-    if (!(await runtime.fileSystem.directoryExists(args.changeDir)) || resolved === undefined) {
+    if (
+      !(await runtime.fileSystem.directoryExists(args.changeDir)) ||
+      resolved === undefined
+    ) {
       stdout += `change-dir: ${args.changeDir} (does not exist)\n`;
       stdout += `isolated: no (change dir does not exist: ${args.changeDir})\n`;
       return output(args.mode, "negative", stdout);
@@ -209,7 +233,8 @@ const check = async (
       return output(args.mode, "negative", stdout);
     }
   }
-  stdout += isolated === "yes" ? "isolated: yes\n" : `isolated: no (${reason})\n`;
+  stdout +=
+    isolated === "yes" ? "isolated: yes\n" : `isolated: no (${reason})\n`;
   return output(args.mode, isolated === "yes" ? "success" : "negative", stdout);
 };
 
@@ -217,7 +242,8 @@ const create = async (
   args: CreateIsolationArguments,
   runtime: IsolationRuntime,
 ): Promise<IsolationResult> => {
-  if (args.title.startsWith("-")) return failure(args.mode, `unknown option: ${args.title}`);
+  if (args.title.startsWith("-"))
+    return failure(args.mode, `unknown option: ${args.title}`);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(args.title))
     return failure(args.mode, `title must be kebab-case (got: ${args.title})`);
 
@@ -252,7 +278,12 @@ const create = async (
   const ignored = await runtime.git.ignored(rootResult, worktreesPath);
   if (!successful(ignored)) {
     const commonResult = await runtime.git.gitCommonDirectory(rootResult);
-    const commonDirectory = await pathFromGit(rootResult, commonResult, args.mode, runtime);
+    const commonDirectory = await pathFromGit(
+      rootResult,
+      commonResult,
+      args.mode,
+      runtime,
+    );
     if (typeof commonDirectory !== "string") return commonDirectory;
     const excludeFile = Path.join(commonDirectory, "info", "exclude");
     let contents = "";
@@ -266,13 +297,25 @@ const create = async (
         await runtime.fileSystem.mkdir(Path.dirname(excludeFile));
         await runtime.fileSystem.appendFile(excludeFile, ".worktrees/\n");
       } catch (error) {
-        return failure(args.mode, `cannot write ${excludeFile}: ${String(error)}`);
+        return failure(
+          args.mode,
+          `cannot write ${excludeFile}: ${String(error)}`,
+        );
       }
     }
   }
 
-  const added = await runtime.git.addWorktree(rootResult, `.worktrees/${args.title}`, args.title);
-  if (!successful(added)) return commandError(args.mode, `git worktree add .worktrees/${args.title} -b ${args.title} failed`, added);
+  const added = await runtime.git.addWorktree(
+    rootResult,
+    `.worktrees/${args.title}`,
+    args.title,
+  );
+  if (!successful(added))
+    return commandError(
+      args.mode,
+      `git worktree add .worktrees/${args.title} -b ${args.title} failed`,
+      added,
+    );
   return output(
     args.mode,
     "success",
@@ -322,5 +365,6 @@ export const verifyIsolation = (
   runtime?: IsolationRuntime,
 ): Promise<IsolationResult> => isolate({ mode: "verify", title }, runtime);
 
-export const renderIsolationResult = (isolationResult: IsolationResult): string =>
-  isolationResult.stdout.trimEnd();
+export const renderIsolationResult = (
+  isolationResult: IsolationResult,
+): string => isolationResult.stdout.trimEnd();

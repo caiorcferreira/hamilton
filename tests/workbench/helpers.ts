@@ -61,7 +61,11 @@ export function cleanupRepos(): void {
     Fs.rmSync(directory, { recursive: true, force: true });
 }
 
-export function write(repository: string, relativePath: string, content: string): string {
+export function write(
+  repository: string,
+  relativePath: string,
+  content: string,
+): string {
   const fullPath = Path.join(repository, relativePath);
   Fs.mkdirSync(Path.dirname(fullPath), { recursive: true });
   Fs.writeFileSync(fullPath, content);

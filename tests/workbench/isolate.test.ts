@@ -8,7 +8,10 @@ import {
   isolate,
   verifyIsolation,
 } from "../../src/workbench/isolate.js";
-import { createRuntime, type ProcessPort } from "../../src/workbench/runtime.js";
+import {
+  createRuntime,
+  type ProcessPort,
+} from "../../src/workbench/runtime.js";
 import {
   git,
   makeChangeDir,
@@ -30,7 +33,10 @@ const inDirectory = (directory: string) => {
 };
 
 const outputField = (output: string, key: string): string | undefined =>
-  output.split("\n").find((line) => line.startsWith(`${key}: `))?.slice(key.length + 2);
+  output
+    .split("\n")
+    .find((line) => line.startsWith(`${key}: `))
+    ?.slice(key.length + 2);
 
 const failingWorktreeProcess = (): ProcessPort => ({
   run: (command, args, cwd) => {
@@ -78,7 +84,12 @@ describe("isolation check", () => {
   it("prefers origin/HEAD over a local main", async () => {
     const repo = inDirectory(makeRepo());
     git(repo, "update-ref", "refs/remotes/origin/trunk", "HEAD");
-    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk");
+    git(
+      repo,
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/trunk",
+    );
 
     const result = await checkIsolation(undefined);
 
@@ -119,7 +130,9 @@ describe("isolation check", () => {
 
     expect(result.exitCode).toBe(1);
     expect(outputField(result.stdout, "change-dir")).toContain("OUTSIDE root");
-    expect(result.lastLine).toContain("does not resolve under the worktree root");
+    expect(result.lastLine).toContain(
+      "does not resolve under the worktree root",
+    );
   });
 
   it("accepts a change dir under the worktree root", async () => {
@@ -166,7 +179,9 @@ describe("isolation create", () => {
     expect(result.exitCode).toBe(0);
     expect(result.lastLine).toBe(Path.join(repo, ".worktrees", "add-auth"));
     expect(Fs.existsSync(result.lastLine)).toBe(true);
-    expect(git(repo, "show-ref", "--verify", "refs/heads/add-auth")).toContain("add-auth");
+    expect(git(repo, "show-ref", "--verify", "refs/heads/add-auth")).toContain(
+      "add-auth",
+    );
   });
 
   it("leaves the tree clean by excluding .worktrees/", async () => {
@@ -184,12 +199,16 @@ describe("isolation create", () => {
     git(repo, "add", "-A");
     git(repo, "commit", "-q", "-m", "ignore worktrees");
     const exclude = Path.join(repo, ".git", "info", "exclude");
-    const before = Fs.existsSync(exclude) ? Fs.readFileSync(exclude, "utf8") : undefined;
+    const before = Fs.existsSync(exclude)
+      ? Fs.readFileSync(exclude, "utf8")
+      : undefined;
 
     const result = await createIsolation("add-auth");
 
     expect(result.exitCode).toBe(0);
-    const after = Fs.existsSync(exclude) ? Fs.readFileSync(exclude, "utf8") : undefined;
+    const after = Fs.existsSync(exclude)
+      ? Fs.readFileSync(exclude, "utf8")
+      : undefined;
     expect(after).toBe(before);
   });
 
@@ -214,7 +233,9 @@ describe("isolation create", () => {
 
   it("refuses to reuse an existing worktree directory", async () => {
     const repo = inDirectory(makeRepo());
-    Fs.mkdirSync(Path.join(repo, ".worktrees", "add-auth"), { recursive: true });
+    Fs.mkdirSync(Path.join(repo, ".worktrees", "add-auth"), {
+      recursive: true,
+    });
 
     const result = await createIsolation("add-auth");
 
@@ -280,7 +301,11 @@ describe("isolation verify", () => {
       "add-auth",
       createRuntime({
         process: {
-          run: () => ({ status: 3, stdout: "", stderr: "simulated git failure" }),
+          run: () => ({
+            status: 3,
+            stdout: "",
+            stderr: "simulated git failure",
+          }),
         },
       }),
     );
