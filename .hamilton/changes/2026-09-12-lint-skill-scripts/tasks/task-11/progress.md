@@ -2,8 +2,8 @@
 artifact: task-progress
 change: 2026-09-12-lint-skill-scripts
 task: 11
-status: pending
-updated: 2026-09-12
+status: done
+updated: 2026-09-13
 decision: accepted
 ---
 
