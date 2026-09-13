@@ -95,9 +95,9 @@ The command is authoritative. It must validate all of these facts and close with
   has no blocking findings. Its reviewed range must be structurally valid. Unless explicitly
   waived, its Head must also contain the latest material change commit.
 
-If the Hamilton CLI is not installed, perform those exact checks by hand, including physical-last-pass
-parsing and full commit ancestry. Fail closed on anything absent, malformed, contradictory,
-unreachable, stale, or unverifiable.
+If the Hamilton CLI/workbench is unavailable, perform those exact checks by hand, including
+physical-last-pass parsing and full commit ancestry. Fail closed on anything absent, malformed,
+contradictory, unreachable, stale, or unverifiable.
 
 If any gate fails, stop and report the gate output verbatim. Perform no finish action, do not
 create or change `finish.md`, do not synchronize specs or route state, and do not write root
@@ -110,8 +110,8 @@ the admitted attempt and its post-gate mutation boundary.
 ## Specification synchronization
 
 Run `hamilton workbench context <change-dir>` to identify the approved change
-artifacts and capability deltas. If the script is unavailable, list those paths directly. Before
-editing a canonical spec, confirm that the approved proposal, design, and requirement deltas are
+artifacts and capability deltas. If the Hamilton CLI/workbench is unavailable, list those paths
+directly. Before editing a canonical spec, confirm that the approved proposal, design, and requirement deltas are
 complete and mutually consistent. Treat them as read-only inputs throughout finish-work.
 
 For each approved `requirements/<capability>.md`, read the current

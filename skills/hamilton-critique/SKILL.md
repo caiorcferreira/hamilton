@@ -69,8 +69,8 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 ## Process
 
 1. **Establish scope.** Run `hamilton workbench context <change-dir>` to
-   learn which propose artifacts are present and which capabilities the change carries (list
-   the directory yourself if the script is not installed), then read every one of them
+   learn which propose artifacts are present and which capabilities the change carries (if the
+   Hamilton CLI/workbench is unavailable, list the directory yourself), then read every one of them
    (`proposal.md`, `requirements/`, `design.md`) and the canonical specs the change builds on.
    Note which capabilities are new vs modified vs removed — the removed set drives the cleanup
    check.

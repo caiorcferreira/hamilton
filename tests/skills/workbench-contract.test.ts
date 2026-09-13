@@ -115,6 +115,19 @@ describe("Hamilton skill workbench contract", () => {
     );
   });
 
+  it("names the Hamilton CLI/workbench in manual fallback paths", () => {
+    const skills = readSkills();
+
+    for (const name of [
+      "hamilton-code",
+      "hamilton-orchestrate",
+      "hamilton-critique",
+      "hamilton-finish-work",
+    ] as const) {
+      expect(skills[name]).toMatch(/Hamilton CLI\/workbench\s+is unavailable/i);
+    }
+  });
+
   it("keeps skill-owned control flow and migration boundaries explicit", () => {
     const skills = readSkills();
     expect(skills["hamilton-orchestrate"]).toContain(

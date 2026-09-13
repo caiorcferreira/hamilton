@@ -59,8 +59,8 @@ Plus:
 
 1. **Confirm the workspace.** Run
    `hamilton workbench isolate --check --change-dir <change-dir>`. Its last line must
-   read `isolated: yes`. Anything else means stop and report its output. If the script is not
-   installed, verify by hand that the repository is off its default branch and the change
+   read `isolated: yes`. Anything else means stop and report its output. If the Hamilton CLI/workbench
+   is unavailable, verify by hand that the repository is off its default branch and the change
    directory resolves under `git rev-parse --show-toplevel`.
 2. **Resolve exactly one task.** Load only the requested task block from `plan.md`. Confirm its
    exact positive numeric `Task N` id, confirm that id occurs once, and reject only a heading

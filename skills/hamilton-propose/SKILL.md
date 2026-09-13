@@ -143,11 +143,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    let its requirement cover the aspects.
 
    | Over-split (bad) | Right-sized (good) |
-   | ------------------ | -------------------- |
+   |------------------|--------------------|
    | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
    | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
    | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
-
 7. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the

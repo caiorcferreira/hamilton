@@ -136,7 +136,7 @@ physically last pass in `tasks/task-N/feedback.md`, validated against the latest
 touched that task's progress file.
 
 | Root status | Feedback state | Action |
-| --- | --- | --- |
+|---|---|---|
 | `pending` | any | Dispatch `hamilton-code` for Task N. |
 | `blocked` | any | Dispatch `hamilton-code` for Task N with the recorded blocker and newly available resolution. |
 | `in-progress` | any | Inspect Task N's git state and task-local log before resuming or resolving it; never select another task. |
@@ -175,7 +175,7 @@ blocking findings. `Review state` means the physically last pass in root `review
 against the current branch and latest material change commit.
 
 | Review state | Action |
-| --- | --- |
+|---|---|
 | absent | Dispatch `hamilton-review` on the complete branch. |
 | stale or malformed | Dispatch `hamilton-review` on the complete branch. |
 | fresh `changes-requested` | Classify the complete finding set for re-plan or the upstream-defect stop. |
@@ -189,8 +189,8 @@ current tasks or review merely because conversation history was compacted or los
 
 1. **Verify workspace isolation.** Run
    `hamilton workbench isolate --check --change-dir <change-dir>`. Continue only when
-   its last line is `isolated: yes`. If the installed script is absent, verify that the change
-   directory is under the repository root and the branch is not the default branch. Otherwise
+   its last line is `isolated: yes`. If the Hamilton CLI/workbench is unavailable, verify that the
+   change directory is under the repository root and the branch is not the default branch. Otherwise
    stop before dispatching.
 2. **Load durable state.** Run
    `hamilton workbench context <change-dir>`, then read `plan.md` for active
