@@ -31,6 +31,9 @@ export interface IsolationGitPort {
   readonly repositoryRoot: (
     cwd: string,
   ) => ProcessResult | Promise<ProcessResult>;
+  readonly statusPorcelain: (
+    cwd: string,
+  ) => ProcessResult | Promise<ProcessResult>;
   readonly gitDirectory: (
     cwd: string,
   ) => ProcessResult | Promise<ProcessResult>;
@@ -113,6 +116,8 @@ const productionFileSystem: IsolationFileSystemPort = {
 const gitPort = (processPort: ProcessPort): IsolationGitPort => ({
   repositoryRoot: (cwd) =>
     processPort.run("git", ["rev-parse", "--show-toplevel"], cwd),
+  statusPorcelain: (cwd) =>
+    processPort.run("git", ["status", "--porcelain"], cwd),
   gitDirectory: (cwd) =>
     processPort.run("git", ["rev-parse", "--git-dir"], cwd),
   gitCommonDirectory: (cwd) =>

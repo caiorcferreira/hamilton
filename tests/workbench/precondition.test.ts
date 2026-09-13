@@ -118,6 +118,39 @@ describe("precondition repository gates", () => {
     expect(result.lastLine).toContain("gate: closed");
   });
 
+  it("closes the gate when the test command is unavailable", async () => {
+    const repository = makeRepo();
+    const changeDir = makeChangeDir(repository, "add-auth");
+    const result = await precondition(
+      { changeDir, testCommand: "unavailable-test" },
+      createPreconditionRuntime({
+        process: {
+          run: () => {
+            throw new Error("command unavailable");
+          },
+        },
+        git: {
+          repositoryRoot: () => ({
+            status: 0,
+            stdout: `${repository}\n`,
+            stderr: "",
+          }),
+          statusPorcelain: () => ({ status: 0, stdout: "", stderr: "" }),
+        },
+      }),
+    );
+
+    expect(result).toEqual({
+      _tag: "PreconditionResult",
+      status: "error",
+      exitCode: 2,
+      stdout: "",
+      stderr: "error: cannot execute test command: Error: command unavailable\n",
+      lines: [],
+      lastLine: "",
+    });
+  });
+
   it("closes the gate when verification mutates the target worktree", async () => {
     const caller = makeRepo();
     const target = makeRepo();

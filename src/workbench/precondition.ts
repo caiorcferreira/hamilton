@@ -1,7 +1,9 @@
-import { spawnSync } from "node:child_process";
-import * as Fs from "node:fs/promises";
 import * as Path from "node:path";
-import type { ProcessPort, ProcessResult } from "./runtime.js";
+import {
+  createRuntime,
+  type ProcessPort,
+  type ProcessResult,
+} from "./runtime.js";
 
 export interface PreconditionArguments {
   readonly changeDir: string;
@@ -49,62 +51,23 @@ export interface PreconditionRuntimeOverrides {
   readonly git?: PreconditionGitPort;
 }
 
-const environment = {
-  ...process.env,
-  GIT_CONFIG_GLOBAL: "/dev/null",
-  GIT_CONFIG_SYSTEM: "/dev/null",
-};
-
-const productionProcess: ProcessPort = {
-  run: (command, args, cwd) => {
-    const result = spawnSync(command, [...args], {
-      cwd,
-      encoding: "utf-8",
-      env: environment,
-    });
-    return {
-      status: result.status ?? -1,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
-    };
-  },
-};
-
-const productionFileSystem: PreconditionFileSystemPort = {
-  pathExists: async (sourcePath) => {
-    try {
-      await Fs.lstat(sourcePath);
-      return true;
-    } catch {
-      return false;
-    }
-  },
-  directoryExists: async (sourcePath) => {
-    try {
-      return (await Fs.stat(sourcePath)).isDirectory();
-    } catch {
-      return false;
-    }
-  },
-  realpath: (sourcePath) => Fs.realpath(sourcePath),
-};
-
-const createGitPort = (processPort: ProcessPort): PreconditionGitPort => ({
-  repositoryRoot: (cwd) =>
-    processPort.run("git", ["rev-parse", "--show-toplevel"], cwd),
-  statusPorcelain: (cwd) =>
-    processPort.run("git", ["status", "--porcelain"], cwd),
-});
-
 export const createPreconditionRuntime = (
   overrides: PreconditionRuntimeOverrides = {},
 ): PreconditionRuntime => {
-  const processPort = overrides.process ?? productionProcess;
+  const runtime = createRuntime({
+    cwd: overrides.cwd,
+    process: overrides.process,
+  });
   return {
-    cwd: overrides.cwd ?? (() => process.cwd()),
-    process: processPort,
-    fileSystem: overrides.fileSystem ?? productionFileSystem,
-    git: overrides.git ?? createGitPort(processPort),
+    cwd: runtime.cwd,
+    process: runtime.process,
+    fileSystem: overrides.fileSystem ?? runtime.fileSystem,
+    git:
+      overrides.git ??
+      {
+        repositoryRoot: runtime.git.repositoryRoot,
+        statusPorcelain: runtime.git.statusPorcelain,
+      },
   };
 };
 
