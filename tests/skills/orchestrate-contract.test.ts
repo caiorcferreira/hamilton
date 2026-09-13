@@ -129,6 +129,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(process).not.toMatch(
       /before any first attempt, retry, or correction dispatch.*--record/is,
     )
+    expect(process).not.toContain("~/.hamilton/scripts/")
   })
 
   it("reconstructs or stops instead of rebasing historical work", () => {

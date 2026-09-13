@@ -20,6 +20,7 @@ describe("hamilton-finish-work contract", () => {
     const preconditions = section(readFinishWork(), "## Preconditions")
 
     expect(preconditions).toContain("hamilton workbench precondition")
+    expect(preconditions).not.toContain("~/.hamilton/scripts/")
     expect(preconditions).toContain("--change-dir <change-dir>")
     expect(preconditions).toContain("--test-cmd '<full test suite && build/typecheck>'")
     expect(preconditions).toMatch(/exact root task ledger/i)
