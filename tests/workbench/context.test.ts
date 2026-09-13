@@ -408,7 +408,11 @@ Verdict: approved
     const base = commitAll(repository, "change artifacts");
     const review = currentReview("uncommitted-review", "add auth", base);
     write(directory, "review.md", review);
-    commitPaths(repository, "review", ".hamilton/changes/uncommitted-review/review.md");
+    commitPaths(
+      repository,
+      "review",
+      ".hamilton/changes/uncommitted-review/review.md",
+    );
 
     write(directory, "review.md", `${review}\n`);
     const unstaged = await context({ changeDir: directory });
@@ -430,11 +434,18 @@ Verdict: approved
     const title = "add auth [v1].";
     const directory = seed(repository, "regex-review", {
       ...splitFiles,
-      "plan.md": splitFiles["plan.md"].replace("# Plan: add auth", `# Plan: ${title}`),
+      "plan.md": splitFiles["plan.md"].replace(
+        "# Plan: add auth",
+        `# Plan: ${title}`,
+      ),
     });
     const base = commitAll(repository, "change artifacts");
     write(directory, "review.md", currentReview("regex-review", title, base));
-    commitPaths(repository, "review", ".hamilton/changes/regex-review/review.md");
+    commitPaths(
+      repository,
+      "review",
+      ".hamilton/changes/regex-review/review.md",
+    );
 
     const result = await context({ changeDir: directory });
 
