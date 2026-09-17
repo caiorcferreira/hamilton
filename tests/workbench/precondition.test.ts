@@ -20,11 +20,86 @@ afterEach(cleanupRepos);
 const evidencePath = (slug: string, file: string): string =>
   `.hamilton/changes/${slug}/${file}`;
 
+type ReviewFixtureMode =
+  | "compatibility"
+  | "multi-pass"
+  | "malformed-latest"
+  | "stale-latest"
+  | "ambiguous-compatibility";
+
+const reviewDocument = (
+  kind: "feedback" | "review",
+  base: string,
+  material: string,
+  mode: ReviewFixtureMode,
+  blockingFeedback = false,
+): string => {
+  const compatibility =
+    mode === "compatibility" || mode === "ambiguous-compatibility";
+  const metadata =
+    kind === "feedback"
+      ? [
+          "---",
+          "artifact: feedback",
+          "change: demo",
+          "task: 1",
+          "created: 2026-09-12",
+          "status: resolved",
+          "decision: accepted",
+          ...(compatibility
+            ? [`base: ${base}`, `head: ${material}`, "verdict: approved"]
+            : []),
+          "---",
+        ]
+      : [
+          "---",
+          "artifact: review",
+          "change: demo",
+          "created: 2026-09-12",
+          "status: complete",
+          "decision: accepted",
+          ...(compatibility
+            ? [`base: ${base}`, `head: ${material}`, "verdict: approved"]
+            : []),
+          "---",
+        ];
+  const title =
+    kind === "feedback"
+      ? "# Code Feedback: Task 1 — Implement"
+      : "# Whole-branch Review: Demo";
+  const blocking = blockingFeedback
+    ? "- [src/main.ts:1] Fix this (violates: acceptance)"
+    : "- None.";
+  if (mode === "compatibility")
+    return `${metadata.join(
+      "\n",
+    )}\n${title}\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n${blocking}\n\n### Suggestions\n- None.\n`;
+  if (mode === "ambiguous-compatibility")
+    return `${metadata.join(
+      "\n",
+    )}\n${title}\n\n## Pass 1 — 2026-09-12\n\nBase: ${base}\nHead: ${base}\nVerdict: approved\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
+  const firstVerdict =
+    mode === "multi-pass" ? "changes-requested" : "approved";
+  const firstBlocking =
+    firstVerdict === "changes-requested"
+      ? "- [src/main.ts:1] Fix this (violates: acceptance)"
+      : "- None.";
+  const latestHead = mode === "stale-latest" ? base : material;
+  const latest = `## Pass 2 — 2026-09-13\n\nBase: ${base}\nHead: ${latestHead}\nVerdict: approved\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
+  const malformedLatest =
+    mode === "malformed-latest" ? `${latest}\n## Notes\n\nTrailing content.\n` : latest;
+  return `${metadata.join(
+    "\n",
+  )}\n${title}\n\n## Pass 1 — 2026-09-12\n\nBase: ${base}\nHead: ${material}\nVerdict: ${firstVerdict}\n\n### Blocking\n${firstBlocking}\n\n### Suggestions\n- None.\n\n${malformedLatest}`;
+};
+
 const makeEvidence = (
   repository: string,
   options: {
     readonly blockingFeedback?: boolean;
     readonly taskProgressStatus?: string;
+    readonly feedbackMode?: ReviewFixtureMode;
+    readonly reviewMode?: ReviewFixtureMode;
   } = {},
 ): {
   readonly base: string;
@@ -49,13 +124,16 @@ const makeEvidence = (
     `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
   );
   const material = commitAll(repository, "material");
-  const blocking = options.blockingFeedback
-    ? "- [src/main.ts:1] Fix this (violates: acceptance)"
-    : "- None.";
   write(
     repository,
     evidencePath("demo", "tasks/task-1/feedback.md"),
-    `---\nartifact: feedback\nchange: demo\ntask: 1\ncreated: 2026-09-12\nstatus: resolved\nverdict: approved\ndecision: accepted\nbase: ${base}\nhead: ${material}\n---\n# Code Feedback: Task 1 — Implement\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n${blocking}\n\n### Suggestions\n- None.\n`,
+    reviewDocument(
+      "feedback",
+      base,
+      material,
+      options.feedbackMode ?? "compatibility",
+      options.blockingFeedback,
+    ),
   );
   commitPaths(
     repository,
@@ -65,7 +143,12 @@ const makeEvidence = (
   write(
     repository,
     evidencePath("demo", "review.md"),
-    `---\nartifact: review\nchange: demo\ncreated: 2026-09-12\nstatus: complete\nverdict: approved\ndecision: accepted\nbase: ${base}\nhead: ${material}\n---\n# Whole-branch Review: Demo\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`,
+    reviewDocument(
+      "review",
+      base,
+      material,
+      options.reviewMode ?? "compatibility",
+    ),
   );
   commitPaths(repository, "review", evidencePath("demo", "review.md"));
   return { base, material, changeDir };
@@ -260,7 +343,7 @@ describe("precondition repository gates", () => {
   });
 });
 
-it("opens the gate with current split evidence", async () => {
+it("opens the gate with one-pass compatibility evidence", async () => {
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository);
 
@@ -272,6 +355,86 @@ it("opens the gate with current split evidence", async () => {
   expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
   expect(result.stdout).toContain("[PASS] Final clean tree");
   expect(result.lastLine).toBe("gate: open");
+});
+
+it("opens the gate with requested-change then approved per-pass evidence", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "multi-pass",
+    reviewMode: "multi-pass",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Reviews");
+  expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("rejects a malformed physical-last task feedback pass", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "malformed-latest",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback malformed");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects a malformed physical-last whole-branch review pass", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    reviewMode: "malformed-latest",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("whole-branch review malformed");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects a stale latest task feedback approval", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "stale-latest",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback is stale");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects a stale latest whole-branch review approval", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    reviewMode: "stale-latest",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("review head does not contain material");
+  expect(result.lastLine).toContain("gate: closed");
+});
+
+it("rejects contradictory one-pass compatibility provenance", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "ambiguous-compatibility",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("Task 1 feedback malformed");
+  expect(result.lastLine).toContain("gate: closed");
 });
 
 it("fails closed when split ledgers or task evidence contradict", async () => {
@@ -362,11 +525,11 @@ it("rejects a mixed feedback commit", async () => {
   const feedback = Fs.readFileSync(
     Path.join(changeDir, "tasks", "task-1", "feedback.md"),
     "utf8",
-  );
+  ).replace("created: 2026-09-12", "created: 2026-09-13");
   write(
     repository,
     evidencePath("demo", "tasks/task-1/feedback.md"),
-    `${feedback}\n## Pass 2 — 2026-09-13\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`,
+    feedback,
   );
   write(repository, "mixed.txt", "mixed\n");
   commitAll(repository, "mixed feedback");

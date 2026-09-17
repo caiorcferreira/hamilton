@@ -1,9 +1,5 @@
 import * as Path from "node:path";
-import type {
-  ArtifactWorkflowRecord,
-  ValidArtifactContract,
-} from "./artifact-types.js";
-import { createArtifactBodyView } from "./artifact-body.js";
+import type { ValidArtifactContract } from "./artifact-types.js";
 import {
   exactArtifactCommit,
   type TaskInspection,
@@ -22,120 +18,6 @@ import {
   text,
 } from "./precondition-git.js";
 import type { PreconditionRuntime } from "./precondition-runtime.js";
-
-export const blockingFinding = (value: string): boolean => {
-  const match = /^- \[(.+)\] (.+)$/.exec(value);
-  if (match === null) return false;
-  const locations = match[1] ?? "";
-  const action = match[2] ?? "";
-  if (
-    locations.includes("<") ||
-    locations.includes(">") ||
-    action.includes("<") ||
-    action.includes(">")
-  )
-    return false;
-  if (action.replace(/[\s\p{P}]/gu, "").toLowerCase() === "tbd") return false;
-  return locations.split(";").every((location) => {
-    const separator = location.indexOf(":");
-    return separator > 0 && location.slice(separator + 1).trim() !== "";
-  });
-};
-
-export interface PassSections {
-  readonly blocking: readonly string[];
-  readonly suggestions: readonly string[];
-}
-
-export const passSections = (
-  artifact: ValidArtifactContract,
-  source: string,
-  pass: ArtifactWorkflowRecord,
-): PassSections | null => {
-  if (pass.kind !== "pass") return null;
-  const allLines = source.split(/\r\n|\n|\r/);
-  let delimiters = 0;
-  const closeIndex = allLines.findIndex((line) => {
-    if (line.trim() !== "---" && line.trim() !== "...") return false;
-    delimiters += 1;
-    return delimiters === 2;
-  });
-  if (closeIndex < 0) return null;
-  const lines = createArtifactBodyView(
-    allLines.slice(closeIndex + 1).join("\n"),
-  ).lines;
-  const passIndex = pass.line - (closeIndex + 2);
-  const end = lines.findIndex(
-    (line, index) => index > passIndex && /^##[ \t]+/.test(line),
-  );
-  const sectionLines = lines.slice(passIndex + 1, end < 0 ? lines.length : end);
-  const blockingIndex = sectionLines.findIndex((line) =>
-    /^###[ \t]+Blocking$/.test(line),
-  );
-  const suggestionsIndex = sectionLines.findIndex((line) =>
-    /^###[ \t]+Suggestions$/.test(line),
-  );
-  if (blockingIndex < 0 || suggestionsIndex < blockingIndex) return null;
-  return {
-    blocking: sectionLines
-      .slice(blockingIndex + 1, suggestionsIndex)
-      .map((line) => line.trim())
-      .filter(Boolean),
-    suggestions: sectionLines
-      .slice(suggestionsIndex + 1)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  };
-};
-
-export const validPassContent = (
-  artifact: ValidArtifactContract,
-  source: string,
-  verdict: string,
-): boolean => {
-  const passes = artifact.body.workflow.records.filter(
-    (record) => record.kind === "pass",
-  );
-  if (passes.length === 0) return false;
-  for (const pass of passes) {
-    const sections = passSections(artifact, source, pass);
-    if (sections === null) return false;
-    const blocking = sections.blocking;
-    const suggestions = sections.suggestions;
-    const blockingValues = blocking.map((entry) =>
-      entry.startsWith("- ") ? entry.slice(2) : entry,
-    );
-    const suggestionValues = suggestions.map((entry) =>
-      entry.startsWith("- ") ? entry.slice(2) : entry,
-    );
-    if (blocking.length === 0 || suggestions.length === 0) return false;
-    if (
-      blockingValues.includes("None.")
-        ? blocking.length !== 1
-        : !blocking.every((entry) => blockingFinding(entry))
-    )
-      return false;
-    if (
-      suggestionValues.includes("None.")
-        ? suggestions.length !== 1
-        : !suggestions.every((entry) => entry.startsWith("- "))
-    )
-      return false;
-    if (
-      pass === passes.at(-1) &&
-      verdict === "approved" &&
-      (blocking.length !== 1 || blockingValues[0] !== "None.")
-    )
-      return false;
-    if (
-      pass === passes.at(-1) &&
-      verdict === "changes-requested" &&
-      blockingValues.includes("None.")
-    )
-      return false;
-  }
-  return true;
-};
 
 export type RangeStatus = "malformed" | "off-branch" | "stale" | "fresh";
 
@@ -178,6 +60,7 @@ export interface ReviewEvidence {
   readonly verdict: string;
   readonly base: unknown;
   readonly head: unknown;
+  readonly blocking: readonly string[];
 }
 
 export interface ReviewInspection {
@@ -201,18 +84,16 @@ export const readReview = async (
     read.artifact,
     expected === "feedback" ? "Code Feedback: " : "Whole-branch Review: ",
   );
-  const verdict = String(read.artifact.metadata.verdict ?? "");
-  if (
-    title !== expectedTitle ||
-    !validPassContent(read.artifact, read.source, verdict)
-  )
+  const latest = read.artifact.body.workflow.passes?.at(-1);
+  if (title !== expectedTitle || latest === undefined)
     return "malformed";
   return {
     artifact: read.artifact,
     source: read.source,
-    verdict,
-    base: read.artifact.metadata.base,
-    head: read.artifact.metadata.head,
+    verdict: latest.verdict,
+    base: latest.base,
+    head: latest.head,
+    blocking: latest.blocking,
   };
 };
 
