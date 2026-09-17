@@ -84,6 +84,57 @@ Verdict: approved
 - None.
 `;
 
+type EvidenceVerdict = "approved" | "changes-requested";
+
+const reviewPass = (
+  number: number,
+  date: string,
+  base: string,
+  head: string,
+  verdict: EvidenceVerdict,
+  blocking = "- None.",
+) => `## Pass ${number} — ${date}
+Base: ${base}
+Head: ${head}
+Verdict: ${verdict}
+### Blocking
+${blocking}
+### Suggestions
+- None.
+`;
+
+const feedbackEvidence = (
+  change: string,
+  passes: string,
+  global?: { readonly base: string; readonly head: string; readonly verdict: EvidenceVerdict },
+) => `---
+artifact: feedback
+change: ${change}
+task: 1
+created: 2026-09-13
+status: resolved
+decision: accepted
+${global ? `base: ${global.base}\nhead: ${global.head}\nverdict: ${global.verdict}\n` : ""}---
+# Code Feedback: Task 1 — Add the auth | session
+
+${passes}`;
+
+const reviewEvidence = (
+  change: string,
+  title: string,
+  passes: string,
+  global?: { readonly base: string; readonly head: string; readonly verdict: EvidenceVerdict },
+) => `---
+artifact: review
+change: ${change}
+created: 2026-09-13
+status: complete
+decision: accepted
+${global ? `base: ${global.base}\nhead: ${global.head}\nverdict: ${global.verdict}\n` : ""}---
+# Whole-branch Review: ${title}
+
+${passes}`;
+
 const seed = (
   repository: string,
   slug: string,
@@ -306,6 +357,143 @@ decision: accepted
     expect(result.stdout).not.toContain("route-unit: body-invented");
     expect(result.stdout).not.toContain("route-unit: legacy-body");
     expect(result.stdout).toContain("Task 1: in-progress");
+  });
+
+  it("reports the latest parsed pass for valid multi-pass feedback and review", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "multi-pass", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const passes =
+      reviewPass(1, "2026-09-13", base, base, "approved") +
+      reviewPass(2, "2026-09-14", base, base, "approved");
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("multi-pass", passes),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/multi-pass/tasks/task-1/feedback.md",
+    );
+    write(directory, "review.md", reviewEvidence("multi-pass", "add auth", passes));
+    commitPaths(repository, "review", ".hamilton/changes/multi-pass/review.md");
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)");
+    expect(result.stdout).toContain("whole change: approved (fresh)");
+    expect(result.lastLine).toBe(
+      "summary: multi-pass — 1/2 tasks done, whole change: approved (fresh)",
+    );
+  });
+
+  it("reports approval after a requested-change then approved history", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "requested-approved", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const passes =
+      reviewPass(
+        1,
+        "2026-09-13",
+        base,
+        base,
+        "changes-requested",
+        "- [src/auth.ts:1] Fix the auth issue.",
+      ) + reviewPass(2, "2026-09-14", base, base, "approved");
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("requested-approved", passes),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/requested-approved/tasks/task-1/feedback.md",
+    );
+    write(
+      directory,
+      "review.md",
+      reviewEvidence("requested-approved", "add auth", passes),
+    );
+    commitPaths(
+      repository,
+      "review",
+      ".hamilton/changes/requested-approved/review.md",
+    );
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain(
+      "Task 1: done, feedback: approved (fresh)",
+    );
+    expect(result.stdout).toContain("whole change: approved (fresh)");
+    expect(result.stdout).not.toContain("changes-requested (fresh)");
+  });
+
+  it("reports malformed physical-last feedback without a context error", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "malformed-physical-last", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const passes =
+      reviewPass(1, "2026-09-13", base, base, "approved") +
+      "## Notes\n- Context only.\n";
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("malformed-physical-last", passes, {
+        base,
+        head: base,
+        verdict: "approved",
+      }),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/malformed-physical-last/tasks/task-1/feedback.md",
+    );
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain("Task 1: done, feedback: malformed");
+    expect(result.stderr).toBe("");
+  });
+
+  it("keeps one-pass global provenance compatibility", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "one-pass", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const passes = reviewPass(1, "2026-09-13", base, base, "approved");
+    const global = { base, head: base, verdict: "approved" as const };
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("one-pass", passes, global),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/one-pass/tasks/task-1/feedback.md",
+    );
+    write(
+      directory,
+      "review.md",
+      reviewEvidence("one-pass", "add auth", passes, global),
+    );
+    commitPaths(repository, "review", ".hamilton/changes/one-pass/review.md");
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)");
+    expect(result.stdout).toContain("whole change: approved (fresh)");
   });
 
   it("rejects malformed recognized inventory artifacts before format discovery", async () => {

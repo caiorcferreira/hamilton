@@ -11,6 +11,7 @@ import {
   validateArtifact,
   type ArtifactContractResult,
 } from "./artifact-contracts.js";
+import { parseReviewPasses } from "./review-passes.js";
 import type { ProcessPort, ProcessResult } from "./runtime.js";
 
 export interface ContextArguments {
@@ -458,82 +459,6 @@ const taskAttempts = (
   return headings.length === 0
     ? { valid: false }
     : { valid: true, outcome: latest };
-};
-
-const legacyPasses = (
-  source: string,
-): {
-  readonly valid: boolean;
-  readonly base?: string;
-  readonly head?: string;
-  readonly verdict?: string;
-} => {
-  const visible = stripComments(source);
-  const headings = [...visible.matchAll(/^##[ \t]+(.+)$/gm)];
-  let expected = 1;
-  let latest:
-    | { readonly base: string; readonly head: string; readonly verdict: string }
-    | undefined;
-  for (const heading of headings) {
-    const pass = /^Pass ([1-9][0-9]*) — ([0-9]{4}-[0-9]{2}-[0-9]{2})$/.exec(
-      heading[1] ?? "",
-    );
-    if (!pass || Number(pass[1]) !== expected) return { valid: false };
-    expected += 1;
-    const start = (heading.index ?? 0) + heading[0].length;
-    const next = headings.find(
-      (candidate) => (candidate.index ?? 0) > (heading.index ?? 0),
-    );
-    const section = visible.slice(start, next?.index ?? visible.length);
-    const base = section.match(/^[ \t]*Base: ([^\n]+)$/m)?.[1]?.trim();
-    const head = section.match(/^[ \t]*Head: ([^\n]+)$/m)?.[1]?.trim();
-    const verdict = section.match(
-      /^[ \t]*Verdict: (approved|changes-requested|skipped)$/m,
-    )?.[1];
-    if (
-      !base ||
-      !head ||
-      !verdict ||
-      !/^### Blocking[ \t]*$/m.test(section) ||
-      !/^### Suggestions[ \t]*$/m.test(section)
-    )
-      return { valid: false };
-    const blockingStart = section.search(/^### Blocking[ \t]*$/m);
-    const suggestionsStart = section.search(/^### Suggestions[ \t]*$/m);
-    if (blockingStart < 0 || suggestionsStart < blockingStart)
-      return { valid: false };
-    const metadataLines = section
-      .slice(0, blockingStart)
-      .split(/\r\n|\n|\r/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (
-      metadataLines.length !== 3 ||
-      metadataLines[0] !== `Base: ${base}` ||
-      metadataLines[1] !== `Head: ${head}` ||
-      metadataLines[2] !== `Verdict: ${verdict}`
-    )
-      return { valid: false };
-    const blocking = section.slice(
-      blockingStart + section.slice(blockingStart).indexOf("\n") + 1,
-      suggestionsStart,
-    );
-    for (const line of blocking
-      .split(/\r\n|\n|\r/)
-      .map((entry) => entry.trim())
-      .filter(Boolean)) {
-      if (line === "- None.") continue;
-      if (
-        !/^- \[[^\]]+\] .+/.test(line) ||
-        /<(?:file|loc|what is wrong|what to change|optional improvement|criterion \/ standard)>/.test(
-          line,
-        )
-      )
-        return { valid: false };
-    }
-    latest = { base, head, verdict };
-  }
-  return latest ? { valid: true, ...latest } : { valid: false };
 };
 
 const metadataContract = (
@@ -1020,44 +945,33 @@ const durableArtifact = async (
   return (await runtime.git.stagedDiff(root, relativePath)).status === 0;
 };
 
+const latestParsedPass = (artifact: RecognizedArtifact) => {
+  const parsed = parseReviewPasses(artifact);
+  return parsed.diagnostics.length === 0 ? parsed.latest : undefined;
+};
+
 const latestFeedback = async (
   runtime: ContextRuntime,
   root: string,
   dir: string,
   task: string,
-  title: string,
   implementation: string | undefined,
 ): Promise<ContextStanding | string> => {
   const path = Path.join(dir, "tasks", `task-${task}`, "feedback.md");
   if (!(await runtime.fileSystem.pathExists(path))) return "absent";
   const readResult = await readArtifact(runtime, path);
   if ("exitCode" in readResult) return "malformed";
-  let verdict: unknown;
-  let base: unknown;
-  let head: unknown;
-  if (currentValid(readResult.artifact)) {
-    if (
-      readResult.artifact.metadata.task !== Number(task) ||
-      readResult.artifact.metadata.change !== Path.basename(dir)
-    )
-      return "malformed";
-    verdict = readResult.artifact.metadata.verdict;
-    base = readResult.artifact.metadata.base;
-    head = readResult.artifact.metadata.head;
-    if (readResult.artifact.body.match(/^##[ \t]+Pass /m) === null)
-      return "malformed";
-  } else if (readResult.artifact._tag === "unrelated") {
-    const visible = stripComments(readResult.source);
-    const owner = visible.match(
-      /^# Code Feedback: Task ([1-9][0-9]*) — (.+)$/m,
-    );
-    const parsed = legacyPasses(readResult.source);
-    if (!owner || owner[1] !== task || owner[2] !== title || !parsed.valid)
-      return "malformed";
-    verdict = parsed.verdict;
-    base = parsed.base;
-    head = parsed.head;
-  } else return "malformed";
+  if (!currentValid(readResult.artifact)) return "malformed";
+  if (
+    readResult.artifact.metadata.task !== Number(task) ||
+    readResult.artifact.metadata.change !== Path.basename(dir)
+  )
+    return "malformed";
+  const latest = latestParsedPass(readResult.artifact);
+  if (latest === undefined) return "malformed";
+  const verdict = latest.verdict;
+  const base = latest.base;
+  const head = latest.head;
   if (!(await durableArtifact(runtime, root, path)))
     return `${String(verdict)} (uncommitted)`;
   const commit = text(
@@ -1088,38 +1002,22 @@ const latestReview = async (
   if (!(await runtime.fileSystem.pathExists(path))) return "not reviewed";
   const readResult = await readArtifact(runtime, path);
   if ("exitCode" in readResult) return "malformed";
-  let verdict: unknown;
-  let base: unknown;
-  let head: unknown;
-  if (currentValid(readResult.artifact)) {
-    if (
-      readResult.artifact.metadata.change !== Path.basename(dir) ||
-      !readResult.artifact.body.match(
-        new RegExp(
-          `^# Whole-branch Review: ${expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-          "m",
-        ),
-      )
+  if (!currentValid(readResult.artifact)) return "malformed";
+  if (
+    readResult.artifact.metadata.change !== Path.basename(dir) ||
+    !readResult.artifact.body.match(
+      new RegExp(
+        `^# Whole-branch Review: ${expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        "m",
+      ),
     )
-      return "malformed";
-    verdict = readResult.artifact.metadata.verdict;
-    base = readResult.artifact.metadata.base;
-    head = readResult.artifact.metadata.head;
-  } else if (readResult.artifact._tag === "unrelated") {
-    const visible = stripComments(readResult.source);
-    const owner = visible.match(/^# Whole-branch Review: (.+)$/m);
-    const parsed = legacyPasses(readResult.source);
-    if (
-      !owner ||
-      owner[1] !== expectedTitle ||
-      !parsed.valid ||
-      /^##[ \t]+Task\b/m.test(visible)
-    )
-      return "malformed";
-    verdict = parsed.verdict;
-    base = parsed.base;
-    head = parsed.head;
-  } else return "malformed";
+  )
+    return "malformed";
+  const latest = latestParsedPass(readResult.artifact);
+  if (latest === undefined) return "malformed";
+  const verdict = latest.verdict;
+  const base = latest.base;
+  const head = latest.head;
   if (!(await durableArtifact(runtime, root, path)))
     return `${String(verdict)} (uncommitted)`;
   const commit = text(
@@ -1179,7 +1077,6 @@ const enrichSplit = async (
         root,
         change.path,
         row.task,
-        row.title,
         text(
           await runtime.git.latestCommit(
             root,
