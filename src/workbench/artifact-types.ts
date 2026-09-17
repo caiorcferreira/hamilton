@@ -51,9 +51,21 @@ export interface ArtifactHeading {
 
 export type ReviewPassVerdict = "approved" | "changes-requested" | "skipped";
 
+export type ReviewPassProvenance = "per-pass" | "legacy-global";
+
+export interface ReviewPassStructuralRecord {
+  readonly provenance: "structural";
+  readonly number: number;
+  readonly date: string;
+  readonly blocking: readonly string[];
+  readonly suggestions: readonly string[];
+  readonly line: number;
+}
+
 export interface ReviewPassEvidence {
   readonly number: number;
   readonly date: string;
+  readonly provenance: ReviewPassProvenance;
   readonly base: string;
   readonly head: string;
   readonly verdict: ReviewPassVerdict;
@@ -62,8 +74,10 @@ export interface ReviewPassEvidence {
   readonly line: number;
 }
 
+export type ReviewPassRecord = ReviewPassStructuralRecord | ReviewPassEvidence;
+
 export interface ReviewPassParseResult {
-  readonly passes: readonly ReviewPassEvidence[];
+  readonly passes: readonly ReviewPassRecord[];
   readonly diagnostics: readonly ArtifactContractDiagnostic[];
   readonly physicalLastPass?: number;
   readonly latest?: ReviewPassEvidence;

@@ -5,6 +5,7 @@ import type {
   ArtifactContractDiagnosticCode,
   ReviewPassEvidence,
   ReviewPassParseResult,
+  ReviewPassRecord,
   ReviewPassVerdict,
 } from "./artifact-types.js";
 
@@ -324,13 +325,156 @@ const sectionValues = (
   return { values, diagnostics };
 };
 
+type PassMode = "structural" | "per-pass" | "legacy-global";
+
+type ReviewHistoryState =
+  | { readonly kind: "legacy-only"; readonly lastIndex: number }
+  | { readonly kind: "transitioned"; readonly firstFieldfulIndex: number }
+  | { readonly kind: "modern" }
+  | {
+      readonly kind: "invalid";
+      readonly firstFieldfulIndex: number;
+    };
+
+interface PassFields {
+  readonly spanHeadings: readonly ReviewHeading[];
+  readonly beforeFields: readonly FieldOccurrence[];
+  readonly afterFields: readonly FieldOccurrence[];
+}
+
+interface GlobalEvidence {
+  readonly base: string;
+  readonly head: string;
+  readonly verdict: ReviewPassVerdict;
+}
+
+const passFields = (
+  artifact: RecognizedArtifact,
+  lines: readonly string[],
+  headings: readonly ReviewHeading[],
+  candidate: PassHeading,
+): PassFields => {
+  const spanHeadings = headings.filter(
+    (heading) =>
+      heading.index > candidate.heading.index &&
+      heading.index < candidate.endIndex &&
+      heading.level !== 2,
+  );
+  const firstChildIndex = spanHeadings.at(0)?.index ?? candidate.endIndex;
+  return {
+    spanHeadings,
+    beforeFields: fieldOccurrences(
+      lines,
+      candidate.heading.index + 1,
+      firstChildIndex,
+      artifact,
+    ),
+    afterFields: fieldOccurrences(
+      lines,
+      firstChildIndex,
+      candidate.endIndex,
+      artifact,
+    ),
+  };
+};
+
+const completePassFields = (occurrences: readonly FieldOccurrence[]): boolean =>
+  occurrences.length === fields.length &&
+  fields.every((name, index) => occurrences[index]?.name === name);
+
+const reviewHistoryState = (
+  globalCount: number,
+  fieldShapes: readonly ("fieldless" | "explicit" | "partial")[],
+  passCount: number,
+): ReviewHistoryState => {
+  const firstFieldfulIndex = fieldShapes.findIndex(
+    (shape) => shape !== "fieldless",
+  );
+  if (globalCount === 3 && firstFieldfulIndex === -1)
+    return { kind: "legacy-only", lastIndex: passCount - 1 };
+  if (globalCount === 0 && firstFieldfulIndex === 0)
+    return { kind: "modern" };
+  if (globalCount === 0 && firstFieldfulIndex > 0)
+    return { kind: "transitioned", firstFieldfulIndex };
+  return { kind: "invalid", firstFieldfulIndex };
+};
+
+const passMode = (
+  state: ReviewHistoryState,
+  index: number,
+): PassMode => {
+  if (state.kind === "legacy-only")
+    return index === state.lastIndex ? "legacy-global" : "structural";
+  if (state.kind === "transitioned")
+    return index < state.firstFieldfulIndex ? "structural" : "per-pass";
+  if (state.kind === "modern") return "per-pass";
+  return state.firstFieldfulIndex !== -1 && index >= state.firstFieldfulIndex
+    ? "per-pass"
+    : "structural";
+};
+
+const parseGlobalEvidence = (
+  artifact: RecognizedArtifact,
+): { readonly evidence?: GlobalEvidence; readonly diagnostics: readonly ArtifactContractDiagnostic[] } => {
+  const diagnostics: ArtifactContractDiagnostic[] = [];
+  const globalBase = artifact.metadata.base;
+  const globalHead = artifact.metadata.head;
+  const globalVerdict = artifact.metadata.verdict;
+  let base: string | undefined;
+  let head: string | undefined;
+  let verdict: ReviewPassVerdict | undefined;
+  if (typeof globalBase !== "string" || !fullCommit(globalBase))
+    diagnostics.push(
+      sectionDiagnostic(
+        artifact,
+        "invalid-value",
+        "Global base must be a full lowercase commit identifier",
+        artifact.locations.metadata.startLine,
+        "40 hexadecimal characters",
+        globalBase,
+      ),
+    );
+  else base = globalBase;
+  if (typeof globalHead !== "string" || !fullCommit(globalHead))
+    diagnostics.push(
+      sectionDiagnostic(
+        artifact,
+        "invalid-value",
+        "Global head must be a full lowercase commit identifier",
+        artifact.locations.metadata.startLine,
+        "40 hexadecimal characters",
+        globalHead,
+      ),
+    );
+  else head = globalHead;
+  if (
+    typeof globalVerdict !== "string" ||
+    !verdicts.includes(globalVerdict as ReviewPassVerdict)
+  )
+    diagnostics.push(
+      sectionDiagnostic(
+        artifact,
+        "invalid-value",
+        "Global verdict is not allowed",
+        artifact.locations.metadata.startLine,
+        verdicts.join(" | "),
+        globalVerdict,
+      ),
+    );
+  else verdict = globalVerdict as ReviewPassVerdict;
+  if (base === undefined || head === undefined || verdict === undefined)
+    return { diagnostics };
+  return { evidence: { base, head, verdict }, diagnostics };
+};
+
 const parsePass = (
   artifact: RecognizedArtifact,
   lines: readonly string[],
   headings: readonly ReviewHeading[],
   candidate: PassHeading,
-  compatibility: boolean,
-): { readonly evidence?: ReviewPassEvidence; readonly diagnostics: readonly ArtifactContractDiagnostic[] } => {
+  mode: PassMode,
+  globalEvidence: GlobalEvidence | undefined,
+): { readonly record?: ReviewPassRecord; readonly diagnostics: readonly ArtifactContractDiagnostic[] } => {
   const diagnostics: ArtifactContractDiagnostic[] = [];
   if (candidate.parsed === null) {
     diagnostics.push(
@@ -345,12 +489,9 @@ const parsePass = (
     );
     return { diagnostics };
   }
-  const spanHeadings = headings.filter(
-    (heading) =>
-      heading.index > candidate.heading.index &&
-      heading.index < candidate.endIndex &&
-      heading.level !== 2,
-  );
+  const fieldsInPass = passFields(artifact, lines, headings, candidate);
+  const { spanHeadings, beforeFields, afterFields } = fieldsInPass;
+  const firstChildIndex = spanHeadings.at(0)?.index ?? candidate.endIndex;
   for (const heading of spanHeadings) {
     if (
       heading.level !== 3 ||
@@ -398,19 +539,6 @@ const parsePass = (
           heading.text,
         ),
       );
-  const firstChildIndex = spanHeadings.at(0)?.index ?? candidate.endIndex;
-  const beforeFields = fieldOccurrences(
-    lines,
-    candidate.heading.index + 1,
-    firstChildIndex,
-    artifact,
-  );
-  const afterFields = fieldOccurrences(
-    lines,
-    firstChildIndex,
-    candidate.endIndex,
-    artifact,
-  );
   for (const occurrence of afterFields)
     diagnostics.push(fieldDiagnostic(artifact, occurrence));
   for (let index = candidate.heading.index + 1; index < firstChildIndex; index += 1) {
@@ -430,7 +558,7 @@ const parsePass = (
   const counts = new Map<string, number>();
   for (const occurrence of beforeFields)
     counts.set(occurrence.name, (counts.get(occurrence.name) ?? 0) + 1);
-  if (!compatibility) {
+  if (mode === "per-pass") {
     for (const name of fields) {
       const count = counts.get(name) ?? 0;
       if (count === 0)
@@ -459,23 +587,15 @@ const parsePass = (
           );
       }
     }
-  } else if (
-    beforeFields.length > 0 &&
-    !(
-      beforeFields.length === fields.length &&
-      fields.every((name, index) => beforeFields[index]?.name === name) &&
-      beforeFields[0]?.value === artifact.metadata.base &&
-      beforeFields[1]?.value === artifact.metadata.head &&
-      beforeFields[2]?.value === artifact.metadata.verdict
-    )
-  ) {
+  } else if (beforeFields.length > 0) {
     diagnostics.push(
       sectionDiagnostic(
         artifact,
         "invalid-record",
-        "Global provenance is ambiguous with per-pass provenance",
+        "Structural legacy passes cannot declare pass-local provenance",
         candidate.heading.line,
-        "one-pass global Base, Head, and Verdict",
+        "no Base, Head, or Verdict fields",
+        beforeFields.map((field) => field.name),
       ),
     );
   }
@@ -513,52 +633,29 @@ const parsePass = (
     "Suggestions",
   );
   diagnostics.push(...blocking.diagnostics, ...suggestions.diagnostics);
+  const structural: ReviewPassRecord = {
+    provenance: "structural",
+    number: candidate.parsed.number,
+    date: candidate.parsed.date,
+    blocking:
+      blocking.values.length === 1 && blocking.values[0] === "None."
+        ? []
+        : blocking.values,
+    suggestions:
+      suggestions.values.length === 1 && suggestions.values[0] === "None."
+        ? []
+        : suggestions.values,
+    line: candidate.heading.line,
+  };
+  if (mode === "structural") return { record: structural, diagnostics };
   let base: string | undefined;
   let head: string | undefined;
   let verdict: ReviewPassVerdict | undefined;
-  if (compatibility) {
-    const globalBase = artifact.metadata.base;
-    const globalHead = artifact.metadata.head;
-    const globalVerdict = artifact.metadata.verdict;
-    if (typeof globalBase !== "string" || !fullCommit(globalBase))
-      diagnostics.push(
-        sectionDiagnostic(
-          artifact,
-          "invalid-value",
-          "Global base must be a full lowercase commit identifier",
-          artifact.locations.metadata.startLine,
-          "40 hexadecimal characters",
-          globalBase,
-        ),
-      );
-    else base = globalBase;
-    if (typeof globalHead !== "string" || !fullCommit(globalHead))
-      diagnostics.push(
-        sectionDiagnostic(
-          artifact,
-          "invalid-value",
-          "Global head must be a full lowercase commit identifier",
-          artifact.locations.metadata.startLine,
-          "40 hexadecimal characters",
-          globalHead,
-        ),
-      );
-    else head = globalHead;
-    if (
-      typeof globalVerdict !== "string" ||
-      !verdicts.includes(globalVerdict as ReviewPassVerdict)
-    )
-      diagnostics.push(
-        sectionDiagnostic(
-          artifact,
-          "invalid-value",
-          "Global verdict is not allowed",
-          artifact.locations.metadata.startLine,
-          verdicts.join(" | "),
-          globalVerdict,
-        ),
-      );
-    else verdict = globalVerdict as ReviewPassVerdict;
+  if (mode === "legacy-global") {
+    if (globalEvidence === undefined) return { record: structural, diagnostics };
+    base = globalEvidence.base;
+    head = globalEvidence.head;
+    verdict = globalEvidence.verdict;
   } else {
     const valueByName = new Map(
       beforeFields.map((occurrence) => [occurrence.name, occurrence.value]),
@@ -656,21 +753,12 @@ const parsePass = (
     );
   if (diagnostics.length > 0) return { diagnostics };
   return {
-    evidence: {
-      number: candidate.parsed.number,
-      date: candidate.parsed.date,
+    record: {
+      ...structural,
+      provenance: mode === "legacy-global" ? "legacy-global" : "per-pass",
       base,
       head,
       verdict,
-      blocking:
-        blocking.values.length === 1 && blocking.values[0] === "None."
-          ? []
-          : blocking.values,
-      suggestions:
-        suggestions.values.length === 1 && suggestions.values[0] === "None."
-          ? []
-          : suggestions.values,
-      line: candidate.heading.line,
     },
     diagnostics,
   };
@@ -758,7 +846,27 @@ export const parseReviewPasses = (
         lastLevelTwo?.text,
       ),
     );
+  const fieldStates = candidates.map((candidate) =>
+    passFields(artifact, lines, headings, candidate),
+  );
+  const fieldShapes = fieldStates.map((state) =>
+    state.beforeFields.length === 0
+      ? "fieldless"
+      : completePassFields(state.beforeFields)
+        ? "explicit"
+        : "partial",
+  );
   const globalCount = globalFieldPresence(artifact);
+  const historyState = reviewHistoryState(
+    globalCount,
+    fieldShapes,
+    candidates.length,
+  );
+  const hasFieldful =
+    historyState.kind === "modern" ||
+    historyState.kind === "transitioned" ||
+    (historyState.kind === "invalid" &&
+      historyState.firstFieldfulIndex !== -1);
   if (globalCount > 0 && globalCount < 3)
     diagnostics.push(
       sectionDiagnostic(
@@ -769,36 +877,55 @@ export const parseReviewPasses = (
         "Base, Head, and Verdict",
       ),
     );
-  if (globalCount === 3 && candidates.length !== 1)
+  if (globalCount === 3 && hasFieldful)
     diagnostics.push(
       sectionDiagnostic(
         artifact,
         "invalid-record",
-        "Global review provenance is supported only for one unambiguous pass",
+        "Global review provenance cannot be combined with an explicit pass suffix",
         artifact.locations.metadata.startLine,
-        "one pass",
-        candidates.length,
+        "global-only or no global provenance",
       ),
     );
-  const compatibility = globalCount === 3 && candidates.length === 1;
-  const passes: ReviewPassEvidence[] = [];
-  for (const candidate of candidates) {
+  if (globalCount === 0 && !hasFieldful && candidates.length > 0)
+    diagnostics.push(
+      sectionDiagnostic(
+        artifact,
+        "invalid-record",
+        "Fieldless review history must declare global Base, Head, and Verdict provenance",
+        artifact.locations.metadata.startLine,
+        "Base, Head, and Verdict",
+      ),
+    );
+  const globalResult =
+    globalCount === 3
+      ? parseGlobalEvidence(artifact)
+      : { diagnostics: [] as readonly ArtifactContractDiagnostic[] };
+  diagnostics.push(...globalResult.diagnostics);
+  const passes: ReviewPassRecord[] = [];
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
+    if (candidate === undefined) continue;
     const parsed = parsePass(
       artifact,
       lines,
       headings,
       candidate,
-      compatibility,
+      passMode(historyState, index),
+      globalResult.evidence,
     );
     diagnostics.push(...parsed.diagnostics);
-    if (parsed.evidence !== undefined) passes.push(parsed.evidence);
+    if (parsed.record !== undefined) passes.push(parsed.record);
   }
   const physicalLastPass = lastPass?.number ?? undefined;
-  const latest =
+  const lastRecord = passes.at(-1);
+  const latest: ReviewPassEvidence | undefined =
     diagnostics.length === 0 &&
     passes.length === candidates.length &&
-    passes.at(-1)?.number === physicalLastPass
-      ? passes.at(-1)
+    lastRecord !== undefined &&
+    lastRecord.number === physicalLastPass &&
+    lastRecord.provenance !== "structural"
+      ? lastRecord
       : undefined;
   return {
     passes,

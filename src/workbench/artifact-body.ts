@@ -418,20 +418,34 @@ const readReviewWorkflow = (
   readonly diagnostics: readonly ArtifactContractDiagnostic[];
 } => {
   const parsed = parseReviewPasses(artifact);
-  const records = parsed.passes.map(
-    (pass: ReviewPassEvidence): ArtifactWorkflowRecord => ({
+  const records = parsed.passes.map((pass): ArtifactWorkflowRecord => {
+    const fields = {
+      Blocking: pass.blocking.join("\n"),
+      Suggestions: pass.suggestions.join("\n"),
+    };
+    if (pass.provenance === "structural")
+      return {
+        kind: "pass",
+        number: pass.number,
+        date: pass.date,
+        line: pass.line,
+        fields,
+      };
+    return {
       kind: "pass",
       number: pass.number,
       date: pass.date,
       line: pass.line,
       fields: {
+        ...fields,
         Base: pass.base,
         Head: pass.head,
         Verdict: pass.verdict,
-        Blocking: pass.blocking.join("\n"),
-        Suggestions: pass.suggestions.join("\n"),
       },
-    }),
+    };
+  });
+  const evidence = parsed.passes.filter(
+    (pass): pass is ReviewPassEvidence => pass.provenance !== "structural",
   );
   return {
     state: {
@@ -440,7 +454,7 @@ const readReviewWorkflow = (
           ? "supported"
           : "physical-last-pass",
       records,
-      passes: parsed.passes,
+      passes: evidence,
       ...(parsed.physicalLastPass === undefined
         ? {}
         : { physicalLastPass: parsed.physicalLastPass }),

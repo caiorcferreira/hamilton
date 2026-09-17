@@ -508,6 +508,184 @@ Verdict: approved
     expect(validateArtifact(artifact)._tag).toBe("valid");
   });
 
+  it("accepts legacy multi-pass review history without applying global evidence to the prefix", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        verdict: "approved",
+        decision: "accepted",
+        base: sha,
+        head: sha,
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+### Blocking
+- [src/main.ts:12] Fix the regression (violates: behavior)
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    const result = validateArtifact(artifact);
+
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records).toHaveLength(2);
+      expect(result.body.workflow.records[0]?.fields).toEqual({
+        Blocking: "[src/main.ts:12] Fix the regression (violates: behavior)",
+        Suggestions: "",
+      });
+      expect(result.body.workflow.records[0]?.fields).not.toHaveProperty(
+        "Base",
+      );
+      expect(result.body.workflow.records[1]?.fields).toMatchObject({
+        Base: sha,
+        Head: sha,
+        Verdict: "approved",
+      });
+      expect(result.body.workflow.passes).toHaveLength(1);
+      expect(result.body.workflow.passes?.[0]).toMatchObject({
+        number: 2,
+        provenance: "legacy-global",
+        verdict: "approved",
+      });
+    }
+  });
+
+  it("accepts the migrated fieldless-prefix and explicit-suffix review shape", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        decision: "accepted",
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+### Blocking
+- [src/main.ts:12] Fix the regression (violates: behavior)
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    const result = validateArtifact(artifact);
+
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records[0]?.fields).not.toHaveProperty(
+        "Verdict",
+      );
+      expect(result.body.workflow.records[1]?.fields).toMatchObject({
+        Base: sha,
+        Head: sha,
+        Verdict: "approved",
+      });
+      expect(result.body.workflow.passes?.[0]).toMatchObject({
+        number: 2,
+        provenance: "per-pass",
+      });
+    }
+  });
+
+  it.each([
+    [
+      "legacy history without global provenance",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        decision: "accepted",
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    ],
+    [
+      "global provenance beside an explicit suffix",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        verdict: "approved",
+        decision: "accepted",
+        base: sha,
+        head: sha,
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+### Blocking
+- None.
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    ],
+    [
+      "fieldless pass after explicit suffix",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        decision: "accepted",
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    ],
+  ])("rejects %s", (_name, metadata, body) => {
+    const result = validateArtifact(
+      recognized(".hamilton/changes/demo/review.md", metadata, body),
+    );
+    const expectedCode =
+      _name === "fieldless pass after explicit suffix"
+        ? "missing-section"
+        : "invalid-record";
+    expectInvalid(result, expectedCode);
+    if (result._tag === "invalid")
+      expect(result.diagnostics[0]?.location?.line).toBeGreaterThan(0);
+  });
+
   it("rejects a malformed physical-last review pass instead of reviving approval", () => {
     const artifact = recognized(
       ".hamilton/changes/demo/review.md",

@@ -44,6 +44,19 @@ ${blocking}
 ### Suggestions
 ${suggestions}`;
 
+const fieldlessPass = (
+  number: number,
+  date: string,
+  blocking: string,
+  suggestions = "- None.",
+): string => `## Pass ${number} — ${date}
+
+### Blocking
+${blocking}
+
+### Suggestions
+${suggestions}`;
+
 const history = (...passes: readonly string[]): string =>
   `# Whole-branch Review: Demo\n\n${passes.join("\n\n")}`;
 
@@ -70,6 +83,7 @@ describe("review pass parser", () => {
       {
         number: 1,
         date: "2026-09-12",
+        provenance: "per-pass",
         base: sha,
         head,
         verdict: "changes-requested",
@@ -82,6 +96,7 @@ describe("review pass parser", () => {
       {
         number: 2,
         date: "2026-09-13",
+        provenance: "per-pass",
         base: sha,
         head,
         verdict: "approved",
@@ -282,6 +297,159 @@ Head: ${head}
     expect(result.latest).toBeUndefined();
   });
 
+  it("binds global evidence only to the physical last legacy pass", () => {
+    const result = parseReviewPasses(
+      recognized(
+        {
+          artifact: "review",
+          base: sha,
+          head,
+          verdict: "approved",
+        },
+        history(
+          fieldlessPass(
+            1,
+            "2026-09-12",
+            "- [src/main.ts:12] Fix the regression (violates: behavior)",
+          ),
+          fieldlessPass(2, "2026-09-13", "- None."),
+        ),
+      ),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.passes).toHaveLength(2);
+    expect(result.passes[0]).toMatchObject({
+      number: 1,
+      provenance: "structural",
+      blocking: ["[src/main.ts:12] Fix the regression (violates: behavior)"],
+    });
+    expect(result.passes[0]).not.toHaveProperty("base");
+    expect(result.passes[0]).not.toHaveProperty("head");
+    expect(result.passes[0]).not.toHaveProperty("verdict");
+    expect(result.passes[1]).toMatchObject({
+      number: 2,
+      provenance: "legacy-global",
+      base: sha,
+      head,
+      verdict: "approved",
+    });
+    expect(result.latest).toMatchObject({
+      number: 2,
+      provenance: "legacy-global",
+      verdict: "approved",
+    });
+  });
+
+  it("accepts a fieldless legacy prefix followed by an explicit suffix", () => {
+    const result = parseReviewPasses(
+      recognized(
+        { artifact: "review" },
+        history(
+          fieldlessPass(
+            1,
+            "2026-09-12",
+            "- [src/main.ts:12] Fix the regression (violates: behavior)",
+          ),
+          pass(2, "2026-09-13", "approved", "- None."),
+        ),
+      ),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.passes[0]).toMatchObject({
+      number: 1,
+      provenance: "structural",
+    });
+    expect(result.passes[0]).not.toHaveProperty("verdict");
+    expect(result.passes[1]).toMatchObject({
+      number: 2,
+      provenance: "per-pass",
+      verdict: "approved",
+    });
+    expect(result.latest).toMatchObject({
+      number: 2,
+      provenance: "per-pass",
+      base: sha,
+      head,
+      verdict: "approved",
+    });
+  });
+
+  it("rejects contradictory findings on the globally evidenced last pass", () => {
+    const result = parseReviewPasses(
+      recognized(
+        {
+          artifact: "review",
+          base: sha,
+          head,
+          verdict: "approved",
+        },
+        history(
+          fieldlessPass(
+            1,
+            "2026-09-12",
+            "- [src/main.ts:12] Fix the historical finding (violates: behavior)",
+          ),
+          fieldlessPass(
+            2,
+            "2026-09-13",
+            "- [src/main.ts:13] Fix the current finding (violates: behavior)",
+          ),
+        ),
+      ),
+    );
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-value",
+        message: "Approved passes cannot contain blocking findings",
+        location: { line: 19 },
+      }),
+    );
+    expect(result.latest).toBeUndefined();
+  });
+
+  it("rejects a fieldless pass after an explicit suffix begins", () => {
+    const result = parseReviewPasses(
+      recognized(
+        { artifact: "review" },
+        history(
+          pass(1, "2026-09-12", "approved", "- None."),
+          fieldlessPass(2, "2026-09-13", "- None."),
+        ),
+      ),
+    );
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "missing-section",
+        location: { line: 21 },
+      }),
+    );
+    expect(result.latest).toBeUndefined();
+  });
+
+  it("rejects a fieldless history without global evidence", () => {
+    const result = parseReviewPasses(
+      recognized(
+        { artifact: "review" },
+        history(
+          fieldlessPass(1, "2026-09-12", "- None."),
+          fieldlessPass(2, "2026-09-13", "- None."),
+        ),
+      ),
+    );
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-record",
+        location: { line: 2 },
+      }),
+    );
+    expect(result.latest).toBeUndefined();
+  });
+
   it("accepts one complete global-frontmatter pass for compatibility", () => {
     const result = parseReviewPasses(
       recognized(
@@ -305,6 +473,7 @@ Head: ${head}
 
     expect(result.diagnostics).toEqual([]);
     expect(result.passes[0]).toMatchObject({
+      provenance: "legacy-global",
       base: sha,
       head,
       verdict: "approved",
@@ -339,7 +508,7 @@ Head: ${head}
     );
   });
 
-  it("fails closed for global frontmatter with multiple passes", () => {
+  it("rejects globals beside an explicit suffix", () => {
     const result = parseReviewPasses(
       recognized(
         {
@@ -349,7 +518,7 @@ Head: ${head}
           verdict: "approved",
         },
         history(
-          pass(1, "2026-09-12", "approved", "- None."),
+          fieldlessPass(1, "2026-09-12", "- None."),
           pass(2, "2026-09-13", "approved", "- None."),
         ),
       ),
@@ -358,5 +527,6 @@ Head: ${head}
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({ code: "invalid-record" }),
     );
+    expect(result.latest).toBeUndefined();
   });
 });
