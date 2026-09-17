@@ -17,8 +17,9 @@ is the final whole-branch inspection gate, critique judges propose-phase artifac
 implementation. Wayfinder is likewise optional and outside the core count.
 
 **Judge, don't fix.** You produce a verdict and located findings. You never modify
-`proposal.md`, `requirements/`, or `design.md`. The author revises and brings the artifacts
-back; that loop is driven by whoever runs the pipeline, not by this skill.
+`proposal.md`, `requirements/`, or `design.md`. The single `decision` field records what the
+user did with the critique. Once it records a user decision, the critique is settled and is
+not worked again unless the user explicitly requests a new critique pass.
 
 ## Inputs
 
@@ -92,8 +93,12 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    picks one. Unattended, skip the validation; the report is written from the unvalidated findings, and the handoff names the next step.
 7. **Write the report** — the numbered format below — printed to chat **and** persisted to
    `critique.md` in the change directory, written from the findings that survived
-   validation. Record `created`, `verdict`, and `decision` (`accepted`, `rejected`, or
-   `skipped`) in frontmatter; do not duplicate these fields as body metadata.
+   validation. Record `created`, `verdict`, and `decision` (`accepted`, `applied`, `rejected`,
+   or `skipped`) in frontmatter; do not duplicate these fields as body metadata. Use
+   `accepted` when the user accepts a verdict that needs no remediation, `applied` when the
+   user accepts and applies the requested changes, `rejected` when the user dismisses the
+   critique, and `skipped` when no user decision is collected. Never add a second resolution
+   field.
 
 ## Review dimensions
 
@@ -136,7 +141,7 @@ gate), or `[Minor]` (a documentation or naming gap):
 <N artifacts cross-referenced against the codebase, the code-quality rubric, and each other>
 
 The frontmatter `verdict` is `approved`, `changes-requested`, or `skipped`, and `decision` records
-whether the verdict was accepted, rejected, or skipped.
+whether the critique was accepted, applied, rejected, or skipped.
 
 ## Findings
 1. **[Critical]** <title>
@@ -177,9 +182,18 @@ verdict and a numbered findings list. This skill does not modify `proposal.md`,
 
 ## Handoff
 
-- **Name the next step, per the verdict.** On `approved`, the artifacts are ready for
-  `hamilton-plan`. On `changes-requested`, they go back to the author (or `hamilton-propose`)
-  to revise the flagged findings, then return here.
+- **Name the next step, per the disposition.** An `approved` critique with
+  `decision: accepted` is cleared. A `changes-requested` critique with `decision: applied`
+  is cleared because the user accepted and applied its findings. A critique with
+  `decision: rejected` is also settled: the user dismissed it, so its findings are not worked.
+  Continue each cleared or dismissed critique directly to the next applicable core stage.
+  `decision: skipped` records that no user decision was collected; follow the verdict when
+  naming the handoff, but do not manufacture a user decision. Never rerun
+  `hamilton-critique` merely to replace a settled verdict with `approved`.
+- **Choose the applicable core stage.** With no `plan.md`, the next stage is
+  `hamilton-plan`. With an existing plan that remains valid after the revisions, the user may
+  continue with `hamilton-code` for one task or `hamilton-orchestrate` for the whole plan. If
+  the revisions invalidate an existing plan, hand off to `hamilton-plan` in re-plan mode.
 - **Hand back the decision.** Working with a person, state the verdict and ask whether to
   proceed rather than declaring readiness — and never invoke the next skill yourself.
   Running unattended, name the next step and return; the driver owns the loop.

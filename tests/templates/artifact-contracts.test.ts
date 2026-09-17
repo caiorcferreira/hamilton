@@ -82,6 +82,13 @@ describe("split execution artifact templates", () => {
     expect(template).not.toContain("### Reviewed range")
   })
 
+  it("defines the critique's terminal user decisions", () => {
+    const template = readTemplate("critique.md")
+
+    expect(template).toContain("verdict: approved | changes-requested | skipped")
+    expect(template).toContain("decision: accepted | applied | rejected | skipped")
+  })
+
   it("defines the whole-branch review artifact", () => {
     const template = readTemplate("review.md")
 
