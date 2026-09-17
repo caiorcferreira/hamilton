@@ -16,10 +16,19 @@ const specificationContent = Object.fromEntries(
   specifications.map((document) => [document, readFileSync(resolve(root, document), "utf8")]),
 );
 const allDocumentation = Object.values(content).join("\n");
-const allContractDocumentation = [
-  ...Object.values(content),
-  ...Object.values(specificationContent),
-].join("\n");
+const contractDocuments = [
+  ...specifications,
+  "docs/sdd-framework.md",
+  "docs/skills.md",
+] as const;
+const contractContent = Object.fromEntries(
+  contractDocuments.map((document) => [
+    document,
+    document in specificationContent
+      ? specificationContent[document]
+      : content[document],
+  ]),
+);
 
 const workbenchSubcommands = ["isolate", "diff", "precondition", "context", "prototype", "lint"];
 
@@ -53,28 +62,50 @@ describe("workbench documentation", () => {
     expect(allDocumentation).toMatch(/hamilton purge/);
   });
 
-  it("defines the three review history modes and evidence authority", () => {
-    expect(allContractDocumentation).toMatch(/legacy-global/);
-    expect(allContractDocumentation).toMatch(/structural/);
-    expect(allContractDocumentation).toMatch(/transitioned/);
-    expect(allContractDocumentation).toMatch(/global.*(?:bind|apply).*physical(?:ly)? last.*legacy/i);
-    expect(allContractDocumentation).toMatch(/structural.*(?:history|prefix).*(?:without|not).*verdict/i);
-    expect(allContractDocumentation).toMatch(/fully evidenced.*(?:verdict|record)/i);
-  });
+  it.each(contractDocuments)(
+    "defines review history modes and evidence authority independently in %s",
+    (document) => {
+      const value = contractContent[document];
+      expect(value).toMatch(/legacy-global/);
+      expect(value).toMatch(/transitioned/);
+      expect(value).toMatch(/modern/);
+      expect(value).toMatch(
+        /only fully evidenced feedback and review passes carry[^.\n]*Base[^.\n]*Head[^.\n]*Verdict/i,
+      );
+      expect(value).toMatch(
+        /structural\s+legacy\s+records\s+are\s+provenance-free,\s*cannot\s+supply\s+a\s+verdict,\s*and\s+remain\s+distinct\s+from\s+the\s+authoritative\s+latest\s+evidenced\s+record/i,
+      );
+      expect(value).toMatch(/physical(?:ly)? latest.*evidenced.*(?:pass|record).*authoritative|govern/i);
+      expect(value).not.toMatch(/\b(?:every|each) pass\b[^.\n]*(?:Base|Head|Verdict)/i);
+    },
+  );
 
-  it("documents the atomic first append and strict suffix", () => {
-    expect(allContractDocumentation).toMatch(
-      /first modern append.*remove.*global.*preserv(?:e|ing).*pass bod(?:y|ies).*explicit suffix/is,
-    );
-    expect(allContractDocumentation).toMatch(/later appends?.*pass-local/i);
-    expect(allContractDocumentation).toMatch(/physical(?:ly)? latest.*evidenced.*(?:pass|record).*govern/i);
-    expect(allContractDocumentation).toMatch(/malformed.*transition.*fail(?:s|ing)? closed/i);
-  });
+  it.each(contractDocuments)(
+    "documents the atomic first append and strict suffix independently in %s",
+    (document) => {
+      const value = contractContent[document];
+      expect(value).toMatch(/first modern append/i);
+      expect(value).toMatch(/remove(?:s|d)? exactly the global provenance/i);
+      expect(value).toMatch(/preserv(?:e|es|ing).*pass bod(?:y|ies).*byte-for-byte/i);
+      expect(value).toMatch(/later (?:appends?|pass(?:es)?).*pass-local/i);
+      expect(value).toMatch(/malformed.*transition.*fail(?:s|ing)? closed/i);
+    },
+  );
 
-  it("keeps review evidence append-only and commit-bound", () => {
-    expect(allContractDocumentation).toMatch(/single owning (?:feedback|review) file/i);
-    expect(allContractDocumentation).toMatch(/full commit identifier|full `Base:`.*full `Head:`/is);
-    expect(allContractDocumentation).toMatch(/freshness/i);
-    expect(allContractDocumentation).toMatch(/numbered `?(?:feedback|review)(?:-k|-<k>)?\.md`?.*(?:not|never)/is);
-  });
+  it.each(contractDocuments)(
+    "keeps review evidence append-only and value-typed independently in %s",
+    (document) => {
+      const value = contractContent[document];
+      expect(value).toMatch(/append-only.*(?:file|history)/is);
+      expect(value).toMatch(
+        /(?:`)?Base(?:`)?\s+and\s+(?:`)?Head(?:`)?\s+contain full commit identifiers/i,
+      );
+      expect(value).toMatch(
+        /(?:`)?Verdict(?:`)?\s+contains (?:(?:an|the) )?allowed verdict enum value/i,
+      );
+      expect(value).not.toMatch(
+        /full commit identifiers?[^.\n]*(?:,\s*and\s+|and\s+)`?Verdict:?`?/i,
+      );
+    },
+  );
 });

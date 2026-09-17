@@ -217,14 +217,17 @@ Reviews exactly one implemented task within its stable diff and records a tactic
 - **Produces:** an `approved` or `changes-requested` pass appended to
   `tasks/task-N/feedback.md`, committed in an artifact-only bookkeeping commit.
 - **Notes:** the task diff is the inspection boundary, except for one named outside risk. The
-  single owning feedback file is append-only; every fully evidenced pass carries full commit
-  identifiers in its `Base`, `Head`, and `Verdict` fields, and no numbered `feedback-k.md` files
-  are used. Histories may be `legacy-global` with structural bodies and global provenance bound
-  only to the physically last legacy pass, `transitioned` with a structural prefix and explicit
-  suffix, or `modern` with explicit evidence throughout. The physically latest evidenced pass is
-  authoritative, and a pass is fresh only when its reviewed Head contains the latest task-progress
-  commit. Requested changes return the same task to `hamilton-code`; approval advances to the next
-  task or the whole review.
+  single owning feedback file is append-only; only fully evidenced feedback and review passes carry
+  their own `Base`, `Head`, and `Verdict` fields, and no numbered `feedback-k.md` files are used.
+  Histories may be `legacy-global` with structural bodies and global provenance bound only to the
+  physically last legacy pass, `transitioned` with a structural prefix and explicit suffix, or
+  `modern` with explicit evidence throughout. Structural legacy records are provenance-free, cannot
+  supply a verdict, and remain distinct from the authoritative latest evidenced record. `Base` and
+  `Head` contain full commit identifiers; `Verdict` contains an allowed verdict enum value
+  (`approved` or `changes-requested`). The physically latest evidenced pass is authoritative, and a
+  pass is fresh only when its reviewed Head contains the latest task-progress commit. Requested
+  changes return the same task to `hamilton-code`; approval advances to the next task or the whole
+  review.
 - Source: [`skills/hamilton-code-feedback/SKILL.md`](../skills/hamilton-code-feedback/SKILL.md)
 
 ### `hamilton-review` — inspect the whole branch *(step 5, merge gate)*
@@ -240,12 +243,15 @@ inspection verdict before finish-work. **Reviews only; never edits implementatio
 - **Produces:** an `approved` or `changes-requested` pass appended to the single owning
   `<change>/review.md` history, committed in an artifact-only bookkeeping commit.
 - **Notes:** inspection starts with the diff but must trace affected consumers, cross-task
-  composition, omissions, and repository-wide assumptions. Every fully evidenced pass carries full
-  commit identifiers in its `Base`, `Head`, and `Verdict` fields; the physically latest evidenced
-  pass governs, and no numbered `review-k.md` files are used. Histories may be `legacy-global`,
-  `transitioned`, or `modern`; the first modern append preserves all legacy pass bodies, removes
-  exactly the global provenance, and appends an explicit pass-local suffix atomically. Later appends
-  remain pass-local, and malformed transitions fail closed. The reviewed Head must contain the latest
+  composition, omissions, and repository-wide assumptions. Only fully evidenced feedback and review
+  passes carry their own `Base`, `Head`, and `Verdict` fields; the physically latest evidenced pass
+  governs, and no numbered `review-k.md` files are used. Histories may be `legacy-global`,
+  `transitioned`, or `modern`; structural legacy records are provenance-free, cannot supply a
+  verdict, and remain distinct from the authoritative latest evidenced record. `Base` and `Head`
+  contain full commit identifiers; `Verdict` contains an allowed verdict enum value (`approved` or
+  `changes-requested`). The first modern append preserves all legacy pass bodies, removes exactly the
+  global provenance, and appends an explicit pass-local suffix atomically. Later appends remain
+  pass-local, and malformed transitions fail closed. The reviewed Head must contain the latest
   material change commit. Requested implementation changes return to `hamilton-plan` in re-plan mode;
   an approved fresh pass hands off to finish-work.
 - Source: [`skills/hamilton-review/SKILL.md`](../skills/hamilton-review/SKILL.md)
@@ -342,15 +348,18 @@ requirements truth.
 keeps detailed attempts under the task. Feedback, whole-branch review, and finish history each live
 in their separate owner artifact rather than being mixed into progress.
 
-Feedback and review evidence is per-pass and append-only. Fully evidenced passes record full commit
-identifiers in `Base`, `Head`, and `Verdict` in the one feedback or review file that owns that scope.
-The three supported modes are `legacy-global` structural history whose global provenance binds only
-to the physically last legacy pass, `transitioned` structural prefix plus explicit suffix, and
-`modern` all-explicit history. The first modern append preserves every existing pass body byte-for-byte,
-removes exactly the global provenance, and appends the next complete pass-local record atomically;
-later appends remain pass-local. Lint, context, precondition, and finish-work share the physically
-latest evidenced pass and fail closed when a transition or latest pass is malformed. Ownership stays
-in the single feedback or review file rather than numbered pass files.
+Only fully evidenced feedback and review passes carry `Base`, `Head`, and `Verdict`; structural
+legacy records are provenance-free, cannot supply a verdict, and remain distinct from the
+authoritative latest evidenced record. `Base` and `Head` contain full commit identifiers; `Verdict`
+contains an allowed verdict enum value (`approved` or `changes-requested`). Feedback and review
+evidence is per-pass and append-only. The three supported modes are `legacy-global` structural
+history whose global provenance binds only to the physically last legacy pass, `transitioned`
+structural prefix plus explicit suffix, and `modern` all-explicit history. The first modern append
+preserves every existing pass body byte-for-byte, removes exactly the global provenance, and appends
+the next complete pass-local record atomically; later appends remain pass-local. Lint, context,
+precondition, and finish-work share the physically latest evidenced pass and fail closed when a
+transition or latest pass is malformed. Ownership stays in the single feedback or review file
+rather than numbered pass files.
 
 ## The task loop and whole-branch gate
 
