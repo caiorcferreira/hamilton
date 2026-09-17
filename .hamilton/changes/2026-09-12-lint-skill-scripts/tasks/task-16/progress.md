@@ -60,3 +60,21 @@ decision: accepted
   - Decision: completed the interrupted producer alignment by making no Reviewed range heading, prior-pass rewrite, or fallback after malformed physical-last evidence explicit in both skills and dispatch prompts, with matching contract assertions.
   - Self-review: only Task 16 files and its two ledger artifacts are staged; the single-file append-only shape and exact lifecycle frontmatter are covered without weakening existing tests.
   - Concern: none.
+
+## Attempt 3 — 2026-09-17
+
+- Outcome: done
+- Created: None.
+- Modified:
+  - `tests/skills/orchestrate-contract.test.ts`
+- Deleted: None.
+- Verified:
+  - `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir .hamilton/changes/2026-09-12-lint-skill-scripts` → isolated: yes.
+  - `bun --bun vitest run tests/templates/artifact-contracts.test.ts tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts tests/skills/orchestrate-contract.test.ts && bun run build` → first correction run: 62 tests passed and 1 test failed on the wrapped `Verdict:` provenance phrase; build was not reached. The assertion was corrected within this attempt.
+  - `bun --bun vitest run tests/templates/artifact-contracts.test.ts tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts tests/skills/orchestrate-contract.test.ts && bun run build` → 63 tests passed and TypeScript built cleanly.
+  - `TMPDIR=/tmp GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 bun run test && bun run build` → 297 tests passed across 22 test files and TypeScript built cleanly.
+  - `git diff --check` → passed.
+- Notes:
+  - Decision: make only the two orchestration prompt assertions whitespace-tolerant at their Markdown-wrapped boundaries, preserving the required contract wording and all structural checks.
+  - Self-review: the implementation correction is confined to the assigned contract test; the existing per-pass Base/Head/Verdict ordering, exactly Blocking/Suggestions sections, one-file append-only history, no Reviewed range, and fail-closed physical-last assertions remain required.
+  - Concern: none.
