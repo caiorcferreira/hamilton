@@ -38,7 +38,9 @@ The pipeline uses distinct shapes for current task state, task evidence, task fe
 
 Task identity is encoded by the exact numeric identifier in `task-N`, not by a title. The root progress table is a current-state index; detailed attempts, feedback, review, and finish history remain in their owning artifacts. The task and review shapes use physical-last-pass semantics so a malformed latest pass cannot silently revive an earlier approval.
 
-`Base`, `Head`, and `Verdict` are per-pass feedback and review evidence, not global state for the file. Each history owns its complete lifecycle in one append-only file: code feedback appends only to `tasks/task-N/feedback.md`, and whole-branch review appends only to `<change>/review.md`. Numbered `feedback-k.md` and `review-k.md` files are not part of the model. For bounded compatibility with older artifacts, a reader may accept global-frontmatter `base`, `head`, and `verdict` only when the artifact contains exactly one pass. A multi-pass artifact must carry those fields inside every pass, and global frontmatter is not consulted; the physically last parsed pass remains authoritative and malformed latest evidence fails closed.
+`Base`, `Head`, and `Verdict` are per-pass feedback and review evidence, not ordinary global state for the file. Each history owns its complete lifecycle in one append-only file: code feedback appends only to `tasks/task-N/feedback.md`, and whole-branch review appends only to `<change>/review.md`. Numbered `feedback-k.md` and `review-k.md` files are not part of the model.
+
+Review histories have three supported modes. A `legacy-global` history has structural legacy pass bodies and global `base`, `head`, and `verdict` provenance bound only to its physically last legacy pass; earlier structural passes do not receive an invented verdict. A `transitioned` history has a structural legacy prefix followed by a fully evidenced explicit suffix. A `modern` history has fully evidenced per-pass records from its first pass onward. Structural legacy history is preserved body history without a verdict record, while explicit records carry complete verdict provenance. The first modern append performs one atomic transition: it validates the legacy-global history, preserves every existing pass body byte-for-byte, removes exactly the global provenance fields, and appends the next complete pass-local record. Once an explicit suffix begins, every later pass is pass-local and no fieldless pass or global provenance may follow it. The physically latest evidenced pass remains authoritative, and malformed transitions or latest evidence fail closed.
 
 ### The template idiom
 
@@ -73,9 +75,9 @@ For a split-pipeline installation, setup also installs the task progress, task f
 - An artifact shape MUST be defined exactly once, in the bundle's templates tree. A shape is NEVER reverse-engineered from a live instance, which cannot distinguish the required from the incidental.
 - The repository MUST NOT retain or consult a project-local `.hamilton/templates/` mirror.
 - Root `progress.md` MUST contain only the current task index; task attempts, task feedback, whole-branch review, and finish history MUST remain in their owning artifacts.
-- Every feedback and review pass MUST identify its own full `Base:` and `Head:` revisions and `Verdict:`, and histories MUST fail closed when the physically last pass is malformed.
+- Every fully evidenced feedback and review pass MUST identify its own full commit identifiers in `Base:`, `Head:`, and `Verdict:` fields, and histories MUST fail closed when the physically last pass or a transition is malformed.
 - Feedback and review histories MUST remain append-only in their single owning files; numbered `feedback-k.md` and `review-k.md` files MUST NOT be introduced.
-- Global-frontmatter `base`, `head`, and `verdict` compatibility MUST be limited to artifacts with exactly one pass and MUST NOT override or supplement multi-pass records.
+- Legacy-global provenance MUST apply only to the physically last legacy pass, MUST never seed historical structural passes, and MUST be removed atomically before an explicit suffix is appended.
 
 ## Decisions
 

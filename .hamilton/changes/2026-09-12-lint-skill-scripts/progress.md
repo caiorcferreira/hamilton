@@ -103,7 +103,7 @@ tasks:
     progress: tasks/task-24/progress.md
   - id: 25
     title: Document the review transition contract
-    status: pending
+    status: done
     progress: tasks/task-25/progress.md
   - id: 26
     title: Synchronize root progress metadata
@@ -154,7 +154,7 @@ tasks:
 | Task 22: Model legacy review transitions | done | [details](tasks/task-22/progress.md) |
 | Task 23: Verify review transition consumers | done | [details](tasks/task-23/progress.md) |
 | Task 24: Teach review producers the transition | done | [details](tasks/task-24/progress.md) |
-| Task 25: Document the review transition contract | pending | [details](tasks/task-25/progress.md) |
+| Task 25: Document the review transition contract | done | [details](tasks/task-25/progress.md) |
 | Task 26: Synchronize root progress metadata | pending | [details](tasks/task-26/progress.md) |
 | Task 27: Repair Task 21 completion evidence | pending | [details](tasks/task-27/progress.md) |
 | Task 28: Restore progress ledger parsing parity | pending | [details](tasks/task-28/progress.md) |

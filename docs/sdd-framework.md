@@ -134,21 +134,26 @@ assigned row in root `progress.md` and appends detailed attempt evidence only to
 task's unchanged checkpoint through the implementation Head, checks the task's acceptance and
 latest attempt evidence, and appends an artifact-only verdict to `tasks/task-N/feedback.md`. Its
 reviewed Head must contain the latest task-progress commit. The history is one append-only owning
-file: every pass carries its own `Base`, `Head`, and `Verdict`, and no numbered `feedback-k.md`
-files are created. The physically latest parsed pass is authoritative. Requested changes return
-that same task to code; approval advances the driver. Legacy global-frontmatter `base`, `head`,
-and `verdict` are accepted only by the bounded one-pass compatibility rule, never for a
-multi-pass history.
+file: every fully evidenced pass carries full commit identifiers in its `Base`, `Head`, and
+`Verdict` fields, and no numbered `feedback-k.md` files are created. A `legacy-global` history
+keeps structural legacy pass bodies and binds global provenance only to its physically last legacy
+pass; a `transitioned` history has that structural prefix followed by a fully evidenced explicit
+suffix; a `modern` history is fully explicit from the start. The physically latest evidenced pass
+is authoritative. Requested changes return that same task to code; approval advances the driver.
 
 **hamilton-review** is the whole-branch merge gate. After all tasks have fresh approved feedback,
 it starts from the complete branch diff and inspects broader affected consumers, cross-task
 composition, omissions, and repository assumptions. It appends passes to the single owning
-`<change>/review.md` history; every pass carries its own `Base`, `Head`, and `Verdict`, and no
-numbered `review-k.md` files are created. The physically latest parsed pass is authoritative, and
-the reviewed Head must contain the latest material change commit. Implementation findings return
-to planning as remediation tasks rather than directly to code. Legacy global-frontmatter `base`,
-`head`, and `verdict` are accepted only for a one-pass history and are not consulted for a
-multi-pass history.
+`<change>/review.md` history; every fully evidenced pass carries full commit identifiers in its
+`Base`, `Head`, and `Verdict` fields, and no numbered `review-k.md` files are created. A
+`legacy-global` history binds global provenance only to its physically last legacy pass; a
+`transitioned` history has a structural prefix and an explicit suffix; a `modern` history is
+fully explicit. The first modern append validates the old history, preserves every existing pass
+body byte-for-byte, removes exactly the global provenance fields, and appends the next pass-local
+record atomically. Later appends remain pass-local. The physically latest evidenced pass is
+authoritative, and malformed transitions or latest evidence fail closed. The reviewed Head must
+contain the latest material change commit. Implementation findings return to planning as
+remediation tasks rather than directly to code.
 
 **hamilton-finish-work** closes the change. It checks the completion gate (clean tree, full tests
 and build, exact task ledger complete, every task's fresh feedback approved, and fresh whole-branch
@@ -208,12 +213,15 @@ The document set and the standards it borrows from:
 | `review.md` | Whole-branch review | Change verdicts and reviewed ranges | — |
 | `finish.md` | Finish history | Intended and verified finish outcomes | — |
 
-Feedback and review evidence is per-pass: each pass owns its `Base`, `Head`, and `Verdict` in the
-one append-only file for that scope. The physical last parsed pass is the shared source for lint,
-context, precondition, and finish gates; malformed latest evidence fails closed. The only legacy
-path is the bounded one-pass global-frontmatter compatibility rule, and a multi-pass artifact must
-not fall back to global `base`, `head`, or `verdict` values. Ownership stays in the single feedback or
-review file rather than numbered pass files.
+Feedback and review evidence is per-pass: each fully evidenced pass owns its full commit identifiers
+in `Base`, `Head`, and `Verdict` within the one append-only file for that scope. Three history modes
+are supported: `legacy-global` structural history with global provenance bound only to the physical
+last legacy pass, `transitioned` structural prefix plus explicit suffix, and `modern` all-explicit
+history. The first modern append is atomic: it preserves every existing pass body byte-for-byte,
+removes exactly the legacy global provenance, and appends the next pass-local record. Later appends
+remain pass-local. The physically latest evidenced pass is the shared source for lint, context,
+precondition, and finish gates; malformed transitions or latest evidence fail closed. Ownership
+stays in the single feedback or review file rather than numbered pass files.
 
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and
 its history. The requirements inside it are deltas. When the change finishes, those deltas are
