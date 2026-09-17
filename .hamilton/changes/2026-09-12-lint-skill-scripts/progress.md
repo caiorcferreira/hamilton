@@ -115,7 +115,7 @@ tasks:
     progress: tasks/task-27/progress.md
   - id: 28
     title: Restore progress ledger parsing parity
-    status: pending
+    status: done
     progress: tasks/task-28/progress.md
   - id: 29
     title: Promote lint read failures to environment errors
