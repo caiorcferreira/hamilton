@@ -106,6 +106,31 @@ describe("split execution artifact templates", () => {
     expect(template).not.toContain("<scope reviewed>")
   })
 
+  it("defines one append-only transition for legacy review histories", () => {
+    const templates = [
+      ["feedback.md", "feedback-<k>.md"],
+      ["review.md", "review-<k>.md"],
+    ]
+
+    for (const [name, numberedFile] of templates) {
+      const template = readTemplate(name)
+
+      expect(template).toMatch(/fresh files use identity and lifecycle-only frontmatter/i)
+      expect(template).toMatch(/validate the legacy-global history/i)
+      expect(template).toMatch(/preserve every existing pass body byte-for-byte/i)
+      expect(template).toMatch(/remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is)
+      expect(template).toMatch(
+        /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
+      )
+      expect(template).toMatch(/never copy global provenance into historical passes/i)
+      expect(template).toMatch(/never retain\s+global provenance beside an explicit suffix/is)
+      expect(template).toMatch(/already transitioned/i)
+      expect(template).toMatch(/fail closed for partial globals/i)
+      expect(template.toLowerCase()).toContain(`never create ${numberedFile}`)
+      expect(template).not.toContain("### Reviewed range")
+    }
+  })
+
   it("defines finish history at first-attempt creation", () => {
     const template = readTemplate("finish.md")
 

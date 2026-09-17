@@ -275,6 +275,26 @@ describe("hamilton-orchestrate prompt scopes", () => {
     expect(wholeBranch).toMatch(/never fall back to an\s+earlier approval/is)
     expect(wholeBranch).toMatch(/broader repository/i)
   })
+
+  it("defines the same one-time producer transition for both dispatch prompts", () => {
+    const transitionRules = [
+      /validate the legacy-global history/i,
+      /preserve every existing pass body byte-for-byte/i,
+      /remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is,
+      /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
+      /never copy global provenance into historical passes/i,
+      /never\s+retain\s+global provenance beside an explicit suffix/is,
+      /fieldless prefix.*explicit suffix.*already transitioned/is,
+      /fail closed for partial globals/i,
+      /mixed\s+global-plus-explicit evidence/is,
+      /missing legacy globals without an explicit suffix/i,
+      /fieldless\s+pass after the explicit suffix/is,
+      /no `### Reviewed range` heading.*allowed/is,
+    ]
+
+    for (const prompt of [codeFeedback, wholeBranch])
+      for (const rule of transitionRules) expect(prompt).toMatch(rule)
+  })
 })
 
 describe("hamilton-orchestrate whole-branch findings", () => {

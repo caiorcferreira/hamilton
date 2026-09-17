@@ -179,6 +179,17 @@ may briefly record useful verified coverage as a suggestion; both findings group
 Every pass records the supplied full Base and Head values, never abbreviated commit ids. Append to
 the one `feedback.md` history only; never create `feedback-<k>.md`.
 
+Fresh feedback files use identity and lifecycle-only frontmatter with complete pass-local Base, Head,
+and Verdict fields. The first append to a legacy-global history has one deterministic transition:
+validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly
+the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
+physical end in the same mutation. Never copy global provenance into historical passes. Never retain
+global provenance beside an explicit suffix. A fieldless prefix followed by an explicit suffix is
+already transitioned, including the already-migrated root-review shape, so append normally to that
+suffix; modern all-explicit history also appends normally. Fail closed for partial globals, mixed
+global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+pass after the explicit suffix. Never create `feedback-<k>.md`.
+
 The physically last pass governs. It is valid only when task identity, pass numbering and shape,
 verdict, findings, and reviewed range are complete and consistent. An `approved` pass with a
 blocking item is contradictory. A malformed last pass must fail closed; never scan backward or fall

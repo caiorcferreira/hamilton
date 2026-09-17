@@ -99,7 +99,7 @@ tasks:
     progress: tasks/task-23/progress.md
   - id: 24
     title: Teach review producers the transition
-    status: pending
+    status: done
     progress: tasks/task-24/progress.md
   - id: 25
     title: Document the review transition contract
@@ -153,7 +153,7 @@ tasks:
 | Task 21: Synchronize per-pass evidence specifications and verification | done | [details](tasks/task-21/progress.md) |
 | Task 22: Model legacy review transitions | done | [details](tasks/task-22/progress.md) |
 | Task 23: Verify review transition consumers | done | [details](tasks/task-23/progress.md) |
-| Task 24: Teach review producers the transition | pending | [details](tasks/task-24/progress.md) |
+| Task 24: Teach review producers the transition | done | [details](tasks/task-24/progress.md) |
 | Task 25: Document the review transition contract | pending | [details](tasks/task-25/progress.md) |
 | Task 26: Synchronize root progress metadata | pending | [details](tasks/task-26/progress.md) |
 | Task 27: Repair Task 21 completion evidence | pending | [details](tasks/task-27/progress.md) |

@@ -41,6 +41,17 @@ Subagent:
     inspection boundary: inspect the broader repository for affected consumers, integration,
     omissions, and boundary violations.
 
+    Fresh files use identity and lifecycle-only frontmatter with complete pass-local Base, Head, and
+    Verdict fields. On the first append to a legacy-global history, validate the legacy-global history
+    and perform one atomic mutation: preserve every existing pass body byte-for-byte, remove exactly
+    the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at
+    the physical end in the same mutation. Never copy global provenance into historical passes. Never
+    retain global provenance beside an explicit suffix. A fieldless prefix followed by an
+    explicit suffix is already transitioned, including the already-migrated root-review shape; append
+    normally to it, as with modern all-explicit history. Fail closed for partial globals, mixed
+    global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+    pass after the explicit suffix. Never create review-<k>.md.
+
     ## Binding change intent
 
     [COMPLETE_APPROVED_REQUIREMENTS_AND_DESIGN_CONSTRAINTS]

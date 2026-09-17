@@ -91,6 +91,26 @@ describe("hamilton-code-feedback contract", () => {
     expect(artifact).toMatch(/never.*fall\s+back.*earlier approval/is)
   })
 
+  it("defines the one-time legacy transition and strict suffix boundary", () => {
+    const artifact = readCodeFeedback()
+
+    expect(artifact).toMatch(/first append.*legacy-global history/is)
+    expect(artifact).toMatch(/validate the legacy-global history/is)
+    expect(artifact).toMatch(/preserve every existing pass body byte-for-byte/is)
+    expect(artifact).toMatch(/remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is)
+    expect(artifact).toMatch(
+      /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
+    )
+    expect(artifact).toMatch(/never copy global provenance into historical passes/is)
+    expect(artifact).toMatch(/never retain\s+global provenance beside an explicit suffix/is)
+    expect(artifact).toMatch(/fieldless prefix.*explicit suffix.*already transitioned/is)
+    expect(artifact).toMatch(/fail closed for partial globals/is)
+    expect(artifact).toMatch(/mixed\s+global-plus-explicit evidence/is)
+    expect(artifact).toMatch(/missing legacy globals without an explicit suffix/is)
+    expect(artifact).toMatch(/fieldless\s+pass after the explicit suffix/is)
+    expect(artifact).toMatch(/no `### Reviewed range` heading.*allowed/is)
+  })
+
   it("uses an artifact-only commit and never writes progress", () => {
     const recording = section(readCodeFeedback(), "## Record and commit")
 

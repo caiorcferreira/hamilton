@@ -225,6 +225,17 @@ present. Record any focused command and result without changing the template-def
 pass records full identifiers, never abbreviated commit ids. Append to the one `review.md` history
 only; never create `review-<k>.md`.
 
+Fresh review files use identity and lifecycle-only frontmatter with complete pass-local Base, Head,
+and Verdict fields. The first append to a legacy-global history has one deterministic transition:
+validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly
+the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
+physical end in the same mutation. Never copy global provenance into historical passes. Never retain
+global provenance beside an explicit suffix. A fieldless prefix followed by an explicit suffix is
+already transitioned, including the already-migrated root-review shape, so append normally to that
+suffix; modern all-explicit history also appends normally. Fail closed for partial globals, mixed
+global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+pass after the explicit suffix. Never create `review-<k>.md`.
+
 For freshness, the latest material change commit is the latest current-branch commit touching any
 tracked path except the change's root `progress.md`, `tasks/task-N/progress.md`,
 `tasks/task-N/feedback.md`, root `review.md`, and root `finish.md`. Proposal, requirements, design,
