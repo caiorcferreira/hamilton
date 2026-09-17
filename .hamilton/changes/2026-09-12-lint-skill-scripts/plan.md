@@ -20,6 +20,7 @@ route_unit: null
 - Quality notes: Tasks follow the design boundaries: shared artifact reading and contracts, scoped linting, one task per stateful operation, command composition, setup migration, consumer migration, documentation, and deletion. Runtime IO is isolated behind narrow seams, artifact validation is shared rather than duplicated, and precondition gates are split into independently testable repository and evidence groups. No structural smell is intentionally accepted.
 - Re-plan amendment (2026-09-16): Whole-branch feedback found that global feedback/review frontmatter cannot truthfully represent an append-only pass history. Preserve the single `feedback.md`/`review.md` files and all existing evidence; append Tasks 16–21 so a shared per-pass parser is the sole provenance source for lint, precondition, and context. The parser seam remains pure and narrow, while lint, gate, and informational consumers stay independently testable.
 - Re-plan amendment (2026-09-17): Whole-branch review Pass 2 found six remaining defects: the one-pass compatibility rule strands legacy multi-pass histories and the already-migrated root review, execution metadata and Task 21 evidence disagree with their ledgers, two valid progress-ledger shapes are rejected, lint misclassifies read failures, and the CLI drops isolation errors. Tasks 1–21 and their evidence remain frozen; append Tasks 22–30 to define one typed legacy-prefix-to-per-pass-suffix transition, prove every consumer and producer follows it, repair durable execution evidence append-only, and close the independent parser, lint, and stream-routing regressions. The transition binds legacy global provenance only to the physical last legacy pass, treats earlier legacy passes as structural history with unknown provenance, removes the three globals when the first explicit suffix is appended, and never applies a latest verdict to historical passes. Task 27 deliberately makes Task 21 feedback stale by appending canonical evidence, so orchestration must obtain a fresh Task 21 feedback pass from its stable checkpoint before advancing to the next whole-branch review.
+- Re-plan amendment (2026-09-17, Task 25 feedback): Task 25 feedback found three documentation-contract defects: three canonical specifications still imply that every pass is fully evidenced, five documents misdescribe `Verdict` as a commit identifier, and concatenated documentation assertions permit cross-document false positives. Tasks 1–25 and their histories remain frozen; append Task 31 to make structural legacy records explicitly provenance-free, distinguish full `Base`/`Head` commit identifiers from the allowed `Verdict` enum, and enforce the transition contract independently in every relevant document. The existing changes-requested Task 25 pass remains history, and orchestration must obtain fresh Task 25 feedback immediately after the Task 31 implementation commit.
 
 ## Tasks
 
@@ -575,6 +576,26 @@ route_unit: null
   3. Run focused isolation and CLI tests, then the full suite, build, and whitespace check; inspect subprocess output for accidental blank lines or duplicate errors.
 - Verify: `bun --bun vitest run tests/workbench/isolate.test.ts tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` → channel assertions, all tests, the build, and whitespace validation pass.
 - Commit: `fix(cli): preserve workbench output channels`
+
+### Task 31: Correct review transition documentation
+
+- Depends on: Task 25
+- Files:
+  - Created: none
+  - Modified: `.hamilton/specs/artifact-templates.md`, `.hamilton/specs/review.md`, `.hamilton/specs/workbench.md`, `docs/sdd-framework.md`, `docs/skills.md`, `tests/docs/workbench-docs.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Each canonical specification states that only fully evidenced feedback and review passes carry `Base`, `Head`, and `Verdict`, while structural legacy records are provenance-free, cannot supply a verdict, and remain distinct from the authoritative latest evidenced record.
+  - All five affected specification and framework documents state that `Base` and `Head` contain full commit identifiers and that `Verdict` contains an allowed verdict enum value, never describing `Verdict` as a commit identifier.
+  - Documentation contract tests assert the required transition semantics and reject the blanket every-pass and commit-valued-Verdict claims for each relevant document independently, so content from one document cannot satisfy another document's contract.
+  - The implementation commit leaves `tasks/task-25/feedback.md` unchanged. Orchestration immediately follows that commit with fresh Task 25 feedback from its stable checkpoint through the correction Head, appending a new pass while preserving the existing changes-requested pass as history.
+- Steps:
+  1. Replace the concatenated transition-contract assertions with table-driven per-document assertions over the three canonical specifications and the two affected framework documents; require the fully evidenced versus structural distinction, correct `Base`/`Head` and `Verdict` value classes, and prohibited-language checks, then run the focused suite to establish the red state.
+  2. Qualify the blanket per-pass claims in the three canonical specifications and correct the commit-identifier wording in all five documents without weakening the three history modes, atomic transition, single-file ownership, freshness, or fail-closed behavior.
+  3. Run the focused documentation suite, build, and whitespace check, then inspect each affected document independently to prove the assertions cannot pass through concatenated content.
+  4. Return an explicit handoff requiring `hamilton-code-feedback` to append and commit a fresh Task 25 pass against the correction Head before orchestration advances; do not edit the existing feedback artifact during implementation.
+- Verify: `bun --bun vitest run tests/docs/workbench-docs.test.ts && bun run build && git diff --check` → every per-document transition assertion passes, TypeScript builds cleanly, and the documentation diff is whitespace-clean.
+- Commit: `docs(review): correct transition evidence contract`
 
 ## Done when
 

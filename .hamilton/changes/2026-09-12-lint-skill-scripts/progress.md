@@ -125,6 +125,10 @@ tasks:
     title: Preserve workbench output channels
     status: pending
     progress: tasks/task-30/progress.md
+  - id: 31
+    title: Correct review transition documentation
+    status: pending
+    progress: tasks/task-31/progress.md
 ---
 # Progress: Replace Hamilton Helper Scripts with the Workbench CLI
 
@@ -160,3 +164,4 @@ tasks:
 | Task 28: Restore progress ledger parsing parity | pending | [details](tasks/task-28/progress.md) |
 | Task 29: Promote lint read failures to environment errors | pending | [details](tasks/task-29/progress.md) |
 | Task 30: Preserve workbench output channels | pending | [details](tasks/task-30/progress.md) |
+| Task 31: Correct review transition documentation | pending | [details](tasks/task-31/progress.md) |
