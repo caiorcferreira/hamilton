@@ -7,6 +7,7 @@ import {
   renderLintResult,
   type LintResult,
 } from "../../src/workbench/lint.js";
+import { validateArtifact as validateArtifactContract } from "../../src/workbench/artifact-contracts.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -584,6 +585,115 @@ describe("scoped artifact lint", () => {
       file,
     ]);
     expect(result.findings[0]?.kind).toBe("success");
+  });
+
+  it("returns an environment error when a selected file passes stat but cannot be read", async () => {
+    const directory = await temporaryDirectory();
+    const file = Path.join(directory, "proposal.md");
+    await Fs.writeFile(file, proposal());
+    let validationCalls = 0;
+    const fileSystem = {
+      readFile: async (sourcePath: string) => {
+        throw new Error(`permission denied for ${sourcePath}`);
+      },
+      stat: (sourcePath: string) => Fs.stat(sourcePath),
+      readdir: (sourcePath: string) =>
+        Fs.readdir(sourcePath, { withFileTypes: true }),
+      realpath: (sourcePath: string) => Fs.realpath(sourcePath),
+    };
+    const result = await lintScope(
+      { file },
+      {
+        fileSystem,
+        validateArtifact: (artifact) => {
+          validationCalls += 1;
+          return validateArtifactContract(artifact);
+        },
+      },
+    );
+    expect(result.status).toBe("invalid-scope");
+    expect(result.exitCode).toBe(2);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        kind: "error",
+        sourcePath: file,
+        code: "read-failure",
+        line: 1,
+      }),
+    ]);
+    expect(renderLintResult(result)).toContain(
+      `ERROR ${file}:1 [read-failure] Unable to read ${file}: Error: permission denied for ${file}`,
+    );
+    expect(validationCalls).toBe(0);
+  });
+
+  it("returns deterministic environment errors for unreadable change-directory candidates", async () => {
+    const directory = await temporaryDirectory();
+    const changeDirectory = Path.join(directory, "change");
+    const unreadable = Path.join(changeDirectory, "a", "proposal.md");
+    const readable = Path.join(changeDirectory, "b", "proposal.md");
+    await Fs.mkdir(Path.dirname(unreadable), { recursive: true });
+    await Fs.mkdir(Path.dirname(readable), { recursive: true });
+    await Fs.writeFile(unreadable, proposal());
+    await Fs.writeFile(readable, proposal());
+    const validatedPaths: string[] = [];
+    const fileSystem = {
+      readFile: async (sourcePath: string) => {
+        if (sourcePath === unreadable)
+          throw new Error(`permission denied for ${sourcePath}`);
+        return Fs.readFile(sourcePath, "utf8");
+      },
+      stat: (sourcePath: string) => Fs.stat(sourcePath),
+      readdir: (sourcePath: string) =>
+        Fs.readdir(sourcePath, { withFileTypes: true }),
+      realpath: (sourcePath: string) => Fs.realpath(sourcePath),
+    };
+    const result = await lintScope(
+      { changeDir: changeDirectory },
+      {
+        fileSystem,
+        validateArtifact: (artifact) => {
+          validatedPaths.push(artifact.sourcePath);
+          return validateArtifactContract(artifact);
+        },
+      },
+    );
+    expect(result.status).toBe("invalid-scope");
+    expect(result.exitCode).toBe(2);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        kind: "error",
+        sourcePath: unreadable,
+        code: "read-failure",
+      }),
+    ]);
+    expect(renderLintResult(result)).toContain(
+      `ERROR ${unreadable}:1 [read-failure] Unable to read ${unreadable}: Error: permission denied for ${unreadable}`,
+    );
+    expect(validatedPaths).toEqual([readable]);
+  });
+
+  it("keeps readable invalid YAML as an ordinary lint finding", async () => {
+    const directory = await temporaryDirectory();
+    const file = Path.join(directory, "proposal.md");
+    await Fs.writeFile(file, "---\nartifact: [broken\n---\n# Proposal: Demo\n");
+    const fileSystem = {
+      readFile: (sourcePath: string) => Fs.readFile(sourcePath, "utf8"),
+      stat: (sourcePath: string) => Fs.stat(sourcePath),
+      readdir: (sourcePath: string) =>
+        Fs.readdir(sourcePath, { withFileTypes: true }),
+      realpath: (sourcePath: string) => Fs.realpath(sourcePath),
+    };
+    const result = await lintScope({ file }, { fileSystem });
+    expect(result.status).toBe("findings");
+    expect(result.exitCode).toBe(1);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        kind: "error",
+        sourcePath: file,
+        code: "invalid-yaml",
+      }),
+    ]);
   });
 
   it("recursively considers nested regular files and ignores outside symlinks", async () => {

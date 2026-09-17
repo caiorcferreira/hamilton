@@ -127,44 +127,76 @@ const diagnosticFinding = (
     diagnostic.location?.column,
   );
 
+type CandidateEnvironmentError = {
+  readonly _tag: "environment-error";
+  readonly sourcePath: string;
+  readonly message: string;
+};
+
+type CandidateValidationResult =
+  | { readonly _tag: "findings"; readonly findings: readonly LintFinding[] }
+  | CandidateEnvironmentError;
+
 const validateCandidate = async (
   sourcePath: string,
   readArtifact: (sourcePath: string) => Promise<ArtifactReadResult>,
   validate: (result: ArtifactReadResult) => ArtifactContractResult,
-): Promise<LintFinding[]> => {
+): Promise<CandidateValidationResult> => {
   const readResult = await readArtifact(sourcePath);
-  if (readResult._tag === "invalid")
-    return [diagnosticFinding(readResult.diagnostic)];
+  if (readResult._tag === "invalid") {
+    if (readResult.diagnostic.code === "read-failure")
+      return {
+        _tag: "environment-error",
+        sourcePath,
+        message: readResult.diagnostic.message,
+      };
+    return {
+      _tag: "findings",
+      findings: [diagnosticFinding(readResult.diagnostic)],
+    };
+  }
   if (readResult._tag === "unrelated") {
     const isConventional = conventionalArtifactName(sourcePath);
-    return [
-      finding(
-        isConventional ? "warning" : "skipped",
-        sourcePath,
-        isConventional
-          ? "Conventional Hamilton artifact filename has no frontmatter"
-          : "File is unrelated to Hamilton artifacts",
-        readResult.locations.body.startLine,
-        isConventional ? "missing-frontmatter" : "skipped",
-      ),
-    ];
+    return {
+      _tag: "findings",
+      findings: [
+        finding(
+          isConventional ? "warning" : "skipped",
+          sourcePath,
+          isConventional
+            ? "Conventional Hamilton artifact filename has no frontmatter"
+            : "File is unrelated to Hamilton artifacts",
+          readResult.locations.body.startLine,
+          isConventional ? "missing-frontmatter" : "skipped",
+        ),
+      ],
+    };
   }
   const contractResult = validate(readResult);
   if (contractResult._tag === "skipped")
-    return [finding("skipped", sourcePath, "File was skipped")];
+    return {
+      _tag: "findings",
+      findings: [finding("skipped", sourcePath, "File was skipped")],
+    };
   if (contractResult._tag === "invalid")
-    return contractResult.diagnostics.map((diagnostic) =>
-      diagnosticFinding(diagnostic),
-    );
-  return [
-    finding(
-      "success",
-      sourcePath,
-      `Valid ${contractResult.artifact} artifact`,
-      readResult.locations.frontmatter.startLine,
-      "valid",
-    ),
-  ];
+    return {
+      _tag: "findings",
+      findings: contractResult.diagnostics.map((diagnostic) =>
+        diagnosticFinding(diagnostic),
+      ),
+    };
+  return {
+    _tag: "findings",
+    findings: [
+      finding(
+        "success",
+        sourcePath,
+        `Valid ${contractResult.artifact} artifact`,
+        readResult.locations.frontmatter.startLine,
+        "valid",
+      ),
+    ],
+  };
 };
 
 const invalidScope = (message: string, sourcePath?: string): LintResult => ({
@@ -301,13 +333,34 @@ export const lintScope = async (
   const readArtifact =
     dependencies.readArtifact ?? createArtifactReader(fileSystem);
   const validate = dependencies.validateArtifact ?? validateArtifact;
-  const findings = (
+  const candidateResults = (
     await Promise.all(
       candidates.map((sourcePath) =>
         validateCandidate(sourcePath, readArtifact, validate),
       ),
     )
-  ).flat();
+  );
+  const environmentErrors = candidateResults.filter(
+    (candidate): candidate is CandidateEnvironmentError =>
+      candidate._tag === "environment-error",
+  );
+  if (environmentErrors.length > 0) {
+    const findings = environmentErrors.map((error) =>
+      finding("error", error.sourcePath, error.message, 1, "read-failure"),
+    );
+    findings.sort((left, right) =>
+      comparePaths(left.sourcePath, right.sourcePath),
+    );
+    return {
+      _tag: "LintResult",
+      status: "invalid-scope",
+      exitCode: 2,
+      findings,
+    };
+  }
+  const findings = candidateResults.flatMap((candidate) =>
+    candidate._tag === "findings" ? candidate.findings : [],
+  );
   findings.sort((left, right) => {
     const pathOrder = comparePaths(left.sourcePath, right.sourcePath);
     if (pathOrder !== 0) return pathOrder;
