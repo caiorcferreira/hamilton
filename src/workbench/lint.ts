@@ -111,8 +111,8 @@ const conventionalArtifactName = (sourcePath: string): boolean => {
 };
 
 const diagnosticFinding = (
-  sourcePath: string,
   diagnostic: {
+    readonly sourcePath: string;
     readonly message: string;
     readonly code: string;
     readonly location?: { readonly line: number; readonly column?: number };
@@ -120,7 +120,7 @@ const diagnosticFinding = (
 ): LintFinding =>
   finding(
     "error",
-    sourcePath,
+    diagnostic.sourcePath,
     diagnostic.message,
     diagnostic.location?.line,
     diagnostic.code,
@@ -134,7 +134,7 @@ const validateCandidate = async (
 ): Promise<LintFinding[]> => {
   const readResult = await readArtifact(sourcePath);
   if (readResult._tag === "invalid")
-    return [diagnosticFinding(sourcePath, readResult.diagnostic)];
+    return [diagnosticFinding(readResult.diagnostic)];
   if (readResult._tag === "unrelated") {
     const isConventional = conventionalArtifactName(sourcePath);
     return [
@@ -154,7 +154,7 @@ const validateCandidate = async (
     return [finding("skipped", sourcePath, "File was skipped")];
   if (contractResult._tag === "invalid")
     return contractResult.diagnostics.map((diagnostic) =>
-      diagnosticFinding(sourcePath, diagnostic),
+      diagnosticFinding(diagnostic),
     );
   return [
     finding(
