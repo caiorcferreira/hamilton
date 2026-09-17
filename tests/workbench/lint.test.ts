@@ -233,18 +233,6 @@ const parserFailureCases: readonly {
     line: (source) => sourceLine(source, "artifact:"),
   },
   {
-    name: "global provenance on multiple passes",
-    body: [
-      compatibilityPass(1, "2026-09-12"),
-      compatibilityPass(2, "2026-09-13"),
-    ].join("\n\n"),
-    globals: { base: reviewBase, head: reviewHead, verdict: "approved" },
-    code: "invalid-record",
-    message:
-      "Global review provenance is supported only for one unambiguous pass",
-    line: (source) => sourceLine(source, "artifact:"),
-  },
-  {
     name: "unsupported child heading",
     body: [
       "## Pass 1 — 2026-09-12",
@@ -486,8 +474,9 @@ const parserFailureCases: readonly {
     }),
     globals: { base: reviewBase, head: reviewHead, verdict: "approved" },
     code: "invalid-record",
-    message: "Global provenance is ambiguous with per-pass provenance",
-    line: (source) => sourceLine(source, "## Pass 1"),
+    message:
+      "Global review provenance cannot be combined with an explicit pass suffix",
+    line: (source) => sourceLine(source, "artifact:"),
   },
   {
     name: "invalid global base",
@@ -759,7 +748,7 @@ describe("scoped artifact lint", () => {
     }
   });
 
-  it("accepts only the one-pass global frontmatter compatibility shape", async () => {
+  it("accepts legacy global evidence only on the physical latest pass", async () => {
     const globals = {
       base: reviewBase,
       head: reviewHead,
@@ -776,17 +765,41 @@ describe("scoped artifact lint", () => {
       const multiple = await writeReviewArtifact(
         kind,
         [
-          compatibilityPass(1, "2026-09-12"),
+          reviewPass({
+            number: 1,
+            date: "2026-09-12",
+            verdict: "changes-requested",
+            blocking: ["[src/file.ts:10] Fix the issue."],
+            fields: false,
+          }),
           compatibilityPass(2, "2026-09-13"),
         ].join("\n\n"),
         globals,
       );
-      const result = await lintScope({ file: multiple.file });
-      expectExit(result, 1);
-      const line = sourceLine(multiple.source, "artifact:");
-      expect(renderLintResult(result)).toContain(
-        `ERROR ${multiple.file}:${line} [invalid-record] Global review provenance is supported only for one unambiguous pass`,
-      );
+      expectExit(await lintScope({ file: multiple.file }), 0);
+    }
+  });
+
+  it("accepts a migrated fieldless prefix with an explicit suffix", async () => {
+    const body = [
+      reviewPass({
+        number: 1,
+        date: "2026-09-12",
+        verdict: "changes-requested",
+        blocking: ["[src/file.ts:10] Fix the issue."],
+        fields: false,
+      }),
+      reviewPass({
+        number: 2,
+        date: "2026-09-13",
+        base: reviewHead,
+        head: reviewNext,
+        verdict: "approved",
+      }),
+    ].join("\n\n");
+    for (const kind of ["feedback", "review"] as const) {
+      const artifact = await writeReviewArtifact(kind, body);
+      expectExit(await lintScope({ file: artifact.file }), 0);
     }
   });
 });

@@ -11,6 +11,7 @@ import {
   validateArtifact,
   type ArtifactContractResult,
 } from "./artifact-contracts.js";
+import type { ReviewPassEvidence } from "./artifact-types.js";
 import { parseReviewPasses } from "./review-passes.js";
 import type { ProcessPort, ProcessResult } from "./runtime.js";
 
@@ -945,10 +946,9 @@ const durableArtifact = async (
   return (await runtime.git.stagedDiff(root, relativePath)).status === 0;
 };
 
-const latestParsedPass = (artifact: RecognizedArtifact) => {
-  const parsed = parseReviewPasses(artifact);
-  return parsed.diagnostics.length === 0 ? parsed.latest : undefined;
-};
+const latestParsedPass = (
+  artifact: RecognizedArtifact,
+): ReviewPassEvidence | undefined => parseReviewPasses(artifact).latest;
 
 const latestFeedback = async (
   runtime: ContextRuntime,

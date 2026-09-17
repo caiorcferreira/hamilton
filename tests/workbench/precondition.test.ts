@@ -23,6 +23,8 @@ const evidencePath = (slug: string, file: string): string =>
 type ReviewFixtureMode =
   | "compatibility"
   | "multi-pass"
+  | "legacy-multi-pass"
+  | "migrated"
   | "malformed-latest"
   | "stale-latest"
   | "ambiguous-compatibility";
@@ -36,6 +38,7 @@ const reviewDocument = (
 ): string => {
   const compatibility =
     mode === "compatibility" || mode === "ambiguous-compatibility";
+  const legacyMultiPass = mode === "legacy-multi-pass";
   const metadata =
     kind === "feedback"
       ? [
@@ -46,7 +49,7 @@ const reviewDocument = (
           "created: 2026-09-12",
           "status: resolved",
           "decision: accepted",
-          ...(compatibility
+          ...(compatibility || legacyMultiPass
             ? [`base: ${base}`, `head: ${material}`, "verdict: approved"]
             : []),
           "---",
@@ -58,7 +61,7 @@ const reviewDocument = (
           "created: 2026-09-12",
           "status: complete",
           "decision: accepted",
-          ...(compatibility
+          ...(compatibility || legacyMultiPass
             ? [`base: ${base}`, `head: ${material}`, "verdict: approved"]
             : []),
           "---",
@@ -78,6 +81,18 @@ const reviewDocument = (
     return `${metadata.join(
       "\n",
     )}\n${title}\n\n## Pass 1 — 2026-09-12\n\nBase: ${base}\nHead: ${base}\nVerdict: approved\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
+  if (mode === "legacy-multi-pass")
+    return `${metadata.join(
+      "\n",
+    )}\n${title}\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- [src/main.ts:1] Fix the historical issue (violates: acceptance)\n\n### Suggestions\n- None.\n\n## Pass 2 — 2026-09-13\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
+  if (mode === "migrated")
+    return `${metadata.join(
+      "\n",
+    )}\n${title}\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- [src/main.ts:1] Fix the historical issue (violates: acceptance)\n\n### Suggestions\n- None.\n\n## Pass 2 — 2026-09-13\n\nBase: ${base}\nHead: ${material}\nVerdict: approved\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
+  if (mode === "malformed-latest")
+    return `${metadata.join(
+      "\n",
+    )}\n${title}\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- [src/main.ts:1] Fix the historical issue (violates: acceptance)\n\n### Suggestions\n- None.\n\n## Pass 2 — 2026-09-13\n\nBase: ${base}\nHead: ${material}\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
   const firstVerdict =
     mode === "multi-pass" ? "changes-requested" : "approved";
   const firstBlocking =
@@ -86,11 +101,9 @@ const reviewDocument = (
       : "- None.";
   const latestHead = mode === "stale-latest" ? base : material;
   const latest = `## Pass 2 — 2026-09-13\n\nBase: ${base}\nHead: ${latestHead}\nVerdict: approved\n\n### Blocking\n- None.\n\n### Suggestions\n- None.\n`;
-  const malformedLatest =
-    mode === "malformed-latest" ? `${latest}\n## Notes\n\nTrailing content.\n` : latest;
   return `${metadata.join(
     "\n",
-  )}\n${title}\n\n## Pass 1 — 2026-09-12\n\nBase: ${base}\nHead: ${material}\nVerdict: ${firstVerdict}\n\n### Blocking\n${firstBlocking}\n\n### Suggestions\n- None.\n\n${malformedLatest}`;
+  )}\n${title}\n\n## Pass 1 — 2026-09-12\n\nBase: ${base}\nHead: ${material}\nVerdict: ${firstVerdict}\n\n### Blocking\n${firstBlocking}\n\n### Suggestions\n- None.\n\n${latest}`;
 };
 
 const makeEvidence = (
@@ -362,6 +375,36 @@ it("opens the gate with requested-change then approved per-pass evidence", async
   const { changeDir } = makeEvidence(repository, {
     feedbackMode: "multi-pass",
     reviewMode: "multi-pass",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Reviews");
+  expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("opens the gate with a legacy-global history whose latest pass is approved", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "legacy-multi-pass",
+    reviewMode: "legacy-multi-pass",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Reviews");
+  expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("opens the gate with a migrated fieldless prefix and explicit latest pass", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    feedbackMode: "migrated",
+    reviewMode: "migrated",
   });
 
   const result = await precondition({ changeDir, testCommand: "true" });

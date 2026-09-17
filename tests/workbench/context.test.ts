@@ -75,9 +75,6 @@ head: ${head}
 # Whole-branch Review: ${title}
 
 ## Pass 1 — 2026-09-13
-Base: ${base}
-Head: ${head}
-Verdict: approved
 ### Blocking
 - None.
 ### Suggestions
@@ -97,6 +94,17 @@ const reviewPass = (
 Base: ${base}
 Head: ${head}
 Verdict: ${verdict}
+### Blocking
+${blocking}
+### Suggestions
+- None.
+`;
+
+const legacyReviewPass = (
+  number: number,
+  date: string,
+  blocking = "- None.",
+) => `## Pass ${number} — ${date}
 ### Blocking
 ${blocking}
 ### Suggestions
@@ -435,21 +443,103 @@ decision: accepted
     expect(result.stdout).not.toContain("changes-requested (fresh)");
   });
 
+  it("reports the physical latest legacy-global pass without reviving historical blockers", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "legacy-global-history", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const global = { base, head: base, verdict: "approved" as const };
+    const passes =
+      legacyReviewPass(
+        1,
+        "2026-09-13",
+        "- [src/auth.ts:1] Fix the historical auth issue.",
+      ) + legacyReviewPass(2, "2026-09-14");
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("legacy-global-history", passes, global),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/legacy-global-history/tasks/task-1/feedback.md",
+    );
+    write(
+      directory,
+      "review.md",
+      reviewEvidence("legacy-global-history", "add auth", passes, global),
+    );
+    commitPaths(
+      repository,
+      "review",
+      ".hamilton/changes/legacy-global-history/review.md",
+    );
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)");
+    expect(result.stdout).toContain("whole change: approved (fresh)");
+    expect(result.stdout).not.toContain("changes-requested (fresh)");
+  });
+
+  it("reports the explicit latest pass after a fieldless migrated prefix", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "migrated-history", splitFiles);
+    const base = commitAll(repository, "change artifacts");
+    const passes =
+      legacyReviewPass(
+        1,
+        "2026-09-13",
+        "- [src/auth.ts:1] Fix the historical auth issue.",
+      ) + reviewPass(2, "2026-09-14", base, base, "approved");
+    write(
+      directory,
+      "tasks/task-1/feedback.md",
+      feedbackEvidence("migrated-history", passes),
+    );
+    commitPaths(
+      repository,
+      "feedback",
+      ".hamilton/changes/migrated-history/tasks/task-1/feedback.md",
+    );
+    write(
+      directory,
+      "review.md",
+      reviewEvidence("migrated-history", "add auth", passes),
+    );
+    commitPaths(
+      repository,
+      "review",
+      ".hamilton/changes/migrated-history/review.md",
+    );
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("success");
+    expect(result.stdout).toContain("Task 1: done, feedback: approved (fresh)");
+    expect(result.stdout).toContain("whole change: approved (fresh)");
+    expect(result.stdout).not.toContain("changes-requested (fresh)");
+  });
+
   it("reports malformed physical-last feedback without a context error", async () => {
     const repository = makeRepo();
     const directory = seed(repository, "malformed-physical-last", splitFiles);
     const base = commitAll(repository, "change artifacts");
     const passes =
-      reviewPass(1, "2026-09-13", base, base, "approved") +
+      legacyReviewPass(
+        1,
+        "2026-09-13",
+        "- [src/auth.ts:1] Fix the historical auth issue.",
+      ) +
+      reviewPass(2, "2026-09-14", base, base, "approved") +
       "## Notes\n- Context only.\n";
     write(
       directory,
       "tasks/task-1/feedback.md",
-      feedbackEvidence("malformed-physical-last", passes, {
-        base,
-        head: base,
-        verdict: "approved",
-      }),
+      feedbackEvidence("malformed-physical-last", passes),
     );
     commitPaths(
       repository,
@@ -469,7 +559,7 @@ decision: accepted
     const repository = makeRepo();
     const directory = seed(repository, "one-pass", splitFiles);
     const base = commitAll(repository, "change artifacts");
-    const passes = reviewPass(1, "2026-09-13", base, base, "approved");
+    const passes = legacyReviewPass(1, "2026-09-13");
     const global = { base, head: base, verdict: "approved" as const };
     write(
       directory,

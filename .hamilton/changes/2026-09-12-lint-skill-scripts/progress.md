@@ -152,7 +152,7 @@ tasks:
 | Task 20: Report context from parsed review evidence | done | [details](tasks/task-20/progress.md) |
 | Task 21: Synchronize per-pass evidence specifications and verification | done | [details](tasks/task-21/progress.md) |
 | Task 22: Model legacy review transitions | done | [details](tasks/task-22/progress.md) |
-| Task 23: Verify review transition consumers | pending | [details](tasks/task-23/progress.md) |
+| Task 23: Verify review transition consumers | done | [details](tasks/task-23/progress.md) |
 | Task 24: Teach review producers the transition | pending | [details](tasks/task-24/progress.md) |
 | Task 25: Document the review transition contract | pending | [details](tasks/task-25/progress.md) |
 | Task 26: Synchronize root progress metadata | pending | [details](tasks/task-26/progress.md) |

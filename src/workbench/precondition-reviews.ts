@@ -1,4 +1,5 @@
 import * as Path from "node:path";
+import { createArtifactReader } from "./artifact-reader.js";
 import type { ValidArtifactContract } from "./artifact-types.js";
 import {
   exactArtifactCommit,
@@ -18,6 +19,7 @@ import {
   text,
 } from "./precondition-git.js";
 import type { PreconditionRuntime } from "./precondition-runtime.js";
+import { parseReviewPasses } from "./review-passes.js";
 
 export type RangeStatus = "malformed" | "off-branch" | "stale" | "fresh";
 
@@ -84,7 +86,11 @@ export const readReview = async (
     read.artifact,
     expected === "feedback" ? "Code Feedback: " : "Whole-branch Review: ",
   );
-  const latest = read.artifact.body.workflow.passes?.at(-1);
+  const parsedArtifact = await createArtifactReader({
+    readFile: () => read.source ?? "",
+  })(path);
+  if (parsedArtifact._tag !== "recognized") return "malformed";
+  const latest = parseReviewPasses(parsedArtifact).latest;
   if (title !== expectedTitle || latest === undefined)
     return "malformed";
   return {

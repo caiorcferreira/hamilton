@@ -375,6 +375,65 @@ describe("workbench CLI", () => {
         "### Suggestions",
         "",
       );
+    const fieldlessPass = (number: number, blocking: string) =>
+      lines(
+        `## Pass ${number} — 2026-09-17`,
+        "",
+        "### Blocking",
+        blocking,
+        "",
+        "### Suggestions",
+        "- None.",
+        "",
+      );
+    const writeReviewEvidence = (body: string, global: boolean) => {
+      const globalFields = global
+        ? [`base: ${base}`, `head: ${implementationHead}`, "verdict: approved"]
+        : [];
+      write(
+        ".hamilton/changes/sample/tasks/task-1/feedback.md",
+        lines(
+          "---",
+          "artifact: feedback",
+          "change: sample",
+          "task: 1",
+          "created: 2026-09-17",
+          "status: open",
+          "decision: accepted",
+          ...globalFields,
+          "---",
+          "",
+          "# Code Feedback: Task 1 — Example",
+          "",
+          body,
+        ),
+      );
+      git(
+        repositoryDirectory,
+        "add",
+        ".hamilton/changes/sample/tasks/task-1/feedback.md",
+      );
+      git(repositoryDirectory, "commit", "-qm", "legacy feedback evidence");
+      write(
+        ".hamilton/changes/sample/review.md",
+        lines(
+          "---",
+          "artifact: review",
+          "change: sample",
+          "created: 2026-09-17",
+          "status: complete",
+          "decision: accepted",
+          ...globalFields,
+          "---",
+          "",
+          "# Whole-branch Review: sample",
+          "",
+          body,
+        ),
+      );
+      git(repositoryDirectory, "add", ".hamilton/changes/sample/review.md");
+      git(repositoryDirectory, "commit", "-qm", "legacy review evidence");
+    };
     write(
       ".hamilton/changes/sample/tasks/task-1/feedback.md",
       lines(
@@ -458,6 +517,84 @@ describe("workbench CLI", () => {
       "whole-branch review malformed",
     );
 
+    const historicalBlocker =
+      "- [tests/cli/workbench.test.ts:1] Fix the historical evidence (action: align consumers)";
+    const legacyBody = lines(
+      fieldlessPass(1, historicalBlocker),
+      fieldlessPass(2, "- None."),
+    );
+    writeReviewEvidence(legacyBody, true);
+
+    const lintLegacy = runCli(
+      repositoryDirectory,
+      "workbench",
+      "lint",
+      "--change-dir",
+      changeDirectory,
+    );
+    const contextLegacy = runCli(
+      repositoryDirectory,
+      "workbench",
+      "context",
+      changeDirectory,
+    );
+    const preconditionLegacy = runCli(
+      repositoryDirectory,
+      "workbench",
+      "precondition",
+      "--change-dir",
+      changeDirectory,
+      "--test-cmd",
+      "true",
+    );
+
+    expect(lintLegacy.status).toBe(0);
+    expect(lintLegacy.stdout.trimEnd()).toMatch(/lint: success$/);
+    expect(contextLegacy.status).toBe(0);
+    expect(contextLegacy.stdout).toContain("feedback: approved");
+    expect(contextLegacy.stdout).toContain("whole change: approved");
+    expect(preconditionLegacy.status).toBe(0);
+    expect(preconditionLegacy.stdout).toContain("[PASS] Reviews");
+    expect(preconditionLegacy.stdout).toContain("gate: open");
+
+    const migratedBody = lines(
+      fieldlessPass(1, historicalBlocker),
+      pass(2, "approved"),
+    );
+    writeReviewEvidence(migratedBody, false);
+
+    const lintMigrated = runCli(
+      repositoryDirectory,
+      "workbench",
+      "lint",
+      "--change-dir",
+      changeDirectory,
+    );
+    const contextMigrated = runCli(
+      repositoryDirectory,
+      "workbench",
+      "context",
+      changeDirectory,
+    );
+    const preconditionMigrated = runCli(
+      repositoryDirectory,
+      "workbench",
+      "precondition",
+      "--change-dir",
+      changeDirectory,
+      "--test-cmd",
+      "true",
+    );
+
+    expect(lintMigrated.status).toBe(0);
+    expect(lintMigrated.stdout.trimEnd()).toMatch(/lint: success$/);
+    expect(contextMigrated.status).toBe(0);
+    expect(contextMigrated.stdout).toContain("feedback: approved");
+    expect(contextMigrated.stdout).toContain("whole change: approved");
+    expect(preconditionMigrated.status).toBe(0);
+    expect(preconditionMigrated.stdout).toContain("[PASS] Reviews");
+    expect(preconditionMigrated.stdout).toContain("gate: open");
+
     const malformedPass = lines(
       "",
       "## Pass 3 — 2026-09-17",
@@ -514,5 +651,5 @@ describe("workbench CLI", () => {
     expect(preconditionMalformed.stdout).toContain(
       "whole-branch review malformed",
     );
-  });
+  }, 15000);
 });
