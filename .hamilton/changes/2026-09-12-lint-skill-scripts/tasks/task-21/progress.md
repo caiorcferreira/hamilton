@@ -67,3 +67,29 @@ Notes:
 - Preserved the existing Pass 1, Pass 2, malformed Pass 3 fixtures and CLI output assertions; corrected only the synthetic task-attempt field and evidence commit boundaries needed to satisfy the existing precondition contract.
 - The first focused run after adding the assertion exposed those fixture-contract gaps and returned `gate: closed (3 failing)`; the corrected fixture passed all final verification.
 - No production implementation files, canonical documentation, `plan.md`, `feedback.md`, sibling evidence, `PR-44-STATE.md`, or the immutable Task 21 `.base` checkpoint were modified.
+
+## Attempt 3 — 2026-09-17
+
+- Outcome: done
+
+- Created:
+  - none
+
+- Modified:
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-21/progress.md`
+  - `.hamilton/changes/2026-09-12-lint-skill-scripts/progress.md`
+
+- Deleted:
+  - none
+
+- Verification:
+  - `bun run src/cli/main.ts workbench lint --file .hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-21/progress.md` — passed, exit 0
+  - `bun run src/cli/main.ts workbench precondition --change-dir .hamilton/changes/2026-09-12-lint-skill-scripts --test-cmd true` — gate closed, exit 1, for the uncommitted Task 27 execution state and changes-requested whole-branch review; no Task 21 latest-attempt failure reported
+  - `bun -e 'parse Task 21 progress and assert latest attempt 3 has Outcome done'` — passed, latest attempt 3 has `Outcome: done`
+  - `bun --bun vitest run` — passed, 395 tests across 23 files
+  - `bun run build` — passed
+  - `git diff --check` — passed
+
+- Notes:
+  - Appended the canonical latest done attempt without changing Attempts 1 or 2.
+  - Task 21 feedback remains untouched and must receive a fresh review from its unchanged `.base` before Task 28 begins.
