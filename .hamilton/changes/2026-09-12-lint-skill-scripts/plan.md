@@ -18,6 +18,7 @@ route_unit: null
 - Build / typecheck: `bun run build`
 - Context notes: Follow `AGENTS.md`, the accepted proposal and design, and the requirement deltas in `requirements/`. Use ESM `.js` imports, Effect command patterns, pinned dependencies, `Data.TaggedError` for custom errors, real temporary directories and repositories in tests, and no comments in code. The implementation must preserve the old helper semantics while keeping workflow judgment in skills rather than the CLI.
 - Quality notes: Tasks follow the design boundaries: shared artifact reading and contracts, scoped linting, one task per stateful operation, command composition, setup migration, consumer migration, documentation, and deletion. Runtime IO is isolated behind narrow seams, artifact validation is shared rather than duplicated, and precondition gates are split into independently testable repository and evidence groups. No structural smell is intentionally accepted.
+- Re-plan amendment (2026-09-16): Whole-branch feedback found that global feedback/review frontmatter cannot truthfully represent an append-only pass history. Preserve the single `feedback.md`/`review.md` files and all existing evidence; append Tasks 16–21 so a shared per-pass parser is the sole provenance source for lint, precondition, and context. The parser seam remains pure and narrow, while lint, gate, and informational consumers stay independently testable.
 
 ## Tasks
 
@@ -295,6 +296,115 @@ route_unit: null
   3. Run the full test suite, build, whitespace check, and repository search; inspect the final changed-file list for accidental deletions.
 - Verify: `bun --bun vitest run && bun run build && git diff --check && ! rg -n "hamilton-(artifact-contracts|change-context|diff-package|isolate|precondition-check|prototype-branch)|~/.hamilton/scripts/" src bundle skills README.md docs tests` → all tests and the build pass, the diff has no whitespace errors, and no maintained implementation references the removed helpers.
 - Commit: `refactor: remove shell helper implementation`
+
+### Task 16: Align per-pass feedback and review producers
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `bundle/templates/feedback.md`, `bundle/templates/review.md`, `skills/hamilton-code-feedback/SKILL.md`, `skills/hamilton-review/SKILL.md`, `skills/hamilton-orchestrate/references/code-feedback-prompt.md`, `skills/hamilton-orchestrate/references/whole-branch-review-prompt.md`, `tests/templates/artifact-contracts.test.ts`, `tests/skills/code-feedback-contract.test.ts`, `tests/skills/review-contract.test.ts`, `tests/skills/orchestrate-contract.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The feedback and review templates retain only artifact identity and lifecycle frontmatter; each `## Pass N` contains exactly one full `Base:`, `Head:`, and `Verdict:` field before its findings.
+  - A pass has only `### Blocking` and `### Suggestions` child sections, and both producer skills and orchestration prompts instruct authors to append that same shape at the physical end without creating `feedback-<k>.md` or rewriting prior passes.
+  - Template and skill-contract tests fail for global pass provenance or an extra pass child section and pass for the single-file append-only shape.
+- Steps:
+  1. Update template and skill-contract assertions to require per-pass Base, Head, and Verdict fields, the two allowed child sections, and continued single-file append-only ownership; run the focused tests to establish the red state.
+  2. Move Base, Head, and Verdict out of the feedback/review frontmatter into each pass in both templates, then update the two producer skills and their orchestrator dispatch prompts to author, validate, and report those per-pass values.
+  3. Run the focused template and skill-contract suites, inspect the template and producer diffs for a single authoritative pass shape, and refactor wording only for clarity.
+- Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts tests/skills/orchestrate-contract.test.ts && bun run build` → template and producer contracts pass and TypeScript builds cleanly.
+- Commit: `docs(review): record provenance per pass`
+
+### Task 17: Parse and validate per-pass review evidence
+
+- Depends on: Task 16
+- Files:
+  - Created: `src/workbench/review-passes.ts`, `tests/workbench/review-passes.test.ts`
+  - Modified: `src/workbench/artifact-body.ts`, `src/workbench/artifact-contracts.ts`, `src/workbench/artifact-schemas.ts`, `src/workbench/artifact-types.ts`, `tests/workbench/artifact-contracts.test.ts`, `tests/workbench/artifact-schemas.test.ts`
+  - Deleted: none
+- Acceptance:
+  - One pure shared parser returns typed pass evidence and location-bearing diagnostics for feedback and review artifacts, including per-pass full Base, Head, Verdict, pass number/date, Blocking, and Suggestions.
+  - The parser requires contiguous pass numbering; exactly one Base, Head, and Verdict before the child sections; full commit identifiers; allowed verdicts; non-contradictory findings; and only Blocking/Suggestions child sections. Its physical last pass governs and malformed last evidence never revives an older approval.
+  - A historical `changes-requested` pass followed by an `approved` pass is valid when each pass is complete, while an existing unambiguous one-pass artifact with global Base, Head, and Verdict remains safely readable as compatibility evidence; ambiguous or multi-pass global-frontmatter artifacts fail closed.
+  - Artifact schemas and contracts consume the shared parser rather than retaining a second feedback/review grammar.
+- Steps:
+  1. Add parser and contract fixtures for valid multi-pass history, changes-requested followed by approved, duplicate/missing/misordered fields, invalid hashes/verdicts, illegal child headings, contradictory findings, malformed physical-last passes, and the bounded one-pass global-frontmatter compatibility case; run the focused suites to establish the red state.
+  2. Implement the pure per-pass parser with typed evidence and diagnostics, remove Base/Head/Verdict from new feedback/review metadata requirements, and delegate feedback/review body validation to the parser through the shared artifact contract seam.
+  3. Run the parser, contract, and schema suites with the build, then simplify any duplicated pass extraction so the parser is the single source of truth.
+- Verify: `bun --bun vitest run tests/workbench/review-passes.test.ts tests/workbench/artifact-contracts.test.ts tests/workbench/artifact-schemas.test.ts && bun run build` → strict and compatibility pass evidence cases pass and TypeScript builds cleanly.
+- Commit: `feat(workbench): parse review passes`
+
+### Task 18: Lint per-pass review evidence
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified: `src/workbench/lint.ts`, `tests/workbench/lint.test.ts`
+  - Deleted: none
+- Acceptance:
+  - `hamilton workbench lint` rejects malformed feedback and review pass evidence emitted by the shared parser with deterministic, source-located diagnostics and exit `1`.
+  - Valid multi-pass artifacts, including historical changes-requested followed by approved, lint successfully; only the explicit one-pass compatibility shape is accepted from legacy global frontmatter.
+  - Lint keeps its current explicit scope, skipped-file behavior, finding order, and `0`/`1`/`2` result semantics.
+- Steps:
+  1. Add lint fixtures for every per-pass parser failure class and the valid multi-pass and compatibility cases; assert rendered path/line diagnostics and exit codes before implementation.
+  2. Route feedback/review contract diagnostics through lint without local pass parsing or altered scope policy.
+  3. Run the lint suite and build, then inspect the deterministic rendered output for representative malformed passes.
+- Verify: `bun --bun vitest run tests/workbench/lint.test.ts && bun run build` → malformed feedback/review passes fail lint with stable diagnostics while valid evidence succeeds.
+- Commit: `test(workbench): lint review pass evidence`
+
+### Task 19: Gate preconditions on parsed review evidence
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified: `src/workbench/precondition-reviews.ts`, `tests/workbench/precondition.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Precondition reads the shared parsed latest feedback/review pass instead of artifact-global Base, Head, or Verdict fields, preserving all existing durability, ancestry, freshness, blocking, waiver, and fail-closed gate rules.
+  - A valid requested-change pass followed by a valid fresh approved pass can open the relevant evidence gate; malformed, contradictory, stale, or ambiguous compatibility evidence closes it without falling back to earlier approval.
+  - No precondition module retains an independent pass-section or metadata parser.
+- Steps:
+  1. Extend real-repository precondition fixtures with multi-pass task feedback and whole review cases covering requested-change then approval, malformed latest pass, stale latest approval, and compatibility evidence; run the focused tests to establish the red state.
+  2. Replace local feedback/review extraction with the shared parsed pass result and carry its latest Base, Head, Verdict, and Blocking state through the existing gate checks.
+  3. Run the complete precondition suite and build, then search the precondition review module for duplicate pass grammar.
+- Verify: `bun --bun vitest run tests/workbench/precondition.test.ts && bun run build` → precondition preserves its gate semantics while using only parsed latest pass evidence.
+- Commit: `refactor(workbench): share review evidence gates`
+
+### Task 20: Report context from parsed review evidence
+
+- Depends on: Task 17
+- Files:
+  - Created: none
+  - Modified: `src/workbench/context.ts`, `tests/workbench/context.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Context derives task feedback and whole-review standing from the shared parsed latest pass evidence rather than global frontmatter or a local legacy-pass parser.
+  - Context reports valid requested-change then approved history according to its existing informational standing vocabulary, and reports malformed or ambiguous evidence as `malformed` without changing a context request into a gate failure.
+  - Pre-plan, legacy-unsupported, inventory ordering, freshness labels, and nonzero environment-error behavior remain unchanged.
+- Steps:
+  1. Add context fixtures for valid multi-pass feedback/review, requested-change then approval, malformed physical-last passes, and the allowed one-pass compatibility artifact; assert the existing informational output and result semantics before implementation.
+  2. Replace context-local pass extraction with the shared parser while retaining the established layout classification and freshness calculations.
+  3. Run the context suite and build, then inspect one rendered current change and one malformed change for unchanged informational semantics.
+- Verify: `bun --bun vitest run tests/workbench/context.test.ts && bun run build` → context reports parsed pass standing without turning malformed evidence into an environment error.
+- Commit: `refactor(workbench): share context review evidence`
+
+### Task 21: Synchronize per-pass evidence specifications and verification
+
+- Depends on: Tasks 16, 17, 18, 19, and 20
+- Files:
+  - Created: none
+  - Modified: `.hamilton/specs/artifact-templates.md`, `.hamilton/specs/review.md`, `.hamilton/specs/workbench.md`, `docs/sdd-framework.md`, `docs/skills.md`, `tests/cli/workbench.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Canonical specifications and framework documentation define Base, Head, and Verdict as per-pass feedback/review evidence; they retain the single-file append-only model and name the bounded one-pass global-frontmatter compatibility rule.
+  - An end-to-end CLI regression covers a change whose feedback and review histories have multiple passes and proves lint, context, and precondition agree on the physically latest parsed evidence and fail closed for malformed latest evidence.
+  - The full repository suite, build, and whitespace check pass without modifying production implementation files outside Tasks 16–20.
+- Steps:
+  1. Add the end-to-end CLI regression for aligned valid and malformed multi-pass evidence, then update canonical-spec and documentation assertions or inspection expectations to establish the red state.
+  2. Synchronize the three canonical specs and the framework/skills documentation with the implemented per-pass contract, compatibility boundary, ownership, and consumer behavior without introducing numbered feedback files.
+  3. Run focused end-to-end coverage, the full suite, build, and whitespace check; inspect the documentation and changed-path diff to confirm the remediation is fully described.
+- Verify: `bun --bun vitest run tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` → end-to-end evidence consumers agree, all tests and the build pass, and the diff has no whitespace errors.
+- Commit: `docs: synchronize per-pass review evidence`
 
 ## Done when
 

@@ -1,8 +1,8 @@
 ---
 artifact: progress
 change: 2026-09-12-lint-skill-scripts
-status: complete
-updated: 2026-09-13
+status: in-progress
+updated: 2026-09-16
 decision: accepted
 tasks:
   - id: 1
@@ -65,6 +65,30 @@ tasks:
     title: Delete obsolete shell helpers and tests
     status: done
     progress: tasks/task-15/progress.md
+  - id: 16
+    title: Align per-pass feedback and review producers
+    status: pending
+    progress: tasks/task-16/progress.md
+  - id: 17
+    title: Parse and validate per-pass review evidence
+    status: pending
+    progress: tasks/task-17/progress.md
+  - id: 18
+    title: Lint per-pass review evidence
+    status: pending
+    progress: tasks/task-18/progress.md
+  - id: 19
+    title: Gate preconditions on parsed review evidence
+    status: pending
+    progress: tasks/task-19/progress.md
+  - id: 20
+    title: Report context from parsed review evidence
+    status: pending
+    progress: tasks/task-20/progress.md
+  - id: 21
+    title: Synchronize per-pass evidence specifications and verification
+    status: pending
+    progress: tasks/task-21/progress.md
 ---
 # Progress: Replace Hamilton Helper Scripts with the Workbench CLI
 
@@ -85,3 +109,9 @@ tasks:
 | Task 13: Migrate skills to workbench commands | done | [details](tasks/task-13/progress.md) |
 | Task 14: Update framework documentation | done | [details](tasks/task-14/progress.md) |
 | Task 15: Delete obsolete shell helpers and tests | done | [details](tasks/task-15/progress.md) |
+| Task 16: Align per-pass feedback and review producers | pending | [details](tasks/task-16/progress.md) |
+| Task 17: Parse and validate per-pass review evidence | pending | [details](tasks/task-17/progress.md) |
+| Task 18: Lint per-pass review evidence | pending | [details](tasks/task-18/progress.md) |
+| Task 19: Gate preconditions on parsed review evidence | pending | [details](tasks/task-19/progress.md) |
+| Task 20: Report context from parsed review evidence | pending | [details](tasks/task-20/progress.md) |
+| Task 21: Synchronize per-pass evidence specifications and verification | pending | [details](tasks/task-21/progress.md) |
