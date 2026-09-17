@@ -123,7 +123,7 @@ tasks:
     progress: tasks/task-29/progress.md
   - id: 30
     title: Preserve workbench output channels
-    status: pending
+    status: done
     progress: tasks/task-30/progress.md
   - id: 31
     title: Correct review transition documentation
@@ -163,5 +163,5 @@ tasks:
 | Task 27: Repair Task 21 completion evidence | done | [details](tasks/task-27/progress.md) |
 | Task 28: Restore progress ledger parsing parity | done | [details](tasks/task-28/progress.md) |
 | Task 29: Promote lint read failures to environment errors | done | [details](tasks/task-29/progress.md) |
-| Task 30: Preserve workbench output channels | pending | [details](tasks/task-30/progress.md) |
+| Task 30: Preserve workbench output channels | done | [details](tasks/task-30/progress.md) |
 | Task 31: Correct review transition documentation | done | [details](tasks/task-31/progress.md) |

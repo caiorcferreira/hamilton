@@ -3,30 +3,25 @@ import { Console, Effect, Option } from "effect";
 import {
   context,
   createContextRuntime,
-  renderContextResult,
 } from "../../workbench/context.js";
 import {
   diff,
   createDiffRuntime,
-  renderDiffResult,
 } from "../../workbench/diff.js";
 import {
   checkIsolation,
   createIsolation,
-  renderIsolationResult,
   verifyIsolation,
 } from "../../workbench/isolate.js";
 import { lintScope, renderLintResult } from "../../workbench/lint.js";
 import {
   precondition,
   createPreconditionRuntime,
-  renderPreconditionResult,
 } from "../../workbench/precondition.js";
 import {
   createPrototypeBranch,
   createPrototypeRuntime,
   createStandalonePrototypeBranch,
-  renderPrototypeResult,
   verifyPrototypeBranch,
 } from "../../workbench/prototype.js";
 
@@ -38,7 +33,25 @@ const valueOf = <A>(value: Option.Option<A>): A | undefined =>
 
 type Result = { readonly exitCode: number };
 
-const runResult = <A extends Result>(
+type StreamResult = Result & {
+  readonly stdout: string;
+  readonly stderr: string;
+};
+
+const runStreamResult = <A extends StreamResult>(
+  promise: Promise<A>,
+): Effect.Effect<void> =>
+  Effect.promise(() => promise).pipe(
+    Effect.flatMap((result) =>
+      Effect.sync(() => {
+        process.exitCode = result.exitCode;
+        process.stdout.write(result.stdout);
+        process.stderr.write(result.stderr);
+      }),
+    ),
+  );
+
+const runRenderedResult = <A extends Result>(
   promise: Promise<A>,
   render: (result: A) => string,
 ): Effect.Effect<void> =>
@@ -84,17 +97,14 @@ export const isolateCommand = Command.make(
         "--verify cannot be combined with --change-dir or a title",
       );
     if (check)
-      return runResult(
-        checkIsolation(valueOf(changeDir)),
-        renderIsolationResult,
-      );
+      return runStreamResult(checkIsolation(valueOf(changeDir)));
     if (expectedTitle !== undefined)
-      return runResult(verifyIsolation(expectedTitle), renderIsolationResult);
+      return runStreamResult(verifyIsolation(expectedTitle));
     if (positionalTitle === undefined)
       return usageFailure("isolate create mode requires a title");
     if (valueOf(changeDir) !== undefined)
       return usageFailure("--change-dir requires --check");
-    return runResult(createIsolation(positionalTitle), renderIsolationResult);
+    return runStreamResult(createIsolation(positionalTitle));
   },
 ).pipe(Command.withDescription("Check, create, or verify workspace isolation"));
 
@@ -130,12 +140,11 @@ export const diffCommand = Command.make(
         return usageFailure(
           "--record requires --task and cannot be combined with --base, --whole-change, or --out",
         );
-      return runResult(
+      return runStreamResult(
         diff(
           { mode: "record", task: taskValue, changeDir: changeDirValue },
           createDiffRuntime(),
         ),
-        renderDiffResult,
       );
     }
     if (wholeChange) {
@@ -147,15 +156,14 @@ export const diffCommand = Command.make(
         return usageFailure(
           "--whole-change cannot be combined with --base, --change-dir, or --task",
         );
-      return runResult(
+      return runStreamResult(
         diff({ mode: "whole-change", out: outValue }, createDiffRuntime()),
-        renderDiffResult,
       );
     }
     if (baseValue !== undefined) {
       if (taskValue !== undefined)
         return usageFailure("--task is meaningless with --base");
-      return runResult(
+      return runStreamResult(
         diff(
           {
             mode: "base",
@@ -165,12 +173,11 @@ export const diffCommand = Command.make(
           },
           createDiffRuntime(),
         ),
-        renderDiffResult,
       );
     }
     if (taskValue === undefined)
       return usageFailure("--task is required when --base is not given");
-    return runResult(
+    return runStreamResult(
       diff(
         {
           mode: "task",
@@ -180,7 +187,6 @@ export const diffCommand = Command.make(
         },
         createDiffRuntime(),
       ),
-      renderDiffResult,
     );
   },
 ).pipe(Command.withDescription("Record checkpoints and package review diffs"));
@@ -197,12 +203,11 @@ export const preconditionCommand = Command.make(
     wholeChangeWaived: preconditionWaived,
   },
   ({ changeDir, testCommand, wholeChangeWaived }) =>
-    runResult(
+    runStreamResult(
       precondition(
         { changeDir, testCommand, wholeChangeWaived },
         createPreconditionRuntime(),
       ),
-      renderPreconditionResult,
     ),
 ).pipe(Command.withDescription("Evaluate finish-work precondition gates"));
 
@@ -216,9 +221,8 @@ export const contextCommand = Command.make(
     const target = valueOf(changeDir);
     if (all && target !== undefined)
       return usageFailure("--all takes no change directory");
-    return runResult(
+    return runStreamResult(
       context({ all, changeDir: target }, createContextRuntime()),
-      renderContextResult,
     );
   },
 ).pipe(Command.withDescription("Report Hamilton change context"));
@@ -253,25 +257,22 @@ export const prototypeCommand = Command.make(
     if (verifyValue !== undefined && positionalCount > 0)
       return usageFailure("--verify cannot be combined with mapped arguments");
     if (standaloneValue !== undefined)
-      return runResult(
+      return runStreamResult(
         createStandalonePrototypeBranch(
           standaloneValue,
           createPrototypeRuntime(),
         ),
-        renderPrototypeResult,
       );
     if (verifyValue !== undefined)
-      return runResult(
+      return runStreamResult(
         verifyPrototypeBranch(verifyValue, createPrototypeRuntime()),
-        renderPrototypeResult,
       );
     if (mapValue === undefined || ticketValue === undefined)
       return usageFailure(
         "prototype mapped mode requires <map-name> <ticket-name>",
       );
-    return runResult(
+    return runStreamResult(
       createPrototypeBranch(mapValue, ticketValue, createPrototypeRuntime()),
-      renderPrototypeResult,
     );
   },
 ).pipe(Command.withDescription("Create, resume, or verify prototype branches"));
@@ -283,7 +284,7 @@ export const lintCommand = Command.make(
   "lint",
   { file: lintFile, changeDir: lintChangeDir },
   ({ file, changeDir }) =>
-    runResult(
+    runRenderedResult(
       lintScope({ file: valueOf(file), changeDir: valueOf(changeDir) }),
       renderLintResult,
     ),

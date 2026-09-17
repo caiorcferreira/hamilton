@@ -6,7 +6,9 @@ import {
   checkIsolation,
   createIsolation,
   isolate,
+  renderIsolationResult,
   verifyIsolation,
+  type IsolationResult,
 } from "../../src/workbench/isolate.js";
 import {
   createRuntime,
@@ -44,6 +46,25 @@ const failingWorktreeProcess = (): ProcessPort => ({
       return { status: 9, stdout: "", stderr: "simulated worktree failure" };
     return runCommand(command, args, cwd);
   },
+});
+
+describe("isolation rendering", () => {
+  it("renders stderr when stdout is empty", () => {
+    const result: IsolationResult = {
+      _tag: "IsolationResult",
+      operation: "check",
+      status: "error",
+      exitCode: 2,
+      stdout: "",
+      stderr: "error: not inside a git repository\n",
+      lines: [],
+      lastLine: "",
+    };
+
+    expect(renderIsolationResult(result)).toBe(
+      "error: not inside a git repository",
+    );
+  });
 });
 
 describe("isolation check", () => {

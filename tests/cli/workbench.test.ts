@@ -7,11 +7,20 @@ import { VERSION } from "../../src/index.js";
 
 const entrypoint = Path.resolve("src/cli/main.ts");
 
-const runCli = (cwd: string, ...arguments_: string[]) =>
-  spawnSync(process.execPath, ["run", entrypoint, ...arguments_], {
+const runCli = (cwd: string, ...arguments_: string[]) => {
+  const result = spawnSync(process.execPath, ["run", entrypoint, ...arguments_], {
     cwd,
     encoding: "utf8",
+    killSignal: "SIGKILL",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 5000,
   });
+  if (result.error !== undefined)
+    throw new Error(
+      `CLI subprocess failed (${arguments_.join(" ")}): ${result.error.message}`,
+    );
+  return result;
+};
 
 const git = (cwd: string, ...arguments_: string[]) => {
   const result = spawnSync("git", arguments_, { cwd, encoding: "utf8" });
@@ -141,6 +150,21 @@ describe("workbench CLI", () => {
 
     expect(result.status).toBe(1);
     expect(result.stdout.trimEnd()).toMatch(/isolated: no \(.+\)$/);
+    expect(result.stderr).toBe("");
+  });
+
+  it("reports isolate errors on stderr outside a git repository", () => {
+    const result = runCli(
+      temporaryDirectory,
+      "workbench",
+      "isolate",
+      "--check",
+    );
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("error: not inside a git repository");
+    expect(result.stderr.match(/error:/g)).toHaveLength(1);
   });
 
   it("preserves prototype verification failures", () => {
@@ -160,7 +184,8 @@ describe("workbench CLI", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("not on prototype/expected");
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("not on prototype/expected");
   });
 
   it("packages a whole-change diff", () => {
@@ -226,7 +251,8 @@ describe("workbench CLI", () => {
     );
 
     expect(result.status).toBe(2);
-    expect(result.stdout).toContain("change dir does not exist");
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("change dir does not exist");
   });
 
   it("uses the physical latest feedback and review pass across consumers", () => {
@@ -651,5 +677,5 @@ describe("workbench CLI", () => {
     expect(preconditionMalformed.stdout).toContain(
       "whole-branch review malformed",
     );
-  }, 15000);
+  }, 30000);
 });

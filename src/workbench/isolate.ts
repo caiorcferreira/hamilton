@@ -247,4 +247,7 @@ export const verifyIsolation = (
 
 export const renderIsolationResult = (
   isolationResult: IsolationResult,
-): string => isolationResult.stdout.trimEnd();
+): string =>
+  isolationResult.stdout.trimEnd() === ""
+    ? isolationResult.stderr.trimEnd()
+    : isolationResult.stdout.trimEnd();
