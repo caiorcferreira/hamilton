@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-12-lint-skill-scripts
-status: pending
+status: completed
 created: 2026-09-13
 updated: 2026-09-17
 strategy: pull-request
-result: pending
+result: completed
 decision: accepted
 ---
 
@@ -35,3 +35,12 @@ decision: accepted
 - Strategy: pull request
 - Intended workspace result: fast-forward push this local branch with `git push origin HEAD:lint-skill-scripts`, retain PR `https://github.com/caiorcferreira/hamilton/pull/44` open against `main`, retain both the remote-lineage and original local worktrees, then persist and fast-forward push the matching outcome with the same explicit refspec.
 - Route intent: none
+
+## Outcome 2 — 2026-09-17
+
+- Result: completed.
+- Pull request: `https://github.com/caiorcferreira/hamilton/pull/44`, state `OPEN`, base `main`, head branch `lint-skill-scripts`, head commit before outcome persistence `26f71367e7badea9676a9aba432d5d98560bbb28`.
+- Remote: explicit fast-forward push `HEAD:lint-skill-scripts` read back at `26f71367e7badea9676a9aba432d5d98560bbb28` before outcome persistence.
+- Workspace: local branch `lint-skill-scripts-remote` and linked worktree `/home/caio/workspace/personal/hamilton/.worktrees/lint-skill-scripts-remote` remain in place; original local branch `lint-skill-scripts` and linked worktree `/home/caio/workspace/personal/hamilton/.worktrees/lint-skill-scripts` remain in place; tree was clean.
+- Route: no route unit or map transition.
+- Partial state: none; the intended remote branch update and existing pull request were read back before outcome persistence.
