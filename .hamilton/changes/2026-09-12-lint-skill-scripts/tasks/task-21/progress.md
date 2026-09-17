@@ -40,3 +40,30 @@ Notes:
 - Synchronized canonical specifications and framework documentation with per-pass `Base`, `Head`, and `Verdict`, single-file append-only ownership, no numbered feedback or review files, and bounded one-pass global-frontmatter compatibility.
 - Generalized the whole-change package-path assertion for the platform-specific temporary-directory root.
 - No production implementation files were modified. `PR-44-STATE.md` and the Task 21 `.base` checkpoint were preserved.
+
+## Attempt 2 — 2026-09-17
+
+Outcome: done
+
+Created:
+- none
+
+Modified:
+- `tests/cli/workbench.test.ts`
+- `.hamilton/changes/2026-09-12-lint-skill-scripts/progress.md`
+
+Deleted:
+- none
+
+Verification:
+- `bun --bun vitest run tests/cli/workbench.test.ts` — passed, 12 tests
+- `bun --bun vitest run` — passed, 362 tests
+- `bun run build` — passed
+- `git diff --check` — passed
+- `bun --bun vitest run tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` — passed
+
+Notes:
+- Added the focused `preconditionValid.status` assertion so the valid multi-pass branch requires an open precondition gate and therefore consumes Pass 2 approved evidence rather than Pass 1 changes-requested evidence.
+- Preserved the existing Pass 1, Pass 2, malformed Pass 3 fixtures and CLI output assertions; corrected only the synthetic task-attempt field and evidence commit boundaries needed to satisfy the existing precondition contract.
+- The first focused run after adding the assertion exposed those fixture-contract gaps and returned `gate: closed (3 failing)`; the corrected fixture passed all final verification.
+- No production implementation files, canonical documentation, `plan.md`, `feedback.md`, sibling evidence, `PR-44-STATE.md`, or the immutable Task 21 `.base` checkpoint were modified.

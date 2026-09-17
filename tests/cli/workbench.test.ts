@@ -340,7 +340,7 @@ describe("workbench CLI", () => {
         "",
         "## Attempt 1 — 2026-09-16",
         "",
-        "Outcome: done",
+        "- Outcome: done",
         "",
         "Created: none",
         "Modified: src/example.ts",
@@ -410,7 +410,13 @@ describe("workbench CLI", () => {
         pass(2, "approved"),
       ),
     );
-    git(repositoryDirectory, "add", ".");
+    git(
+      repositoryDirectory,
+      "add",
+      ".hamilton/changes/sample/tasks/task-1/feedback.md",
+    );
+    git(repositoryDirectory, "commit", "-qm", "feedback evidence");
+    git(repositoryDirectory, "add", ".hamilton/changes/sample/review.md");
     git(repositoryDirectory, "commit", "-qm", "review evidence");
 
     const lintValid = runCli(
@@ -445,6 +451,7 @@ describe("workbench CLI", () => {
     expect(contextValid.stdout).toContain(
       "whole change: approved",
     );
+    expect(preconditionValid.status).toBe(0);
     expect(preconditionValid.stdout).toContain("[PASS] Clean tree");
     expect(preconditionValid.stdout).not.toContain("feedback malformed");
     expect(preconditionValid.stdout).not.toContain(
