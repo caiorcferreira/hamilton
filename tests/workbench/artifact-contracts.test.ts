@@ -367,6 +367,21 @@ describe("artifact metadata contracts", () => {
     expect(body.diagnostics[0]?.location?.line).toBeGreaterThan(0);
   });
 
+  it("extracts Markdown headings while ignoring fenced and commented headings", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      validArtifacts[8][1],
+      "# Whole-branch Review: Demo\n\n```md\n## Pass 99 — 2026-09-99\n```\n\n<!-- ## Pass 98 — 2026-09-98 -->\n\n## Pass 1 — 2026-09-12\n\n### Blocking\n- None.\n\n### Suggestions\n- None.",
+    );
+
+    const body = validateArtifactBody(artifact, "review");
+
+    expect(body.workflow.records.map((record) => record.number)).toEqual([1]);
+    expect(body.diagnostics.map((item) => item.code)).toContain(
+      "invalid-record",
+    );
+  });
+
   it("extracts physical-last pass records", () => {
     const artifact = recognized(
       ".hamilton/changes/demo/review.md",

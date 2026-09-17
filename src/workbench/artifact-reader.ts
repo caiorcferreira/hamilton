@@ -78,7 +78,7 @@ const diagnostic = (
   sourcePath: string,
   code: ArtifactDiagnosticCode,
   message: string,
-  location?: { readonly line: number; readonly column?: number },
+  location?: { readonly line: number; readonly column?: number } | null,
 ): InvalidArtifactFile => ({
   _tag: "invalid",
   sourcePath,
@@ -87,7 +87,7 @@ const diagnostic = (
     code,
     message,
     sourcePath,
-    location,
+    ...(location === undefined || location === null ? {} : { location }),
   },
 });
 
@@ -99,8 +99,8 @@ const errorLocation = (
   offsetBase: number,
   error: Yaml.YAMLError,
 ) => {
-  const offset = error.pos?.[0];
-  if (offset === undefined) return undefined;
+  const offset = error.pos?.[0] ?? null;
+  if (offset === null) return null;
   const sourceOffset = offsetBase + offset;
   return {
     line: lineAt(source, sourceOffset),
@@ -108,17 +108,32 @@ const errorLocation = (
   };
 };
 
-const readFrontmatter = (source: string) => {
+interface ParsedFrontmatter {
+  readonly _tag: "parsed";
+  readonly opening: string;
+  readonly closing: RegExpExecArray;
+  readonly yaml: string;
+  readonly body: string;
+}
+
+type Frontmatter =
+  | { readonly _tag: "absent" }
+  | { readonly _tag: "unterminated"; readonly opening: string }
+  | ParsedFrontmatter;
+
+const readFrontmatter = (source: string): Frontmatter => {
   const opening = source.match(/^(?:\uFEFF)?---[ \t]*(?:\r\n|\n|\r|$)/);
-  if (!opening) return undefined;
+  if (opening === null) return { _tag: "absent" };
 
   const closingPattern = /^(?:---|\.\.\.)[ \t]*(?:\r\n|\n|\r|$)/gm;
   closingPattern.lastIndex = opening[0].length;
   const closing = closingPattern.exec(source);
-  if (!closing) return { opening, closing: undefined };
+  if (closing === null)
+    return { _tag: "unterminated", opening: opening[0] };
 
   return {
-    opening,
+    _tag: "parsed",
+    opening: opening[0],
     closing,
     yaml: source.slice(opening[0].length, closing.index),
     body: source.slice(closing.index + closing[0].length),
@@ -130,7 +145,7 @@ const parseArtifact = (
   source: string,
 ): ArtifactReadResult => {
   const frontmatter = readFrontmatter(source);
-  if (!frontmatter) {
+  if (frontmatter._tag === "absent") {
     return {
       _tag: "unrelated",
       sourcePath,
@@ -140,7 +155,7 @@ const parseArtifact = (
     };
   }
 
-  if (!frontmatter.closing) {
+  if (frontmatter._tag === "unterminated") {
     return diagnostic(
       sourcePath,
       "unterminated-frontmatter",
@@ -160,7 +175,7 @@ const parseArtifact = (
       "invalid-yaml",
       `Unable to parse YAML: ${String(error)}`,
       {
-        line: lineAt(source, frontmatter.opening[0].length),
+        line: lineAt(source, frontmatter.opening.length),
       },
     );
   }
@@ -173,7 +188,7 @@ const parseArtifact = (
       sourcePath,
       code,
       yamlError.message,
-      errorLocation(source, frontmatter.opening[0].length, yamlError),
+      errorLocation(source, frontmatter.opening.length, yamlError),
     );
   }
 
@@ -194,7 +209,7 @@ const parseArtifact = (
       "invalid-metadata",
       "Frontmatter must contain a YAML mapping",
       {
-        line: lineAt(source, frontmatter.opening[0].length),
+        line: lineAt(source, frontmatter.opening.length),
       },
     );
   }
@@ -205,7 +220,7 @@ const parseArtifact = (
       "missing-artifact",
       "Frontmatter is missing the artifact field",
       {
-        line: lineAt(source, frontmatter.opening[0].length),
+        line: lineAt(source, frontmatter.opening.length),
       },
     );
   }
@@ -221,7 +236,7 @@ const parseArtifact = (
     locations: {
       frontmatter: { startLine: 1, endLine: closingLine },
       metadata: {
-        startLine: lineAt(source, frontmatter.opening[0].length),
+        startLine: lineAt(source, frontmatter.opening.length),
         endLine: Math.max(lineAt(source, frontmatter.closing.index) - 1, 1),
       },
       body: {

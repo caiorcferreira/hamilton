@@ -2,6 +2,7 @@
 import { Command } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Console, Effect } from "effect";
+import { VERSION } from "../index.js";
 import { setupCommand } from "./commands/setup.js";
 import { workbenchCommand } from "./commands/workbench.js";
 
@@ -13,7 +14,7 @@ const rootCommand = Command.make("hamilton", {}, () =>
 
 const cli = Command.run(rootCommand, {
   name: "Hamilton",
-  version: "0.3.0",
+  version: VERSION,
 });
 
 cli(process.argv).pipe(

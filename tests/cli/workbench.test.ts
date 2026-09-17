@@ -3,6 +3,7 @@ import * as Fs from "node:fs";
 import * as Os from "node:os";
 import * as Path from "node:path";
 import { spawnSync } from "node:child_process";
+import { VERSION } from "../../src/index.js";
 
 const entrypoint = Path.resolve("src/cli/main.ts");
 
@@ -28,6 +29,13 @@ describe("workbench CLI", () => {
 
   afterEach(() => {
     Fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  });
+
+  it("reports the shared CLI version", () => {
+    const result = runCli(temporaryDirectory, "--version");
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe(VERSION);
   });
 
   it("lists every operation in help output", () => {

@@ -82,9 +82,9 @@ const productionProcess: ProcessPort = {
       env: environment,
     });
     return {
-      status: result.status ?? -1,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
+      status: result.status === null ? -1 : result.status,
+      stdout: result.stdout === null ? "" : result.stdout,
+      stderr: result.stderr === null ? "" : result.stderr,
     };
   },
 };
