@@ -746,6 +746,61 @@ Head: ${sha}
     ]);
   });
 
+  it("parses escaped progress-table delimiters inside task titles", () => {
+    const progress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      { ...validArtifacts[5][1], tasks: [] },
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Parse A \\| B | done | [details](tasks/task-1/progress.md) |",
+    );
+
+    const body = validateArtifactBody(progress, "progress");
+
+    expect(body.diagnostics).toEqual([]);
+    expect(body.workflow.records).toHaveLength(1);
+    expect(body.workflow.records[0]).toMatchObject({
+      kind: "task",
+      number: 1,
+      title: "Parse A | B",
+      fields: {
+        Status: "done",
+        Progress: "[details](tasks/task-1/progress.md)",
+      },
+    });
+  });
+
+  it.each([
+    [
+      "unescaped title delimiters",
+      "| Task 1: Parse A | B | done | [details](tasks/task-1/progress.md) |",
+    ],
+    [
+      "invalid statuses",
+      "| Task 1: Parse A | shipped | [details](tasks/task-1/progress.md) |",
+    ],
+    [
+      "invalid progress links",
+      "| Task 1: Parse A | done | [task](tasks/task-1/progress.md) |",
+    ],
+    [
+      "invalid task identities",
+      "| Task 0: Parse A | done | [details](tasks/task-1/progress.md) |",
+    ],
+  ])("rejects progress rows with %s", (_case, row) => {
+    const progress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      validArtifacts[5][1],
+      `# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n${row}`,
+    );
+
+    const body = validateArtifactBody(progress, "progress");
+    const diagnostic = body.diagnostics.find(
+      (item) => item.code === "invalid-record",
+    );
+
+    expect(body.workflow.records).toEqual([]);
+    expect(diagnostic?.location?.line).toBe(6);
+  });
+
   it("reports malformed and non-monotonic records", () => {
     const malformed = recognized(
       ".hamilton/changes/demo/feedback.md",

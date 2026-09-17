@@ -167,6 +167,67 @@ const makeEvidence = (
   return { base, material, changeDir };
 };
 
+const makeEmptyProgressEvidence = (
+  repository: string,
+  abandoned: boolean,
+): { readonly changeDir: string } => {
+  const changeDir = makeChangeDir(repository, "demo");
+  const base = git(repository, "rev-parse", "HEAD");
+  const taskHeading = abandoned
+    ? "### Task 1: Retired (abandoned — no longer needed)"
+    : "### Task 1: Implement";
+  write(
+    repository,
+    evidencePath("demo", "plan.md"),
+    `---
+artifact: plan
+change: demo
+status: approved
+created: 2026-09-12
+author: test
+decision: accepted
+route_unit: null
+---
+# Plan: Demo
+
+## Overview
+A plan.
+
+## Tasks
+
+${taskHeading}
+
+## Done when
+It works.
+`,
+  );
+  write(
+    repository,
+    evidencePath("demo", "progress.md"),
+    `---
+artifact: progress
+change: demo
+status: complete
+updated: 2026-09-12
+decision: accepted
+tasks: []
+---
+# Progress: Demo
+
+| Task | Status | Progress |
+| --- | --- | --- |
+`,
+  );
+  const material = commitAll(repository, "material");
+  write(
+    repository,
+    evidencePath("demo", "review.md"),
+    reviewDocument("review", base, material, "compatibility"),
+  );
+  commitPaths(repository, "review", evidencePath("demo", "review.md"));
+  return { changeDir };
+};
+
 describe("precondition repository gates", () => {
   it("closes the gate when workflow evidence is absent", async () => {
     const repository = makeRepo();
@@ -368,6 +429,28 @@ it("opens the gate with one-pass compatibility evidence", async () => {
   expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
   expect(result.stdout).toContain("[PASS] Final clean tree");
   expect(result.lastLine).toBe("gate: open");
+});
+
+it("opens the gate for an all-abandoned plan with an empty progress ledger", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEmptyProgressEvidence(repository, true);
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Tasks (0 implemented)");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("rejects an empty progress ledger when the plan has an active task", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEmptyProgressEvidence(repository, false);
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("plan and progress ledgers do not match");
+  expect(result.lastLine).toContain("gate: closed");
 });
 
 it("opens the gate with requested-change then approved per-pass evidence", async () => {

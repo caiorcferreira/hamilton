@@ -467,10 +467,41 @@ const readReviewWorkflow = (
 };
 
 const tableCells = (line: string): readonly string[] | null => {
-  const match = /^\s*\|(.*)\|\s*$/.exec(line);
-  return match === null
-    ? null
-    : match[1]?.split("|").map((cell) => cell.trim()) ?? [];
+  const opening = /^\s*\|/.exec(line);
+  if (opening === null) return null;
+  const content = line.slice(opening[0].length);
+  let closing = content.length - 1;
+  while (closing >= 0 && /\s/.test(content[closing] ?? "")) closing -= 1;
+  if (content[closing] !== "|") return null;
+  let backslashes = 0;
+  for (
+    let index = closing - 1;
+    index >= 0 && content[index] === "\\";
+    index -= 1
+  )
+    backslashes += 1;
+  if (backslashes % 2 === 1) return null;
+
+  const cells: string[] = [];
+  let cell = "";
+  let escaped = false;
+  for (let index = 0; index < closing; index += 1) {
+    const character = content[index] ?? "";
+    if (escaped) {
+      cell += character === "|" ? "|" : `\\${character}`;
+      escaped = false;
+    } else if (character === "\\") {
+      escaped = true;
+    } else if (character === "|") {
+      cells.push(cell.trim());
+      cell = "";
+    } else {
+      cell += character;
+    }
+  }
+  if (escaped) cell += "\\";
+  cells.push(cell.trim());
+  return cells;
 };
 
 const isTableSeparator = (cells: readonly string[]): boolean =>
@@ -604,17 +635,6 @@ const readTaskLedger = (
           line,
           fields: { Status: cells[1] ?? "", Progress: cells[2] ?? "" },
         });
-      }
-      if (records.length === 0) {
-        diagnostics.push(
-          bodyDiagnostic(
-            artifact,
-            "missing-section",
-            "Progress must declare at least one task record",
-            artifact.locations.body.startLine + headerIndex,
-            "| Task N: title | status | progress |",
-          ),
-        );
       }
     }
   }
