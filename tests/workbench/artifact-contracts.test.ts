@@ -383,10 +383,30 @@ describe("artifact metadata contracts", () => {
   });
 
   it("extracts physical-last pass records", () => {
+    const metadata = { ...validArtifacts[8][1] };
+    delete metadata.verdict;
+    delete metadata.base;
+    delete metadata.head;
     const artifact = recognized(
       ".hamilton/changes/demo/review.md",
-      validArtifacts[8][1],
-      "# Whole-branch Review: Demo\n## Pass 1 — 2026-09-12\n### Blocking\n- None.\n### Suggestions\n- None.\n## Pass 2 — 2026-09-13\n### Blocking\n- None.\n### Suggestions\n- None.",
+      metadata,
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.`,
     );
     const body = validateArtifactBody(artifact, "review");
     expect(body.diagnostics).toEqual([]);
@@ -395,6 +415,128 @@ describe("artifact metadata contracts", () => {
     expect(body.workflow.records.map((record) => record.number)).toEqual([
       1, 2,
     ]);
+  });
+
+  it("accepts per-pass review evidence without global range metadata", () => {
+    const metadata = {
+      artifact: "review",
+      change: "demo",
+      created: "2026-09-12",
+      status: "complete",
+      decision: "accepted",
+    };
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      metadata,
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+Base: ${sha}
+Head: ${sha}
+Verdict: changes-requested
+### Blocking
+- [src/main.ts:1] Fix this (violates: behavior)
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    const result = validateArtifact(artifact);
+
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records.map((record) => record.number)).toEqual([
+        1,
+        2,
+      ]);
+    }
+  });
+
+  it("accepts per-pass feedback evidence without global range metadata", () => {
+    const metadata = {
+      artifact: "feedback",
+      change: "demo",
+      task: 2,
+      created: "2026-09-12",
+      status: "resolved",
+      decision: "accepted",
+    };
+    const artifact = recognized(
+      ".hamilton/changes/demo/tasks/task-2/feedback.md",
+      metadata,
+      `# Code Feedback: Task 2 — Validate
+## Pass 1 — 2026-09-12
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    expect(validateArtifact(artifact)._tag).toBe("valid");
+  });
+
+  it("accepts one-pass global review evidence for compatibility", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        verdict: "approved",
+        decision: "accepted",
+        base: sha,
+        head: sha,
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    expect(validateArtifact(artifact)._tag).toBe("valid");
+  });
+
+  it("rejects a malformed physical-last review pass instead of reviving approval", () => {
+    const artifact = recognized(
+      ".hamilton/changes/demo/review.md",
+      {
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        decision: "accepted",
+      },
+      `# Whole-branch Review: Demo
+## Pass 1 — 2026-09-12
+Base: ${sha}
+Head: ${sha}
+Verdict: approved
+### Blocking
+- None.
+### Suggestions
+- None.
+## Pass 2 — 2026-09-13
+Base: ${sha}
+Head: ${sha}
+### Blocking
+- None.
+### Suggestions
+- None.`,
+    );
+
+    expectInvalid(validateArtifact(artifact), "missing-section");
   });
 
   it("extracts and validates plan and progress task ledgers", () => {

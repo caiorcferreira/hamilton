@@ -1,7 +1,7 @@
 import { marked, type Token } from "marked";
 import type { RecognizedArtifact } from "./artifact-reader.js";
+import { parseReviewPasses } from "./review-passes.js";
 import type {
-  ArtifactBodyClassification,
   ArtifactBodyValidation,
   ArtifactContractDiagnostic,
   ArtifactContractDiagnosticCode,
@@ -9,6 +9,7 @@ import type {
   ArtifactWorkflowRecord,
   ArtifactWorkflowRecordKind,
   ArtifactWorkflowState,
+  ReviewPassEvidence,
   SupportedArtifact,
 } from "./artifact-types.js";
 
@@ -16,10 +17,12 @@ interface BodyContract {
   readonly heading: string;
   readonly sections: readonly string[];
   readonly records?:
-    | ArtifactWorkflowRecordKind
-    | readonly ArtifactWorkflowRecordKind[];
+    | GenericWorkflowRecordKind
+    | readonly GenericWorkflowRecordKind[];
   readonly ledger?: "plan" | "progress";
 }
+
+type GenericWorkflowRecordKind = Exclude<ArtifactWorkflowRecordKind, "pass">;
 
 const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   proposal: {
@@ -67,12 +70,10 @@ const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   feedback: {
     heading: "Code Feedback:",
     sections: ["Blocking", "Suggestions"],
-    records: "pass",
   },
   review: {
     heading: "Whole-branch Review:",
     sections: ["Blocking", "Suggestions"],
-    records: "pass",
   },
   finish: {
     heading: "Finish History:",
@@ -184,25 +185,23 @@ const bodyDiagnostic = (
   location: { line },
 });
 
-const recordLabel = (kind: ArtifactWorkflowRecordKind): string =>
-  kind === "pass"
-    ? "Pass"
-    : kind === "attempt"
-      ? "Attempt"
-      : kind === "outcome"
-        ? "Outcome"
-        : kind === "unit"
-          ? "Unit"
-          : "Task";
+const recordLabel = (kind: GenericWorkflowRecordKind): string =>
+  kind === "attempt"
+    ? "Attempt"
+    : kind === "outcome"
+      ? "Outcome"
+      : kind === "unit"
+        ? "Unit"
+        : "Task";
 
 const recordHeadingMatches = (
-  kind: ArtifactWorkflowRecordKind,
+  kind: GenericWorkflowRecordKind,
   text: string,
 ): boolean =>
   text.startsWith(recordLabel(kind) + " ") ||
   (kind === "unit" && /^[1-9][0-9]*\. /.test(text));
 
-const recordLevel = (kind: ArtifactWorkflowRecordKind): number =>
+const recordLevel = (kind: GenericWorkflowRecordKind): number =>
   kind === "unit" ? 3 : 2;
 
 type ParsedRecordHeading =
@@ -210,7 +209,7 @@ type ParsedRecordHeading =
   | { readonly number: number; readonly title: string };
 
 const recordHeading = (
-  kind: ArtifactWorkflowRecordKind,
+  kind: GenericWorkflowRecordKind,
   text: string,
 ): ParsedRecordHeading | null => {
   const label = recordLabel(kind);
@@ -230,7 +229,7 @@ const recordHeading = (
 
 const commentedRecordHeadings = (
   artifact: RecognizedArtifact,
-  kinds: readonly ArtifactWorkflowRecordKind[],
+  kinds: readonly GenericWorkflowRecordKind[],
 ): readonly ArtifactHeading[] => {
   const headings: ArtifactHeading[] = [];
   const comments = /<!--[\s\S]*?-->/g;
@@ -270,8 +269,8 @@ const recordFields = (
 const readWorkflow = (
   artifact: RecognizedArtifact,
   kind:
-    | ArtifactWorkflowRecordKind
-    | readonly ArtifactWorkflowRecordKind[]
+    | GenericWorkflowRecordKind
+    | readonly GenericWorkflowRecordKind[]
     | null,
   headings: readonly ArtifactHeading[],
 ): {
@@ -405,41 +404,52 @@ const readWorkflow = (
       }
     }
   }
-  const passRecords = records.filter((record) => record.kind === "pass");
-  const passNumbers = passRecords.flatMap((record) =>
-    record.number === undefined ? [] : [record.number],
-  );
-  const lastPass = passNumbers.length > 0 ? Math.max(...passNumbers) : null;
-  const physicalLastPass = passNumbers.length > 0
-    ? passNumbers[passNumbers.length - 1] ?? null
-    : null;
-  const levelTwo = headings.filter((heading) => heading.level === 2);
-  const physicalPass =
-    passRecords.length > 0 &&
-    levelTwo.at(-1)?.line === passRecords.at(-1)?.line;
-  if (passRecords.length > 0 && !physicalPass) {
-    diagnostics.push(
-      bodyDiagnostic(
-        artifact,
-        "invalid-record",
-        "The latest pass must be the physical last pass",
-        passRecords.at(-1)?.line ?? artifact.locations.body.startLine,
-        "physical last pass",
-      ),
-    );
-  }
-  const classification: ArtifactBodyClassification = sawLegacy
-    ? "legacy-unsupported"
-    : physicalPass
-      ? "physical-last-pass"
-      : "supported";
   const state: ArtifactWorkflowState = {
-    classification,
+    classification: sawLegacy ? "legacy-unsupported" : "supported",
     records,
-    ...(physicalLastPass === null ? {} : { physicalLastPass }),
-    ...(lastPass === null ? {} : { lastPass }),
   };
   return { state, diagnostics };
+};
+
+const readReviewWorkflow = (
+  artifact: RecognizedArtifact,
+): {
+  readonly state: ArtifactWorkflowState;
+  readonly diagnostics: readonly ArtifactContractDiagnostic[];
+} => {
+  const parsed = parseReviewPasses(artifact);
+  const records = parsed.passes.map(
+    (pass: ReviewPassEvidence): ArtifactWorkflowRecord => ({
+      kind: "pass",
+      number: pass.number,
+      date: pass.date,
+      line: pass.line,
+      fields: {
+        Base: pass.base,
+        Head: pass.head,
+        Verdict: pass.verdict,
+        Blocking: pass.blocking.join("\n"),
+        Suggestions: pass.suggestions.join("\n"),
+      },
+    }),
+  );
+  return {
+    state: {
+      classification:
+        parsed.physicalLastPass === undefined
+          ? "supported"
+          : "physical-last-pass",
+      records,
+      passes: parsed.passes,
+      ...(parsed.physicalLastPass === undefined
+        ? {}
+        : { physicalLastPass: parsed.physicalLastPass }),
+      ...(parsed.physicalLastPass === undefined
+        ? {}
+        : { lastPass: parsed.physicalLastPass }),
+    },
+    diagnostics: parsed.diagnostics,
+  };
 };
 
 const tableCells = (line: string): readonly string[] | null => {
@@ -653,7 +663,10 @@ export const validateArtifactBody = (
       );
     }
   }
-  const workflow = readWorkflow(artifact, contract.records ?? null, headings);
+  const workflow =
+    kind === "feedback" || kind === "review"
+      ? readReviewWorkflow(artifact)
+      : readWorkflow(artifact, contract.records ?? null, headings);
   diagnostics.push(...workflow.diagnostics);
   const workflowRecords = [...workflow.state.records];
   if (contract.ledger) {

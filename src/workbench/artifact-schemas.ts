@@ -112,7 +112,13 @@ const schemaProperties = (artifact: SupportedArtifact) => {
   const properties: Record<string, ArtifactMetadataSchema> = {
     artifact: { const: artifact },
   };
-  for (const field of requiredFields[artifact]) {
+  const metadataFields = [
+    ...requiredFields[artifact],
+    ...(artifact === "feedback" || artifact === "review"
+      ? ["base", "head", "verdict"]
+      : []),
+  ];
+  for (const field of new Set(metadataFields)) {
     const property = propertySchemas[field];
     if (property) properties[field] = property;
   }

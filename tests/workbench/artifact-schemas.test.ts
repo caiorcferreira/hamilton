@@ -93,4 +93,46 @@ describe("artifact metadata schemas", () => {
       ]),
     );
   });
+
+  it("does not require review ranges or verdicts in global frontmatter", () => {
+    expect(requiredFields.feedback).not.toEqual(
+      expect.arrayContaining(["verdict", "base", "head"]),
+    );
+    expect(requiredFields.review).not.toEqual(
+      expect.arrayContaining(["verdict", "base", "head"]),
+    );
+
+    const diagnostics = validateArtifactMetadataSchema(
+      recognized({
+        artifact: "review",
+        change: "demo",
+        created: "2026-09-12",
+        status: "complete",
+        decision: "accepted",
+      }),
+      "review",
+    );
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("validates optional legacy review provenance when present", () => {
+    const diagnostics = validateArtifactMetadataSchema(
+      recognized({
+        artifact: "review",
+        base: "short",
+        head: "ABC",
+        verdict: "maybe",
+      }),
+      "review",
+    );
+
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-value", field: "base" }),
+        expect.objectContaining({ code: "invalid-value", field: "head" }),
+        expect.objectContaining({ code: "invalid-value", field: "verdict" }),
+      ]),
+    );
+  });
 });

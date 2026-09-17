@@ -49,6 +49,26 @@ export interface ArtifactHeading {
   readonly line: number;
 }
 
+export type ReviewPassVerdict = "approved" | "changes-requested" | "skipped";
+
+export interface ReviewPassEvidence {
+  readonly number: number;
+  readonly date: string;
+  readonly base: string;
+  readonly head: string;
+  readonly verdict: ReviewPassVerdict;
+  readonly blocking: readonly string[];
+  readonly suggestions: readonly string[];
+  readonly line: number;
+}
+
+export interface ReviewPassParseResult {
+  readonly passes: readonly ReviewPassEvidence[];
+  readonly diagnostics: readonly ArtifactContractDiagnostic[];
+  readonly physicalLastPass?: number;
+  readonly latest?: ReviewPassEvidence;
+}
+
 export type ArtifactWorkflowRecordKind =
   | "task"
   | "attempt"
@@ -73,6 +93,7 @@ export type ArtifactBodyClassification =
 export interface ArtifactWorkflowState {
   readonly classification: ArtifactBodyClassification;
   readonly records: readonly ArtifactWorkflowRecord[];
+  readonly passes?: readonly ReviewPassEvidence[];
   readonly physicalLastPass?: number;
   readonly lastPass?: number;
 }
@@ -200,20 +221,14 @@ export const requiredFields: Record<SupportedArtifact, readonly string[]> = {
     "task",
     "created",
     "status",
-    "verdict",
     "decision",
-    "base",
-    "head",
   ],
   review: [
     "artifact",
     "change",
     "created",
     "status",
-    "verdict",
     "decision",
-    "base",
-    "head",
   ],
   finish: [
     "artifact",
