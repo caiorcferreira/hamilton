@@ -3,10 +3,7 @@ artifact: review
 change: <YYYY-MM-DD-change-title>
 created: <YYYY-MM-DD>
 status: open | complete
-verdict: approved | changes-requested | skipped
 decision: accepted | rejected | skipped
-base: <full merge-base commit identifier>
-head: <full head commit identifier>
 ---
 
 <!--
@@ -21,7 +18,9 @@ head: <full head commit identifier>
 
 ## Pass N — <YYYY-MM-DD> <!-- hint: replace with the next pass number and current date -->
 
-<!-- Review metadata is recorded in frontmatter. -->
+Base: <full merge-base commit identifier>
+Head: <full head commit identifier>
+Verdict: approved | changes-requested | skipped
 
 ### Blocking
 

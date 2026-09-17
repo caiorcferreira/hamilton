@@ -73,10 +73,17 @@ describe("hamilton-code-feedback contract", () => {
     expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
     expect(artifact).toMatch(/append.*next-numbered pass.*physical end/is)
     expect(artifact).toMatch(/preserve.*prior pass/is)
+    expect(artifact).toMatch(/frontmatter.*only.*artifact identity.*lifecycle/is)
+    expect(artifact).toMatch(
+      /Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,[\s\S]*?exactly its two child sections, `### Blocking` and `### Suggestions`/,
+    )
+    expect(artifact).toMatch(/never rewrite a prior pass/is)
+    expect(artifact).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
+    expect(artifact).toMatch(/never create.*`feedback-<k>\.md`/is)
     expect(artifact).not.toMatch(/```(?:markdown)?[\s\S]*?### Blocking[\s\S]*?### Suggestions[\s\S]*?```/)
   })
 
-  it("records and validates the complete reviewed range", () => {
+  it("records and validates complete per-pass provenance", () => {
     const artifact = readCodeFeedback()
 
     expect(artifact).toMatch(/physically last pass.*governs/is)

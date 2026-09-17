@@ -29,9 +29,15 @@ Subagent:
     - Head: [HEAD_SHA]
     - Diff package: [DIFF_FILE]
 
-    Require the package base to equal Task [N]'s recorded checkpoint and persist this exact full
-    Base and Head in the feedback pass. Treat the package as the bounded inspection boundary.
-    Inspect one concrete named outside risk only under hamilton-code-feedback's rules.
+    Require the package base to equal Task [N]'s recorded checkpoint. Each appended pass records
+    exactly one full `Base:`, `Head:`, and `Verdict:` provenance field, in that order before the
+    only Blocking and Suggestions child sections (`### Blocking` and `### Suggestions`). Append to
+    the one feedback.md history at its physical end; never create feedback-<k>.md or rewrite a prior
+    pass. No `### Reviewed range` heading or any other child
+    heading is allowed; Base and Head are the only per-pass range fields. Validate the complete
+    history before writing: a malformed physical-last pass fails closed, and never fall back to an
+    earlier approval. Treat the package as the bounded inspection boundary. Inspect one concrete
+    named outside risk only under hamilton-code-feedback's rules.
 
     ## Binding constraints
 

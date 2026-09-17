@@ -31,9 +31,15 @@ Subagent:
     - Diff package: [DIFF_FILE]
 
     Validate that Base is the actual merge base with the target branch and that Head is reachable
-    from current HEAD. Persist this exact full Base and Head in the review pass. The complete branch
-    diff is starting evidence, not an inspection boundary: inspect the broader repository for
-    affected consumers, integration, omissions, and boundary violations.
+    from current HEAD. Each appended pass records exactly one full `Base:`, `Head:`, and `Verdict:`
+    provenance field, in that order before the only Blocking and Suggestions child sections
+    (`### Blocking` and `### Suggestions`). Append to the one review.md history at its physical end;
+    never create review-<k>.md or rewrite a prior pass. No `### Reviewed range` heading or any other
+    child heading is allowed; Base and Head are the only per-pass range fields.
+    Validate the complete history before writing: a malformed physical-last pass fails closed, and
+    never fall back to an earlier approval. The complete branch diff is starting evidence, not an
+    inspection boundary: inspect the broader repository for affected consumers, integration,
+    omissions, and boundary violations.
 
     ## Binding change intent
 

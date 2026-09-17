@@ -208,16 +208,22 @@ Write only `<change-dir>/review.md`. Load the exact installed
 `~/.hamilton/templates/review.md` template on every pass. When the file does not exist, instantiate
 a complete copy with the change title, current date, next pass number, full reviewed identifiers,
 verdict, decision, and findings. Populate the artifact frontmatter fields `created`, `status`,
-`verdict`, `decision`, `base`, and `head`. Remove the opening instruction block and every inline hint while substituting
-placeholders; neither authoring instructions nor hints may survive in the live artifact.
+and `decision`; frontmatter contains only artifact identity and lifecycle fields. Remove the
+opening instruction block and every inline hint while substituting placeholders; neither authoring
+instructions nor hints may survive in the live artifact.
 
 When the file exists, validate it first, then use the cleaned record portion of that same installed
 template to append the next-numbered pass at the physical end. Preserve the heading and every prior
-pass. Keep review metadata in frontmatter and do not duplicate it as body fields. Retained template authoring markup may be removed before appending, but no recorded pass may
-be changed, deleted, reordered, or split. Populate every template-defined value. An approval has no
-blocking findings and may briefly record useful verified coverage as a suggestion; both findings
-groups remain present. Record any focused command and result without changing the template-defined
-shape. Every pass records full identifiers, never abbreviated commit ids.
+pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field, in that order
+before exactly its two child sections, `### Blocking` and `### Suggestions`. Retained template
+authoring markup may be removed before appending, but no recorded pass may be changed, deleted,
+reordered, or split. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
+heading is allowed; Base and Head are the only per-pass range fields. Populate every
+template-defined value. An approval has no blocking findings
+and may briefly record useful verified coverage as a suggestion; both findings groups remain
+present. Record any focused command and result without changing the template-defined shape. Every
+pass records full identifiers, never abbreviated commit ids. Append to the one `review.md` history
+only; never create `review-<k>.md`.
 
 For freshness, the latest material change commit is the latest current-branch commit touching any
 tracked path except the change's root `progress.md`, `tasks/task-N/progress.md`,

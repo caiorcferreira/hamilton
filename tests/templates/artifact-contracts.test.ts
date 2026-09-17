@@ -11,6 +11,12 @@ function readTemplate(name: string): string {
   return Fs.readFileSync(Path.join(templatesDir, name), "utf-8")
 }
 
+function readFrontmatter(template: string): string {
+  const match = template.match(/^---\n([\s\S]*?)\n---\n/)
+  if (!match) throw new Error("template frontmatter is missing")
+  return match[1]
+}
+
 describe("split execution artifact templates", () => {
   it("gives every lifecycle producer disposable authoring instructions", () => {
     const lifecycleTemplates = [
@@ -56,22 +62,47 @@ describe("split execution artifact templates", () => {
     const template = readTemplate("feedback.md")
 
     expect(template).toContain("# Code Feedback: Task N — <title>")
-    expect(template).toContain("base: <full commit identifier>")
-    expect(template).toContain("head: <full commit identifier>")
-    expect(template).toContain("verdict: approved | changes-requested | skipped")
-    expect(template).toContain("decision: accepted | rejected | skipped")
-    expect(template).toContain("### Blocking")
-    expect(template).toContain("### Suggestions")
+    expect(readFrontmatter(template)).toBe(
+      [
+        "artifact: feedback",
+        "change: <YYYY-MM-DD-change-title>",
+        "task: <N>",
+        "created: <YYYY-MM-DD>",
+        "status: open | resolved",
+        "decision: accepted | rejected | skipped",
+      ].join("\n"),
+    )
+    expect(template).toMatch(
+      /## Pass N — <YYYY-MM-DD>[\s\S]*?^Base: <full commit identifier>$[\s\S]*?^Head: <full commit identifier>$[\s\S]*?^Verdict: approved \| changes-requested \| skipped$[\s\S]*?^### Blocking$[\s\S]*?^### Suggestions$/m,
+    )
+    expect(template.match(/^Base: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^Head: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^Verdict: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^### .+$/gm)).toEqual(["### Blocking", "### Suggestions"])
+    expect(template).not.toContain("### Reviewed range")
   })
 
   it("defines the whole-branch review artifact", () => {
     const template = readTemplate("review.md")
 
     expect(template).toContain("# Whole-branch Review: <Change Title>")
-    expect(template).toContain("base: <full merge-base commit identifier>")
-    expect(template).toContain("head: <full head commit identifier>")
-    expect(template).toContain("verdict: approved | changes-requested | skipped")
-    expect(template).toContain("decision: accepted | rejected | skipped")
+    expect(readFrontmatter(template)).toBe(
+      [
+        "artifact: review",
+        "change: <YYYY-MM-DD-change-title>",
+        "created: <YYYY-MM-DD>",
+        "status: open | complete",
+        "decision: accepted | rejected | skipped",
+      ].join("\n"),
+    )
+    expect(template).toMatch(
+      /## Pass N — <YYYY-MM-DD>[\s\S]*?^Base: <full merge-base commit identifier>$[\s\S]*?^Head: <full head commit identifier>$[\s\S]*?^Verdict: approved \| changes-requested \| skipped$[\s\S]*?^### Blocking$[\s\S]*?^### Suggestions$/m,
+    )
+    expect(template.match(/^Base: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^Head: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^Verdict: .+$/gm)).toHaveLength(1)
+    expect(template.match(/^### .+$/gm)).toEqual(["### Blocking", "### Suggestions"])
+    expect(template).not.toContain("### Reviewed range")
     expect(template).not.toContain("<scope reviewed>")
   })
 

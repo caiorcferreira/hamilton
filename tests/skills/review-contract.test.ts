@@ -122,6 +122,13 @@ describe("hamilton-review contract", () => {
     expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
     expect(artifact).toMatch(/append.*next-numbered pass.*physical end/is)
     expect(artifact).toMatch(/preserve.*prior\s+pass/is)
+    expect(artifact).toMatch(/frontmatter.*only.*artifact identity.*lifecycle/is)
+    expect(artifact).toMatch(
+      /Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,[\s\S]*?exactly its two child sections, `### Blocking` and `### Suggestions`/,
+    )
+    expect(artifact).toMatch(/never rewrite a prior pass/is)
+    expect(artifact).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
+    expect(artifact).toMatch(/never create.*`review-<k>\.md`/is)
     expect(artifact).not.toMatch(/```(?:markdown)?[\s\S]*?### Blocking[\s\S]*?### Suggestions[\s\S]*?```/)
     expect(artifact).toMatch(/latest material change commit/i)
     expect(artifact).toMatch(/root `progress\.md`.*task-N\/progress\.md.*task-N\/feedback\.md.*root `review\.md`.*root `finish\.md`/is)

@@ -67,7 +67,7 @@ tasks:
     progress: tasks/task-15/progress.md
   - id: 16
     title: Align per-pass feedback and review producers
-    status: pending
+    status: done
     progress: tasks/task-16/progress.md
   - id: 17
     title: Parse and validate per-pass review evidence
@@ -109,7 +109,7 @@ tasks:
 | Task 13: Migrate skills to workbench commands | done | [details](tasks/task-13/progress.md) |
 | Task 14: Update framework documentation | done | [details](tasks/task-14/progress.md) |
 | Task 15: Delete obsolete shell helpers and tests | done | [details](tasks/task-15/progress.md) |
-| Task 16: Align per-pass feedback and review producers | pending | [details](tasks/task-16/progress.md) |
+| Task 16: Align per-pass feedback and review producers | done | [details](tasks/task-16/progress.md) |
 | Task 17: Parse and validate per-pass review evidence | pending | [details](tasks/task-17/progress.md) |
 | Task 18: Lint per-pass review evidence | pending | [details](tasks/task-18/progress.md) |
 | Task 19: Gate preconditions on parsed review evidence | pending | [details](tasks/task-19/progress.md) |
