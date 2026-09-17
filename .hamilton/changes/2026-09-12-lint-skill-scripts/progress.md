@@ -114,4 +114,4 @@ tasks:
 | Task 18: Lint per-pass review evidence | done | [details](tasks/task-18/progress.md) |
 | Task 19: Gate preconditions on parsed review evidence | done | [details](tasks/task-19/progress.md) |
 | Task 20: Report context from parsed review evidence | done | [details](tasks/task-20/progress.md) |
-| Task 21: Synchronize per-pass evidence specifications and verification | pending | [details](tasks/task-21/progress.md) |
+| Task 21: Synchronize per-pass evidence specifications and verification | done | [details](tasks/task-21/progress.md) |

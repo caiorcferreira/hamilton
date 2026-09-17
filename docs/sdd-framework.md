@@ -133,14 +133,22 @@ assigned row in root `progress.md` and appends detailed attempt evidence only to
 **hamilton-code-feedback** is the per-task tactical gate. It reviews one stable task diff from the
 task's unchanged checkpoint through the implementation Head, checks the task's acceptance and
 latest attempt evidence, and appends an artifact-only verdict to `tasks/task-N/feedback.md`. Its
-reviewed Head must contain the latest task-progress commit. Requested changes return that same task
-to code; approval advances the driver.
+reviewed Head must contain the latest task-progress commit. The history is one append-only owning
+file: every pass carries its own `Base`, `Head`, and `Verdict`, and no numbered `feedback-k.md`
+files are created. The physically latest parsed pass is authoritative. Requested changes return
+that same task to code; approval advances the driver. Legacy global-frontmatter `base`, `head`,
+and `verdict` are accepted only by the bounded one-pass compatibility rule, never for a
+multi-pass history.
 
 **hamilton-review** is the whole-branch merge gate. After all tasks have fresh approved feedback,
 it starts from the complete branch diff and inspects broader affected consumers, cross-task
-composition, omissions, and repository assumptions. It appends its verdict to root `review.md`;
+composition, omissions, and repository assumptions. It appends passes to the single owning
+`<change>/review.md` history; every pass carries its own `Base`, `Head`, and `Verdict`, and no
+numbered `review-k.md` files are created. The physically latest parsed pass is authoritative, and
 the reviewed Head must contain the latest material change commit. Implementation findings return
-to planning as remediation tasks rather than directly to code.
+to planning as remediation tasks rather than directly to code. Legacy global-frontmatter `base`,
+`head`, and `verdict` are accepted only for a one-pass history and are not consulted for a
+multi-pass history.
 
 **hamilton-finish-work** closes the change. It checks the completion gate (clean tree, full tests
 and build, exact task ledger complete, every task's fresh feedback approved, and fresh whole-branch
@@ -200,6 +208,13 @@ The document set and the standards it borrows from:
 | `review.md` | Whole-branch review | Change verdicts and reviewed ranges | — |
 | `finish.md` | Finish history | Intended and verified finish outcomes | — |
 
+Feedback and review evidence is per-pass: each pass owns its `Base`, `Head`, and `Verdict` in the
+one append-only file for that scope. The physical last parsed pass is the shared source for lint,
+context, precondition, and finish gates; malformed latest evidence fails closed. The only legacy
+path is the bounded one-pass global-frontmatter compatibility rule, and a multi-pass artifact must
+not fall back to global `base`, `head`, or `verdict` values. Ownership stays in the single feedback or
+review file rather than numbered pass files.
+
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and
 its history. The requirements inside it are deltas. When the change finishes, those deltas are
 folded into `specs/`, which is the project's consolidated, always-current requirements truth.
@@ -250,7 +265,9 @@ The pipeline reads as a line but runs a per-task loop followed by one change-lev
 **The code–feedback loop** is driver-owned. `hamilton-code` implements one task against its stable
 checkpoint and `hamilton-code-feedback` judges that task's complete diff. A fresh
 `changes-requested` pass re-invokes code for the same task; a fresh approval advances to the next
-task. The skills do not call each other — a person or `hamilton-orchestrate` owns the loop.
+task. The feedback parser and every downstream consumer use the physically latest parsed pass;
+malformed latest evidence cannot revive an earlier approval. The skills do not call each other — a
+person or `hamilton-orchestrate` owns the loop.
 
 **The whole-branch review gate** begins only after every task is `done` with fresh approved
 feedback. `hamilton-review` inspects the complete branch plus broader affected consumers and

@@ -216,9 +216,13 @@ Reviews exactly one implemented task within its stable diff and records a tactic
   `tasks/task-N/progress.md` attempt; and `AGENTS.md`.
 - **Produces:** an `approved` or `changes-requested` pass appended to
   `tasks/task-N/feedback.md`, committed in an artifact-only bookkeeping commit.
-- **Notes:** the task diff is the inspection boundary, except for one named outside risk. A pass is
-  fresh only when its reviewed Head contains the latest task-progress commit. Requested changes
-  return the same task to `hamilton-code`; approval advances to the next task or the whole review.
+- **Notes:** the task diff is the inspection boundary, except for one named outside risk. The
+  single owning feedback file is append-only; every pass carries its own `Base`, `Head`, and
+  `Verdict`, and no numbered `feedback-k.md` files are used. The physically latest parsed pass is
+  authoritative, and a pass is fresh only when its reviewed Head contains the latest task-progress
+  commit. Requested changes return the same task to `hamilton-code`; approval advances to the next
+  task or the whole review. Legacy global-frontmatter `base`, `head`, and `verdict` are accepted
+  only by the bounded one-pass compatibility rule.
 - Source: [`skills/hamilton-code-feedback/SKILL.md`](../skills/hamilton-code-feedback/SKILL.md)
 
 ### `hamilton-review` — inspect the whole branch *(step 5, merge gate)*
@@ -231,12 +235,15 @@ inspection verdict before finish-work. **Reviews only; never edits implementatio
 - **Inputs:** the complete branch range from its actual target-branch merge base through a supplied
   full Head; all change artifacts, the root ledger, every active task's latest implementation and
   feedback evidence; the complete diff; and `AGENTS.md`.
-- **Produces:** an `approved` or `changes-requested` pass appended to root `review.md`, committed in
-  an artifact-only bookkeeping commit.
+- **Produces:** an `approved` or `changes-requested` pass appended to the single owning
+  `<change>/review.md` history, committed in an artifact-only bookkeeping commit.
 - **Notes:** inspection starts with the diff but must trace affected consumers, cross-task
-  composition, omissions, and repository-wide assumptions. The reviewed Head must contain the
-  latest material change commit. Requested implementation changes return to `hamilton-plan` in
-  re-plan mode; an approved fresh pass hands off to finish-work.
+  composition, omissions, and repository-wide assumptions. Every pass carries its own `Base`,
+  `Head`, and `Verdict`; the physically latest parsed pass governs, and no numbered `review-k.md`
+  files are used. The reviewed Head must contain the latest material change commit. Requested
+  implementation changes return to `hamilton-plan` in re-plan mode; an approved fresh pass hands
+  off to finish-work. Legacy global-frontmatter `base`, `head`, and `verdict` are accepted only for
+  a one-pass history and are not consulted for a multi-pass history.
 - Source: [`skills/hamilton-review/SKILL.md`](../skills/hamilton-review/SKILL.md)
 
 ### `hamilton-finish-work` — close the change *(step 6)*
@@ -331,13 +338,20 @@ requirements truth.
 keeps detailed attempts under the task. Feedback, whole-branch review, and finish history each live
 in their separate owner artifact rather than being mixed into progress.
 
+Feedback and review evidence is per-pass and append-only. Each pass records its own `Base`, `Head`,
+and `Verdict` in the one feedback or review file that owns that scope. Lint, context, precondition,
+and finish-work share the physically latest parsed pass and fail closed when it is malformed. The
+only legacy path is the bounded one-pass global-frontmatter compatibility rule; multi-pass histories do
+not fall back to global `base`, `head`, or `verdict` values.
+
 ## The task loop and whole-branch gate
 
 The pipeline reads as a line but contains two distinct review scopes. For each task,
 `hamilton-code` implements against one stable checkpoint and `hamilton-code-feedback` judges that
 complete task diff. A fresh `changes-requested` pass sends the same task back to code; a fresh
 approval lets the driver select the next task. The skills never call each other — a person or
-`hamilton-orchestrate` owns the loop.
+`hamilton-orchestrate` owns the loop. The physical latest parsed feedback pass is the shared
+decision point, so malformed latest evidence cannot revive an earlier approval.
 
 After every active task is `done` with fresh approved feedback, `hamilton-review` inspects the whole
 branch and its broader repository impact once. Implementation findings return to `hamilton-plan`

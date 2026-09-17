@@ -8,19 +8,21 @@ Hamilton separates tactical feedback on one implemented task from the final revi
 
 ### Task feedback
 
-`hamilton-code-feedback` accepts exactly one plan task, its task-local implementation evidence, its stable diff range, binding constraints, and project standards. It writes append-only passes to `tasks/task-N/feedback.md`. Each pass identifies the task, records full `Base:` and `Head:` revisions, uses `approved` or `changes-requested`, and separates located blocking findings from suggestions. A whole-branch request is outside this contract and directs the caller to `hamilton-review`.
+`hamilton-code-feedback` accepts exactly one plan task, its task-local implementation evidence, its stable diff range, binding constraints, and project standards. It writes one append-only history to `tasks/task-N/feedback.md`. Each pass identifies the task, records its own full `Base:` and `Head:` revisions and `Verdict:` (`approved` or `changes-requested`), and separates located blocking findings from suggestions. A whole-branch request is outside this contract and directs the caller to `hamilton-review`.
+
+`Base`, `Head`, and `Verdict` belong to each pass. The bounded compatibility rule permits a legacy global-frontmatter `base`, `head`, and `verdict` set only for a single-pass feedback artifact; a multi-pass history must carry the fields in every pass and does not consult global frontmatter. Feedback remains in its one owning file; `feedback-k.md` files are not an alternate history.
 
 Task feedback treats the task diff as its inspection boundary. It may inspect one concrete named risk outside the diff, but an unverified impact remains a blocking `cannot verify from diff` finding until evidence or code resolves it.
 
 ### Whole-branch review
 
-`hamilton-review` accepts the complete branch range from its merge base, the change intent and task ledger, relevant task evidence and feedback, project standards, and the full branch diff. It writes append-only passes to root `review.md`, with full `Base:` and `Head:` revisions, the same verdict vocabulary, and separate located blocking findings and suggestions. A task-only request is rejected and directs the caller to `hamilton-code-feedback`.
+`hamilton-review` accepts the complete branch range from its merge base, the change intent and task ledger, relevant task evidence and feedback, project standards, and the full branch diff. It writes append-only whole-branch passes to the single owning `<change>/review.md`, with each pass carrying its own full `Base:` and `Head:` revisions and `Verdict:`, located blocking findings, and suggestions. A task-only request is rejected and directs the caller to `hamilton-code-feedback`; `review-k.md` files are not an alternate history.
 
 The branch diff is the starting evidence, not the inspection boundary. Whole-branch review covers affected consumers and assumptions, cross-task composition, requirement and design completeness, missing documentation or specification updates, scope boundaries, and behavior that should have changed but did not. Focused verification is available for a concrete doubt; the mandatory full suite and build belong to finish-work.
 
 ### Freshness and finish gate
 
-A task feedback pass is fresh when its full range is valid and on the current branch, and its reviewed head contains the latest commit touching that task's progress file. A whole-branch pass is fresh when its range is valid and on the current branch, its head contains the latest material change commit, and its physically last pass is valid and unblocked. Material change excludes only operational progress, task feedback, root review, and root finish bookkeeping for the active change; plan, requirements, design, specifications, maps, source, tests, skills, templates, scripts, and documentation remain material.
+A task feedback pass is fresh when its full range is valid and on the current branch, and its reviewed head contains the latest commit touching that task's progress file. A whole-branch pass is fresh when its range is valid and on the current branch, its head contains the latest material change commit, and its physically last pass is valid and unblocked. In both cases the physically last parsed pass is the evidence consumers use; malformed latest evidence never falls back to an earlier approval. Material change excludes only operational progress, task feedback, root review, and root finish bookkeeping for the active change; plan, requirements, design, specifications, maps, source, tests, skills, templates, scripts, and documentation remain material.
 
 The finish gate requires a structurally valid all-done task ledger, fresh approved feedback without blocking findings for every active task, and a fresh approved whole-branch pass without blocking findings. The explicit freshness waiver can bypass only the whole-branch head's containment of the latest material commit; it does not waive range validity, task feedback freshness, missing artifacts, or verdicts.
 
@@ -47,7 +49,8 @@ On resume, orchestration combines the root task status, latest task feedback, an
 
 - Task feedback MUST review exactly one task, and whole-branch review MUST review the complete branch; neither scope may silently act as the other.
 - Verdicts MUST be `approved` or `changes-requested`, and a latest pass with blocking findings or malformed structure MUST NOT count as approved.
-- Feedback and review passes MUST be committed as artifact-only bookkeeping before handoff and MUST NEVER mutate progress or sibling task artifacts.
+- `Base`, `Head`, and `Verdict` MUST be recorded per pass; the one-pass global-frontmatter compatibility rule MUST NOT apply to a multi-pass history.
+- Feedback and review passes MUST remain append-only in their single owning files, MUST be committed as artifact-only bookkeeping before handoff, and MUST NEVER mutate progress or sibling task artifacts.
 - Stale task feedback MUST NEVER be waived by the whole-branch freshness waiver.
 - Whole-branch review MUST inspect affected repository context beyond the diff and MUST NOT claim that task approvals prove branch composition.
 - Finish MUST NEVER proceed from implementation completion alone; every active task and both approval classes must be current and approved.

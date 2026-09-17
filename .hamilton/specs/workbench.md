@@ -36,11 +36,11 @@ Workbench operations return `0` for success or an affirmative result, `1` for a 
 
 ## Behavior
 
-The workbench preserves the stateful behavior and argument meanings of the former Hamilton-owned helper operations. Isolation and prototype operations validate repository state before changing branches or worktrees. Diff validates task and artifact checkpoints before recording or packaging ranges. Context reports current split artifacts and identifies unsupported legacy layouts. Preconditions run the supplied test command and evaluate committed task, feedback, review, freshness, clean-tree, and ancestry evidence without inferring a waiver.
+The workbench preserves the stateful behavior and argument meanings of the former Hamilton-owned helper operations. Isolation and prototype operations validate repository state before changing branches or worktrees. Diff validates task and artifact checkpoints before recording or packaging ranges. Context reports current split artifacts and identifies unsupported legacy layouts. Preconditions run the supplied test command and evaluate committed task, feedback, review, freshness, clean-tree, and ancestry evidence without inferring a waiver. Feedback and review consumers use the same strict pass parser: `Base`, `Head`, and `Verdict` are evidence on each pass, the physically latest parsed pass governs, and malformed latest evidence closes the result.
 
 Lint validates only its explicit scope. A file selector validates the named regular file. A change-directory selector traverses regular files below the directory, remains within that directory, does not follow outside-target symlinks, and reports paths deterministically. Frontmatter is read first and selects the artifact contract; the contract then validates required metadata, identity, lifecycle, task, verdict, revision, route, link fields, headings, sections, and append-only records as applicable. Instruction comments do not satisfy body requirements.
 
-A conventional Hamilton artifact filename without valid opening frontmatter produces a warning and a failing result. Malformed YAML, duplicate or missing required metadata, unsupported artifact values, path or identity mismatches, and malformed body structure produce file-specific errors. Unrelated files are reported as skipped and do not fail lint. Invalid selectors or unreadable input paths return a usage or environment error without inspecting the selected scope.
+A conventional Hamilton artifact filename without valid opening frontmatter produces a warning and a failing result. Malformed YAML, duplicate or missing required metadata, unsupported artifact values, path or identity mismatches, and malformed body structure produce file-specific errors. Feedback and review histories remain single append-only files rather than numbered pass files. For bounded compatibility, global-frontmatter `base`, `head`, and `verdict` are accepted only for a one-pass history; multi-pass histories require pass-local fields and never consult global frontmatter. Unrelated files are reported as skipped and do not fail lint. Invalid selectors or unreadable input paths return a usage or environment error without inspecting the selected scope.
 
 **Examples**
 
@@ -51,6 +51,8 @@ A conventional Hamilton artifact filename without valid opening frontmatter prod
 - `lint --change-dir <dir>` -> regular files below the directory are considered, while sibling changes and outside targets are not
 - lint without a selector or with both selectors -> exit `2` without inspecting anything
 - malformed recognized artifact -> file-specific error and exit `1`
+- feedback or review with a requested-change pass followed by an approved pass -> the physical latest approval is reported by lint, context, and precondition
+- feedback or review with malformed physical-last evidence -> all three consumers fail closed and do not revive the earlier approval
 - conventional artifact filename without frontmatter -> warning and exit `1`
 - unrelated file -> skipped report and no failure
 - all recognized artifacts valid, with unrelated files skipped -> successful lint and exit `0`
@@ -62,6 +64,9 @@ A conventional Hamilton artifact filename without valid opening frontmatter prod
 - Lint MUST NOT inspect files outside the supplied change directory or follow symlinks to outside targets.
 - Frontmatter MUST be authoritative for recognized artifact identity and metadata.
 - Malformed or missing required artifact metadata and body structure MUST fail closed.
+- `Base`, `Head`, and `Verdict` MUST be parsed as per-pass feedback or review evidence, and the physically latest parsed pass MUST be shared by lint, context, and precondition.
+- Feedback and review histories MUST remain append-only in their single owning files; numbered feedback or review files MUST NOT be consulted.
+- Global-frontmatter `base`, `head`, and `verdict` compatibility MUST be bounded to one-pass histories and MUST NOT rescue malformed multi-pass evidence.
 - Skipped unrelated files MUST NOT affect lint success.
 - Workbench operations MUST preserve the `0`/`1`/`2` result semantics and load-bearing result lines of the replaced helpers.
 - The workbench MUST NOT make workflow decisions owned by skills.
