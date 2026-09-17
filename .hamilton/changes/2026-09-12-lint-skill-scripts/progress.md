@@ -89,6 +89,42 @@ tasks:
     title: Synchronize per-pass evidence specifications and verification
     status: pending
     progress: tasks/task-21/progress.md
+  - id: 22
+    title: Model legacy review transitions
+    status: pending
+    progress: tasks/task-22/progress.md
+  - id: 23
+    title: Verify review transition consumers
+    status: pending
+    progress: tasks/task-23/progress.md
+  - id: 24
+    title: Teach review producers the transition
+    status: pending
+    progress: tasks/task-24/progress.md
+  - id: 25
+    title: Document the review transition contract
+    status: pending
+    progress: tasks/task-25/progress.md
+  - id: 26
+    title: Synchronize root progress metadata
+    status: pending
+    progress: tasks/task-26/progress.md
+  - id: 27
+    title: Repair Task 21 completion evidence
+    status: pending
+    progress: tasks/task-27/progress.md
+  - id: 28
+    title: Restore progress ledger parsing parity
+    status: pending
+    progress: tasks/task-28/progress.md
+  - id: 29
+    title: Promote lint read failures to environment errors
+    status: pending
+    progress: tasks/task-29/progress.md
+  - id: 30
+    title: Preserve workbench output channels
+    status: pending
+    progress: tasks/task-30/progress.md
 ---
 # Progress: Replace Hamilton Helper Scripts with the Workbench CLI
 
@@ -115,3 +151,12 @@ tasks:
 | Task 19: Gate preconditions on parsed review evidence | done | [details](tasks/task-19/progress.md) |
 | Task 20: Report context from parsed review evidence | done | [details](tasks/task-20/progress.md) |
 | Task 21: Synchronize per-pass evidence specifications and verification | done | [details](tasks/task-21/progress.md) |
+| Task 22: Model legacy review transitions | pending | [details](tasks/task-22/progress.md) |
+| Task 23: Verify review transition consumers | pending | [details](tasks/task-23/progress.md) |
+| Task 24: Teach review producers the transition | pending | [details](tasks/task-24/progress.md) |
+| Task 25: Document the review transition contract | pending | [details](tasks/task-25/progress.md) |
+| Task 26: Synchronize root progress metadata | pending | [details](tasks/task-26/progress.md) |
+| Task 27: Repair Task 21 completion evidence | pending | [details](tasks/task-27/progress.md) |
+| Task 28: Restore progress ledger parsing parity | pending | [details](tasks/task-28/progress.md) |
+| Task 29: Promote lint read failures to environment errors | pending | [details](tasks/task-29/progress.md) |
+| Task 30: Preserve workbench output channels | pending | [details](tasks/task-30/progress.md) |

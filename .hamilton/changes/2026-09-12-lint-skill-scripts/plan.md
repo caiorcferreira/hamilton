@@ -19,6 +19,7 @@ route_unit: null
 - Context notes: Follow `AGENTS.md`, the accepted proposal and design, and the requirement deltas in `requirements/`. Use ESM `.js` imports, Effect command patterns, pinned dependencies, `Data.TaggedError` for custom errors, real temporary directories and repositories in tests, and no comments in code. The implementation must preserve the old helper semantics while keeping workflow judgment in skills rather than the CLI.
 - Quality notes: Tasks follow the design boundaries: shared artifact reading and contracts, scoped linting, one task per stateful operation, command composition, setup migration, consumer migration, documentation, and deletion. Runtime IO is isolated behind narrow seams, artifact validation is shared rather than duplicated, and precondition gates are split into independently testable repository and evidence groups. No structural smell is intentionally accepted.
 - Re-plan amendment (2026-09-16): Whole-branch feedback found that global feedback/review frontmatter cannot truthfully represent an append-only pass history. Preserve the single `feedback.md`/`review.md` files and all existing evidence; append Tasks 16–21 so a shared per-pass parser is the sole provenance source for lint, precondition, and context. The parser seam remains pure and narrow, while lint, gate, and informational consumers stay independently testable.
+- Re-plan amendment (2026-09-17): Whole-branch review Pass 2 found six remaining defects: the one-pass compatibility rule strands legacy multi-pass histories and the already-migrated root review, execution metadata and Task 21 evidence disagree with their ledgers, two valid progress-ledger shapes are rejected, lint misclassifies read failures, and the CLI drops isolation errors. Tasks 1–21 and their evidence remain frozen; append Tasks 22–30 to define one typed legacy-prefix-to-per-pass-suffix transition, prove every consumer and producer follows it, repair durable execution evidence append-only, and close the independent parser, lint, and stream-routing regressions. The transition binds legacy global provenance only to the physical last legacy pass, treats earlier legacy passes as structural history with unknown provenance, removes the three globals when the first explicit suffix is appended, and never applies a latest verdict to historical passes. Task 27 deliberately makes Task 21 feedback stale by appending canonical evidence, so orchestration must obtain a fresh Task 21 feedback pass from its stable checkpoint before advancing to the next whole-branch review.
 
 ## Tasks
 
@@ -406,9 +407,179 @@ route_unit: null
 - Verify: `bun --bun vitest run tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` → end-to-end evidence consumers agree, all tests and the build pass, and the diff has no whitespace errors.
 - Commit: `docs: synchronize per-pass review evidence`
 
+### Task 22: Model legacy review transitions
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `src/workbench/artifact-types.ts`, `src/workbench/review-passes.ts`, `src/workbench/artifact-body.ts`, `tests/workbench/review-passes.test.ts`, `tests/workbench/artifact-contracts.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Review history is represented by a discriminated typed record: fully evidenced records carry required Base, Head, and Verdict plus a `per-pass` or `legacy-global` provenance source, while earlier fieldless legacy records are explicitly structural and cannot be consumed as verdict evidence. `ReviewPassParseResult.latest` remains a fully evidenced record, so lint, context, and precondition cannot accidentally read absent legacy provenance.
+  - The parser accepts exactly three complete history modes: a legacy-only fieldless history with one complete global `base`/`head`/`verdict` triple bound only to its physical last pass; a transitioned history with a nonempty fieldless legacy prefix, no global triple, and a nonempty suffix whose every pass has ordered pass-local Base, Head, and Verdict; and a modern history whose every pass has pass-local evidence and no globals.
+  - A legacy multi-pass history may contain historical blocking findings followed by a globally approved physical-last pass without interpreting the historical passes as approved. The current root-review shape—a preserved fieldless Pass 1 followed by explicit Pass 2 with no globals—is valid, and its explicit physical-last pass is authoritative.
+  - Partial global triples, globals beside any explicit suffix, partial pass-local triples, fieldless passes after the explicit suffix begins, legacy-only histories without globals, contradictory evidenced verdicts/findings, malformed physical-last passes, unsupported child headings, and non-contiguous numbering fail closed with the existing location-bearing diagnostic vocabulary.
+- Steps:
+  1. Add failing parser and artifact-contract fixtures for old multi-pass global histories with historical blockers, the current migrated root-review shape, strict modern history, and every ambiguous transition boundary; assert the provenance discriminator, structural-only historical records, fully evidenced `latest`, and source locations.
+  2. Replace the compatibility boolean with the explicit history-state parser and discriminated record types, bind global evidence only to the last legacy record, expose only complete evidence as `latest`, and adapt artifact workflow extraction without inventing Base, Head, or Verdict for structural history.
+  3. Run the focused parser and contract suites plus the build, then inspect the implementation for any path that seeds more than one pass from global metadata or permits a fieldless record after explicit evidence begins.
+- Verify: `bun --bun vitest run tests/workbench/review-passes.test.ts tests/workbench/artifact-contracts.test.ts && bun run build` → legacy-only, transitioned, and modern histories pass their exact fixtures; ambiguous or malformed histories fail closed; TypeScript builds cleanly.
+- Commit: `fix(workbench): support legacy review transitions`
+
+### Task 23: Verify review transition consumers
+
+- Depends on: Task 22
+- Files:
+  - Created: none
+  - Modified: `src/workbench/context.ts`, `src/workbench/precondition-reviews.ts`, `tests/workbench/lint.test.ts`, `tests/workbench/context.test.ts`, `tests/workbench/precondition.test.ts`, `tests/cli/workbench.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Lint, context, and precondition consume the shared parser's fully evidenced `latest` value and retain no local rule that applies global metadata to historical passes or reconstructs missing provenance.
+  - All three consumers agree on old global multi-pass histories whose earlier passes contain blockers and whose physical last pass is approved, and on migrated fieldless-prefix plus explicit-suffix histories; lint succeeds, context reports the explicit or legacy-global latest standing, and a fresh approved latest pass can satisfy the review gate.
+  - All three consumers reject an illegal transition or malformed physical-last pass without reviving earlier approval. Context keeps its informational malformed result, lint returns findings/exit `1`, and precondition keeps the gate closed.
+  - An end-to-end CLI fixture exercises both accepted transition modes and one malformed boundary so integration cannot diverge even if the parser's internal representation changes.
+- Steps:
+  1. Add failing lint, context, precondition, and CLI fixtures using the same old-global and migrated-prefix histories, including historical blockers and a malformed physical-last transition; assert each operation's established output and exit semantics.
+  2. Adapt context and precondition to consume only the parser's complete latest evidence, leaving lint routed through the artifact contract, and remove or reject any fallback to artifact-global fields or raw last-record indexing.
+  3. Run all four focused suites and the build, then search the three consumers for independent Base/Head/Verdict history parsing.
+- Verify: `bun --bun vitest run tests/workbench/lint.test.ts tests/workbench/context.test.ts tests/workbench/precondition.test.ts tests/cli/workbench.test.ts && bun run build` → every consumer agrees on accepted and rejected transition histories with unchanged operation-level result semantics.
+- Commit: `fix(workbench): share review transition evidence`
+
+### Task 24: Teach review producers the transition
+
+- Depends on: Task 22
+- Files:
+  - Created: none
+  - Modified: `bundle/templates/feedback.md`, `bundle/templates/review.md`, `skills/hamilton-code-feedback/SKILL.md`, `skills/hamilton-review/SKILL.md`, `skills/hamilton-orchestrate/references/code-feedback-prompt.md`, `skills/hamilton-orchestrate/references/whole-branch-review-prompt.md`, `tests/templates/artifact-contracts.test.ts`, `tests/skills/code-feedback-contract.test.ts`, `tests/skills/review-contract.test.ts`, `tests/skills/orchestrate-contract.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Fresh feedback and review files still use identity/lifecycle-only frontmatter and complete pass-local Base, Head, and Verdict fields; the only child sections remain Blocking and Suggestions, and numbered `feedback-<k>.md` or `review-<k>.md` files remain forbidden.
+  - Both producer skills and both orchestration prompts define one deterministic first-append transition: validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the physical end in the same mutation. They never copy global provenance into historical passes or retain globals beside an explicit suffix.
+  - Producers append normally to an already transitioned or modern history and fail closed for partial globals, mixed global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless pass after the suffix begins. The already-migrated root-review shape is recognized as transitioned rather than rewritten.
+  - Template and skill-contract tests assert the fresh shape, the one-time transition procedure, history preservation, strict suffix rule, and continued rejection of `### Reviewed range` blocks.
+- Steps:
+  1. Add failing template and skill-contract assertions for the exact one-time transition procedure and rejection boundaries while retaining the current strict fresh-file assertions.
+  2. Update template authoring guidance, both producer skills, and both dispatch prompts to follow the shared parser modes and atomic metadata-removal-plus-append transition without changing any live feedback or review artifact.
+  3. Run the focused template and skill suites and build, then inspect all six producer surfaces for identical transition semantics and no alternative numbered-file path.
+- Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts tests/skills/code-feedback-contract.test.ts tests/skills/review-contract.test.ts tests/skills/orchestrate-contract.test.ts && bun run build` → producer contracts describe one transition and all focused assertions pass.
+- Commit: `docs(review): teach legacy pass transition`
+
+### Task 25: Document the review transition contract
+
+- Depends on: Tasks 23 and 24
+- Files:
+  - Created: none
+  - Modified: `.hamilton/specs/artifact-templates.md`, `.hamilton/specs/review.md`, `.hamilton/specs/workbench.md`, `docs/sdd-framework.md`, `docs/skills.md`, `tests/docs/workbench-docs.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Canonical specifications define the same three history modes and one-time transition as the parser and producers, state that global provenance applies only to the physical last legacy pass, and distinguish structural legacy history from fully evidenced verdict records.
+  - Framework documentation explains that the first modern append removes legacy global provenance while preserving all pass bodies and starts a strict explicit suffix; later appends remain pass-local, the physical latest evidenced pass governs, and malformed transitions fail closed.
+  - The obsolete one-pass-only compatibility claim is removed from the touched specifications and documentation without weakening single-file append-only ownership, full commit identifiers, freshness checks, or the prohibition on numbered feedback/review files.
+  - Documentation contract tests cover the transition semantics and the touched Markdown remains clean.
+- Steps:
+  1. Add failing documentation assertions for legacy-global binding, structural prefixes, the atomic first-append transition, and strict per-pass suffixes.
+  2. Synchronize the three canonical specifications and two framework documents with the implemented state machine, using one vocabulary across parser, consumers, and producers.
+  3. Run the documentation suite, build, whitespace check, and a focused search proving the superseded one-pass-only language is gone from the touched documents.
+- Verify: `bun --bun vitest run tests/docs/workbench-docs.test.ts && bun run build && git diff --check && ! rg -n "one-pass (global-frontmatter )?compatibility|only for a one-pass history|only when the artifact contains exactly one pass" .hamilton/specs/artifact-templates.md .hamilton/specs/review.md .hamilton/specs/workbench.md docs/sdd-framework.md docs/skills.md` → documentation tests and build pass, whitespace is clean, and only the new transition contract remains.
+- Commit: `docs(review): define legacy transition contract`
+
+### Task 26: Synchronize root progress metadata
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `.hamilton/changes/2026-09-12-lint-skill-scripts/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Frontmatter entries for Tasks 18–21 read `done`, matching the frozen body rows and their existing task logs; no Task 1–21 body row, title, link, identifier, or task-local history is changed.
+  - At the Task 26 implementation commit, every root frontmatter task entry and body row has the same plan-order identity, title, status, and `tasks/task-N/progress.md` link, including the actual execution state of newly appended Tasks 22–30.
+  - Workbench task inspection no longer reports `progress metadata ledger does not match`; unrelated pending-task and review failures remain visible rather than being waived.
+- Steps:
+  1. Run the current precondition against the change with `--test-cmd true` and capture the four metadata mismatch failures as red evidence.
+  2. Change only the stale frontmatter status values and any new-task metadata status that does not match its body row; preserve the frozen Tasks 1–21 body table and all task files.
+  3. Lint the root progress artifact, rerun precondition, and inspect its task-gate output to prove the metadata mismatch is gone while legitimate remaining gates still fail closed.
+- Verify: `bun run src/cli/main.ts workbench lint --file .hamilton/changes/2026-09-12-lint-skill-scripts/progress.md` → exits `0`; then `bun run src/cli/main.ts workbench precondition --change-dir .hamilton/changes/2026-09-12-lint-skill-scripts --test-cmd true` → remains closed while work is unfinished but does not report `progress metadata ledger does not match`.
+- Commit: `chore(change): synchronize task metadata`
+
+### Task 27: Repair Task 21 completion evidence
+
+- Depends on: Task 26
+- Files:
+  - Created: none
+  - Modified: `.hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-21/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Existing Task 21 attempts remain byte-for-byte intact and a complete next-numbered attempt is appended at the physical end with canonical list fields for `- Outcome: done`, changed paths, verification, and notes.
+  - The shared task-progress parser reads the appended attempt as the physical latest done evidence, and precondition no longer reports `Task 21 latest attempt is not done`.
+  - The implementation does not edit Task 21 feedback. Because the new commit touches Task 21 progress, orchestration treats its existing approval as stale and, immediately after this task's implementation commit, re-runs `hamilton-code-feedback` for Task 21 from its unchanged `.base` through the post-Task-27 head before considering the task feedback set current or advancing toward whole-branch review.
+- Steps:
+  1. Run focused task-progress validation and precondition to capture the malformed latest Task 21 outcome as red evidence, then inspect only the physical end needed to allocate the next attempt number.
+  2. Append one complete canonical done attempt with current verification evidence; do not edit either existing attempt or any feedback/review artifact.
+  3. Lint Task 21 progress, rerun precondition, and inspect the diff to prove the prior history is unchanged and the exact Task 21 outcome failure is gone.
+  4. Return an explicit freshness handoff so the orchestrator appends and commits a new Task 21 feedback pass before normal feedback for Task 27 and before Task 28 begins.
+- Verify: `bun run src/cli/main.ts workbench lint --file .hamilton/changes/2026-09-12-lint-skill-scripts/tasks/task-21/progress.md` → exits `0`; `bun run src/cli/main.ts workbench precondition --change-dir .hamilton/changes/2026-09-12-lint-skill-scripts --test-cmd true` → remains closed for stale feedback but no longer reports `Task 21 latest attempt is not done`; `git diff --check` → prior attempts are unchanged and the append is whitespace-clean.
+- Commit: `chore(change): repair task 21 evidence`
+
+### Task 28: Restore progress ledger parsing parity
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `src/workbench/artifact-body.ts`, `tests/workbench/artifact-contracts.test.ts`, `tests/workbench/precondition.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The shared progress-table parser treats only unescaped `|` characters as delimiters, unescapes `\|` in the exposed display title, and continues to reject malformed cell counts, status values, links, and task identities.
+  - A row such as `Task 1: Parse A \| B` produces exactly three cells and workflow title `Parse A | B`, so plan/progress comparison succeeds against the canonical unescaped plan title.
+  - A header-plus-separator progress ledger with zero rows is structurally valid. Existing cross-artifact checks still require it to correspond to zero active plan tasks and empty progress metadata, so a plan with active tasks cannot pass by presenting an empty ledger.
+  - Regression fixtures cover an escaped-title ledger, an all-canonically-abandoned plan with an empty ledger, and the negative active-plan/empty-ledger case.
+- Steps:
+  1. Add failing artifact-contract and precondition fixtures for escaped delimiters, all-abandoned zero-row execution, and active-plan mismatch; assert parsed titles and existing diagnostic/gate behavior.
+  2. Replace naive table splitting with escape-aware cell parsing and remove the unconditional nonempty-row body diagnostic, leaving active-task cardinality to the existing plan/progress/metadata comparison.
+  3. Run the focused suites and build, then verify unescaped delimiters and malformed rows still fail with the existing location-bearing diagnostics.
+- Verify: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts tests/workbench/precondition.test.ts && bun run build` → both former-helper parity shapes pass, the active-plan mismatch remains closed, and TypeScript builds cleanly.
+- Commit: `fix(workbench): parse valid progress ledgers`
+
+### Task 29: Promote lint read failures to environment errors
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `src/workbench/lint.ts`, `tests/workbench/lint.test.ts`
+  - Deleted: none
+- Acceptance:
+  - A selected path that passes `stat` but whose artifact reader returns `read-failure` yields a typed environment-error result and exit `2`, not an ordinary lint finding or exit `1`.
+  - The same mapping applies deterministically when an unreadable candidate is discovered inside `--change-dir`; its path and read error are rendered, and artifact validation is not attempted for that candidate.
+  - Invalid YAML and other readable artifact diagnostics remain lint findings with exit `1`; selector errors, success, skipped files, warning behavior, and deterministic ordering remain unchanged.
+- Steps:
+  1. Add failing injected-filesystem tests for single-file and change-directory stat-success/read-failure cases plus a control asserting readable invalid YAML remains exit `1`.
+  2. Introduce a candidate-validation result that separates reader I/O failure from artifact findings, promote any `read-failure` to the operation's environment-error/exit-`2` path, and render the original path and message.
+  3. Run the lint suite and build, then inspect the result union and renderer to ensure environment errors cannot be counted as ordinary findings.
+- Verify: `bun --bun vitest run tests/workbench/lint.test.ts && bun run build` → injected read failures return exit `2`, readable malformed artifacts return exit `1`, and all existing lint behavior remains green.
+- Commit: `fix(workbench): classify lint read failures`
+
+### Task 30: Preserve workbench output channels
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `src/workbench/isolate.ts`, `src/cli/commands/workbench.ts`, `tests/workbench/isolate.test.ts`, `tests/cli/workbench.test.ts`
+  - Deleted: none
+- Acceptance:
+  - `renderIsolationResult` returns the populated error text when stdout is empty, matching the other stream-backed workbench renderers instead of returning an empty string.
+  - The CLI runner emits stream-backed operation stdout to stdout and stderr to stderr without dropping, merging, or duplicating either channel; rendered-only lint results retain their current output contract.
+  - Running `workbench isolate --check` outside a Git repository exits `2`, leaves stdout empty, and emits a useful `error:` message on stderr. A normal negative isolation check inside an unisolated repository still exits `1` with `isolated: no` on stdout.
+  - Focused tests, the full repository suite, build, and whitespace check pass.
+- Steps:
+  1. Add a renderer regression and a subprocess integration test for isolation outside a repository, asserting exit code and both streams; retain the existing negative-check assertion as a stdout control.
+  2. Make the isolation renderer fall back to stderr and split the common CLI execution helper into explicit stream-backed and rendered-result paths so operation channels are preserved at the composition boundary.
+  3. Run focused isolation and CLI tests, then the full suite, build, and whitespace check; inspect subprocess output for accidental blank lines or duplicate errors.
+- Verify: `bun --bun vitest run tests/workbench/isolate.test.ts tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` → channel assertions, all tests, the build, and whitespace validation pass.
+- Commit: `fix(cli): preserve workbench output channels`
+
 ## Done when
 
 - All tasks are implemented and recorded as `done` in `progress.md` with linked task evidence.
 - `bun --bun vitest run` passes and `bun run build` is clean.
 - Every task has a fresh task-scoped feedback approval with no blocking findings.
+- Task 21 has a fresh approval recorded after the Task 27 progress append, and Tasks 22–30 each have their own fresh task-scoped approval.
 - The whole branch has a fresh approved review with no blocking findings, and all review feedback has been addressed.
