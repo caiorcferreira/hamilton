@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-12-lint-skill-scripts
-status: completed
+status: pending
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-17
 strategy: pull-request
-result: completed
+result: pending
 decision: accepted
 ---
 
@@ -27,3 +27,11 @@ decision: accepted
 - Workspace: branch `lint-skill-scripts` and linked worktree `/home/caio/workspace/personal/hamilton/.worktrees/lint-skill-scripts` remain in place; tree was clean.
 - Route: no route unit or map transition.
 - Partial state: none; the pull request was created and read back open against `main` before the outcome was persisted.
+
+## Attempt 2 — 2026-09-17
+
+- Passed preconditions: `bun run src/cli/main.ts workbench precondition --change-dir .hamilton/changes/2026-09-12-lint-skill-scripts --test-cmd 'bun --bun vitest run && bun run build'`; gate open. Clean tree, full tests and build passed, 31 tasks implemented, all task feedback and whole-branch verdicts approved and current, whole-branch review freshness passed with material commit `fc5b20e55800bc0e7205aa017ce1fd9602840b40`, and final clean tree. Gate-entry HEAD `c674b096ff1dcece7cbe89084f879e24f72bbed7`; local branch `lint-skill-scripts-remote`; remote head branch `lint-skill-scripts`; base `main` at `728b2bdf9007dda1840b1f3c4cf06a35fe12e430`; worktree `/home/caio/workspace/personal/hamilton/.worktrees/lint-skill-scripts-remote`; review Base `728b2bdf9007dda1840b1f3c4cf06a35fe12e430`; review Head `ec89cc15cc680e348610b201a197da521b383f55`; no waiver; route unit `null`.
+- Specification synchronization: re-read the accepted proposal, design, and requirement deltas with the canonical `cli-distribution`, `framework-docs`, and `workbench` specs. No canonical specification change is required; verified no-change HEAD `c674b096ff1dcece7cbe89084f879e24f72bbed7`.
+- Strategy: pull request
+- Intended workspace result: fast-forward push this local branch with `git push origin HEAD:lint-skill-scripts`, retain PR `https://github.com/caiorcferreira/hamilton/pull/44` open against `main`, retain both the remote-lineage and original local worktrees, then persist and fast-forward push the matching outcome with the same explicit refspec.
+- Route intent: none
