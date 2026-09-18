@@ -79,7 +79,7 @@ review have different evidence, inspection boundaries, artifact destinations, an
 Create a new checkpoint only when every first-attempt condition holds: the root row is `pending`,
 the task log has no `## Attempt` section, task feedback is absent, and the working tree and task
 history show no task-owned implementation changes. Only in that state run
-`~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>` to
+`hamilton workbench diff --record --task N --change-dir <change-dir>` to
 record current `HEAD` as the checkpoint. Confirm the resulting file contains exactly one full
 commit identifier and that git resolves it.
 
@@ -188,12 +188,12 @@ current tasks or review merely because conversation history was compacted or los
 ## Process
 
 1. **Verify workspace isolation.** Run
-   `~/.hamilton/scripts/hamilton-isolate.sh --check --change-dir <change-dir>`. Continue only when
-   its last line is `isolated: yes`. If the installed script is absent, verify that the change
-   directory is under the repository root and the branch is not the default branch. Otherwise
+   `hamilton workbench isolate --check --change-dir <change-dir>`. Continue only when
+   its last line is `isolated: yes`. If the Hamilton CLI/workbench is unavailable, verify that the
+   change directory is under the repository root and the branch is not the default branch. Otherwise
    stop before dispatching.
 2. **Load durable state.** Run
-   `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>`, then read `plan.md` for active
+   `hamilton workbench context <change-dir>`, then read `plan.md` for active
    task identity and shared constraints and root `progress.md` for current status. Validate the
    split layout. Read detailed task evidence only for the task currently being diagnosed,
    implemented, or reviewed. Determine verdicts from the physically last pass and validate their
@@ -212,7 +212,7 @@ current tasks or review merely because conversation history was compacted or los
    `hamilton-code-feedback` and do not record the next task checkpoint.
 6. **Resolve and validate the task checkpoint before code.** Apply **Checkpoint establishment and
    recovery**. A genuine pending first attempt with no implementation evidence may run
-   `~/.hamilton/scripts/hamilton-diff-package.sh --record --task N --change-dir <change-dir>`.
+   `hamilton workbench diff --record --task N --change-dir <change-dir>`.
    Every retry, correction, resumed task, or evidence-bearing task must validate its existing
    `<change-dir>/tasks/task-N/.base` or reconstruct the original commit unambiguously and validate
    it. Stop for intervention when recovery is ambiguous. Complete checkpoint validation before
@@ -223,7 +223,7 @@ current tasks or review merely because conversation history was compacted or los
    When the subagent returns, read the root row and physical latest task attempt instead of
    trusting its concise response. A `blocked` or interrupted result returns to the task matrix.
 8. **Package the task diff after code reaches `done`.** Run
-   `~/.hamilton/scripts/hamilton-diff-package.sh --task N --change-dir <change-dir>`. Capture the
+   `hamilton workbench diff --task N --change-dir <change-dir>`. Capture the
    printed full Base and Head and scratch package path. Require Base to equal the unchanged task
    checkpoint and Head to contain the latest task progress commit.
 9. **Dispatch `hamilton-code-feedback`.** Fill `references/code-feedback-prompt.md` with the exact
@@ -252,7 +252,7 @@ current tasks or review merely because conversation history was compacted or los
     `hamilton-code-feedback` and prohibits whole-branch packaging. Only when all active tasks are
     fully gated may the driver apply **Whole-branch resume matrix**. For an absent, malformed, or
     stale pass, run
-    `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change`, then fill
+    `hamilton workbench diff --whole-change`, then fill
     `references/whole-branch-review-prompt.md` with the actual merge base, current Head, complete
     package, approved change intent, root ledger, and linked task evidence.
 13. **Confirm the review artifact-only commit.** Require `hamilton-review` to commit only root
@@ -324,12 +324,12 @@ Specify a model on every dispatch.
   `<change-dir>/tasks/task-N/progress.md` supplies the detailed physical latest attempt. There is
   no second implementer narrative artifact.
 - **Task range:**
-  `~/.hamilton/scripts/hamilton-diff-package.sh --task N --change-dir <change-dir>` packages the
+  `hamilton workbench diff --task N --change-dir <change-dir>` packages the
   unchanged task-local checkpoint through current `HEAD`. Pass its printed full Base, Head, and
   scratch path to the code-feedback prompt.
 - **Task verdict:** `<change-dir>/tasks/task-N/feedback.md` is append-only and is committed alone
   before the driver selects another task or dispatches a correction.
-- **Whole-branch range:** `~/.hamilton/scripts/hamilton-diff-package.sh --whole-change` packages
+- **Whole-branch range:** `hamilton workbench diff --whole-change` packages
   the actual default-branch merge base through current `HEAD`. Pass the complete package and
   approved change intent to the whole-branch prompt.
 - **Whole-branch verdict:** `<change-dir>/review.md` is append-only and is committed alone before

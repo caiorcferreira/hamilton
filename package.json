@@ -19,7 +19,9 @@
   "dependencies": {
     "@effect/cli": "0.75.2",
     "@effect/platform-bun": "0.90.0",
+    "ajv": "8.17.1",
     "effect": "3.21.4",
+    "marked": "15.0.12",
     "yaml": "2.4.5"
   },
   "devDependencies": {

@@ -73,15 +73,42 @@ describe("hamilton-code-feedback contract", () => {
     expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
     expect(artifact).toMatch(/append.*next-numbered pass.*physical end/is)
     expect(artifact).toMatch(/preserve.*prior pass/is)
+    expect(artifact).toMatch(/frontmatter.*only.*artifact identity.*lifecycle/is)
+    expect(artifact).toMatch(
+      /Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,[\s\S]*?exactly its two child sections, `### Blocking` and `### Suggestions`/,
+    )
+    expect(artifact).toMatch(/never rewrite a prior pass/is)
+    expect(artifact).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
+    expect(artifact).toMatch(/never create.*`feedback-<k>\.md`/is)
     expect(artifact).not.toMatch(/```(?:markdown)?[\s\S]*?### Blocking[\s\S]*?### Suggestions[\s\S]*?```/)
   })
 
-  it("records and validates the complete reviewed range", () => {
+  it("records and validates complete per-pass provenance", () => {
     const artifact = readCodeFeedback()
 
     expect(artifact).toMatch(/physically last pass.*governs/is)
     expect(artifact).toMatch(/malformed last pass.*fail closed/is)
     expect(artifact).toMatch(/never.*fall\s+back.*earlier approval/is)
+  })
+
+  it("defines the one-time legacy transition and strict suffix boundary", () => {
+    const artifact = readCodeFeedback()
+
+    expect(artifact).toMatch(/first append.*legacy-global history/is)
+    expect(artifact).toMatch(/validate the legacy-global history/is)
+    expect(artifact).toMatch(/preserve every existing pass body byte-for-byte/is)
+    expect(artifact).toMatch(/remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is)
+    expect(artifact).toMatch(
+      /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
+    )
+    expect(artifact).toMatch(/never copy global provenance into historical passes/is)
+    expect(artifact).toMatch(/never retain\s+global provenance beside an explicit suffix/is)
+    expect(artifact).toMatch(/fieldless prefix.*explicit suffix.*already transitioned/is)
+    expect(artifact).toMatch(/fail closed for partial globals/is)
+    expect(artifact).toMatch(/mixed\s+global-plus-explicit evidence/is)
+    expect(artifact).toMatch(/missing legacy globals without an explicit suffix/is)
+    expect(artifact).toMatch(/fieldless\s+pass after the explicit suffix/is)
+    expect(artifact).toMatch(/no `### Reviewed range` heading.*allowed/is)
   })
 
   it("uses an artifact-only commit and never writes progress", () => {

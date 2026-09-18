@@ -6,11 +6,11 @@ Hamilton is a coding toolbox focused on producing high-quality code and architec
 structure to AI-assisted coding — carrying a change from idea to merge through disciplined,
 spec-driven steps that any coding agent can follow.
 
-Hamilton is now a **simple CLI that sets up templates**: `hamilton setup` installs the
-spec-driven-development artifact templates, coding guidelines, and skill helper scripts into
-`~/.hamilton/`, which the Assisted skills read. The Autonomous workflow engine and Ambient memory
-layer were removed in 0.3.0; the last full-feature state is preserved on the
-`archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
+Hamilton is now a **simple CLI that sets up the Assisted workflow**: `hamilton setup` installs the
+spec-driven-development artifact templates and coding guidelines into `~/.hamilton/`, while
+`hamilton workbench` provides the supported workflow-mechanics surface used by the skills. The
+Autonomous workflow engine and Ambient memory layer were removed in 0.3.0; the last full-feature
+state is preserved on the `archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
 
 ## Install
 
@@ -39,13 +39,18 @@ and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
 ~/.hamilton/
   templates/     # SDD artifact templates (plan.md, design.md, proposal.md, ...)
   guidelines/    # coding guidelines (general, golang, typescript)
-  scripts/       # helper scripts the skills call (isolate, diff-package, ...)
   settings.yaml  # default settings
 ```
 
+The distributed `hamilton workbench` command is the supported surface for workflow mechanics. Its
+operations are `hamilton workbench isolate`, `hamilton workbench diff`,
+`hamilton workbench precondition`, `hamilton workbench context`, and
+`hamilton workbench prototype`. Artifact validation uses `hamilton workbench lint`.
+
 ```bash
-hamilton setup        # bootstrap ~/.hamilton/ (idempotent)
-hamilton setup --force  # re-copy templates, guidelines, and scripts; reset settings
+hamilton setup          # bootstrap ~/.hamilton/ (idempotent)
+hamilton setup --force  # re-copy templates and guidelines; reset settings
+hamilton workbench --help
 hamilton --help
 ```
 
@@ -61,15 +66,15 @@ init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-fee
 ```
 
 Each step is a self-contained `SKILL.md` that names no engine internals. It depends on the project's
-standards (`AGENTS.md`), the artifact templates and helper scripts Hamilton installs under
-`~/.hamilton/` with `hamilton setup`, and the per-change artifacts under the project's own
-`.hamilton/` directory. The same skill guides a person in an editor or an agent like Claude Code. The
-heavyweight front door (`propose`) is optional; a tactical change starts at `plan`.
+standards (`AGENTS.md`), the artifact templates and coding guidelines Hamilton installs under
+`~/.hamilton/` with `hamilton setup`, the distributed `hamilton workbench` command, and the
+per-change artifacts under the project's own `.hamilton/` directory. The same skill guides a person
+in an editor or an agent like Claude Code. The heavyweight front door (`propose`) is optional; a
+tactical change starts at `plan`.
 
-The split workflow requires its installed helpers for stable checkpoints, diff packaging, change
-context, and finish gates. Individual isolation call sites retain the explicit manual procedure they
-document, but there is no blanket manual substitute for the helper set. Install templates and
-helpers from the same Hamilton generation as the skills before starting a change.
+The workbench provides the supported mechanics for stable checkpoints, diff packaging, change
+context, precondition gates, isolation, and prototype branches. Skills retain judgment and sequencing
+around those operations.
 
 ### Artifacts
 
@@ -97,13 +102,12 @@ The skills produce durable, per-project artifacts under `.hamilton/`:
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
 `specs/`, the project's always-current requirements truth.
 
-When upgrading to this split workflow, first finish any active old-format change with the Hamilton
-generation that created it. Between changes, update the CLI bundle and agent-loaded skills from one
-Hamilton release, run `hamilton setup`, verify the installed split templates and all helper scripts,
-then start the next change. See the
-**[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
-for the exact procedure. Never replace one part of the installed generation while a change is
-active.
+When upgrading this workflow, first finish any active change with the Hamilton generation that
+created it. Between changes, update the CLI and the agent-loaded skills together from one Hamilton
+generation, run `hamilton setup`, verify `hamilton workbench --help`, and then start the next change.
+Setup does not delete stale helper files from an older generation; run `hamilton purge` for explicit
+cleanup when desired. See the **[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
+for the exact procedure. Never replace one part of the installed generation while a change is active.
 
 ## Requirements
 
@@ -124,7 +128,7 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 bun install
 bun run build                  # compile TypeScript
 bun run install-local          # symlink to ~/.local/bin/
-hamilton setup                 # install bundle/{templates,guidelines,scripts}/ → ~/.hamilton/
+hamilton setup                 # install bundle/{templates,guidelines}/ → ~/.hamilton/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/hamilton-*/ — copy or symlink them into a

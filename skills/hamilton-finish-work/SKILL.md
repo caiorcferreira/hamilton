@@ -73,7 +73,7 @@ For a new attempt, identify the complete test suite and build/typecheck commands
 `AGENTS.md`. Pass a command that runs both to the installed gate; do not guess or omit either:
 
 ```bash
-~/.hamilton/scripts/hamilton-precondition-check.sh \
+hamilton workbench precondition \
   --change-dir <change-dir> --test-cmd '<full test suite && build/typecheck>'
 ```
 
@@ -82,7 +82,7 @@ whole-branch review's material-change ancestry comparison. It does not waive the
 ledger, task feedback, whole-branch review validity, verdict, blocking findings, range ancestry,
 clean tree, or verification gates.
 
-The script is authoritative. It must validate all of these facts and close with `gate: open`:
+The command is authoritative. It must validate all of these facts and close with `gate: open`:
 
 - The working tree is clean, and the full test suite and build/typecheck pass.
 - The exact root task ledger has one ordered row for every active task, no extra row, the exact
@@ -95,9 +95,9 @@ The script is authoritative. It must validate all of these facts and close with 
   has no blocking findings. Its reviewed range must be structurally valid. Unless explicitly
   waived, its Head must also contain the latest material change commit.
 
-If the script is not installed, perform those exact checks by hand, including physical-last-pass
-parsing and full commit ancestry. Fail closed on anything absent, malformed, contradictory,
-unreachable, stale, or unverifiable.
+If the Hamilton CLI/workbench is unavailable, perform those exact checks by hand, including
+physical-last-pass parsing and full commit ancestry. Fail closed on anything absent, malformed,
+contradictory, unreachable, stale, or unverifiable.
 
 If any gate fails, stop and report the gate output verbatim. Perform no finish action, do not
 create or change `finish.md`, do not synchronize specs or route state, and do not write root
@@ -109,9 +109,9 @@ the admitted attempt and its post-gate mutation boundary.
 
 ## Specification synchronization
 
-Run `~/.hamilton/scripts/hamilton-change-context.sh <change-dir>` to identify the approved change
-artifacts and capability deltas. If the script is unavailable, list those paths directly. Before
-editing a canonical spec, confirm that the approved proposal, design, and requirement deltas are
+Run `hamilton workbench context <change-dir>` to identify the approved change
+artifacts and capability deltas. If the Hamilton CLI/workbench is unavailable, list those paths
+directly. Before editing a canonical spec, confirm that the approved proposal, design, and requirement deltas are
 complete and mutually consistent. Treat them as read-only inputs throughout finish-work.
 
 For each approved `requirements/<capability>.md`, read the current
@@ -239,7 +239,7 @@ not excuse any post-gate mutation outside this allowlist.
    attempt. Otherwise commit and verify only changed `.hamilton/specs/` paths, or verify the
    no-change `HEAD`, then check the mutation boundary.
 5. **Resolve intent.** Detect the workspace with
-   `~/.hamilton/scripts/hamilton-isolate.sh --check`, resolve the actual base branch and selected
+   `hamilton workbench isolate --check`, resolve the actual base branch and selected
    strategy, and identify any exact route and map transitions. Ask if the strategy is still
    unspecified and no project default exists.
 6. **Commit intent.** Append the template-defined `Attempt N` with complete durable intent. Commit

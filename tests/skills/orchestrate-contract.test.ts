@@ -97,7 +97,6 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   const checkpointRules = singleLine(
     section(skill, "## Checkpoint establishment and recovery"),
   )
-  const implementer = singleLine(readReference("implementer-prompt.md"))
   const codeFeedback = readReference("code-feedback-prompt.md")
   const wholeBranch = readReference("whole-branch-review-prompt.md")
 
@@ -120,7 +119,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   it("creates a task-local base only before a genuine first attempt", () => {
     expect(skill).toContain("<change-dir>/tasks/task-N/.base")
     expect(process).toContain(
-      "hamilton-diff-package.sh --record --task N --change-dir <change-dir>",
+      "hamilton workbench diff --record --task N --change-dir <change-dir>",
     )
     expect(checkpointRules).toMatch(
       /only when.*root row is `pending`.*task log has no `## Attempt`.*feedback.*absent.*no task-owned implementation changes/is,
@@ -129,6 +128,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(process).not.toMatch(
       /before any first attempt, retry, or correction dispatch.*--record/is,
     )
+    expect(process).not.toContain("~/.hamilton/scripts/")
   })
 
   it("reconstructs or stops instead of rebasing historical work", () => {
@@ -150,6 +150,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   })
 
   it("makes the implementer preserve rather than create a checkpoint", () => {
+    const implementer = singleLine(readReference("implementer-prompt.md"))
     expect(implementer).not.toMatch(/preserve or create/i)
     expect(implementer).toMatch(
       /validate and preserve the already-recorded task-local checkpoint.*never create/is,
@@ -157,6 +158,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   })
 
   it("uses task progress as the sole detailed implementer report", () => {
+    const implementer = singleLine(readReference("implementer-prompt.md"))
     expect(skill).toMatch(/task progress is the only detailed implementer report/i)
     expect(implementer).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(implementer).toMatch(/return only.*status.*commit/is)
@@ -208,7 +210,6 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
 })
 
 describe("hamilton-orchestrate prompt scopes", () => {
-  const implementer = readReference("implementer-prompt.md")
   const codeFeedback = readReference("code-feedback-prompt.md")
   const wholeBranch = readReference("whole-branch-review-prompt.md")
 
@@ -228,6 +229,13 @@ describe("hamilton-orchestrate prompt scopes", () => {
     expect(codeFeedback).toContain("Head: [HEAD_SHA]")
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/feedback.md")
+    expect(codeFeedback).toMatch(/each appended pass records\s+exactly one full `Base:`, `Head:`, and `Verdict:` provenance field/i)
+    expect(codeFeedback).toMatch(/only Blocking and Suggestions child\s+sections/i)
+    expect(codeFeedback).toMatch(/never create[\s\S]*feedback-<k>\.md/i)
+    expect(codeFeedback).toMatch(/rewrite a prior\s+pass/i)
+    expect(codeFeedback).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
+    expect(codeFeedback).toMatch(/malformed physical-last pass.*fails closed/is)
+    expect(codeFeedback).toMatch(/never fall back to an\s+earlier approval/is)
     expect(codeFeedback).toMatch(/bounded inspection/i)
   })
 
@@ -258,7 +266,34 @@ describe("hamilton-orchestrate prompt scopes", () => {
     expect(wholeBranch).toContain("Head: [HEAD_SHA]")
     expect(wholeBranch).toMatch(/complete branch diff/i)
     expect(wholeBranch).toContain("<change-dir>/review.md")
+    expect(wholeBranch).toMatch(/each appended pass records\s+exactly one full `Base:`, `Head:`, and `Verdict:`\s+provenance field/i)
+    expect(wholeBranch).toMatch(/only Blocking and Suggestions child\s+sections/i)
+    expect(wholeBranch).toMatch(/never create[\s\S]*review-<k>\.md/i)
+    expect(wholeBranch).toMatch(/rewrite a prior pass/i)
+    expect(wholeBranch).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
+    expect(wholeBranch).toMatch(/malformed physical-last pass.*fails closed/is)
+    expect(wholeBranch).toMatch(/never fall back to an\s+earlier approval/is)
     expect(wholeBranch).toMatch(/broader repository/i)
+  })
+
+  it("defines the same one-time producer transition for both dispatch prompts", () => {
+    const transitionRules = [
+      /validate the legacy-global history/i,
+      /preserve every existing pass body byte-for-byte/i,
+      /remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is,
+      /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
+      /never copy global provenance into historical passes/i,
+      /never\s+retain\s+global provenance beside an explicit suffix/is,
+      /fieldless prefix.*explicit suffix.*already transitioned/is,
+      /fail closed for partial globals/i,
+      /mixed\s+global-plus-explicit evidence/is,
+      /missing legacy globals without an explicit suffix/i,
+      /fieldless\s+pass after the explicit suffix/is,
+      /no `### Reviewed range` heading.*allowed/is,
+    ]
+
+    for (const prompt of [codeFeedback, wholeBranch])
+      for (const rule of transitionRules) expect(prompt).toMatch(rule)
   })
 })
 

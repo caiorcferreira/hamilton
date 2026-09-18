@@ -33,7 +33,7 @@ A reader who opens `docs/skills.md` finds the seven-stage pipeline diagram (`ini
 
 A contributor changing a code area consults the **Mapping Code to Docs** table in `CONTRIBUTING.md` to find which doc to update. Wayfinder-related surfaces occupy two distinct rows: artifact *templates* shipped in `bundle/templates/wayfinder/` map to `docs/skills.md`, and *map artifacts* authored under `.hamilton/maps/` also map to `docs/skills.md`. The two are separate because they are different change areas — one ships with the repo, the other is authored per-project — and conflating them would misdirect a contributor.
 
-The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-framework.md`, and `docs/modes.md` agree on the seven-stage identity, the per-task code-feedback loop, and the whole-branch review gate. Wayfinder and critique remain outside that count. Migration guidance tells users to update skills, templates, and helper scripts as one set between changes; old mixed review and root-progress layouts are finished with their existing version rather than converted or resumed under the split contract.
+The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-framework.md`, and `docs/modes.md` agree on the seven-stage identity, the per-task code-feedback loop, and the whole-branch review gate. Wayfinder and critique remain outside that count. Migration guidance tells users to update the CLI and agent-loaded skills together between changes, rerun setup, and use `hamilton workbench`; existing helper files are left in place but are no longer used. Old mixed review and root-progress layouts are finished with their existing version rather than converted or resumed under the split contract.
 
 **Examples**
 
@@ -42,7 +42,7 @@ The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-fram
 - look up `hamilton-wayfinder` -> entry immediately before `hamilton-propose`, carrying the one-sentence rule and the fork provenance with a `NOTICE` link; no licence text reproduced inline
 - change a map artifact under `.hamilton/maps/` -> the mapping table sends the contributor to `docs/skills.md`, on a row distinct from the `bundle/templates/wayfinder/` templates row
 - inspect a new change artifact tree -> root `progress.md` is the current task ledger, task history and feedback sit under `tasks/task-N/`, and root `review.md` and `finish.md` own change-level history
-- read migration guidance before a new change -> the complete split skill, template, and helper set is installed, while old mixed-format changes remain on the version that created them
+- read migration guidance before a new change -> the CLI and agent-loaded skills are updated together, setup is rerun, and old helper files remain unused while old mixed-format changes stay on the version that created them
 
 ## Invariants
 
@@ -58,5 +58,5 @@ The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-fram
 - **The public pipeline names the tactical gate.** Code feedback is a first-class step because its task-scoped approval and the whole-branch review are different contracts; the diagrams make the loop visible instead of hiding it inside orchestration.
 - **Related mapping rows stay adjacent but distinct.** Map artifacts (`.hamilton/maps/`) and artifact templates (`bundle/templates/wayfinder/`) are different change areas that point at the same doc; they sit together for scanning but are never merged into one row.
 - **Optional planning remains outside the core count.** Wayfinder and critique add useful gates without changing the seven-stage implementation and shipping identity.
-- **Migration is atomic between changes.** A clean break avoids compatibility rules in every parser and keeps one artifact contract authoritative; context inventory can identify unsupported historical layouts without interpreting them.
+- **Migration is atomic between changes.** A clean break avoids compatibility rules in every parser and keeps one artifact contract authoritative; users update the CLI and agent-loaded skills together, rerun setup, and use the workbench while context inventory can identify unsupported historical layouts without interpreting them.
 - **Docs are verified by reading, not by automated tests.** No test asserts on `docs/` content; `bun run build` and `bun --bun vitest run` guard code and bundled templates, and a docs change is verified by reading the edited sections and inspecting `git diff --name-only`.

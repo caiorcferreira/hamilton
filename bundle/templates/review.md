@@ -3,10 +3,7 @@ artifact: review
 change: <YYYY-MM-DD-change-title>
 created: <YYYY-MM-DD>
 status: open | complete
-verdict: approved | changes-requested | skipped
 decision: accepted | rejected | skipped
-base: <full merge-base commit identifier>
-head: <full head commit identifier>
 ---
 
 <!--
@@ -15,13 +12,25 @@ head: <full head commit identifier>
   Lives at: .hamilton/changes/<change>/review.md
   Task-scoped feedback belongs in tasks/task-N/feedback.md.
   Delete this instruction block and every inline hint before finalizing.
+
+  Fresh files use identity and lifecycle-only frontmatter with complete pass-local Base, Head, and
+  Verdict fields. For the first append to a legacy-global history, validate the legacy-global history
+  before one atomic mutation: preserve every existing pass body byte-for-byte, remove exactly the
+  global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
+  physical end in the same mutation. Never copy global provenance into historical passes. Never retain
+  global provenance beside an explicit suffix. A fieldless prefix followed by an explicit suffix is
+  already transitioned; append normally to that suffix. Fail closed for partial globals, mixed
+  global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+  pass after the explicit suffix. Never create review-<k>.md.
 -->
 
 # Whole-branch Review: <Change Title> <!-- hint: replace with the plan's exact change title -->
 
 ## Pass N — <YYYY-MM-DD> <!-- hint: replace with the next pass number and current date -->
 
-<!-- Review metadata is recorded in frontmatter. -->
+Base: <full merge-base commit identifier>
+Head: <full head commit identifier>
+Verdict: approved | changes-requested | skipped
 
 ### Blocking
 

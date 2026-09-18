@@ -161,18 +161,34 @@ Write only `<change-dir>/tasks/task-N/feedback.md`; the task directory segment i
 `task-N`. Load the exact installed `~/.hamilton/templates/feedback.md` template on every pass. When
 the file does not exist, instantiate a complete copy with the exact task id, title, current date,
 next pass number, full reviewed identifiers, verdict, decision, and findings. Populate the
-artifact frontmatter fields `created`, `status`, `verdict`, `decision`, `base`, and `head`. Remove the opening instruction
-block and every inline hint while substituting placeholders; neither authoring instructions nor
-hints may survive in the live artifact.
+artifact frontmatter only with artifact identity and lifecycle fields: `artifact`, `change`,
+`task`, `created`, `status`, and `decision`. Remove the opening instruction block and every inline
+hint while substituting placeholders; neither authoring instructions nor hints may survive in the
+live artifact.
 
 When the file exists, validate it first, then use the cleaned record portion of that same installed
 template to append the next-numbered pass at the physical end. Preserve the task identity heading
-and every prior pass. Keep review metadata in frontmatter and do not duplicate it as body fields. A retained leading template instruction block or inline hint is authoring
-markup rather than verdict history: remove that markup before appending, but do not change, delete,
-reorder, or insert within any prior pass. Populate every template-defined value. An approval has no
-blocking findings and may briefly record useful verified coverage as a suggestion; both findings
-groups remain present. Every pass records the supplied full Base and Head values, never abbreviated
-commit ids.
+and every prior pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,
+in that order before exactly its two child sections, `### Blocking` and `### Suggestions`. A
+retained leading template instruction block or inline hint is authoring markup rather than verdict
+history: remove that markup before appending, but do not change, delete, reorder, or insert within
+any prior pass. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
+heading is allowed; Base and Head are the only per-pass range fields. Populate every
+template-defined value. An approval has no blocking findings and
+may briefly record useful verified coverage as a suggestion; both findings groups remain present.
+Every pass records the supplied full Base and Head values, never abbreviated commit ids. Append to
+the one `feedback.md` history only; never create `feedback-<k>.md`.
+
+Fresh feedback files use identity and lifecycle-only frontmatter with complete pass-local Base, Head,
+and Verdict fields. The first append to a legacy-global history has one deterministic transition:
+validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly
+the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
+physical end in the same mutation. Never copy global provenance into historical passes. Never retain
+global provenance beside an explicit suffix. A fieldless prefix followed by an explicit suffix is
+already transitioned, including the already-migrated root-review shape, so append normally to that
+suffix; modern all-explicit history also appends normally. Fail closed for partial globals, mixed
+global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+pass after the explicit suffix. Never create `feedback-<k>.md`.
 
 The physically last pass governs. It is valid only when task identity, pass numbering and shape,
 verdict, findings, and reviewed range are complete and consistent. An `approved` pass with a

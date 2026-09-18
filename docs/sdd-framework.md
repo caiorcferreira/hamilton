@@ -133,14 +133,33 @@ assigned row in root `progress.md` and appends detailed attempt evidence only to
 **hamilton-code-feedback** is the per-task tactical gate. It reviews one stable task diff from the
 task's unchanged checkpoint through the implementation Head, checks the task's acceptance and
 latest attempt evidence, and appends an artifact-only verdict to `tasks/task-N/feedback.md`. Its
-reviewed Head must contain the latest task-progress commit. Requested changes return that same task
-to code; approval advances the driver.
+reviewed Head must contain the latest task-progress commit. The history is one append-only owning
+file: only fully evidenced feedback and review passes carry their own `Base`, `Head`, and
+`Verdict` fields, and no numbered `feedback-k.md` files are created. A `legacy-global` history
+keeps structural legacy pass bodies and binds global provenance only to its physically last legacy
+pass; a `transitioned` history has that structural prefix followed by a fully evidenced explicit
+suffix; a `modern` history is fully explicit from the start. The physically latest evidenced pass
+is authoritative. Structural legacy records are provenance-free, cannot supply a verdict, and remain
+distinct from the authoritative latest evidenced record. `Base` and `Head` contain full commit
+identifiers; `Verdict` contains an allowed verdict enum value (`approved` or `changes-requested`).
+Requested changes return that same task to code; approval advances the driver.
 
 **hamilton-review** is the whole-branch merge gate. After all tasks have fresh approved feedback,
 it starts from the complete branch diff and inspects broader affected consumers, cross-task
-composition, omissions, and repository assumptions. It appends its verdict to root `review.md`;
-the reviewed Head must contain the latest material change commit. Implementation findings return
-to planning as remediation tasks rather than directly to code.
+composition, omissions, and repository assumptions. It appends passes to the single owning
+`<change>/review.md` history; only fully evidenced feedback and review passes carry their own
+`Base`, `Head`, and `Verdict` fields, and no numbered `review-k.md` files are created. A
+`legacy-global` history binds global provenance only to its physically last legacy pass; a
+`transitioned` history has a structural prefix and an explicit suffix; a `modern` history is
+fully explicit. Structural legacy records are provenance-free, cannot supply a verdict, and remain
+distinct from the authoritative latest evidenced record. `Base` and `Head` contain full commit
+identifiers; `Verdict` contains an allowed verdict enum value (`approved` or `changes-requested`).
+The first modern append validates the old history, preserves every existing pass body byte-for-byte,
+removes exactly the global provenance fields, and appends the next pass-local record atomically.
+Later appends remain pass-local. The physically latest evidenced pass is authoritative, and
+malformed transitions or latest evidence fail closed. The reviewed Head must
+contain the latest material change commit. Implementation findings return to planning as
+remediation tasks rather than directly to code.
 
 **hamilton-finish-work** closes the change. It checks the completion gate (clean tree, full tests
 and build, exact task ledger complete, every task's fresh feedback approved, and fresh whole-branch
@@ -200,6 +219,18 @@ The document set and the standards it borrows from:
 | `review.md` | Whole-branch review | Change verdicts and reviewed ranges | — |
 | `finish.md` | Finish history | Intended and verified finish outcomes | — |
 
+Only fully evidenced feedback and review passes carry `Base`, `Head`, and `Verdict`; structural
+legacy records are provenance-free, cannot supply a verdict, and remain distinct from the
+authoritative latest evidenced record. `Base` and `Head` contain full commit identifiers; `Verdict`
+contains an allowed verdict enum value (`approved` or `changes-requested`). Three history modes are
+supported: `legacy-global` structural history with global provenance bound only to the physical last
+legacy pass, `transitioned` structural prefix plus explicit suffix, and `modern` all-explicit
+history. The first modern append is atomic: it preserves every existing pass body byte-for-byte,
+removes exactly the global provenance, and appends the next pass-local record. Later appends remain
+pass-local. The physically latest evidenced pass is the shared source for lint, context, precondition,
+and finish gates; malformed transitions or latest evidence fail closed. Ownership stays in the single
+feedback or review file rather than numbered pass files.
+
 **Changes are ephemeral; specs are durable.** A change directory records one unit of work and
 its history. The requirements inside it are deltas. When the change finishes, those deltas are
 folded into `specs/`, which is the project's consolidated, always-current requirements truth.
@@ -214,28 +245,23 @@ each stage has one durable owner.
 Treat this artifact split as a clean break between changes. Finish every active old-format change
 with the Hamilton generation that created it. Only then, between changes:
 
-1. Update the Hamilton CLI and bundle, and update the skills loaded by your agent from the same
-   release or checkout.
-2. Run `hamilton setup` even when the release installer already ran it. This copies that bundle's
-   templates, guidelines, helper entry points, and shared helper library into `~/.hamilton/`.
-3. Verify the setup output lists the split templates and all six script files, then run these checks
-   against the installed generation:
+1. Update the Hamilton CLI and the skills loaded by your agent together from the same release or
+   checkout.
+2. Run `hamilton setup` even when the release installer already ran it. This installs that
+   generation's templates and guidelines into `~/.hamilton/`.
+3. Verify the supported CLI surface against the installed generation:
 
    ```bash
    test -f ~/.hamilton/templates/task-progress.md
    test -f ~/.hamilton/templates/feedback.md
    test -f ~/.hamilton/templates/review.md
    test -f ~/.hamilton/templates/finish.md
-   for helper in hamilton-artifact-contracts.sh hamilton-change-context.sh \
-     hamilton-diff-package.sh hamilton-isolate.sh hamilton-precondition-check.sh \
-     hamilton-prototype-branch.sh; do
-     test -x ~/.hamilton/scripts/$helper || exit 1
-   done
+   hamilton workbench --help
    ```
 
-   Reload the coding-agent session and confirm it exposes `hamilton-code-feedback` as step 4 and
-   `hamilton-review` as the whole-branch-only step 5. A missing file, failed executable check, or
-   older skill definition means the generation is not installed; stop before planning.
+   Reload the coding-agent session and confirm it exposes the matching skill generation. A missing
+   template, failed workbench check, or older skill definition means the generation is not installed;
+   stop before planning.
 4. Start the next change with the verified generation.
 
 New work uses the seven-stage pipeline, skipping only the optional propose stage when appropriate,
@@ -244,12 +270,9 @@ with root `progress.md` only as the task index and ledger, `tasks/task-N/progres
 `finish.md` for finish history. Replace task-scoped `hamilton-review` invocations with
 `hamilton-code-feedback`.
 
-Legacy planned changes that mix task verdicts into root `review.md` or detailed attempts into root
-`progress.md` are `legacy-unsupported` under the new execution and finish contracts. They are not
-converted, resumed, or accepted by the new workflow. Do not switch formats or replace only the
-skills, templates, or helpers in the middle of a change.
-`hamilton-change-context.sh --all` may inventory such planned changes as `legacy-unsupported`, but
-it declines to parse or infer their task or review state.
+Setup does not delete stale helper files left by an older generation. Use `hamilton purge` for
+explicit cleanup when desired. Do not replace only the CLI or only the skills while a change is
+active.
 
 ## Control flow
 
@@ -258,7 +281,9 @@ The pipeline reads as a line but runs a per-task loop followed by one change-lev
 **The code–feedback loop** is driver-owned. `hamilton-code` implements one task against its stable
 checkpoint and `hamilton-code-feedback` judges that task's complete diff. A fresh
 `changes-requested` pass re-invokes code for the same task; a fresh approval advances to the next
-task. The skills do not call each other — a person or `hamilton-orchestrate` owns the loop.
+task. The feedback parser and every downstream consumer use the physically latest parsed pass;
+malformed latest evidence cannot revive an earlier approval. The skills do not call each other — a
+person or `hamilton-orchestrate` owns the loop.
 
 **The whole-branch review gate** begins only after every task is `done` with fresh approved
 feedback. `hamilton-review` inspects the complete branch plus broader affected consumers and
@@ -282,10 +307,7 @@ Four locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
   to `~/.hamilton/templates/` by `hamilton setup`.
-- `bundle/scripts/` — the helper entry points and their shared artifact-contract library, installed
-  executable to `~/.hamilton/scripts/` by the same command. The split workflow requires this set for
-  stable checkpoints, diff packaging, change context, and finish gates. A call site may use an
-  explicit complete fallback where its skill defines one, but no blanket fallback covers the set.
+- `src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
 - `skills/hamilton-*/` — the seven core pipeline skills and their optional companion skills, each a
   self-contained `SKILL.md`.
 - a project's `.hamilton/` — the per-project specs and change artifacts, created by
@@ -300,7 +322,8 @@ your agent reads `SKILL.md` files) and follows it against the artifacts.
 
 ## Status
 
-The seven core pipeline skills and the `hamilton-orchestrate` driver are the maintained workflow in
-this repository. `hamilton setup` installs the versioned templates, guidelines, and helper scripts
-under `~/.hamilton/`; users install the portable skills separately for their coding agent. The test
-suite covers the setup CLI, helper scripts, artifact templates, and skill contracts.
+The seven core pipeline skills, the `hamilton-orchestrate` driver, and the distributed workbench
+are the maintained workflow in this repository. `hamilton setup` installs the versioned templates
+and guidelines under `~/.hamilton/`; users install the portable skills separately for their coding
+agent. The test suite covers the setup CLI, workbench operations, artifact templates, and skill
+contracts.

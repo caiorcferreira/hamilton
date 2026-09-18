@@ -19,7 +19,10 @@ describe("hamilton-finish-work contract", () => {
   it("fails closed on every exact ledger, feedback, and review gate", () => {
     const preconditions = section(readFinishWork(), "## Preconditions")
 
-    expect(preconditions).toContain("hamilton-precondition-check.sh")
+    expect(preconditions).toContain("hamilton workbench precondition")
+    expect(preconditions).not.toContain("~/.hamilton/scripts/")
+    expect(preconditions).toContain("--change-dir <change-dir>")
+    expect(preconditions).toContain("--test-cmd '<full test suite && build/typecheck>'")
     expect(preconditions).toMatch(/exact root task ledger/i)
     expect(preconditions).toMatch(/physically last\s+task\s+attempt.*(?:`done`|`Outcome: done`)/is)
     expect(preconditions).toMatch(/physically last task feedback pass.*valid.*fresh.*`approved`/is)
@@ -34,6 +37,7 @@ describe("hamilton-finish-work contract", () => {
     const preconditions = section(readFinishWork(), "## Preconditions")
 
     expect(preconditions).toMatch(/`--whole-change-waived`.*explicit/is)
+    expect(preconditions).toContain("hamilton workbench precondition")
     expect(preconditions).toMatch(/only.*material.*ancestry/is)
     expect(preconditions).toMatch(/does not waive.*ledger.*task feedback.*whole-branch.*validity.*verdict.*blocking/is)
   })

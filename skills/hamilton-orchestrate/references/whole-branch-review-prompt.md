@@ -31,9 +31,26 @@ Subagent:
     - Diff package: [DIFF_FILE]
 
     Validate that Base is the actual merge base with the target branch and that Head is reachable
-    from current HEAD. Persist this exact full Base and Head in the review pass. The complete branch
-    diff is starting evidence, not an inspection boundary: inspect the broader repository for
-    affected consumers, integration, omissions, and boundary violations.
+    from current HEAD. Each appended pass records exactly one full `Base:`, `Head:`, and `Verdict:`
+    provenance field, in that order before the only Blocking and Suggestions child sections
+    (`### Blocking` and `### Suggestions`). Append to the one review.md history at its physical end;
+    never create review-<k>.md or rewrite a prior pass. No `### Reviewed range` heading or any other
+    child heading is allowed; Base and Head are the only per-pass range fields.
+    Validate the complete history before writing: a malformed physical-last pass fails closed, and
+    never fall back to an earlier approval. The complete branch diff is starting evidence, not an
+    inspection boundary: inspect the broader repository for affected consumers, integration,
+    omissions, and boundary violations.
+
+    Fresh files use identity and lifecycle-only frontmatter with complete pass-local Base, Head, and
+    Verdict fields. On the first append to a legacy-global history, validate the legacy-global history
+    and perform one atomic mutation: preserve every existing pass body byte-for-byte, remove exactly
+    the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at
+    the physical end in the same mutation. Never copy global provenance into historical passes. Never
+    retain global provenance beside an explicit suffix. A fieldless prefix followed by an
+    explicit suffix is already transitioned, including the already-migrated root-review shape; append
+    normally to it, as with modern all-explicit history. Fail closed for partial globals, mixed
+    global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
+    pass after the explicit suffix. Never create review-<k>.md.
 
     ## Binding change intent
 

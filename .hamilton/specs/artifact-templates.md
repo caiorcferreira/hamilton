@@ -32,11 +32,15 @@ The pipeline uses distinct shapes for current task state, task evidence, task fe
 |----------|---------------|-------|-----------------|
 | `progress.md` | `<change>/progress.md` | planning and code | one plan-ordered row per active task, with `Task N: <title>`, status `pending` / `in-progress` / `blocked` / `done`, and a link to the task log |
 | `task-progress.md` | `<change>/tasks/task-N/progress.md` | code | one task identity and append-only numbered implementation attempts with outcome, changed paths, verification, and notes |
-| `feedback.md` | `<change>/tasks/task-N/feedback.md` | code feedback | one task identity and append-only passes with full `Base:` and `Head:` revisions, a verdict of `approved` or `changes-requested`, blocking findings, and suggestions |
-| `review.md` | `<change>/review.md` | whole-branch review | append-only whole-branch passes with full reviewed revisions, a verdict, located blocking findings, and suggestions |
+| `feedback.md` | `<change>/tasks/task-N/feedback.md` | code feedback | one task identity and one append-only file of passes; each fully evidenced pass carries its own `Base:`, `Head:`, and `Verdict:` (`approved` or `changes-requested`), blocking findings, and suggestions |
+| `review.md` | `<change>/review.md` | whole-branch review | one append-only file of whole-branch passes; each fully evidenced pass carries its own `Base:`, `Head:`, and `Verdict:` (`approved` or `changes-requested`), blocking findings, and suggestions |
 | `finish.md` | `<change>/finish.md` | finish-work | paired numbered attempts and observed outcomes for the change's finishing strategy |
 
 Task identity is encoded by the exact numeric identifier in `task-N`, not by a title. The root progress table is a current-state index; detailed attempts, feedback, review, and finish history remain in their owning artifacts. The task and review shapes use physical-last-pass semantics so a malformed latest pass cannot silently revive an earlier approval.
+
+`Base`, `Head`, and `Verdict` are per-pass feedback and review evidence, not ordinary global state for the file. Only fully evidenced feedback and review passes carry `Base`, `Head`, and `Verdict`; structural legacy records are provenance-free, cannot supply a verdict, and remain distinct from the authoritative latest evidenced record. `Base` and `Head` contain full commit identifiers; `Verdict` contains an allowed verdict enum value (`approved` or `changes-requested`). Each history owns its complete lifecycle in one append-only file: code feedback appends only to `tasks/task-N/feedback.md`, and whole-branch review appends only to `<change>/review.md`. Numbered `feedback-k.md` and `review-k.md` files are not part of the model.
+
+Review histories have three supported modes. A `legacy-global` history has structural legacy pass bodies and global `base`, `head`, and `verdict` provenance bound only to its physically last legacy pass; earlier structural passes do not receive an invented verdict. A `transitioned` history has a structural legacy prefix followed by a fully evidenced explicit suffix. A `modern` history has fully evidenced per-pass records from its first pass onward. Structural legacy history is preserved body history without a verdict record, while explicit records carry complete verdict provenance. The first modern append performs one atomic transition: it validates the legacy-global history, preserves every existing pass body byte-for-byte, removes exactly the global provenance fields, and appends the next complete pass-local record. Once an explicit suffix begins, every later pass is pass-local and no fieldless pass or global provenance may follow it. The physically latest evidenced pass remains authoritative, and malformed transitions or latest evidence fail closed.
 
 ### The template idiom
 
@@ -48,7 +52,7 @@ Every template, wayfinder's included, opens with a comment block naming the arti
 
 The report describes what landed on disk rather than what the bundle asked for, so a file that failed to arrive is not announced as installed. A bundle carrying no templates directory at all is not an error: setup succeeds and reports an empty set.
 
-For a split-pipeline installation, setup also installs the task progress, task feedback, and finish-history shapes. Planning instantiates the root task index and one task-progress file per active task. Code appends implementation attempts to the task-owned shape; code feedback and whole-branch review append only to their respective verdict artifacts; and finish-work creates or appends paired finish history after the gates pass. Each producer leaves the other owners' artifacts unchanged.
+For a split-pipeline installation, setup also installs the task progress, task feedback, and finish-history shapes. Planning instantiates the root task index and one task-progress file per active task. Code appends implementation attempts to the task-owned shape; code feedback and whole-branch review append only to their respective single-file verdict histories; and finish-work creates or appends paired finish history after the gates pass. Each producer leaves the other owners' artifacts unchanged.
 
 **Examples**
 
@@ -60,6 +64,8 @@ For a split-pipeline installation, setup also installs the task progress, task f
 - a template one level down -> reported as `wayfinder/map.md`, with `/` on every platform
 - a split-pipeline setup -> `progress.md`, `task-progress.md`, `feedback.md`, `review.md`, and `finish.md` are installed and reported as separate file entries
 - a task receives another implementation or feedback pass -> its existing history remains and one new dated pass is appended to the owning task artifact
+- a feedback or review file has a requested-change pass followed by an approval -> both pass records remain in that one file and the approval is the physical latest evidence
+- a multi-pass feedback or review file has malformed physical-last evidence -> lint and every evidence consumer fail closed instead of using the earlier approval
 - finish-work begins after the gates pass -> `finish.md` records an intent before the external action and a matching observed outcome afterward
 
 ## Invariants
@@ -69,7 +75,9 @@ For a split-pipeline installation, setup also installs the task progress, task f
 - An artifact shape MUST be defined exactly once, in the bundle's templates tree. A shape is NEVER reverse-engineered from a live instance, which cannot distinguish the required from the incidental.
 - The repository MUST NOT retain or consult a project-local `.hamilton/templates/` mirror.
 - Root `progress.md` MUST contain only the current task index; task attempts, task feedback, whole-branch review, and finish history MUST remain in their owning artifacts.
-- Task and review histories MUST identify their full reviewed revisions and MUST fail closed when the physically last pass is malformed.
+- Every fully evidenced feedback and review pass MUST identify its own full commit identifiers in `Base:` and `Head:` and its allowed verdict value in `Verdict:`, and histories MUST fail closed when the physically last pass or a transition is malformed.
+- Feedback and review histories MUST remain append-only in their single owning files; numbered `feedback-k.md` and `review-k.md` files MUST NOT be introduced.
+- Legacy-global provenance MUST apply only to the physically last legacy pass, MUST never seed historical structural passes, and MUST be removed atomically before an explicit suffix is appended.
 
 ## Decisions
 
