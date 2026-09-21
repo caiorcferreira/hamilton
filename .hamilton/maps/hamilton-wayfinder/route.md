@@ -173,6 +173,11 @@ meaning.
 
 - Merge-back branch: `main` (the map has no explicit branch; the repository default is the fallback).
 - Every route unit runs `hamilton-propose → plan → code → review → finish-work` once.
+- Every unit that writes or edits a `SKILL.md` is authored against `/writing-great-skills`. Invoke it
+  explicitly before drafting, since it has `disable-model-invocation: true`; this applies to the
+  near-verbatim ports and their adaptation surface, including frontmatter, descriptions, invocation
+  mode, naming, provenance, and re-homed paths. The near-verbatim rule governs upstream skill bodies;
+  craft guidance does not license rewriting that prose to taste.
 - Unit status flips ride that unit's branch and merge with its shipped implementation; concurrent
   default-branch staleness is accepted and merge conflicts keep both status rows.
 - Map status progresses `cleared` → `shipping` → `shipped`; the final unit's merge makes `shipped`
