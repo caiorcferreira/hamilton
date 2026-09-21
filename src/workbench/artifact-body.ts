@@ -299,8 +299,7 @@ const readWorkflow = (
     unitsSection === undefined
       ? Number.POSITIVE_INFINITY
       : (headings.find(
-          (heading) =>
-            heading.level === 2 && heading.line > unitsSection.line,
+          (heading) => heading.level === 2 && heading.line > unitsSection.line,
         )?.line ?? Number.POSITIVE_INFINITY);
   const isUnitSectionHeading = (heading: ArtifactHeading): boolean =>
     unitsSection !== undefined &&

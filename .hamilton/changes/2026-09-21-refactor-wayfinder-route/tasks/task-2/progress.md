@@ -42,3 +42,16 @@ decision: accepted
   - `bun run test` — passed: 24 files, 414 tests
   - `bun run build` — passed: `tsc -p tsconfig.json`
 - Notes: Restricted route unit record discovery and contiguous parsing to level-3 headings within the Units section, so numbered Destination subheadings remain outside workflow records. Preserved the existing formatting-only changes in all three Task 2 files.
+
+## Attempt 3 — 2026-09-21
+
+- Outcome: done
+- Created: none
+- Modified:
+  - `src/workbench/artifact-body.ts`
+  - `.hamilton/changes/2026-09-21-refactor-wayfinder-route/tasks/task-2/progress.md`
+- Deleted: none
+- Verification:
+  - `bun --bun vitest run tests/workbench/artifact-contracts.test.ts` — passed: 48 tests
+  - `bun run build` — passed: `tsc -p tsconfig.json`
+- Notes: Retained the formatter-only arrow-function wrapping as the repository's expected formatting. No semantic implementation changes were made.
