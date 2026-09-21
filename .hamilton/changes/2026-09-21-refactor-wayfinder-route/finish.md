@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-21-refactor-wayfinder-route
-status: completed
+status: pending
 created: 2026-09-21
 updated: 2026-09-21
-strategy: no-op
-result: completed
+strategy: pull-request
+result: pending
 decision: accepted
 ---
 
@@ -26,3 +26,11 @@ decision: accepted
 - Workspace state: verified branch `wt/wayfinder-refactor-route-worktree-20260921` at `45df44777f71dcca2dae1b93585f860396c96920`; linked worktree remains `/home/caio/.local/share/pi-worktrees/20260921143504/wayfinder-refactor-route-worktree-20260921`; working tree is clean.
 - Route state: verified route applicability is none because `route_unit: null`; route and map remain unchanged.
 - Paired history: Attempt 1 is persisted in commit `45df44777f71dcca2dae1b93585f860396c96920`; this outcome will be persisted as the matching append-only finish record.
+
+## Attempt 2 — 2026-09-21
+
+- Passed preconditions: `hamilton workbench precondition --change-dir .hamilton/changes/2026-09-21-refactor-wayfinder-route --test-cmd 'bun run test && bun run build'` opened the gate: clean tree; tests and build passed; clean tree after verification; 12 implemented tasks; all task feedback and whole-branch verdicts approved and current; whole-branch review freshness contains material `d44d512304c7bccb14f921a734a79dd41b7d8452`; final clean tree. Gate-entry HEAD: `1918547c77f5ba92ac7c3d140ed897aee530d979`; branch: `wt/wayfinder-refactor-route-worktree-20260921`; base: `origin/main` at `2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa`; review range: Base `2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa` through the current reviewed head; no waiver; linked worktree: `/home/caio/.local/share/pi-worktrees/20260921143504/wayfinder-refactor-route-worktree-20260921`.
+- Specification synchronization: No canonical specification synchronization needed. The change has no `proposal.md`, `design.md`, or `requirements/` directory, and `plan.md` has `route_unit: null`; verified no canonical-spec changes are required.
+- Strategy: pull-request
+- Intended workspace result: Push `wt/wayfinder-refactor-route-worktree-20260921` to `origin`, open a GitHub pull request against resolved base `main`, verify its canonical URL, open state, head, and base, then leave the branch and linked worktree in place with a clean tree.
+- Route intent: none; no route or map mutation is needed.
