@@ -112,23 +112,23 @@ Prepares an existing repository for the pipeline.
 
 ### `hamilton-wayfinder` — chart the route before a change *(optional pre-change planning stage)*
 
-Charts a map of decision tickets for a goal too big for one session, then works only the decision
-tickets the user explicitly requests — one ticket or a named batch — until the way to the
-destination is clear. The map plans the way; the doing comes later, one change at a time.
+Compiles a cleared map into a destination-and-path handoff for a goal too big for one session.
+The route is not a lightweight unit index: it gives downstream work the stable synthesized context
+needed to understand what will be true, why this path was chosen, and how delivery is bounded.
 
 - **When:** before `hamilton-propose`, for a goal too big for one change session — one that needs
   its way found before the SDD loop begins.
 - **Inputs:** a complex goal; the project's `AGENTS.md`.
 - **Produces:** a map at `.hamilton/maps/<effort>/` (`map.md`, `tickets/`, and `route.md` once the
-  map clears) — a static handoff listing the change-sized units in order, each pointing at the
-  decisions backing it.
-- **Notes:** use wayfinder to break a complex goal into clear, realizable units. The wayfinder
-  skill itself names no SDD step — it defines an abstract executing-process contract, and the SDD
-  skills implement it for software: `hamilton-propose` (spec-worthy units) or `hamilton-plan`
-  (tactical units) starts a unit and flips it `in-progress` (flipping the map to `shipping` on the
-  first unit), and `hamilton-finish-work` flips the unit `shipped` (and the map, on the last unit).
-  A non-code effort — a presentation, an RFC, a strategy — binds its own executing process to the
-  same contract. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
+  map clears). The route body is a stable synthesized handoff with exactly five sections — Point
+  of departure, Destination, Path chosen, Shipping rules, and Units — while frontmatter owns the
+  route status and each unit's identity, lifecycle status, dependencies, and backing tickets.
+- **Notes:** Wayfinder clears fog and compiles the destination and causal path; it does not execute
+  the units. `hamilton-propose` and `hamilton-plan` turn units into implementation artifacts,
+  while `hamilton-code` and `hamilton-finish-work` build and ship them. Downstream processes may
+  update mutable lifecycle metadata without rewriting the stable synthesized body. A non-code
+  effort — a presentation, an RFC, a strategy — binds its own executing process to the same
+  contract. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
   [`NOTICE`](../NOTICE) for the full legal credit.
 - Source: [`skills/hamilton-wayfinder/SKILL.md`](../skills/hamilton-wayfinder/SKILL.md)
 

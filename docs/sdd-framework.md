@@ -90,7 +90,10 @@ The framework is a synthesis, not an invention.
 Seven core skills define the fixed order. Step 0 runs once per project, step 1 is optional per
 change, and steps 2–6 form the per-change sequence. Wayfinder is an optional pre-change planning
 stage, and `hamilton-critique` is an optional design-phase gate; neither is counted in this core
-sequence.
+sequence. Wayfinder clears fog by compiling a route: a stable destination-and-path handoff with
+Point of departure, Destination, Path chosen, Shipping rules, and Units. Its frontmatter owns
+mutable route and unit lifecycle metadata. Propose and plan turn units into implementation
+artifacts; code and finish-work build and ship them.
 
 | Step | Skill | Role |
 |------|-------|------|

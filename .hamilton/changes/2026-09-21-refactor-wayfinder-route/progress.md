@@ -49,5 +49,5 @@ tasks:
 | Task 4: Make Wayfinder synthesize the route | pending | [details](tasks/task-4/progress.md) |
 | Task 5: Make propose consume the synthesized route | done | [details](tasks/task-5/progress.md) |
 | Task 6: Make direct planning consume the synthesized route | done | [details](tasks/task-6/progress.md) |
-| Task 7: Synchronize route documentation | pending | [details](tasks/task-7/progress.md) |
+| Task 7: Synchronize route documentation | done | [details](tasks/task-7/progress.md) |
 | Task 8: Migrate the existing Wayfinder route | pending | [details](tasks/task-8/progress.md) |

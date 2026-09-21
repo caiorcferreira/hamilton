@@ -49,9 +49,14 @@ shape before committing to the SDD loop. They are not SDD pipeline artifacts.
 | `wayfinder/route.md` | Route | hamilton-wayfinder |
 
 The artifacts these templates produce live under `.hamilton/maps/<effort>/`: `map.md` and
-`route.md` at the root, and decision tickets at `tickets/NN-slug.md`. Unlike `specs/` and
-`changes/`, the `.hamilton/maps/` directory is not scaffolded by `hamilton-init`; the
-wayfinder skill creates it on first use.
+`route.md` at the root, and decision tickets at `tickets/NN-slug.md`. A route is Wayfinder's
+compiled destination-and-path handoff, not a static unit list. Its stable synthesized body has
+five sections — Point of departure, Destination, Path chosen, Shipping rules, and Units — while
+frontmatter owns route status and each unit's identity, lifecycle status, dependencies, and
+backing tickets. Downstream processes update that mutable metadata without rewriting the body;
+Wayfinder clears fog, propose and plan create implementation artifacts, and code and finish-work
+build and ship them. Unlike `specs/` and `changes/`, the `.hamilton/maps/` directory is not
+scaffolded by `hamilton-init`; the wayfinder skill creates it on first use.
 
 ## Where these templates live
 
