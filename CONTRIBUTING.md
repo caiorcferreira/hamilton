@@ -9,7 +9,7 @@ or CLI commands must include corresponding documentation updates.
 ### Mapping Code to Docs
 
 | Code change area | Doc to update |
-|------------------|---------------|
+| ------------------ | --------------- |
 | New/changed CLI command, flag, or argument | `docs/skills.md` (setup reference) |
 | New/changed artifact template in `bundle/templates/` | `docs/sdd-framework.md` |
 | New/changed Assisted-mode skill in `skills/hamilton-*/` | `docs/skills.md` |
@@ -72,7 +72,7 @@ Original work:
 This section is the file-native frontmatter contract for map artifacts under `.hamilton/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/hamilton-wayfinder/SKILL.md`, and no other content in this file needs to change.
 
 | Frontmatter field | Valid values |
-|-------------------|--------------|
+| ------------------- | -------------- |
 | `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
 | `status` (ticket) | `open` / `claimed` / `resolved` |
 | `status` (map) | `open` / `cleared` / `shipping` / `shipped` |

@@ -96,7 +96,7 @@ mutable route and unit lifecycle metadata. Propose and plan turn units into impl
 artifacts; code and finish-work build and ship them.
 
 | Step | Skill | Role |
-|------|-------|------|
+| ------ | ------- | ------ |
 | 0 | `hamilton-init` | Set up the project: write `AGENTS.md`, scaffold `.hamilton/` |
 | 1 | `hamilton-propose` | Idea → proposal (why), requirements (what), design (how) |
 | 2 | `hamilton-plan` | Design → `plan.md`: small, TDD-sized, independently verifiable tasks |
@@ -210,7 +210,7 @@ installed copy, so there is one definition of each artifact's shape.
 The document set and the standards it borrows from:
 
 | Artifact | Document | Owns | Inspiration |
-|----------|----------|------|-------------|
+| ---------- | ---------- | ------ | ------------- |
 | `proposal.md` | PRD | Why | — |
 | `requirements/<capability>.md` | SRS (delta) | What | ISO/IEC/IEEE 29148 |
 | `specs/<capability>.md` | SRS (canonical) | What | ISO/IEC/IEEE 29148 |

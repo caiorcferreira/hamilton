@@ -13,7 +13,7 @@ Templates for the seven-stage spec-driven pipeline. Each maps to a well-known st
 taken in spirit (right-sized), not by conformance.
 
 | Template | Document | Owns | Instance path | Produced or updated by |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `proposal.md` | PRD | Why | `<change>/proposal.md` | hamilton-propose |
 | `requirements-change.md` | SRS (delta) | What | `<change>/requirements/<capability>.md` | hamilton-propose |
 | `requirements-spec.md` | SRS (canonical) | What | `.hamilton/specs/<capability>.md` | hamilton-finish-work |
@@ -43,7 +43,7 @@ These templates support wayfinding—the optional pre-change stage that clarifie
 shape before committing to the SDD loop. They are not SDD pipeline artifacts.
 
 | Template | Artifact | Produced by |
-|---|---|---|
+| --- | --- | --- |
 | `wayfinder/map.md` | Map | hamilton-wayfinder |
 | `wayfinder/ticket.md` | Decision ticket | hamilton-wayfinder |
 | `wayfinder/route.md` | Route | hamilton-wayfinder |
