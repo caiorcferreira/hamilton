@@ -31,3 +31,23 @@ Outcome: done
 ### Notes
 
 Map-aware selection, dependency checks, isolation, lifecycle flips, no-pending behavior, route provenance, and proposal ownership remain explicit. The route body is now primary context and backing tickets are optional drill-down evidence. No plan, sibling task evidence, or feedback files were changed.
+
+## Attempt 2 — 2026-09-21
+
+- Outcome: done
+
+### Changed paths
+
+- `.hamilton/changes/2026-09-21-refactor-wayfinder-route/tasks/task-5/progress.md`
+
+### Verification
+
+- Evidence-only append reconciles the finish gate's canonical outcome format; no semantic or production change was made.
+- Physical last attempt contains exactly one canonical `- Outcome: done` entry.
+- `git diff --check` — passed.
+- Changed path list contains only Task 5 progress.
+- Worktree is clean after commit.
+
+### Notes
+
+This attempt preserves Attempt 1 byte-for-byte and adds only the canonical evidence shape required by the lifecycle parser. No production implementation, tests, specs, maps, docs, plan, review, finish, feedback, root status, checkpoint, or other task evidence was changed.
