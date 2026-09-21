@@ -1,7 +1,7 @@
 ---
 artifact: progress
 change: 2026-09-21-refactor-wayfinder-route
-status: in-progress
+status: done
 updated: 2026-09-21
 decision: accepted
 tasks:
@@ -51,7 +51,7 @@ tasks:
     progress: tasks/task-11/progress.md
   - id: 12
     title: "Restore framework-docs skill-entry spacing"
-    status: pending
+    status: done
     progress: tasks/task-12/progress.md
 ---
 

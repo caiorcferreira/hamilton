@@ -2,7 +2,7 @@
 artifact: task-progress
 change: 2026-09-21-refactor-wayfinder-route
 task: 12
-status: pending
+status: done
 updated: 2026-09-21
 decision: accepted
 ---
@@ -43,3 +43,20 @@ decision: accepted
   - `bun run test` — passed: 24 files, 416 tests.
   - `git diff --check` — passed.
 - Notes: Restored the exact canonical line shape from `origin/main`; the root Task 12 row remains `done`, `.base`, `plan.md`, frozen histories, sibling remediation tasks, `review.md`, and feedback files were preserved, and no feedback was created. Self-review found no additional wording changes.
+
+## Attempt 3 — 2026-09-21
+
+- Outcome: done
+- Summary: Reconciled Task 12 status metadata and restored the working tree production file to the canonical content committed in `d44d512` without new semantic work.
+- Created: none
+- Modified:
+  - `.hamilton/changes/2026-09-21-refactor-wayfinder-route/progress.md`
+  - `.hamilton/changes/2026-09-21-refactor-wayfinder-route/tasks/task-12/progress.md`
+- Deleted: none
+- Verification:
+  - Equivalent exact spacing assertion against the worktree — passed.
+  - `bun run build` — passed.
+  - `bun run test` — passed; the known CLI timeout did not recur.
+  - `git diff --check` — passed.
+  - `git status --short` — passed; worktree clean after commit.
+- Notes: Restored `.hamilton/specs/framework-docs.md` exactly to the canonical content in `d44d512`; set Task 12 task-progress and root progress frontmatter to `done`, preserved the existing Markdown root row and all other fields, preserved the checkpoint, plan, frozen histories, sibling remediation tasks, review, and feedback files, and left feedback absent.
