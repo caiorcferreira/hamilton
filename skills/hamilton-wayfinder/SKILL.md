@@ -81,8 +81,9 @@ Write the route as a static handoff in this sequence:
 
 1. **Point of departure.** State the current situation and causal path from the goal and resolved ticket questions.
 2. **Destination.** State the coherent current view that combines the map destination, ticket answers, glossary, constraints, and out-of-scope boundaries.
+   **Concrete shape**. Choose a domain-appropriate representation only where it removes meaningful ambiguity. Do not require every route to carry flows, state machines, or tables.
 3. **Path chosen.** For each entry, state the choice, a concise rationale, its binding consequence, and a link to the ticket. Details stay in tickets; current rationale and consequence travel in the route.
-4. **Builder latitude.** Choose a domain-appropriate representation only where it removes ambiguity. Do not require every route to carry flows, state machines, or tables.
+4. **Builder latitude**. Keep local choices that cannot alter the destination. Do not use this latitude for unresolved product or architectural decisions.
 5. **Units.** For each change-sized unit, name its contribution to the destination, its observable completion outcome, and its unit-specific binding constraints. Do not prescribe implementation steps. Preserve the unit's backing ticket links and causal order.
 6. **Consistency gate.** Before closing the map, check decision coverage, destination coverage by units, causal dependency ordering, and scope boundaries. This gate has no score or report section; if it fails, keep the map open and resolve the gap.
 
