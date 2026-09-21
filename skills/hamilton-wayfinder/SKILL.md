@@ -75,7 +75,18 @@ Working resolves only the tickets an explicit user request authorizes — invoki
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`, filling its `## Shipping rules` section from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
+When the last ticket resolves, the map clears and the route is written once as a closing act. First synthesize the point of departure from the goal and the ticket questions: describe the current situation and the causal path that makes the destination necessary, not a chronology of how the map was worked. Then synthesize a self-contained destination from the map's destination, current ticket answers, glossary terms, binding constraints, and out-of-scope boundaries. If that synthesis exposes a contradiction or essential ambiguity, keep the map open, resolve the gap through another ticket or user exchange, and do not write the route.
+
+Write the route as a static handoff in this sequence:
+
+1. **Point of departure.** State the current situation and causal path from the goal and resolved ticket questions.
+2. **Destination.** State the coherent current view that combines the map destination, ticket answers, glossary, constraints, and out-of-scope boundaries.
+3. **Path chosen.** For each entry, state the choice, a concise rationale, its binding consequence, and a link to the ticket. Details stay in tickets; current rationale and consequence travel in the route.
+4. **Builder latitude.** Choose a domain-appropriate representation only where it removes ambiguity. Do not require every route to carry flows, state machines, or tables.
+5. **Units.** For each change-sized unit, name its contribution to the destination, its observable completion outcome, and its unit-specific binding constraints. Do not prescribe implementation steps. Preserve the unit's backing ticket links and causal order.
+6. **Consistency gate.** Before closing the map, check decision coverage, destination coverage by units, causal dependency ordering, and scope boundaries. This gate has no score or report section; if it fails, keep the map open and resolve the gap.
+
+Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Write from the installed template at `~/.hamilton/templates/wayfinder/route.md`; format mechanics remain in that template and in Map mechanics. Fill `## Shipping rules` from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
 
 The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units are executed, and shipped when the last unit lands. Each unit is executed by whatever downstream process the effort uses. The process that starts a unit flips it `pending → in-progress` on its own branch; the process that completes it flips it `in-progress → shipped`, so the flip ships with the work it marks. The process starting the first unit flips the map `cleared → shipping`; the process shipping the last unit flips the map `shipping → shipped`.
 
@@ -123,7 +134,7 @@ digraph hamilton_wayfinder {
     "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
     "Every ticket on the map resolved?" [shape=diamond];
-    "Fold glossary + write route\n+ Shipping rules (closing act)" [shape=doublecircle];
+    "Synthesize point of departure + destination\nwrite route after consistency gate\n+ Shipping rules (closing act)" [shape=doublecircle];
 
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
     "Map frontier breadth-first" -> "Fog ahead?";
@@ -149,7 +160,7 @@ digraph hamilton_wayfinder {
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
     "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
     "Graduate fog / close out-of-scope" -> "Every ticket on the map resolved?";
-    "Every ticket on the map resolved?" -> "Fold glossary + write route\n+ Shipping rules (closing act)" [label="yes"];
+    "Every ticket on the map resolved?" -> "Synthesize point of departure + destination\nwrite route after consistency gate\n+ Shipping rules (closing act)" [label="yes — synthesis and gate pass"];
     "Every ticket on the map resolved?" -> "Authorized member remains?" [label="no"];
 }
 ```

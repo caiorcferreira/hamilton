@@ -19,7 +19,7 @@ tasks:
     progress: tasks/task-3/progress.md
   - id: 4
     title: "Make Wayfinder synthesize the route"
-    status: pending
+    status: done
     progress: tasks/task-4/progress.md
   - id: 5
     title: "Make propose consume the synthesized route"
