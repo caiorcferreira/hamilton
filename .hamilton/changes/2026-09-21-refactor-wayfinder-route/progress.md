@@ -1,7 +1,7 @@
 ---
 artifact: progress
 change: 2026-09-21-refactor-wayfinder-route
-status: done
+status: in-progress
 updated: 2026-09-21
 decision: accepted
 tasks:
@@ -43,11 +43,11 @@ tasks:
     progress: tasks/task-9/progress.md
   - id: 10
     title: "Keep representation guidance out of Builder latitude"
-    status: pending
+    status: done
     progress: tasks/task-10/progress.md
   - id: 11
     title: "Make migrated-route ticket navigation optional"
-    status: pending
+    status: done
     progress: tasks/task-11/progress.md
   - id: 12
     title: "Restore framework-docs skill-entry spacing"
