@@ -47,7 +47,7 @@ tasks:
 | Task 2: Enforce the route artifact contract | done | [details](tasks/task-2/progress.md) |
 | Task 3: Replace the installed route template | done | [details](tasks/task-3/progress.md) |
 | Task 4: Make Wayfinder synthesize the route | pending | [details](tasks/task-4/progress.md) |
-| Task 5: Make propose consume the synthesized route | pending | [details](tasks/task-5/progress.md) |
+| Task 5: Make propose consume the synthesized route | done | [details](tasks/task-5/progress.md) |
 | Task 6: Make direct planning consume the synthesized route | pending | [details](tasks/task-6/progress.md) |
 | Task 7: Synchronize route documentation | pending | [details](tasks/task-7/progress.md) |
 | Task 8: Migrate the existing Wayfinder route | pending | [details](tasks/task-8/progress.md) |
