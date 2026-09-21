@@ -58,7 +58,20 @@ const bodyFor = (artifact: string): string => {
       "Out of scope",
     ],
     ticket: ["Question", "Answer", "Outdated decisions"],
-    route: ["Shipping rules", "Units", "### 1. Research"],
+    route: [
+      "Point of departure",
+      "Destination",
+      "### Outcome",
+      "### Concrete shape",
+      "### Guardrails and boundaries",
+      "### Builder latitude",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+      "### 1. Research",
+      "**Destination contribution:** Researches the route contract.",
+      "- **Status:** pending",
+    ],
   };
   const titles: Record<string, string> = {
     proposal: "Proposal: Demo",
@@ -310,6 +323,39 @@ describe("artifact metadata contracts", () => {
       expect(result.sourcePath).toBe(sourcePath);
       expect(result.metadata).toEqual(metadata);
       expect(result.body.diagnostics).toEqual([]);
+    }
+  });
+
+  it.each(["Point of departure", "Destination", "Path chosen"])(
+    "requires the route section %s",
+    (section) => {
+      const body = bodyFor("route")
+        .split("\n")
+        .filter((line) => line !== `## ${section}`)
+        .join("\n");
+      const result = validateArtifact(
+        recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1], body),
+      );
+      expectInvalid(result, "missing-section");
+      expect(
+        result.diagnostics.find(
+          (diagnostic) =>
+            diagnostic.code === "missing-section" && diagnostic.expected === section,
+        ),
+      ).toBeDefined();
+    },
+  );
+
+  it("keeps route subheadings and local labels out of unit records", () => {
+    const result = validateArtifact(
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1]),
+    );
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records).toMatchObject([
+        { kind: "unit", number: 1, title: "Research" },
+      ]);
+      expect(result.body.workflow.records).toHaveLength(1);
     }
   });
 

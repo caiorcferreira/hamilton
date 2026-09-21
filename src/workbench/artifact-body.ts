@@ -97,7 +97,13 @@ const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   },
   route: {
     heading: "Route —",
-    sections: ["Shipping rules", "Units"],
+    sections: [
+      "Point of departure",
+      "Destination",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+    ],
     records: "unit",
   },
   ticket: {
@@ -297,7 +303,7 @@ const readWorkflow = (
       null;
     if (matchingKind === null) {
       const legacy = /^(Pass|Attempt|Outcome|Task|Unit)\b/.exec(heading.text);
-      if (legacy) {
+      if (legacy && !(kinds.includes("unit") && heading.level === 3)) {
         sawLegacy = true;
         diagnostics.push(
           bodyDiagnostic(
