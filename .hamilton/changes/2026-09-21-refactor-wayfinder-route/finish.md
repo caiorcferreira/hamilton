@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-21-refactor-wayfinder-route
-status: pending
+status: completed
 created: 2026-09-21
 updated: 2026-09-21
 strategy: pull-request
-result: pending
+result: completed
 decision: accepted
 ---
 
@@ -34,3 +34,11 @@ decision: accepted
 - Strategy: pull-request
 - Intended workspace result: Push `wt/wayfinder-refactor-route-worktree-20260921` to `origin`, open a GitHub pull request against resolved base `main`, verify its canonical URL, open state, head, and base, then leave the branch and linked worktree in place with a clean tree.
 - Route intent: none; no route or map mutation is needed.
+
+## Outcome 2 — 2026-09-21
+
+- Result: completed.
+- External state: pushed branch `wt/wayfinder-refactor-route-worktree-20260921` to `origin`; verified remote ref at `a3c1a0460f301757461e9e9e37d8563ab3cdb92d`; created and read back GitHub pull request `https://github.com/caiorcferreira/hamilton/pull/45`, state `OPEN`, head `wt/wayfinder-refactor-route-worktree-20260921` at `a3c1a0460f301757461e9e9e37d8563ab3cdb92d`, base `main` at `2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa`.
+- Workspace state: branch and linked worktree remain in place; working tree was clean before outcome append.
+- Route state: verified route applicability is none because `route_unit: null`; route and map remain unchanged.
+- Paired history: Attempt 2 intent is persisted in commit `a3c1a04`; this outcome is being persisted as the matching append-only finish record before pushing the outcome commit.
