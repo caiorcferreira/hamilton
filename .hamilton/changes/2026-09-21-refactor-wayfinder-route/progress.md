@@ -39,7 +39,7 @@ tasks:
     progress: tasks/task-8/progress.md
   - id: 9
     title: "Require level-2 headings for route sections"
-    status: pending
+    status: done
     progress: tasks/task-9/progress.md
   - id: 10
     title: "Keep representation guidance out of Builder latitude"

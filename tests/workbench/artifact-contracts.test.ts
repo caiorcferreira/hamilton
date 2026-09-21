@@ -338,11 +338,7 @@ describe("artifact metadata contracts", () => {
       .map((line) => (line === `## ${section}` ? `### ${section}` : line))
       .join("\n");
     const result = validateArtifact(
-      recognized(
-        ".hamilton/maps/effort/route.md",
-        validArtifacts[13][1],
-        body,
-      ),
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1], body),
     );
     expectInvalid(result, "missing-section");
     expect(
