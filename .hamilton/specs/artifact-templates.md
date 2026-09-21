@@ -17,7 +17,7 @@ Names are reported with `/` as the separator on every platform, so the name a us
 Three shapes serve the pre-pipeline wayfinding stage. Their frontmatter is a parsed interface, not decoration — the fields and their vocabularies are what a reader or a skill matches on.
 
 | template | frontmatter | body |
-|----------|-------------|------|
+| ---------- | ------------- | ------ |
 | `wayfinder/map.md` | `status`: `open` \| `cleared` \| `shipping` \| `shipped`; `branch`: the branch the effort works from and merges back into, set at map creation | the sections Destination, Notes, Operation rules, Decisions so far, Not yet specified, Out of scope — in that order, and no seventh |
 | `wayfinder/ticket.md` | `type`: `grilling` \| `research` \| `prototype` \| `task`; `status`: `open` \| `claimed` \| `resolved`; `blocked_by`: a list of ticket numbers | a `## Question` section |
 | `wayfinder/route.md` | `artifact`: `route`; `effort`: the effort name; `status`: `open` \| `shipping` \| `shipped`; `created` and `updated`: dates; `decision`: `accepted` \| `rejected` \| `skipped`; `units`: nested records owning each unit's `id`, `name`, `status`, `depends_on`, and `backed_by` ticket paths | `# Route — <Effort Name>`, then `## Point of departure`, `## Destination`, `## Path chosen`, `## Shipping rules`, and `## Units` — with destination subheadings, causal decisions, shipping rules, and coarse unit contributions |
@@ -29,7 +29,7 @@ A map links its route from Destination once one exists; the route compiles the c
 The pipeline uses distinct shapes for current task state, task evidence, task feedback, whole-branch review, and finish history. Their source names stay at the templates root even when their live instances are nested or owned at change scope.
 
 | template | live instance | owner | durable content |
-|----------|---------------|-------|-----------------|
+| ---------- | --------------- | ------- | ----------------- |
 | `progress.md` | `<change>/progress.md` | planning and code | one plan-ordered row per active task, with `Task N: <title>`, status `pending` / `in-progress` / `blocked` / `done`, and a link to the task log |
 | `task-progress.md` | `<change>/tasks/task-N/progress.md` | code | one task identity and append-only numbered implementation attempts with outcome, changed paths, verification, and notes |
 | `feedback.md` | `<change>/tasks/task-N/feedback.md` | code feedback | one task identity and one append-only file of passes; each fully evidenced pass carries its own `Base:`, `Head:`, and `Verdict:` (`approved` or `changes-requested`), blocking findings, and suggestions |

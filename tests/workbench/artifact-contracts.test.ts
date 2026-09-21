@@ -61,7 +61,7 @@ const bodyFor = (artifact: string): string => {
     route: [
       "Point of departure",
       "Destination",
-      "### Outcome",
+      "### 2. Destination checkpoint",
       "### Concrete shape",
       "### Guardrails and boundaries",
       "### Builder latitude",
@@ -334,13 +334,18 @@ describe("artifact metadata contracts", () => {
         .filter((line) => line !== `## ${section}`)
         .join("\n");
       const result = validateArtifact(
-        recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1], body),
+        recognized(
+          ".hamilton/maps/effort/route.md",
+          validArtifacts[13][1],
+          body,
+        ),
       );
       expectInvalid(result, "missing-section");
       expect(
         result.diagnostics.find(
           (diagnostic) =>
-            diagnostic.code === "missing-section" && diagnostic.expected === section,
+            diagnostic.code === "missing-section" &&
+            diagnostic.expected === section,
         ),
       ).toBeDefined();
     },
@@ -497,10 +502,9 @@ Verdict: approved
 
     expect(result._tag).toBe("valid");
     if (result._tag === "valid") {
-      expect(result.body.workflow.records.map((record) => record.number)).toEqual([
-        1,
-        2,
-      ]);
+      expect(
+        result.body.workflow.records.map((record) => record.number),
+      ).toEqual([1, 2]);
     }
   });
 
@@ -945,9 +949,9 @@ Head: ${sha}
       ),
       "finish",
     );
-    expect(missingOutcome.workflow.records.map((record) => record.kind)).toEqual([
-      "attempt",
-    ]);
+    expect(
+      missingOutcome.workflow.records.map((record) => record.kind),
+    ).toEqual(["attempt"]);
     expect(missingOutcome.diagnostics).toContainEqual(
       expect.objectContaining({
         code: "missing-section",
