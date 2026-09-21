@@ -111,9 +111,10 @@ history. A cleared route compiles the destination and causal path, then lists te
 change-sized units whose downstream entry is always `hamilton-propose`.
 
 Wayfinder charts and works maps through live human judgment. Propose reads a route from the branch
-where its session started, selects the next pending unit, follows its ticket links, and then runs
-its normal collaborative specification flow. The SDD loop implements each unit and flips its status
-on the unit's branch.
+where its session started, selects the next pending unit, and uses the synthesized route body as
+primary current context before running its normal collaborative specification flow. Its `backed_by`
+ticket links are optional drill-down for deeper evidence or rejected alternatives. The SDD loop
+implements each unit and flips its status on the unit's branch.
 
 ### Guardrails and boundaries
 
