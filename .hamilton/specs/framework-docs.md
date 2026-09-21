@@ -15,7 +15,7 @@ Two document surfaces form the capability. Their filenames are the interface, no
 
 ### Skill entry shape
 
-Every skill entry in `docs/skills.md` follows one shape: a `### \`hamilton-...\`` heading carrying a short role plus a step tag (e.g. `*(step 1, optional)*`, `*(optional pre-change planning stage)*`), a one-to-two-sentence intro, then- **When:**` / `- **Inputs:**` / `- **Produces:**` / `- **Notes:**` bullets, ending with a `- Source:` link to the skill's own `SKILL.md`. The shape is the contract a reader relies on to scan the reference; a new entry conforms to it rather than inventing its own structure.
+Every skill entry in `docs/skills.md` follows one shape: a `### \`hamilton-...\`` heading carrying a short role plus a step tag (e.g. `*(step 1, optional)*`, `*(optional pre-change planning stage)*`), a one-to-two-sentence intro, then `- **When:**` / `- **Inputs:**` / `- **Produces:**` / `- **Notes:**` bullets, ending with a `- Source:` link to the skill's own `SKILL.md`. The shape is the contract a reader relies on to scan the reference; a new entry conforms to it rather than inventing its own structure.
 
 ### Pipeline identity
 
