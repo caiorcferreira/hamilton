@@ -37,6 +37,22 @@ tasks:
     title: "Migrate the existing Wayfinder route"
     status: done
     progress: tasks/task-8/progress.md
+  - id: 9
+    title: "Require level-2 headings for route sections"
+    status: pending
+    progress: tasks/task-9/progress.md
+  - id: 10
+    title: "Keep representation guidance out of Builder latitude"
+    status: pending
+    progress: tasks/task-10/progress.md
+  - id: 11
+    title: "Make migrated-route ticket navigation optional"
+    status: pending
+    progress: tasks/task-11/progress.md
+  - id: 12
+    title: "Restore framework-docs skill-entry spacing"
+    status: pending
+    progress: tasks/task-12/progress.md
 ---
 
 # Progress: Refactor the Wayfinder route
@@ -51,3 +67,7 @@ tasks:
 | Task 6: Make direct planning consume the synthesized route | done | [details](tasks/task-6/progress.md) |
 | Task 7: Synchronize route documentation | done | [details](tasks/task-7/progress.md) |
 | Task 8: Migrate the existing Wayfinder route | done | [details](tasks/task-8/progress.md) |
+| Task 9: Require level-2 headings for route sections | pending | [details](tasks/task-9/progress.md) |
+| Task 10: Keep representation guidance out of Builder latitude | pending | [details](tasks/task-10/progress.md) |
+| Task 11: Make migrated-route ticket navigation optional | pending | [details](tasks/task-11/progress.md) |
+| Task 12: Restore framework-docs skill-entry spacing | pending | [details](tasks/task-12/progress.md) |

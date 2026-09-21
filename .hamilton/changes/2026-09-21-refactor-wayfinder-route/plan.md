@@ -16,8 +16,8 @@ route_unit: null
 - Goal: Make `route.md` the self-contained, compiled outcome of Wayfinder: a clear description of the destination, the causal decision path that produced it, the boundaries builders must preserve, and the coarse delivery units that can realize it later.
 - Test: `bun run test`
 - Build / typecheck: `bun run build`
-- Context notes: This change starts at the minimal planning path with no proposal, design, or requirement deltas. The current route contract is distributed across `.hamilton/specs/wayfinder.md`, `.hamilton/specs/artifact-templates.md`, `.hamilton/specs/glossary.md`, `.hamilton/specs/propose.md`, the Wayfinder template and skills, workbench validation, and framework documentation; each task names the complete slice it must keep consistent. The map remains the live exploration index and tickets remain detailed evidence and decision records. The route stops being another index: it synthesizes current truth while preserving ticket links for drill-down. Wayfinder still performs no implementation; downstream processes own construction and lifecycle transitions after the route is accepted. Route and unit lifecycle vocabularies, frontmatter fields, map mechanics, and the abstract executing-process contract remain unchanged.
-- Quality notes: Tasks follow the contract boundaries inherited by the implementation: route semantics and vocabulary, artifact validation, template installation, route production, each route consumer, public documentation, and migration of the single worked route. Tasks 2 and 3 use explicit red→green test order. Markdown-only tasks use structural assertions because the repository has no behavioral harness for skill prose. Task 7 deliberately updates several documents together because they are parallel renderings of one public contract and leaving an intermediate commit would publish contradictory guidance. Task 8 remains one task despite the route’s length because it transforms one independently lintable artifact and splitting it would leave that artifact invalid between commits. The instructional HTML blocks in the template are artifact content following the repository’s established template idiom, not comments in TypeScript source.
+- Context notes: This change starts at the minimal planning path with no proposal, design, or requirement deltas. The current route contract is distributed across `.hamilton/specs/wayfinder.md`, `.hamilton/specs/artifact-templates.md`, `.hamilton/specs/glossary.md`, `.hamilton/specs/propose.md`, the Wayfinder template and skills, workbench validation, and framework documentation; each task names the complete slice it must keep consistent. The map remains the live exploration index and tickets remain detailed evidence and decision records. The route stops being another index: it synthesizes current truth while preserving ticket links for drill-down. Wayfinder still performs no implementation; downstream processes own construction and lifecycle transitions after the route is accepted. Route and unit lifecycle vocabularies, frontmatter fields, map mechanics, and the abstract executing-process contract remain unchanged. This is a re-plan after the durable whole-branch review recorded implementation gaps; the remediation tasks preserve the approved destination-first intent and correct only the reviewed seams.
+- Quality notes: Tasks follow the contract boundaries inherited by the implementation: route semantics and vocabulary, artifact validation, template installation, route production, each route consumer, public documentation, and migration of the single worked route. Tasks 2 and 3 use explicit red→green test order. Markdown-only tasks use structural assertions because the repository has no behavioral harness for skill prose. Task 7 deliberately updates several documents together because they are parallel renderings of one public contract and leaving an intermediate commit would publish contradictory guidance. Task 8 remains one task despite the route’s length because it transforms one independently lintable artifact and splitting it would leave that artifact invalid between commits. The instructional HTML blocks in the template are artifact content following the repository’s established template idiom, not comments in TypeScript source. Remediation Tasks 9–12 are independently verifiable seams for the review’s validator, guidance, migrated-route handoff, and documentation-spacing findings; each names the edge case or structural assertion that prevents a happy-path-only fix.
 
 ## Tasks
 
@@ -356,6 +356,82 @@ units:
   6. Build the CLI, lint the migrated artifact, and compare all ten units against the pre-migration route to confirm no unit or dependency was lost.
 - Verify: `bun run build && bun dist/cli/main.js workbench lint --file .hamilton/maps/hamilton-wayfinder/route.md && test "$(rg -c '^### [0-9]+\. ' .hamilton/maps/hamilton-wayfinder/route.md)" -eq 10` → lint succeeds and all ten units remain present.
 - Commit: `docs: migrate the wayfinder route to the compiled format`
+
+### Task 9: Require level-2 headings for route sections
+
+- Depends on: Task 2
+- Files:
+  - Created: none
+  - Modified: `src/workbench/artifact-body.ts`, `tests/workbench/artifact-contracts.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Route validation recognizes Point of departure, Destination, Path chosen, Shipping rules, and Units only when each appears as a level-2 `##` heading.
+  - A route with a required section present only as a nested `###` heading fails with the existing stable `missing-section` diagnostic, while a route with all five level-2 headings and the existing unit parsing remains valid.
+  - Validation behavior for non-route artifact section contracts is unchanged.
+- Steps:
+  1. Read the route body contract and the existing route fixture and missing-section cases in `tests/workbench/artifact-contracts.test.ts`.
+  2. Add a regression case covering each required route section when its only occurrence is `### <section>`, asserting `missing-section` and the expected section name while retaining the valid level-2 fixture coverage.
+  3. Run `bun --bun vitest run tests/workbench/artifact-contracts.test.ts` and confirm the nested-only regression fails against the current `level >= 2` implementation.
+  4. Narrow route section presence validation to exact level-2 headings without changing unit parsing, diagnostics, or other artifact contracts.
+  5. Re-run the focused test and build to confirm nested-only sections are rejected and the complete route contract remains valid.
+- Verify: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts && bun run build` → all artifact-contract tests pass, including nested-only regressions, and TypeScript compilation succeeds.
+- Commit: `fix: require top-level route sections`
+
+### Task 10: Keep representation guidance out of Builder latitude
+
+- Depends on: Task 4
+- Files:
+  - Created: none
+  - Modified: `skills/hamilton-wayfinder/SKILL.md`
+  - Deleted: none
+- Acceptance:
+  - The route-writing sequence places domain-appropriate representation guidance under Destination/Concrete shape, where it describes representations that remove meaningful destination ambiguity.
+  - Builder latitude is reserved for local choices that cannot alter the destination and does not contain the representation-selection instruction.
+  - The contradiction and essential-ambiguity gate remains explicit and still prevents route writing when a destination-shaping choice is unresolved.
+  - The approved route synthesis sequence, glossary fold, lifecycle mechanics, and installed-template boundary remain unchanged.
+- Steps:
+  1. Read the complete The route section, especially Destination, Builder latitude, and the consistency gate, and locate the current representation instruction.
+  2. Move the representation guidance into the Concrete shape step and state there that it is used only to remove meaningful ambiguity; rewrite Builder latitude to cover only non-destination-changing local choices.
+  3. Preserve the existing contradiction and essential-ambiguity gate and avoid adding format mechanics outside the installed-template and Map mechanics references.
+  4. Read the edited The route section end-to-end and confirm the sequence has one authoritative location for representation guidance and one clear latitude boundary.
+- Verify: `python3 -c 'from pathlib import Path; s=Path("skills/hamilton-wayfinder/SKILL.md").read_text(); concrete=s.index("**Concrete shape**"); latitude=s.index("**Builder latitude**"); assert concrete < latitude; assert "domain-appropriate representation" in s[concrete:latitude]; assert "cannot alter the destination" in s[latitude:]; assert "If that synthesis exposes a contradiction or essential ambiguity" in s'` → representation guidance occurs before Builder latitude, latitude is destination-preserving, and the ambiguity gate remains present.
+- Commit: `fix: place route representation guidance correctly`
+
+### Task 11: Make migrated-route ticket navigation optional
+
+- Depends on: Task 5, Task 8
+- Files:
+  - Created: none
+  - Modified: `.hamilton/maps/hamilton-wayfinder/route.md`
+  - Deleted: none
+- Acceptance:
+  - The migrated route presents its synthesized body as primary context for propose and describes `backed_by` ticket links as optional drill-down for deeper evidence or rejected alternatives.
+  - The route no longer describes following ticket links as part of the normal handoff or implies that consumers must reconstruct the destination from tickets.
+  - The route frontmatter, ten units, unit lifecycle and dependency metadata, shipping rules, and existing ticket links remain unchanged except for the handoff wording.
+- Steps:
+  1. Read the route handoff, frontmatter ledger, and the route-aware context-loading contract in `skills/hamilton-propose/SKILL.md` and `.hamilton/specs/propose.md`.
+  2. Rewrite only the handoff wording so the synthesized route body is primary and ticket navigation is optional for deeper evidence or rejected alternatives; do not introduce new decisions or alter the unit ledger.
+  3. Compare the edited frontmatter and unit headings with the pre-change route shape, then inspect the handoff in context for self-contained destination, path, and unit guidance.
+  4. Build the CLI and lint the migrated route to confirm the wording correction preserves the real route artifact contract.
+- Verify: `bun run build && bun dist/cli/main.js workbench lint --file .hamilton/maps/hamilton-wayfinder/route.md && ! rg -n "follows its ticket links|follow its ticket links|ticket-first" .hamilton/maps/hamilton-wayfinder/route.md && rg -n "optional|deeper evidence|rejected alternatives|synthesized route|primary context" .hamilton/maps/hamilton-wayfinder/route.md` → the route lints successfully, no normal ticket-first handoff remains, and optional drill-down language is explicit.
+- Commit: `fix: make route ticket drill-down optional`
+
+### Task 12: Restore framework-docs skill-entry spacing
+
+- Depends on: Task 7
+- Files:
+  - Created: none
+  - Modified: `.hamilton/specs/framework-docs.md`
+  - Deleted: none
+- Acceptance:
+  - The skill-entry example restores spaces after the comma between example step tags and before the following `then` clause, matching the established readability contract.
+  - The framework-docs capability, route documentation contract, and all other canonical wording remain unchanged.
+- Steps:
+  1. Read the Skill entry shape paragraph and compare its punctuation with the established pre-change wording.
+  2. Restore the spaces around the example punctuation without changing the documented entry shape or route contract.
+  3. Read the paragraph and inspect the diff to confirm this is a documentation-only readability cleanup.
+- Verify: `python3 -c 'from pathlib import Path; s=Path(".hamilton/specs/framework-docs.md").read_text(); assert "*(step 1, optional)*`, `*(optional pre-change planning stage)*`), a one-to-two-sentence intro, then` in s; assert "*(step 1, optional)*`,`*(optional pre-change planning stage)*`), a one-to-two-sentence intro, then` not in s'` → the canonical skill-entry example has the restored spaces and no stale punctuation remains.
+- Commit: `docs: restore framework skill-entry spacing`
 
 ## Done when
 
