@@ -713,7 +713,9 @@ export const validateArtifactBody = (
   for (const section of contract.sections) {
     if (
       !headings.some(
-        (heading) => heading.level >= 2 && heading.text === section,
+        (heading) =>
+          heading.text === section &&
+          (kind === "route" ? heading.level === 2 : heading.level >= 2),
       )
     ) {
       diagnostics.push(

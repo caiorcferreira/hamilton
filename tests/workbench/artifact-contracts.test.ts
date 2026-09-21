@@ -326,30 +326,33 @@ describe("artifact metadata contracts", () => {
     }
   });
 
-  it.each(["Point of departure", "Destination", "Path chosen"])(
-    "requires the route section %s",
-    (section) => {
-      const body = bodyFor("route")
-        .split("\n")
-        .filter((line) => line !== `## ${section}`)
-        .join("\n");
-      const result = validateArtifact(
-        recognized(
-          ".hamilton/maps/effort/route.md",
-          validArtifacts[13][1],
-          body,
-        ),
-      );
-      expectInvalid(result, "missing-section");
-      expect(
-        result.diagnostics.find(
-          (diagnostic) =>
-            diagnostic.code === "missing-section" &&
-            diagnostic.expected === section,
-        ),
-      ).toBeDefined();
-    },
-  );
+  it.each([
+    "Point of departure",
+    "Destination",
+    "Path chosen",
+    "Shipping rules",
+    "Units",
+  ])("requires the route section %s at level 2", (section) => {
+    const body = bodyFor("route")
+      .split("\n")
+      .map((line) => (line === `## ${section}` ? `### ${section}` : line))
+      .join("\n");
+    const result = validateArtifact(
+      recognized(
+        ".hamilton/maps/effort/route.md",
+        validArtifacts[13][1],
+        body,
+      ),
+    );
+    expectInvalid(result, "missing-section");
+    expect(
+      result.diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === "missing-section" &&
+          diagnostic.expected === section,
+      ),
+    ).toBeDefined();
+  });
 
   it("keeps route subheadings and local labels out of unit records", () => {
     const result = validateArtifact(
