@@ -19,6 +19,7 @@ route_unit: null
 - Context notes: Follow `AGENTS.md`, the accepted proposal, design, and requirement deltas. This is a skill, orchestration-prompt, contract-test, and documentation change; do not alter the CLI, artifact formats, task ledger, or runtime implementation. Preserve ESM `.js` imports where code is touched, pinned dependencies, no comments in code, and the existing artifact ownership and commit conventions.
 - Quality notes: Tasks follow the design boundaries: implementation discipline, tactical review, orchestration routing, and public documentation are separate units with focused contract tests. No structural smell is intentionally accepted.
 - Re-plan amendment (2026-09-22): Whole-branch Review Pass 1 found blocking evidence gaps in completed Tasks 2 and 4: each latest task log collapses Green and behavior-preserving Refactor into a combined verification entry. Tasks 1–4 and all existing task, feedback, and review history remain frozen. Append Tasks 5 and 6 to repair only the affected task-progress evidence, preserve prior feedback and review history, and require fresh Task 2 and Task 4 feedback passes from their unchanged checkpoints before advancement.
+- Re-plan amendment (2026-09-22): The finish precondition exposed a root-ledger inconsistency after the approved whole-branch review: Task 6 is `pending` in progress frontmatter but `done` in the Markdown task table. Tasks 1–6, their task-local histories and feedback, and the approved review remain frozen. Append Task 7 as an evidence-only root-ledger reconciliation through the normal code↔feedback gate; its implementation changes only the root progress ledger and does not reopen or rewrite prior artifacts.
 
 ## Tasks
 
@@ -135,6 +136,26 @@ route_unit: null
   4. Freshness handoff — after committing the progress-only correction, leave `tasks/task-4/feedback.md` and `review.md` untouched, obtain and commit its fresh approved feedback pass from the unchanged checkpoint, then run whole-branch review only after both remediation task gates are current.
 - Verify: `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-4/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);' && bun --bun vitest run tests/docs && bun run build && git diff --check` → the latest Task 4 attempt contains exactly the distinct ordered phase evidence, the documentation suite and build pass, and the append is whitespace-clean; the separate fresh Task 4 approval is committed before whole-branch review.
 - Commit: `chore(change): repair Task 4 phase evidence`
+
+### Task 7: Reconcile the root Task 6 ledger state
+
+- Depends on: Task 6
+- Files:
+  - Created: none
+  - Modified: `.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md`
+  - Deleted: none
+- Acceptance:
+  - The root progress frontmatter and Markdown task table agree at every lifecycle transition: Task 6 is `done` in both representations, and Task 7 is initialized as `pending` in both before implementation, then moves through `in-progress` to `done` in both under the normal hamilton-code lifecycle.
+  - The substantive implementation is evidence-only and changes only `.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md`: it changes Task 6 frontmatter from `pending` to `done` and keeps Task 7's frontmatter and row status synchronized. No production file, plan task definition, Task 1–6 progress or feedback file, review artifact, or other prior artifact is changed; all prior artifact bytes remain unchanged.
+  - The task records the normal hamilton-code attempt evidence and then receives a fresh approved `hamilton-code-feedback` pass from its unchanged checkpoint before advancement. Feedback and review artifacts are stage-owned gate outputs and are not edited by this evidence-only implementation.
+  - The task-local evidence contains explicit Red, Green, Refactor, and Verify commands with observed results: Red proves the pre-existing metadata mismatch, Green proves the corrected ledger shape, Refactor proves the change remains root-ledger-only and whitespace-clean, and Verify proves ledger parity plus the project's tests and build.
+- Steps:
+  1. Red — run `hamilton workbench precondition --change-dir .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd --test-cmd true` before changing the ledger and record its expected non-zero result containing `progress metadata ledger does not match` for the Task 6 status contradiction; do not alter any artifact during this check.
+  2. Green — after the normal lifecycle marks Task 7 `in-progress`, change only `.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md`: set the Task 6 frontmatter status to `done` and keep Task 7's frontmatter entry and Markdown row both `in-progress`. Run `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md` and rerun the precondition while asserting that its output no longer contains `progress metadata ledger does not match`; record lint exit 0 and the expected remaining non-zero gate result, if any, as evidence that only unfinished or stale downstream gates remain.
+  3. Refactor — inspect `git diff -- .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md` and run `git diff --check`; confirm that all pre-existing rows and links are unchanged, only the intended Task 6 metadata correction and Task 7 lifecycle entries differ, no prior artifact is touched, and whitespace validation passes. Record both commands and their results without changing the implementation.
+  4. Verify — complete the normal hamilton-code lifecycle by setting Task 7's frontmatter entry and Markdown row to `done`, then run `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md`, the precondition with an assertion that `progress metadata ledger does not match` is absent, `bun --bun vitest run`, `bun run build`, and `git diff --check`. Record lint, tests, build, and whitespace as passing; the precondition may remain non-zero only for the expected fresh-feedback boundary before hamilton-code-feedback runs.
+- Verify: `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md && bun --bun vitest run && bun run build && git diff --check` → the root ledger is structurally valid, the full test suite and TypeScript build pass, and the implementation diff is whitespace-clean; the precondition output contains no progress metadata mismatch before the fresh Task 7 feedback gate.
+- Commit: `chore(change): reconcile Task 6 ledger state`
 
 ## Done when
 
