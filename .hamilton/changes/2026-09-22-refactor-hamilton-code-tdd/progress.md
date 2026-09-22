@@ -23,7 +23,7 @@ tasks:
     progress: tasks/task-4/progress.md
   - id: 5
     title: Repair Task 2 phase evidence
-    status: pending
+    status: done
     progress: tasks/task-5/progress.md
   - id: 6
     title: Repair Task 4 phase evidence
@@ -38,5 +38,5 @@ tasks:
 | Task 2: Make feedback the refactor gate | done | [details](tasks/task-2/progress.md) |
 | Task 3: Route TDD evidence through orchestration | done | [details](tasks/task-3/progress.md) |
 | Task 4: Document the TDD task loop | done | [details](tasks/task-4/progress.md) |
-| Task 5: Repair Task 2 phase evidence | pending | [details](tasks/task-5/progress.md) |
+| Task 5: Repair Task 2 phase evidence | done | [details](tasks/task-5/progress.md) |
 | Task 6: Repair Task 4 phase evidence | pending | [details](tasks/task-6/progress.md) |
