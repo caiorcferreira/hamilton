@@ -29,6 +29,28 @@ describe("hamilton-code-feedback contract", () => {
     expect(inputs).toContain("Project standards")
   })
 
+  it("defines feedback as the refactor gate with TDD context and routed outcomes", () => {
+    const skill = readCodeFeedback()
+    const inputs = section(skill, "## Inputs")
+    const process = section(skill, "## Process")
+
+    expect(inputs).toMatch(/implementation.*red\/green\/refactor.*(?:evidence|exception)/is)
+    expect(inputs).toMatch(/implementation context/i)
+    expect(skill).toMatch(/refactor-phase review/i)
+    expect(skill).toMatch(/behavior-preserving refactor/i)
+    expect(process).toMatch(/approved.*completes.*refactor gate/is)
+    expect(process).toMatch(/requested changes.*same task.*new correction cycle/is)
+    expect(skill).toMatch(/never\s+edits\s+implementation\s+or\s+progress\s+artifacts/i)
+  })
+
+  it("requires verification after corrections and judges exceptional verification", () => {
+    const skill = readCodeFeedback()
+
+    expect(skill).toMatch(/correction.*relevant verification/is)
+    expect(skill).toMatch(/exceptional verification.*genuine\s+justification.*sufficiency/is)
+    expect(skill).toMatch(/not approved automatically/is)
+  })
+
   it("gates the split generation before task scope or verdict writes", () => {
     const skill = readCodeFeedback()
     const preflight = section(skill, "## Generation preflight")

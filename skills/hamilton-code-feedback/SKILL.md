@@ -16,11 +16,20 @@ outside the seven-step core count.
 **Judge, do not fix.** Inspect and report. Never modify implementation, tests, plan artifacts,
 or task status while performing code feedback.
 
+## Refactor gate
+
+This refactor-phase review is the refactor gate. Judge the behavior-preserving refactor against the
+assigned task, project standards, and the code-quality rubric. A green test result does not approve
+the refactor by itself. When exception evidence replaces refactor evidence, exceptional verification requires genuine
+justification and sufficiency; it is not approved automatically.
+
 ## Inputs
 
 Every invocation supplies exactly one existing active `Task N` from the change's `plan.md` and:
 
 - The task block, including its acceptance criteria and cited constraints.
+- The implementation context from the code attempt, including the implementation's red/green/refactor
+  or exception evidence and task-local verification results.
 - A stable task diff package from the task's unchanged
   `<change-dir>/tasks/task-N/.base` checkpoint through the implementation head. The package must
   state the full base and head commit identifiers and include the changed paths and diff.
@@ -106,6 +115,11 @@ search.
 9. Append one complete pass to the assigned task's feedback history.
 10. Make the path-limited artifact-only bookkeeping commit. Verify the committed path list and
     preservation of the pre-existing staged state before handoff.
+
+An approved pass completes the refactor gate and returns control to the driver. Requested changes
+remain append-only and return the same task to a new correction cycle. After a finding is addressed,
+the correction cycle must include relevant verification before a new verdict. The reviewer never
+edits implementation or progress artifacts.
 
 ## Review dimensions
 
