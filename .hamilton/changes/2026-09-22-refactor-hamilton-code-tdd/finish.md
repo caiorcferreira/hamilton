@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-22-refactor-hamilton-code-tdd
-status: pending
+status: completed
 created: 2026-09-22
 updated: 2026-09-22
 strategy: pull-request
-result: pending
+result: completed
 decision: accepted
 ---
 
@@ -18,3 +18,11 @@ decision: accepted
 - Strategy: pull request
 - Intended workspace result: push branch `refactor-hamilton-code-tdd` to `origin`, open one pull request targeting `main`, verify its canonical URL, open state, head, and base, then leave the branch and linked worktree in place.
 - Route intent: none (`route_unit: null`)
+
+## Outcome 1 — 2026-09-22
+
+- Result: completed
+- Verified external result: branch `refactor-hamilton-code-tdd` was pushed to `origin` at `ccd1136af46fc72bb3ce7f3a20dd799468218efb`; pull request `https://github.com/caiorcferreira/hamilton/pull/46` is open, non-draft, has head `ccd1136af46fc72bb3ce7f3a20dd799468218efb`, and targets base branch `main` at `f66e08eb3c3be3492f129ace53ccfb3fd12d2f0e`.
+- Actual workspace result: the linked worktree at `/home/caio/workspace/personal/hamilton/.worktrees/refactor-hamilton-code-tdd` remains present on branch `refactor-hamilton-code-tdd` with a clean tree.
+- Route state: none; no route or map mutation was intended or performed.
+- Partial state: none; the requested pull-request strategy effects were verified before recording this completed outcome.
