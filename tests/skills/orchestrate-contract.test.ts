@@ -68,6 +68,53 @@ describe("hamilton-orchestrate task resume contract", () => {
   })
 })
 
+describe("hamilton-orchestrate TDD refactor handoff contract", () => {
+  const handoff = singleLine(section(skill, "## TDD refactor handoff"))
+  const process = singleLine(section(skill, "## Process"))
+  const implementer = singleLine(readReference("implementer-prompt.md"))
+  const codeFeedback = singleLine(readReference("code-feedback-prompt.md"))
+
+  it("names code feedback as the refactor-phase gate after green implementation", () => {
+    expect(handoff).toMatch(
+      /green implementation.*not an advancement point.*existing `hamilton-code-feedback` dispatch.*refactor-phase review/is,
+    )
+  })
+
+  it("requires task-local red-green-refactor or exception evidence", () => {
+    expect(implementer).toMatch(
+      /task-local.*red\/green\/refactor.*commands and observed results/is,
+    )
+    expect(implementer).toMatch(
+      /conventional red check.*exception reason.*repeatable alternative verification/is,
+    )
+  })
+
+  it("supplies TDD evidence and bounded context to feedback", () => {
+    expect(codeFeedback).toContain("[TDD_EVIDENCE]")
+    expect(codeFeedback).toContain("[PROJECT_STANDARDS]")
+    expect(codeFeedback).toMatch(
+      /task acceptance.*stable task diff.*project standards.*bounded located-risk context/is,
+    )
+  })
+
+  it("routes requested refactors through correction verification and fresh feedback", () => {
+    expect(handoff).toMatch(
+      /changes-requested.*same Task N.*hamilton-code.*relevant verification.*fresh.*hamilton-code-feedback/is,
+    )
+    expect(process).toMatch(
+      /refactor-phase review.*changes-requested.*same Task N.*relevant verification/is,
+    )
+  })
+
+  it("advances only after a fresh durable approved feedback pass", () => {
+    expect(handoff).toMatch(
+      /Only a fresh durable `approved` feedback pass.*another task or the whole-branch gate/is,
+    )
+    expect(implementer).toContain("refactor-phase review")
+    expect(codeFeedback).toContain("refactor-phase review")
+  })
+})
+
 describe("hamilton-orchestrate whole-branch resume contract", () => {
   const matrix = singleLine(section(skill, "## Whole-branch resume matrix"))
 

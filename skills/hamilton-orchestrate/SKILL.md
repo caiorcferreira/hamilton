@@ -136,7 +136,7 @@ physically last pass in `tasks/task-N/feedback.md`, validated against the latest
 touched that task's progress file.
 
 | Root status | Feedback state | Action |
-|---|---|---|
+| --- | --- | --- |
 | `pending` | any | Dispatch `hamilton-code` for Task N. |
 | `blocked` | any | Dispatch `hamilton-code` for Task N with the recorded blocker and newly available resolution. |
 | `in-progress` | any | Inspect Task N's git state and task-local log before resuming or resolving it; never select another task. |
@@ -168,6 +168,16 @@ external condition, or a more suitable explicitly named model. If nothing has ch
 repeat the same dispatch. A task too large or impossible as planned is a plan defect and stops for
 re-plan or user adjudication rather than an improvised split.
 
+## TDD refactor handoff
+
+A green implementation is not an advancement point. The existing `hamilton-code-feedback`
+dispatch is the task's refactor-phase review: it receives the task-local red/green/refactor
+evidence and judges whether the implementation is behavior-preserving.
+
+A `changes-requested` refactor-phase review returns the same Task N to `hamilton-code`; relevant
+verification is required before a fresh `hamilton-code-feedback` pass. Only a fresh durable
+`approved` feedback pass permits advancement to another task or the whole-branch gate.
+
 ## Whole-branch resume matrix
 
 Use this matrix only after every active task is `done` with fresh `approved` feedback and no
@@ -175,7 +185,7 @@ blocking findings. `Review state` means the physically last pass in root `review
 against the current branch and latest material change commit.
 
 | Review state | Action |
-|---|---|
+| --- | --- |
 | absent | Dispatch `hamilton-review` on the complete branch. |
 | stale or malformed | Dispatch `hamilton-review` on the complete branch. |
 | fresh `changes-requested` | Classify the complete finding set for re-plan or the upstream-defect stop. |
@@ -219,25 +229,31 @@ current tasks or review merely because conversation history was compacted or los
    every code dispatch.
 7. **Dispatch `hamilton-code`.** Fill `references/implementer-prompt.md` with one exact Task N,
    its root row, task log, minimal prior interfaces, and either first-attempt context or its fresh
-   `changes-requested` feedback path. Do not provide a second detailed reporting destination.
-   When the subagent returns, read the root row and physical latest task attempt instead of
-   trusting its concise response. A `blocked` or interrupted result returns to the task matrix.
+   `changes-requested` feedback path. Require the task-local report to carry the red/green/refactor
+   evidence or a justified exception and repeatable alternative verification. Do not provide a
+   second detailed reporting destination. When the subagent returns, read the root row and
+   physical latest task attempt instead of trusting its concise response. A `blocked` or
+   interrupted result returns to the task matrix.
 8. **Package the task diff after code reaches `done`.** Run
    `hamilton workbench diff --task N --change-dir <change-dir>`. Capture the
    printed full Base and Head and scratch package path. Require Base to equal the unchanged task
    checkpoint and Head to contain the latest task progress commit.
 9. **Dispatch `hamilton-code-feedback`.** Fill `references/code-feedback-prompt.md` with the exact
    task, full Base and Head, diff package, task-local progress path, feedback destination,
-   verbatim task acceptance and cited constraints, and the located-evidence input. Use `none` for
-   an ordinary pass. The reviewer judges only that stable task range and supplied bounded
-   evidence and persists the supplied range in `tasks/task-N/feedback.md`.
+   task-local TDD evidence, project standards, verbatim task acceptance and cited constraints,
+   and the bounded located-risk context. Use `none` for an ordinary pass. The reviewer performs
+   the task's refactor-phase review, judges only that stable task range and supplied bounded
+   evidence, and persists the supplied range in `tasks/task-N/feedback.md`.
 10. **Confirm the feedback artifact-only commit.** Require the feedback subagent to commit only
     `tasks/task-N/feedback.md`, verify the commit's path list, and re-read the physical last pass.
     Re-evaluate **Durable task approval** immediately after the feedback handoff and complete this
     check before proceeding to **Select the next active task**. If the predicate fails, route the
-    task back to `hamilton-code-feedback` rather than advancing. Apply the task matrix again: a
-    durable fresh approval may advance, an ordinary fresh requested change returns to code, a
-    canonical unresolved item enters bounded adjudication, and stale feedback returns to feedback.
+    task back to `hamilton-code-feedback` rather than advancing. A `changes-requested`
+    refactor-phase review returns the same Task N to `hamilton-code`; relevant verification is
+    required before a fresh `hamilton-code-feedback` pass. Apply the task matrix again: only a
+    fresh durable `approved` feedback pass may advance, an ordinary fresh requested change returns
+    to code, a canonical unresolved item enters bounded adjudication, and stale feedback returns
+    to feedback.
 11. **Adjudicate a bounded unresolved risk.** When a fresh `changes-requested` pass has a finding
     under `### Blocking` containing the exact text `cannot verify from diff`, inspect only its
     concrete named risk with cross-task context. For a confirmed code gap, dispatch
@@ -321,14 +337,16 @@ Specify a model on every dispatch.
 ## File handoffs
 
 - **Implementation evidence:** the root Task N row supplies current status and
-  `<change-dir>/tasks/task-N/progress.md` supplies the detailed physical latest attempt. There is
-  no second implementer narrative artifact.
+  `<change-dir>/tasks/task-N/progress.md` supplies the detailed physical latest attempt, including
+  red/green/refactor evidence or a justified exception. There is no second implementer narrative
+  artifact.
 - **Task range:**
   `hamilton workbench diff --task N --change-dir <change-dir>` packages the
   unchanged task-local checkpoint through current `HEAD`. Pass its printed full Base, Head, and
   scratch path to the code-feedback prompt.
 - **Task verdict:** `<change-dir>/tasks/task-N/feedback.md` is append-only and is committed alone
-  before the driver selects another task or dispatches a correction.
+  before the driver selects another task or dispatches a correction. Its fresh durable `approved`
+  pass is the only advancement authorization.
 - **Whole-branch range:** `hamilton workbench diff --whole-change` packages
   the actual default-branch merge base through current `HEAD`. Pass the complete package and
   approved change intent to the whole-branch prompt.
