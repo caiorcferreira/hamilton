@@ -39,4 +39,4 @@ tasks:
 | Task 3: Route TDD evidence through orchestration | done | [details](tasks/task-3/progress.md) |
 | Task 4: Document the TDD task loop | done | [details](tasks/task-4/progress.md) |
 | Task 5: Repair Task 2 phase evidence | done | [details](tasks/task-5/progress.md) |
-| Task 6: Repair Task 4 phase evidence | pending | [details](tasks/task-6/progress.md) |
+| Task 6: Repair Task 4 phase evidence | done | [details](tasks/task-6/progress.md) |
