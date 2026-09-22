@@ -113,9 +113,13 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
    Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
-   also navigate the selected unit's `backed_by` links — reading each linked
-   `tickets/NN-slug.md` to pull the full decision context — and feed it into this exploration.
-   If the unit has no `backed_by` entry, proceed with its route entry's goal paragraph alone.
+   read the route body as the primary current context: Point of departure, Destination,
+   Path chosen, Shipping rules, and Units. Enter the selected unit's destination contribution,
+   goal, observable completion outcome, and binding constraints into that context before any
+   optional ticket drill-down. Navigate the selected unit's `backed_by` links only when deeper
+   reasoning or rejected alternatives need their evidence; they are not a substitute for the
+   synthesized route body. If the selected unit has no `backed_by` entry, proceed from the
+   route body alone.
    If the request spans several independent subsystems, stop and help decompose it first —
    one change per spec.
 5. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
@@ -143,10 +147,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    let its requirement cover the aspects.
 
    | Over-split (bad) | Right-sized (good) |
-   |------------------|--------------------|
+   | ------------------ | -------------------- |
    | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
    | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
    | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
+
 7. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the

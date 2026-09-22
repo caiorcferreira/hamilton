@@ -97,7 +97,13 @@ const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   },
   route: {
     heading: "Route —",
-    sections: ["Shipping rules", "Units"],
+    sections: [
+      "Point of departure",
+      "Destination",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+    ],
     records: "unit",
   },
   ticket: {
@@ -143,7 +149,8 @@ const markdownHeadings = (source: string): readonly ParsedHeading[] => {
     return headings;
   }
   for (const token of tokens) {
-    const raw = "raw" in token && typeof token.raw === "string" ? token.raw : "";
+    const raw =
+      "raw" in token && typeof token.raw === "string" ? token.raw : "";
     const tokenOffset = raw === "" ? offset : source.indexOf(raw, offset);
     const resolvedOffset = tokenOffset < 0 ? offset : tokenOffset;
     if (token.type === "heading")
@@ -164,7 +171,10 @@ const readBodyHeadings = (
   return markdownHeadings(view.source).map((heading) => ({
     level: heading.level,
     text: heading.text,
-    line: artifact.locations.body.startLine + lineAtOffset(view.source, heading.offset) - 1,
+    line:
+      artifact.locations.body.startLine +
+      lineAtOffset(view.source, heading.offset) -
+      1,
   }));
 };
 
@@ -215,16 +225,12 @@ const recordHeading = (
   const label = recordLabel(kind);
   if (kind === "unit") {
     const unit = /^([1-9][0-9]*)\. (.+)$/.exec(text);
-    return unit
-      ? { number: Number(unit[1]), title: unit[2] ?? "" }
-      : null;
+    return unit ? { number: Number(unit[1]), title: unit[2] ?? "" } : null;
   }
   const match = new RegExp(
     "^" + label + " ([1-9][0-9]*) — ([0-9]{4}-[0-9]{2}-[0-9]{2})$",
   ).exec(text);
-  return match
-    ? { number: Number(match[1]), date: match[2] ?? "" }
-    : null;
+  return match ? { number: Number(match[1]), date: match[2] ?? "" } : null;
 };
 
 const commentedRecordHeadings = (
@@ -245,7 +251,10 @@ const commentedRecordHeadings = (
           text,
           line:
             artifact.locations.body.startLine +
-            lineAtOffset(artifact.body.slice(0, match.index) + inner, match.index + heading.offset) -
+            lineAtOffset(
+              artifact.body.slice(0, match.index) + inner,
+              match.index + heading.offset,
+            ) -
             1,
         });
     }
@@ -260,7 +269,9 @@ const recordFields = (
 ): Readonly<Record<string, string>> => {
   const fields: Record<string, string> = {};
   for (let index = start + 1; index < end; index += 1) {
-    const match = /^- ([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/.exec(lines[index] || "");
+    const match = /^- ([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/.exec(
+      lines[index] || "",
+    );
     if (match) fields[match[1]?.trim() ?? ""] = match[2]?.trim() ?? "";
   }
   return fields;
@@ -268,10 +279,7 @@ const recordFields = (
 
 const readWorkflow = (
   artifact: RecognizedArtifact,
-  kind:
-    | GenericWorkflowRecordKind
-    | readonly GenericWorkflowRecordKind[]
-    | null,
+  kind: GenericWorkflowRecordKind | readonly GenericWorkflowRecordKind[] | null,
   headings: readonly ArtifactHeading[],
 ): {
   readonly state: ArtifactWorkflowState;
@@ -284,20 +292,39 @@ const readWorkflow = (
     };
   const kinds = Array.isArray(kind) ? kind : [kind];
   const lines = bodyLines(artifact);
+  const unitsSection = headings.find(
+    (heading) => heading.level === 2 && heading.text === "Units",
+  );
+  const unitsSectionEnd =
+    unitsSection === undefined
+      ? Number.POSITIVE_INFINITY
+      : (headings.find(
+          (heading) => heading.level === 2 && heading.line > unitsSection.line,
+        )?.line ?? Number.POSITIVE_INFINITY);
+  const isUnitSectionHeading = (heading: ArtifactHeading): boolean =>
+    unitsSection !== undefined &&
+    heading.line > unitsSection.line &&
+    heading.line < unitsSectionEnd;
   const candidates = headings.filter(
     (heading) =>
-      heading.level === 2 || (kinds.includes("unit") && heading.level === 3),
+      heading.level === 2 ||
+      (kinds.includes("unit") &&
+        heading.level === 3 &&
+        isUnitSectionHeading(heading)),
   );
   const records: ArtifactWorkflowRecord[] = [];
   const diagnostics: ArtifactContractDiagnostic[] = [];
   let sawLegacy = false;
   for (const heading of headings.filter((candidate) => candidate.level > 1)) {
     const matchingKind =
-      kinds.find((candidate) => recordHeadingMatches(candidate, heading.text)) ??
-      null;
+      kinds.find(
+        (candidate) =>
+          recordHeadingMatches(candidate, heading.text) &&
+          (candidate !== "unit" || isUnitSectionHeading(heading)),
+      ) ?? null;
     if (matchingKind === null) {
       const legacy = /^(Pass|Attempt|Outcome|Task|Unit)\b/.exec(heading.text);
-      if (legacy) {
+      if (legacy && !(kinds.includes("unit") && heading.level === 3)) {
         sawLegacy = true;
         diagnostics.push(
           bodyDiagnostic(
@@ -342,10 +369,12 @@ const readWorkflow = (
       continue;
     }
     const start = heading.line - artifact.locations.body.startLine;
-    const next = candidates.find((candidate) => candidate.line > heading.line) ?? null;
-    const end = next === null
-      ? lines.length
-      : next.line - artifact.locations.body.startLine;
+    const next =
+      candidates.find((candidate) => candidate.line > heading.line) ?? null;
+    const end =
+      next === null
+        ? lines.length
+        : next.line - artifact.locations.body.startLine;
     records.push({
       kind: matchingKind,
       number: parsed.number,
@@ -357,8 +386,9 @@ const readWorkflow = (
   }
   for (const heading of commentedRecordHeadings(artifact, kinds)) {
     const matchingKind =
-      kinds.find((candidate) => recordHeadingMatches(candidate, heading.text)) ??
-      null;
+      kinds.find((candidate) =>
+        recordHeadingMatches(candidate, heading.text),
+      ) ?? null;
     if (matchingKind === null) continue;
     diagnostics.push(
       bodyDiagnostic(
@@ -683,7 +713,9 @@ export const validateArtifactBody = (
   for (const section of contract.sections) {
     if (
       !headings.some(
-        (heading) => heading.level >= 2 && heading.text === section,
+        (heading) =>
+          heading.text === section &&
+          (kind === "route" ? heading.level === 2 : heading.level >= 2),
       )
     ) {
       diagnostics.push(
