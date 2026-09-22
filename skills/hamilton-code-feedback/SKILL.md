@@ -19,9 +19,9 @@ or task status while performing code feedback.
 ## Refactor gate
 
 This refactor-phase review is the refactor gate. Judge the behavior-preserving refactor against the
-assigned task, project standards, and the code-quality rubric. A green test result does not approve
-the refactor by itself. When exception evidence replaces refactor evidence, exceptional verification requires genuine
-justification and sufficiency; it is not approved automatically.
+assigned task, project standards, and the code-quality rubric. A passing test does not, by itself,
+approve the refactor. When exception evidence replaces refactor evidence, judge the exceptional verification
+for genuine justification and sufficiency; it is not approved automatically.
 
 ## Inputs
 
@@ -56,10 +56,9 @@ directory with no `plan.md` is `pre-plan`, not legacy; stop because no planned t
 but do not classify or scaffold it as an unsupported generation.
 
 Once `plan.md` exists, require the exact split root task ledger and every required active-task
-scaffold artifact. Root `<change-dir>/progress.md` must be the exact task-only table, with one
-`Task | Status | Progress` column set, exactly one plan-ordered row per active task, a status from
-`pending`, `in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each
-linked
+scaffold artifact. Root `<change-dir>/progress.md` must contain only the task table, with exactly one
+`Task | Status | Progress` header, one plan-ordered row per active task, a status from `pending`,
+`in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each linked
 `<change-dir>/tasks/task-N/progress.md` must exist with matching numeric task identity. Reject a
 monolithic root progress file, missing scaffold, partially scaffolded or otherwise partially split
 layout, alternate task path, or mixed execution and verdict history as `legacy-unsupported`. Stop
@@ -111,7 +110,7 @@ search.
 6. Check every acceptance criterion and every latest implementation claim against located diff or
    permitted-risk evidence. Claims never substitute for the diff.
 7. Decide `approved` or `changes-requested` under the verdict rules.
-8. Inspect the index through the commit safety preflight before mutating the feedback artifact.
+8. Run the commit safety preflight and inspect the index before mutating the feedback artifact.
 9. Append one complete pass to the assigned task's feedback history.
 10. Make the path-limited artifact-only bookkeeping commit. Verify the committed path list and
     preservation of the pre-existing staged state before handoff.
@@ -184,9 +183,9 @@ When the file exists, validate it first, then use the cleaned record portion of 
 template to append the next-numbered pass at the physical end. Preserve the task identity heading
 and every prior pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,
 in that order before exactly its two child sections, `### Blocking` and `### Suggestions`. A
-retained leading template instruction block or inline hint is authoring markup rather than verdict
-history: remove that markup before appending, but do not change, delete, reorder, or insert within
-any prior pass. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
+retained leading template instruction block or inline hint is authoring markup, not verdict
+history: remove it before appending, but do not change, delete, reorder, or insert within any prior
+pass. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
 heading is allowed; Base and Head are the only per-pass range fields. Populate every
 template-defined value. An approval has no blocking findings and
 may briefly record useful verified coverage as a suggestion; both findings groups remain present.

@@ -5,9 +5,9 @@ description: "Execute a whole plan by composing task implementation, task-scoped
 
 # Orchestrating a plan
 
-Drive every active task in a `plan.md` through implementation and fresh task approval, then drive
-the complete branch through its whole-branch review gate. Resume from committed artifacts and git
-ancestry at every decision; conversation memory and an in-session todo list are never state.
+Run every active task in a `plan.md` through implementation and fresh approval, then run the
+complete branch through its whole-branch review gate. At every decision, resume from committed
+artifacts and Git ancestry; conversation memory and an in-session todo list never provide state.
 
 The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
 code-feedback → review → finish-work. This driver coordinates the per-task `hamilton-code` ↔
@@ -66,7 +66,7 @@ review have different evidence, inspection boundaries, artifact destinations, an
 - **Stage-owned evidence.** Code owns the root status and task progress, code feedback owns only
   task feedback, and whole-branch review owns only root review.
 - **Commit every gate.** A feedback or review verdict is not a completed checkpoint until its
-  owner has made and verified the required artifact-only commit.
+  owner makes and verifies the required artifact-only commit.
 - **Files carry detail.** Task progress is the only detailed implementer report. Dispatch output
   is concise status and commit information; diff packages and verdict artifacts carry review
   evidence.
@@ -108,7 +108,7 @@ exists, and never continue code with an unresolved checkpoint.
 
 ## Durable task approval
 
-An approval is consumable only when every part of this predicate succeeds for the exact
+The driver may consume an approval only when every part of this predicate succeeds for the exact
 `tasks/task-N/feedback.md` path:
 
 - the feedback path is tracked at current `HEAD`: `git ls-files --error-unmatch` succeeds for the
@@ -206,11 +206,11 @@ current tasks or review merely because conversation history was compacted or los
    `hamilton workbench context <change-dir>`, then read `plan.md` for active
    task identity and shared constraints and root `progress.md` for current status. Validate the
    split layout. Read detailed task evidence only for the task currently being diagnosed,
-   implemented, or reviewed. Determine verdicts from the physically last pass and validate their
-   Base and Head rather than trusting a summary. At load, evaluate **Durable task approval** for
-   every apparent approval before marking any task fully gated.
+   implemented, or reviewed. Determine verdicts from the physically last pass, and validate each
+   pass's Base and Head rather than trusting a summary. During this load, evaluate **Durable task
+   approval** for every apparent approval before marking any task fully gated.
 3. **Mirror the plan in the todo tool.** Create one visible entry per active task, in plan order,
-   plus one trailing whole-branch review entry. Reflect root status and fresh approval, but never
+   and one trailing whole-branch review entry. Reflect root status and fresh approval, but never
    use the todo tool as a resume source.
 4. **Run the pre-flight scan once.** Before the first task attempt, scan the plan for internal
    conflicts or a mandate that its own feedback gate would reject. Batch genuine conflicts for
@@ -227,14 +227,14 @@ current tasks or review merely because conversation history was compacted or los
    `<change-dir>/tasks/task-N/.base` or reconstruct the original commit unambiguously and validate
    it. Stop for intervention when recovery is ambiguous. Complete checkpoint validation before
    every code dispatch.
-7. **Dispatch `hamilton-code`.** Fill `references/implementer-prompt.md` with one exact Task N,
+7. **Dispatch `hamilton-code`.** Populate `references/implementer-prompt.md` with one exact Task N,
    its root row, task log, minimal prior interfaces, and either first-attempt context or its fresh
    `changes-requested` feedback path. Require the task-local report to carry the red/green/refactor
    evidence or a justified exception and repeatable alternative verification. Do not provide a
    second detailed reporting destination. When the subagent returns, read the root row and
    physical latest task attempt instead of trusting its concise response. A `blocked` or
    interrupted result returns to the task matrix.
-8. **Package the task diff after code reaches `done`.** Run
+8. **Package the task diff after code marks the task `done`.** Run
    `hamilton workbench diff --task N --change-dir <change-dir>`. Capture the
    printed full Base and Head and scratch package path. Require Base to equal the unchanged task
    checkpoint and Head to contain the latest task progress commit.

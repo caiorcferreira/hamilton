@@ -5,8 +5,8 @@ description: "Implement a single planned task by following its steps exactly, ve
 
 # Implementing one task
 
-Implement exactly one active plan task, carry out its steps as written, verify the result,
-self-review it, and commit the implementation with synchronized task-local evidence.
+Implement exactly one active plan task, follow its steps, verify the result, review the
+implementation for code quality, and commit it with synchronized task-local evidence.
 
 The **seven-stage core pipeline** is Hamilton's fixed spec-driven sequence: init → propose → plan → code →
 code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
@@ -35,7 +35,7 @@ Headings that use `(abandoned - reason)`, `(abandoned — )`, or
 task handling. Never resolve or execute an exactly abandoned task as active, and never reuse its
 numeric id.
 
-Plus:
+Each invocation also receives:
 
 - The change directory path (`.hamilton/changes/<change>/`), always present.
 - If the task cites `design.md` or `requirements/`, those cited sections supply its acceptance
@@ -63,11 +63,11 @@ Every ordinary implementation cycle follows Red, Green, and Refactor in that ord
 
 Write or update a behavioral check that expresses the intended behavior, then run it before any production edits. The check must fail for the intended reason, not because of a broken harness or unrelated failure. Record the exact Red command and its observed result in task-local evidence before proceeding.
 
-If a conventional failing behavioral check cannot be written, record the concrete technical reason before production edits and define a repeatable alternative verification that observes the behavior and can distinguish the pre-change and post-change states. A preference-based omission is not a valid reason. The alternative verification is the Red phase and must be run and recorded before the implementation.
+If a conventional failing behavioral check cannot be written, record the concrete technical reason before making production edits. Define a repeatable alternative verification that observes the behavior and distinguishes the pre-change and post-change states. A preference-based omission is not a valid reason. Run and record that alternative as the Red phase before implementation.
 
 ### Green
 
-Make the smallest passing implementation that addresses the failing behavior. Run the same behavioral check used in Red, or its documented alternative verification, and confirm that it now passes for the intended reason. Green is an intermediate milestone, not completion. Green-only implementation is prohibited: do not implement first and backfill a failing check, treat an already-passing check as Red, or omit Red because a test seems unnecessary.
+Make the smallest passing implementation that fixes the failing behavior. Run the same behavioral check used in Red, or its documented alternative verification, and confirm that it now passes for the intended reason. Green is an intermediate milestone, not completion. Green-only implementation is prohibited: do not implement first and backfill a failing check, treat an already-passing check as Red, or omit Red because a test seems unnecessary.
 
 Record the exact Green command and its observed result in task-local evidence. Do not refactor or broaden the implementation before this passing result is recorded.
 
@@ -143,9 +143,9 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
    each behavior change, including its Red, Green, and Refactor evidence. Run any additional tests
    or commands required by individual steps and keep actual results for the attempt evidence.
 7. **Verify.** Run the task's Verify command after the final Refactor, then the full test suite and
-   build or typecheck from `AGENTS.md`. All must pass for a done attempt. A project standard may
-   explicitly scope the per-task suite in a large repository; otherwise the full suite remains
-   required. If verification or self-review finds a correction, repeat the complete correction
+   build or typecheck from `AGENTS.md`. Every command must pass before the attempt is marked
+   done. A project standard may explicitly scope the per-task suite in a large repository;
+   otherwise the full suite remains required. If verification or self-review finds a correction, repeat the complete correction
    cycle before declaring the attempt done.
 8. **Check acceptance and self-review.** Confirm every acceptance criterion, including the recorded
    Red, Green, and Refactor phases or a justified exceptional Red alternative, then inspect the diff
@@ -153,7 +153,7 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
    its TDD cycle, or finish as blocked when a specified step or criterion cannot be completed.
 9. **Finalize synchronized evidence.** Append exactly one next-numbered dated attempt at the
    physical end of `<change-dir>/tasks/task-N/progress.md`, preserving every prior attempt. Populate
-   the installed-template lifecycle record completely with the final done or blocked outcome,
+   the installed-template lifecycle record with the final outcome (`done` or `blocked`),
    created, modified, and deleted paths, every verification command and observed result, the
    Red/Green/Refactor commands and observed results (or the exceptional Red reason and repeatable
    alternative verification), and notes for deviations, decisions, corrections, or concerns. Then
@@ -202,8 +202,8 @@ continuing or resolving it.
 
 - Always: run required tests before a done commit; preserve the stable task checkpoint; commit
   the root-row final transition and task-local evidence with the outcome.
-- Ask first: any decision the task did not specify, including a public interface change or new
-  dependency. When unattended, record a genuine blocker instead of improvising a large decision.
+- Ask first about any decision the task did not specify, including a public interface change or new
+  dependency. If unattended, record a genuine blocker instead of improvising a large decision.
 - Never: commit secrets; delete or weaken a test to make the suite pass; touch another task;
   accept planned legacy; write task feedback, review, or finish history into progress; commit
   partial production work for a blocked attempt.
