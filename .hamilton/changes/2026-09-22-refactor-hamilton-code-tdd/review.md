@@ -51,3 +51,19 @@ Verdict: approved
 
 - Focused verification: `hamilton workbench diff --whole-change` — passed (33 files; Base `2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa`, Head `c9a3598a92c735718348cf81f42a9b3881992255`); `hamilton workbench context .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd` — passed: Tasks 1–6 are done with durable fresh approved feedback and the whole-change review is stale only because of the two plan amendments.
 - `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md` — passed: valid progress artifact; the active root ledger contains exactly Tasks 1–6, while Task 7 remains only as an abandoned plan/task-history entry.
+
+## Pass 4 — 2026-09-22
+
+Base: 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa
+Head: 3a9f2b7a827cef477e81972f3e4a1aa0f518a538
+Verdict: changes-requested
+
+### Blocking
+
+- [.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md:34,47] The Task 8 frontmatter entry remains `pending` while its root task row is `done`, so the progress metadata and task ledgers disagree and the precondition cannot accept the change. Synchronize the Task 8 metadata and table under the normal task lifecycle before acceptance. Changed cause: `0895e05bbd21319484bb00825834bc48906a9ee9` updated the row and task evidence but left the frontmatter status stale. (violates: `src/workbench/precondition-artifacts.ts:174-195`, split progress-ledger contract)
+- [.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-8/progress.md:12-20] The latest Task 8 attempt compresses the Red timeout, Green pass, and Refactor/Verify results into one `Verification` line and does not record distinct ordered Red, Green, and Refactor commands with observed results. Append a correction attempt with the required phase evidence, then obtain fresh feedback before advancement. Changed cause: `0895e05bbd21319484bb00825834bc48906a9ee9` completed the timeout change without preserving the required phase-shaped evidence. (violates: `plan.md:173-177`, `requirements/execution.md:21-41`, `skills/hamilton-code/SKILL.md:58-90`)
+- [.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md:47] The active root ledger jumps from Task 6 to Task 8 after abandoned Task 7 was removed, and `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md` reports `non-monotonic-record: Task numbering must be append-only and contiguous`. Reconcile the abandoned-task numbering with the supported plan/ledger contract before acceptance. Changed cause: `c9a3598a92c735718348cf81f42a9b3881992255` removed Task 7's row and `8057e8756445f08862c8bfd6667561e5efc36566` appended active Task 8 without a supported gap. (violates: `src/workbench/artifact-body.ts:641-652`, Hamilton artifact contract, and plan.md's task-ledger preservation constraint)
+
+### Suggestions
+
+- Focused verification: `hamilton workbench diff --whole-change` — passed (36 files; Base `2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa`, Head `3a9f2b7a827cef477e81972f3e4a1aa0f518a538`); `bun --bun vitest run tests/cli/workbench.test.ts -t "rejects invalid lint scopes before inspecting files"` — passed (1 test); the Task 8 phase-shape check — failed as expected (exit 1); `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md` — reported the non-contiguous Task 8 row; `hamilton workbench context .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd` — reported invalid format.
