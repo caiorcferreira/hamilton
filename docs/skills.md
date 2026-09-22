@@ -205,6 +205,13 @@ commits.
   only its assigned row and appends to that task-local history among execution artifacts. It never
   edits `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
   fixed across corrections so code feedback always receives the complete task diff.
+
+For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,
+make it pass in green, then refactor while keeping the test green. The refactor phase uses
+`hamilton-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result
+returns the same task to a fresh correction cycle, with verification before advancement. When a task has
+no conventional failing test, it must record the justification and use repeatable alternative verification.
+
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*

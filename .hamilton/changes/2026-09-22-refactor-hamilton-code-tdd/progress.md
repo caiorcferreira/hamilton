@@ -19,7 +19,7 @@ tasks:
     progress: tasks/task-3/progress.md
   - id: 4
     title: Document the TDD task loop
-    status: pending
+    status: done
     progress: tasks/task-4/progress.md
 ---
 # Progress: Refactor hamilton-code Around a TDD Cycle
@@ -29,4 +29,4 @@ tasks:
 | Task 1: Define the implementation TDD cycle | done | [details](tasks/task-1/progress.md) |
 | Task 2: Make feedback the refactor gate | done | [details](tasks/task-2/progress.md) |
 | Task 3: Route TDD evidence through orchestration | done | [details](tasks/task-3/progress.md) |
-| Task 4: Document the TDD task loop | pending | [details](tasks/task-4/progress.md) |
+| Task 4: Document the TDD task loop | done | [details](tasks/task-4/progress.md) |
