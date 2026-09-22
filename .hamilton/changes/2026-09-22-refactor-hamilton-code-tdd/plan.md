@@ -20,6 +20,7 @@ route_unit: null
 - Quality notes: Tasks follow the design boundaries: implementation discipline, tactical review, orchestration routing, and public documentation are separate units with focused contract tests. No structural smell is intentionally accepted.
 - Re-plan amendment (2026-09-22): Whole-branch Review Pass 1 found blocking evidence gaps in completed Tasks 2 and 4: each latest task log collapses Green and behavior-preserving Refactor into a combined verification entry. Tasks 1–4 and all existing task, feedback, and review history remain frozen. Append Tasks 5 and 6 to repair only the affected task-progress evidence, preserve prior feedback and review history, and require fresh Task 2 and Task 4 feedback passes from their unchanged checkpoints before advancement.
 - Re-plan amendment (2026-09-22): The finish precondition exposed a root-ledger inconsistency after the approved whole-branch review: Task 6 is `pending` in progress frontmatter but `done` in the Markdown task table. Tasks 1–6, their task-local histories and feedback, and the approved review remain frozen. Append Task 7 as an evidence-only root-ledger reconciliation through the normal code↔feedback gate; its implementation changes only the root progress ledger and does not reopen or rewrite prior artifacts.
+- Re-plan amendment (2026-09-22): Commit `5e6d703` already reconciled Task 6 as `done` in both root progress representations before Task 7 implementation began. Task 7's planned Red mismatch therefore cannot truthfully occur and must not be manufactured; abandon Task 7, remove only its active root progress row, and retain its task directory and history. Tasks 1–6, their metadata, and all prior task, feedback, and review bytes remain frozen.
 
 ## Tasks
 
@@ -137,7 +138,7 @@ route_unit: null
 - Verify: `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-4/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);' && bun --bun vitest run tests/docs && bun run build && git diff --check` → the latest Task 4 attempt contains exactly the distinct ordered phase evidence, the documentation suite and build pass, and the append is whitespace-clean; the separate fresh Task 4 approval is committed before whole-branch review.
 - Commit: `chore(change): repair Task 4 phase evidence`
 
-### Task 7: Reconcile the root Task 6 ledger state
+### Task 7: Reconcile the root Task 6 ledger state (abandoned — the re-plan commit already reconciled Task 6 metadata before implementation)
 
 - Depends on: Task 6
 - Files:
