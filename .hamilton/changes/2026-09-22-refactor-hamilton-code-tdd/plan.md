@@ -21,6 +21,7 @@ route_unit: null
 - Re-plan amendment (2026-09-22): Whole-branch Review Pass 1 found blocking evidence gaps in completed Tasks 2 and 4: each latest task log collapses Green and behavior-preserving Refactor into a combined verification entry. Tasks 1–4 and all existing task, feedback, and review history remain frozen. Append Tasks 5 and 6 to repair only the affected task-progress evidence, preserve prior feedback and review history, and require fresh Task 2 and Task 4 feedback passes from their unchanged checkpoints before advancement.
 - Re-plan amendment (2026-09-22): The finish precondition exposed a root-ledger inconsistency after the approved whole-branch review: Task 6 is `pending` in progress frontmatter but `done` in the Markdown task table. Tasks 1–6, their task-local histories and feedback, and the approved review remain frozen. Append Task 7 as an evidence-only root-ledger reconciliation through the normal code↔feedback gate; its implementation changes only the root progress ledger and does not reopen or rewrite prior artifacts.
 - Re-plan amendment (2026-09-22): Commit `5e6d703` already reconciled Task 6 as `done` in both root progress representations before Task 7 implementation began. Task 7's planned Red mismatch therefore cannot truthfully occur and must not be manufactured; abandon Task 7, remove only its active root progress row, and retain its task directory and history. Tasks 1–6, their metadata, and all prior task, feedback, and review bytes remain frozen.
+- Re-plan amendment (2026-09-22): The approved finish-gate run exposed that `tests/cli/workbench.test.ts` test `rejects invalid lint scopes before inspecting files` consistently exceeds Vitest's default 5-second per-test timeout because it launches three CLI subprocesses. Append Task 8 to raise only that test's timeout to 15 seconds; make no production behavior changes. Tasks 1–6, the canonical abandoned Task 7 heading and history, all task feedback, and the approved review history remain frozen.
 
 ## Tasks
 
@@ -157,6 +158,25 @@ route_unit: null
   4. Verify — complete the normal hamilton-code lifecycle by setting Task 7's frontmatter entry and Markdown row to `done`, then run `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md`, the precondition with an assertion that `progress metadata ledger does not match` is absent, `bun --bun vitest run`, `bun run build`, and `git diff --check`. Record lint, tests, build, and whitespace as passing; the precondition may remain non-zero only for the expected fresh-feedback boundary before hamilton-code-feedback runs.
 - Verify: `hamilton workbench lint --file .hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/progress.md && bun --bun vitest run && bun run build && git diff --check` → the root ledger is structurally valid, the full test suite and TypeScript build pass, and the implementation diff is whitespace-clean; the precondition output contains no progress metadata mismatch before the fresh Task 7 feedback gate.
 - Commit: `chore(change): reconcile Task 6 ledger state`
+
+### Task 8: Set the invalid lint-scope test timeout
+
+- Depends on: Task 6
+- Files:
+  - Created: none
+  - Modified: `tests/cli/workbench.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The existing `rejects invalid lint scopes before inspecting files` test explicitly uses a 15-second Vitest per-test timeout so its three CLI subprocess launches complete without changing the assertions or the `runCli` subprocess timeout.
+  - The focused workbench test passes with the explicit timeout, and the full Vitest suite and TypeScript build pass afterward.
+  - The change is limited to the test harness in `tests/cli/workbench.test.ts`; no production source or CLI behavior changes.
+- Steps:
+  1. Red — run `bun --bun vitest run tests/cli/workbench.test.ts -t "rejects invalid lint scopes before inspecting files"` against the current test and record the expected non-zero result: Vitest times out the test at its default 5-second per-test limit while the three CLI subprocesses are launched.
+  2. Green — change only the target `it` declaration in `tests/cli/workbench.test.ts` to pass a 15-second per-test timeout (`15_000`), preserving its body, assertions, and the existing 5-second `runCli` subprocess timeout; rerun the focused command and record its passing result.
+  3. Refactor — inspect `git diff -- tests/cli/workbench.test.ts` and run `bun --bun vitest run tests/cli/workbench.test.ts && git diff --check`; confirm the timeout is the only test-harness change, all workbench tests pass, whitespace is clean, and no production file is modified.
+  4. Verify — run the focused workbench suite, the full Vitest suite, the TypeScript build, and whitespace validation with `bun --bun vitest run tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check`; record each passing result and confirm the final diff remains limited to the target test timeout.
+- Verify: `bun --bun vitest run tests/cli/workbench.test.ts && bun --bun vitest run && bun run build && git diff --check` → the focused and full test suites pass, the TypeScript build is clean, whitespace validation passes, and only the target test harness timeout changes.
+- Commit: `test(cli): extend invalid lint scope timeout`
 
 ## Done when
 
