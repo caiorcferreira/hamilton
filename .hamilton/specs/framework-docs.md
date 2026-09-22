@@ -19,7 +19,7 @@ Every skill entry in `docs/skills.md` follows one shape: a `### \`hamilton-...\`
 
 ### Pipeline identity
 
-The pipeline is phrased as seven core skills in fixed sequence, plus optional stages outside the core count. The seven core skills are `init`, `propose`, `plan`, `code`, `code-feedback`, `review`, and `finish-work`. The per-task loop is `code` ↔ `code-feedback`; whole-branch `review` follows only after active tasks have fresh approved feedback, and `finish-work` follows the final branch gate. Wayfinder remains the optional stage upstream of per-change work, and `hamilton-critique` remains an optional proposal gate.
+The pipeline is phrased as seven core skills in fixed sequence, plus optional stages outside the core count. The seven core skills are `init`, `propose`, `plan`, `code`, `code-feedback`, `review`, and `finish-work`. The per-task loop is `code` ↔ `code-feedback`; within `code`, an ordinary implementation follows red, green, and behavior-preserving refactor phases, while `code-feedback` is the refactor-phase gate. Whole-branch `review` follows only after active tasks have fresh approved feedback, and `finish-work` follows the final branch gate. Wayfinder remains the optional stage upstream of per-change work, and `hamilton-critique` remains an optional proposal gate.
 
 ### Artifact ownership
 
@@ -33,12 +33,14 @@ A reader who opens `docs/skills.md` finds the seven-stage pipeline diagram (`ini
 
 A contributor changing a code area consults the **Mapping Code to Docs** table in `CONTRIBUTING.md` to find which doc to update. Wayfinder-related surfaces occupy two distinct rows: artifact *templates* shipped in `bundle/templates/wayfinder/` map to `docs/skills.md`, and *map artifacts* authored under `.hamilton/maps/` also map to `docs/skills.md`. The two are separate because they are different change areas — one ships with the repo, the other is authored per-project — and conflating them would misdirect a contributor.
 
-The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-framework.md`, and `docs/modes.md` agree on the seven-stage identity, the per-task code-feedback loop, and the whole-branch review gate. Wayfinder and critique remain outside that count. Migration guidance tells users to update the CLI and agent-loaded skills together between changes, rerun setup, and use `hamilton workbench`; existing helper files are left in place but are no longer used. Old mixed review and root-progress layouts are finished with their existing version rather than converted or resumed under the split contract.
+The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-framework.md`, and `docs/modes.md` agree on the seven-stage identity, the per-task code-feedback loop, and the whole-branch review gate. The public task-loop description identifies red as a failing behavioral check, green as the smallest passing implementation, and refactor as behavior-preserving cleanup; green alone does not complete a task. It also directs requested feedback back to the same task for a fresh correction cycle with verification, and requires a concrete justification plus repeatable alternative verification when a conventional failing test is unavailable. Wayfinder and critique remain outside that count. Migration guidance tells users to update the CLI and agent-loaded skills together between changes, rerun setup, and use `hamilton workbench`; existing helper files are left in place but are no longer used. Old mixed review and root-progress layouts are finished with their existing version rather than converted or resumed under the split contract.
 
 **Examples**
 
 - open `docs/skills.md` for a skill -> an entry in the fixed shape: heading + role/step tag, intro, When/Inputs/Produces/Notes, Source link to the skill's `SKILL.md`
 - read the pipeline paragraph -> seven core skills in fixed sequence with `code` ↔ `code-feedback` followed by whole-branch `review`; Wayfinder and critique are not counted among the seven
+- read the task-loop guidance -> red failing check, green smallest passing implementation, behavior-preserving refactor, refactor-phase feedback, and correction verification are explicit; green alone is not completion
+- encounter a task without a conventional failing test -> the documentation requires a concrete reason and repeatable alternative verification
 - look up `hamilton-wayfinder` -> entry immediately before `hamilton-propose`, carrying the one-sentence rule and the fork provenance with a `NOTICE` link; no licence text reproduced inline
 - change a map artifact under `.hamilton/maps/` -> the mapping table sends the contributor to `docs/skills.md`, on a row distinct from the `bundle/templates/wayfinder/` templates row
 - inspect a new change artifact tree -> root `progress.md` is the current task ledger, task history and feedback sit under `tasks/task-N/`, and root `review.md` and `finish.md` own change-level history
@@ -50,12 +52,15 @@ The core diagrams and narrative in `README.md`, `docs/skills.md`, `docs/sdd-fram
 - A forked skill's provenance in `docs/skills.md` is prose naming the upstream and its licence with a link to `NOTICE`. The licence text is NEVER reproduced inline in the skills reference — legal credit stays in `NOTICE`.
 - `hamilton-wayfinder`'s entry MUST sit immediately before `hamilton-propose`, naming it as the optional pre-change planning stage.
 - The documented pipeline MUST show code feedback before whole-branch review and finish-work, and the artifact tree MUST distinguish task-local history from root review and finish history.
+- Public workflow documentation MUST describe the ordered red, green, and behavior-preserving refactor cycle, MUST state that green alone is insufficient, and MUST direct requested feedback through a verified correction cycle.
+- Public workflow documentation MUST require a concrete justification and repeatable alternative verification when a conventional failing test is unavailable.
 
 ## Decisions
 
 - **Entry order groups by lifecycle, not conceptual flow.** The pipeline diagram shows conceptual flow (wayfinder before `init`); the entry order groups by lifecycle — the once-per-project `init` first, then the per-change stages starting with the optional planner. The two orderings are different concerns and need not match.
 - **Provenance lives in the Notes bullet, not a subsection.** The established entry shape has no subsections; ancillary facts live in Notes. A dedicated provenance subsection would over-structure a single sentence.
 - **The public pipeline names the tactical gate.** Code feedback is a first-class step because its task-scoped approval and the whole-branch review are different contracts; the diagrams make the loop visible instead of hiding it inside orchestration.
+- **Public documentation mirrors the executable task contract.** The reader-facing workflow preserves the red/green/refactor order, the green-only prohibition, the feedback correction loop, and the justified alternative-verification path.
 - **Related mapping rows stay adjacent but distinct.** Map artifacts (`.hamilton/maps/`) and artifact templates (`bundle/templates/wayfinder/`) are different change areas that point at the same doc; they sit together for scanning but are never merged into one row.
 - **Optional planning remains outside the core count.** Wayfinder and critique add useful gates without changing the seven-stage implementation and shipping identity.
 - **Migration is atomic between changes.** A clean break avoids compatibility rules in every parser and keeps one artifact contract authoritative; users update the CLI and agent-loaded skills together, rerun setup, and use the workbench while context inventory can identify unsupported historical layouts without interpreting them.

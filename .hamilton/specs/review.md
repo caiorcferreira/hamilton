@@ -8,7 +8,7 @@ Hamilton separates tactical feedback on one implemented task from the final revi
 
 ### Task feedback
 
-`hamilton-code-feedback` accepts exactly one plan task, its task-local implementation evidence, its stable diff range, binding constraints, and project standards. It writes one append-only history to `tasks/task-N/feedback.md`. Each fully evidenced pass identifies the task, records its own `Base:` and `Head:` revisions and `Verdict:` (`approved` or `changes-requested`), and separates located blocking findings from suggestions. A whole-branch request is outside this contract and directs the caller to `hamilton-review`.
+`hamilton-code-feedback` accepts exactly one plan task, its task-local implementation evidence including the latest red/green/refactor cycle or justified exceptional verification, its stable diff range, binding constraints, and project standards. It acts as the tactical refactor-phase gate: it judges whether the stable implementation preserves passing behavior and satisfies the task's quality expectations. It writes one append-only history to `tasks/task-N/feedback.md`. Each fully evidenced pass identifies the task, records its own `Base:` and `Head:` revisions and `Verdict:` (`approved` or `changes-requested`), and separates located blocking findings from suggestions. A whole-branch request is outside this contract and directs the caller to `hamilton-review`.
 
 `Base`, `Head`, and `Verdict` belong to each fully evidenced pass. Feedback remains in its one owning file; `feedback-k.md` files are not an alternate history.
 
@@ -34,7 +34,7 @@ The finish gate requires a structurally valid all-done task ledger, fresh approv
 
 ## Behavior
 
-Code feedback reviews one task against its acceptance criteria and changed lines, records a verdict in a task-owned artifact-only commit, and leaves implementation status and progress untouched. A requested change returns the same task to code; a fresh approval permits the next task. A malformed latest pass never falls back to an earlier approval.
+Code feedback reviews one task against its acceptance criteria, project standards, changed lines, and latest implementation evidence, including any exceptional-verification justification. It is the explicit review of the behavior-preserving refactor after green verification. It records a verdict in a task-owned artifact-only commit and leaves implementation status and progress untouched. An approved pass completes the refactor gate and permits advancement; a requested change returns the same task to a fresh code correction cycle, whose relevant verification must complete before fresh feedback. A malformed latest pass never falls back to an earlier approval.
 
 After all active tasks have fresh approved feedback, orchestration submits the complete branch to whole-branch review. The reviewer deliberately broadens inspection, records only the root review artifact in its bookkeeping commit, and leaves task state unchanged. A requested change that fits approved intent goes through re-planning as one or more numbered remediation tasks, each using the normal code and feedback loop. A finding that invalidates approved requirements or design returns upstream instead of being hidden in implementation work.
 
@@ -42,8 +42,11 @@ On resume, orchestration combines the root task status, latest task feedback, an
 
 **Examples**
 
-- submit Task 3's diff -> code feedback reads Task 3's evidence, inspects only the diff plus a named risk, and appends to `tasks/task-3/feedback.md`
+- submit Task 3's diff -> code feedback reads Task 3's acceptance, standards, stable diff, and latest TDD evidence, inspects only the diff plus a named risk, and appends to `tasks/task-3/feedback.md`
+- complete green and behavior-preserving refactor -> feedback judges the stable implementation as the refactor-phase gate before the task advances
 - a task diff cannot establish a named consumer impact -> feedback records `changes-requested` with a blocking `cannot verify from diff` item
+- a task uses exceptional verification -> feedback checks its concrete justification and repeatable alternative rather than approving the missing conventional red test automatically
+- feedback requests a refactor change -> the same task receives a new implementation attempt, relevant verification, and a fresh feedback pass before advancement
 - later code updates Task 3's progress -> its earlier feedback becomes stale and must be repeated even if it was approved
 - all task feedback is fresh and approved -> orchestration sends the complete branch to whole-branch review
 - an unchanged consumer still relies on an altered contract -> whole-branch review records a located blocking finding even though that consumer is outside the diff
@@ -56,6 +59,7 @@ On resume, orchestration combines the root task status, latest task feedback, an
 - Task feedback MUST review exactly one task, and whole-branch review MUST review the complete branch; neither scope may silently act as the other.
 - Verdicts MUST be `approved` or `changes-requested`, and a latest pass with blocking findings or malformed structure MUST NOT count as approved.
 - Every fully evidenced pass MUST record full commit identifiers in `Base:` and `Head:` and its allowed verdict value in `Verdict:`; legacy-global provenance MUST bind only to the physically last legacy pass and MUST NOT seed structural history.
+- A task feedback pass MUST judge the latest red/green/refactor evidence or justified exceptional verification, and only a fresh `approved` pass MUST permit task advancement.
 - Feedback and review passes MUST remain append-only in their single owning files, MUST be committed as artifact-only bookkeeping before handoff, and MUST NEVER mutate progress or sibling task artifacts.
 - Stale task feedback MUST NEVER be waived by the whole-branch freshness waiver.
 - A structural legacy pass MUST NOT be treated as a verdict record, and an explicit suffix MUST remain pass-local after the atomic transition.
@@ -65,6 +69,7 @@ On resume, orchestration combines the root task status, latest task feedback, an
 ## Decisions
 
 - **Scope is a named contract.** Separate skills and artifacts make it impossible to confuse fast task feedback with the final merge gate without receiving an explicit boundary failure.
+- **Feedback is the refactor gate.** The tactical reviewer judges the stable behavior-preserving refactor using the task's acceptance, standards, and implementation evidence; approval, not green alone, controls advancement.
 - **The physically last valid pass governs.** Append-only history preserves the path to approval, while fail-closed parsing prevents an older approval from hiding a malformed or contradictory latest record.
 - **Freshness is commit-bound.** A verdict is meaningful only for the code and branch range it actually inspected, so task and whole-branch passes record full revisions and are checked against current ancestry.
 - **Re-plan owns final remediation.** Whole-branch findings become numbered plan tasks only when they fit approved intent; architectural or requirement defects return to proposal instead of creating ownerless fixes.
