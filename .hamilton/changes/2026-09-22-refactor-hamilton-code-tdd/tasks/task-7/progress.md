@@ -7,4 +7,4 @@ updated: 2026-09-22
 decision: accepted
 ---
 
-# Task Progress: Task 7 — Reconcile the root Task 6 ledger state
+# Task Progress: Task 7 — Reconcile active ledger metadata
