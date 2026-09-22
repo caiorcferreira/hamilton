@@ -44,4 +44,4 @@ tasks:
 | Task 4: Document the TDD task loop | done | [details](tasks/task-4/progress.md) |
 | Task 5: Repair Task 2 phase evidence | done | [details](tasks/task-5/progress.md) |
 | Task 6: Repair Task 4 phase evidence | done | [details](tasks/task-6/progress.md) |
-| Task 8: Set the invalid lint-scope test timeout | pending | [details](tasks/task-8/progress.md) |
+| Task 8: Set the invalid lint-scope test timeout | done | [details](tasks/task-8/progress.md) |
