@@ -18,6 +18,7 @@ route_unit: null
 - Build / typecheck: `bun run build`
 - Context notes: Follow `AGENTS.md`, the accepted proposal, design, and requirement deltas. This is a skill, orchestration-prompt, contract-test, and documentation change; do not alter the CLI, artifact formats, task ledger, or runtime implementation. Preserve ESM `.js` imports where code is touched, pinned dependencies, no comments in code, and the existing artifact ownership and commit conventions.
 - Quality notes: Tasks follow the design boundaries: implementation discipline, tactical review, orchestration routing, and public documentation are separate units with focused contract tests. No structural smell is intentionally accepted.
+- Re-plan amendment (2026-09-22): Whole-branch Review Pass 1 found blocking evidence gaps in completed Tasks 2 and 4: each latest task log collapses Green and behavior-preserving Refactor into a combined verification entry. Tasks 1–4 and all existing task, feedback, and review history remain frozen. Append Tasks 5 and 6 to repair only the affected task-progress evidence, preserve prior feedback and review history, and require fresh Task 2 and Task 4 feedback passes from their unchanged checkpoints before advancement.
 
 ## Tasks
 
@@ -96,6 +97,44 @@ route_unit: null
   3. Run the documentation suite, full test suite, build, and `git diff --check`, then inspect the rendered Markdown sections for consistent terminology and no stale workflow description.
 - Verify: `bun --bun vitest run tests/docs/tdd-workflow.test.ts && bun run build && git diff --check` → documentation assertions pass, TypeScript builds cleanly, and whitespace is valid.
 - Commit: `docs: explain TDD task workflow`
+
+### Task 5: Repair Task 2 phase evidence
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified: `.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-2/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Every existing Task 2 attempt and feedback pass remains byte-for-byte unchanged, and exactly one next-numbered attempt is appended at the physical end of `tasks/task-2/progress.md` with separate `Red`, `Green`, and `Refactor` entries in that order; each entry includes the exact command and observed result.
+  - The Red entry records the failing evidence-shape check before the correction append, the Green entry records the same shape check passing plus `bun --bun vitest run tests/skills/code-feedback-contract.test.ts` passing, and the Refactor entry records behavior-preserving `bun --bun vitest run tests/skills/code-feedback-contract.test.ts && bun run build && git diff --check` passing without changing production files. The evidence-only nature of this remediation is the concrete reason the structural check, rather than a new production behavior test, supplies Red.
+  - The implementation does not edit `tasks/task-2/feedback.md` or any review artifact. Immediately after this correction commit, the driver obtains and commits a fresh `hamilton-code-feedback` pass for Task 2 from its unchanged `tasks/task-2/.base` through the correction head, preserving the prior pass; Task 2's fresh approved pass must precede Task 5 feedback and any advancement to Task 6.
+- Steps:
+  1. Red — run `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-2/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);'` against the physical latest Task 2 attempt and record its expected non-zero result because the reviewed attempt combines Green and Refactor evidence.
+  2. Green — append the next-numbered Task 2 attempt at the physical end, preserving all prior bytes; record the Red command and failure, rerun the same evidence-shape check to a zero result, and run `bun --bun vitest run tests/skills/code-feedback-contract.test.ts` to capture its passing result.
+  3. Refactor — without changing a production file, run `bun --bun vitest run tests/skills/code-feedback-contract.test.ts && bun run build && git diff --check`, record the passing result as behavior-preserving verification, and inspect the diff to confirm that only the new Task 2 attempt was appended.
+  4. Freshness handoff — after committing the progress-only correction, leave `tasks/task-2/feedback.md` untouched, obtain and commit its fresh approved feedback pass from the unchanged checkpoint, then obtain Task 5's own fresh feedback before starting Task 6.
+- Verify: `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-2/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);' && bun --bun vitest run tests/skills/code-feedback-contract.test.ts && bun run build && git diff --check` → the latest Task 2 attempt contains exactly the distinct ordered phase evidence, the focused feedback contract suite and build pass, and the append is whitespace-clean; the separate fresh Task 2 approval is committed before advancement.
+- Commit: `chore(change): repair Task 2 phase evidence`
+
+### Task 6: Repair Task 4 phase evidence
+
+- Depends on: Task 5
+- Files:
+  - Created: none
+  - Modified: `.hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-4/progress.md`
+  - Deleted: none
+- Acceptance:
+  - Every existing Task 4 attempt and feedback pass remains byte-for-byte unchanged, and exactly one next-numbered attempt is appended at the physical end of `tasks/task-4/progress.md` with separate `Red`, `Green`, and `Refactor` entries in that order; each entry includes the exact command and observed result.
+  - The Red entry records the failing evidence-shape check before the correction append, the Green entry records the same shape check passing plus `bun --bun vitest run tests/docs/tdd-workflow.test.ts` passing, and the Refactor entry records behavior-preserving `bun --bun vitest run tests/docs && bun run build && git diff --check` passing without changing production files. The evidence-only nature of this remediation is the concrete reason the structural check, rather than a new production behavior test, supplies Red.
+  - The implementation does not edit `tasks/task-4/feedback.md` or `review.md`. Immediately after this correction commit, the driver obtains and commits a fresh `hamilton-code-feedback` pass for Task 4 from its unchanged `tasks/task-4/.base` through the correction head, preserving the prior pass; Task 4's fresh approved pass must precede whole-branch review and any advancement to finish-work.
+- Steps:
+  1. Red — run `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-4/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);'` against the physical latest Task 4 attempt and record its expected non-zero result because the reviewed attempt lacks distinct Green and Refactor evidence.
+  2. Green — append the next-numbered Task 4 attempt at the physical end, preserving all prior bytes including the existing user-owned progress change; record the Red command and failure, rerun the same evidence-shape check to a zero result, and run `bun --bun vitest run tests/docs/tdd-workflow.test.ts` to capture its passing result.
+  3. Refactor — without changing a production file, run `bun --bun vitest run tests/docs && bun run build && git diff --check`, record the passing result as behavior-preserving verification, and inspect the diff to confirm that only the new Task 4 attempt was appended.
+  4. Freshness handoff — after committing the progress-only correction, leave `tasks/task-4/feedback.md` and `review.md` untouched, obtain and commit its fresh approved feedback pass from the unchanged checkpoint, then run whole-branch review only after both remediation task gates are current.
+- Verify: `bun -e 'const fs = require("node:fs"); const latest = fs.readFileSync(".hamilton/changes/2026-09-22-refactor-hamilton-code-tdd/tasks/task-4/progress.md", "utf8").split(/^## Attempt [^\n]*$/m).at(-1) ?? ""; const phases = [...latest.matchAll(/^### (Red|Green|Refactor)$/gm)].map((match) => match[1]); if (phases.join(",") !== "Red,Green,Refactor") process.exit(1);' && bun --bun vitest run tests/docs && bun run build && git diff --check` → the latest Task 4 attempt contains exactly the distinct ordered phase evidence, the documentation suite and build pass, and the append is whitespace-clean; the separate fresh Task 4 approval is committed before whole-branch review.
+- Commit: `chore(change): repair Task 4 phase evidence`
 
 ## Done when
 
