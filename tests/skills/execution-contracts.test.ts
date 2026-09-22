@@ -100,6 +100,38 @@ describe("hamilton-code execution contract", () => {
     expect(blocking).toContain("assigned task log")
   })
 
+  it("requires the ordinary red-green-refactor cycle", () => {
+    const tdd = section(skill, "## TDD implementation cycle")
+    const phases = ["### Red", "### Green", "### Refactor"].map((heading) => tdd.indexOf(heading))
+
+    expect(phases.every((index) => index >= 0)).toBe(true)
+    expect(phases[0]).toBeLessThan(phases[1])
+    expect(phases[1]).toBeLessThan(phases[2])
+    expect(tdd).toMatch(/failing behavioral check.*before.*production edits/is)
+    expect(tdd).toMatch(/smallest.*passing implementation/is)
+    expect(tdd).toMatch(/behavior-preserving refactor/is)
+    expect(tdd).toMatch(/green.*intermediate milestone/is)
+    expect(tdd).toMatch(/green-only.*(?:prohibited|not allowed)|do not.*green-only/is)
+  })
+
+  it("requires task-local phase evidence and correction-cycle verification", () => {
+    const tdd = section(skill, "## TDD implementation cycle")
+
+    expect(tdd).toMatch(/task-local evidence/is)
+    expect(tdd).toMatch(/red.*green.*refactor.*commands.*observed results/is)
+    expect(tdd).toMatch(/correction cycle/is)
+    expect(tdd).toMatch(/correction.*(?:repeat|rerun).*red.*green.*refactor/is)
+  })
+
+  it("requires justified alternative verification when red cannot be conventional", () => {
+    const tdd = section(skill, "## TDD implementation cycle")
+
+    expect(tdd).toMatch(/conventional failing behavioral check cannot be written/is)
+    expect(tdd).toMatch(/reason/is)
+    expect(tdd).toMatch(/repeatable alternative verification/is)
+    expect(tdd).toMatch(/preference-based.*(?:omission|reason).*not|not.*preference-based/is)
+  })
+
   it("rejects unsupported planned legacy layouts before implementation", () => {
     expect(skill).toContain("legacy-unsupported")
     expect(skill).toMatch(/before implementation/)

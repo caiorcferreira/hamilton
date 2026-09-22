@@ -55,6 +55,40 @@ Plus:
 - **Separate evidence by stage.** Implementation attempts belong in task progress. Task feedback,
   whole-branch review, and finish evidence never go in root or task progress.
 
+## TDD implementation cycle
+
+Every ordinary implementation cycle follows Red, Green, and Refactor in that order. Run the cycle after the assigned row enters `in-progress` and before the final task verification. A plan step that changes behavior may require more than one cycle; each cycle remains in the same task-local attempt.
+
+### Red
+
+Write or update a behavioral check that expresses the intended behavior, then run it before any production edits. The check must fail for the intended reason, not because of a broken harness or unrelated failure. Record the exact Red command and its observed result in task-local evidence before proceeding.
+
+If a conventional failing behavioral check cannot be written, record the concrete technical reason before production edits and define a repeatable alternative verification that observes the behavior and can distinguish the pre-change and post-change states. A preference-based omission is not a valid reason. The alternative verification is the Red phase and must be run and recorded before the implementation.
+
+### Green
+
+Make the smallest passing implementation that addresses the failing behavior. Run the same behavioral check used in Red, or its documented alternative verification, and confirm that it now passes for the intended reason. Green is an intermediate milestone, not completion. Green-only implementation is prohibited: do not implement first and backfill a failing check, treat an already-passing check as Red, or omit Red because a test seems unnecessary.
+
+Record the exact Green command and its observed result in task-local evidence. Do not refactor or broaden the implementation before this passing result is recorded.
+
+### Refactor
+
+Refactor only after Green, preserving the behavior demonstrated by the check. Keep the change within the task's listed files and existing ownership boundaries. Run the relevant behavioral and regression tests after the behavior-preserving refactor, and record every command and observed result in task-local evidence. If Refactor changes behavior, return to Red.
+
+### Correction cycle
+
+When a phase fails for the wrong reason, a verification fails, or a correction is required, record the correction and repeat Red, Green, and Refactor in that order. A correction is not complete until the corrected behavior has a new or repaired failing check, the smallest passing implementation, and a behavior-preserving refactor with relevant tests passing. Never replace correction-cycle verification with a prose claim.
+
+### Example
+
+```text
+Red      — bun --bun vitest run tests/example.test.ts → failed: expected behavior is not implemented
+Green    — bun --bun vitest run tests/example.test.ts → passed: smallest implementation satisfies the check
+Refactor — bun --bun vitest run tests/example.test.ts → passed: behavior is unchanged after cleanup
+```
+
+For every cycle, task-local evidence must record the Red, Green, and Refactor commands and their observed results. An exceptional Red phase must record its reason, repeatable alternative verification, and observed result instead of inventing a failing test. These records belong in the task attempt, not the root ledger, feedback, review, or finish artifacts.
+
 ## Process
 
 1. **Confirm the workspace.** Run
@@ -104,21 +138,27 @@ Plus:
    `in-progress`; `done` means only that the latest implementation attempt completed. Preserve
    every sibling row and file unchanged. Do not append an attempt yet: if the process terminates
    unexpectedly, `in-progress` remains the interruption signal.
-6. **Execute the task Steps in order.** Touch only the task's listed files. Run any tests or
-   commands required by individual steps and keep actual results for the attempt evidence.
-7. **Verify.** Run the task's Verify command, then the full test suite and build or typecheck from
-   `AGENTS.md`. All must pass for a done attempt. A project standard may explicitly scope the
-   per-task suite in a large repository; otherwise the full suite remains required.
-8. **Check acceptance and self-review.** Confirm every acceptance criterion, then inspect the
-   diff against the code-quality checklist. Resolve issues by repeating the relevant specified
-   step, or finish as blocked when a specified step or criterion cannot be completed.
+6. **Execute the task Steps in order.** Touch only the task's listed files. For ordinary
+   implementation work, execute the [TDD implementation cycle](#tdd-implementation-cycle) for
+   each behavior change, including its Red, Green, and Refactor evidence. Run any additional tests
+   or commands required by individual steps and keep actual results for the attempt evidence.
+7. **Verify.** Run the task's Verify command after the final Refactor, then the full test suite and
+   build or typecheck from `AGENTS.md`. All must pass for a done attempt. A project standard may
+   explicitly scope the per-task suite in a large repository; otherwise the full suite remains
+   required. If verification or self-review finds a correction, repeat the complete correction
+   cycle before declaring the attempt done.
+8. **Check acceptance and self-review.** Confirm every acceptance criterion, including the recorded
+   Red, Green, and Refactor phases or a justified exceptional Red alternative, then inspect the diff
+   against the code-quality checklist. Resolve issues by repeating the relevant specified step and
+   its TDD cycle, or finish as blocked when a specified step or criterion cannot be completed.
 9. **Finalize synchronized evidence.** Append exactly one next-numbered dated attempt at the
    physical end of `<change-dir>/tasks/task-N/progress.md`, preserving every prior attempt. Populate
    the installed-template lifecycle record completely with the final done or blocked outcome,
-   created, modified, and deleted paths, every verification command and observed result, and notes
-   for deviations, decisions, or concerns. Then update the same root row from `in-progress` to
-   the matching `done` or `blocked` status. Do not change another row or append review, feedback,
-   or finish summaries anywhere in progress.
+   created, modified, and deleted paths, every verification command and observed result, the
+   Red/Green/Refactor commands and observed results (or the exceptional Red reason and repeatable
+   alternative verification), and notes for deviations, decisions, corrections, or concerns. Then
+   update the same root row from `in-progress` to the matching `done` or `blocked` status. Do not
+   change another row or append review, feedback, or finish summaries anywhere in progress.
 10. **Commit according to the outcome.** For `done`, commit the assigned task's implementation,
     tests, its task-progress attempt, and its root-row final transition together using the task's
     Commit message. Do not commit the ignored `.base`. For a gracefully reported `blocked`
@@ -202,7 +242,11 @@ digraph hamilton_code {
     "Require split ledger + task log" [shape=box];
     "Record or reuse tasks/task-N/.base" [shape=box];
     "Set only Task N in-progress" [shape=box];
-    "Execute steps + verify + self-review" [shape=box];
+    "Red: failing behavioral check or justified alternative" [shape=box];
+    "Green: smallest passing implementation" [shape=box];
+    "Refactor: preserve behavior + relevant tests" [shape=box];
+    "Correction needed?" [shape=diamond];
+    "Verify + self-review" [shape=box];
     "Outcome?" [shape=diamond];
     "Append done attempt + set row done" [shape=box];
     "Append blocked attempt + set row blocked" [shape=box];
@@ -212,8 +256,13 @@ digraph hamilton_code {
     "Confirm workspace + exact active Task N" -> "Require split ledger + task log";
     "Require split ledger + task log" -> "Record or reuse tasks/task-N/.base";
     "Record or reuse tasks/task-N/.base" -> "Set only Task N in-progress";
-    "Set only Task N in-progress" -> "Execute steps + verify + self-review";
-    "Execute steps + verify + self-review" -> "Outcome?";
+    "Set only Task N in-progress" -> "Red: failing behavioral check or justified alternative";
+    "Red: failing behavioral check or justified alternative" -> "Green: smallest passing implementation";
+    "Green: smallest passing implementation" -> "Refactor: preserve behavior + relevant tests";
+    "Refactor: preserve behavior + relevant tests" -> "Correction needed?";
+    "Correction needed?" -> "Red: failing behavioral check or justified alternative" [label="yes; record correction"];
+    "Correction needed?" -> "Verify + self-review" [label="no"];
+    "Verify + self-review" -> "Outcome?";
     "Outcome?" -> "Append done attempt + set row done" [label="done"];
     "Outcome?" -> "Append blocked attempt + set row blocked" [label="blocked"];
     "Append done attempt + set row done" -> "Task commit";

@@ -7,7 +7,7 @@ decision: accepted
 tasks:
   - id: 1
     title: Define the implementation TDD cycle
-    status: pending
+    status: done
     progress: tasks/task-1/progress.md
   - id: 2
     title: Make feedback the refactor gate
@@ -26,7 +26,7 @@ tasks:
 
 | Task | Status | Progress |
 | --- | --- | --- |
-| Task 1: Define the implementation TDD cycle | pending | [details](tasks/task-1/progress.md) |
+| Task 1: Define the implementation TDD cycle | done | [details](tasks/task-1/progress.md) |
 | Task 2: Make feedback the refactor gate | pending | [details](tasks/task-2/progress.md) |
 | Task 3: Route TDD evidence through orchestration | pending | [details](tasks/task-3/progress.md) |
 | Task 4: Document the TDD task loop | pending | [details](tasks/task-4/progress.md) |
