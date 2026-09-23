@@ -75,9 +75,13 @@ Plus:
    require `plan.md`, the root
    `<change-dir>/progress.md` frontmatter `tasks` entry and Markdown table, exactly one active
    metadata entry and row for the assigned task, and the linked `<change-dir>/tasks/task-N/progress.md`.
-   The frontmatter entry and table row must match on numeric id, exact title, status, and link. The linked file's creation portion must match
-   that cleaned instantiation before any appended attempts; no template instruction or hint may
-   survive in the live artifact. The row link must be the exact relative path
+   The frontmatter entry and table row must match on numeric id, exact title, status, and link. When the linked file has no appended attempts, its creation portion must match
+   that cleaned instantiation, including `status: pending`; after attempts exist, preserve the
+   same identity fields and require local `status: done` or `blocked` that matches the latest
+   attempt outcome. The installed template's initial `status: pending` is not immutable after a canonical
+   attempt. A previously finalized task log may be accepted for a correction without changing
+   its local status to `in-progress`; no template instruction or hint may survive in the live
+   artifact. The row link must be the exact relative path
    `tasks/task-N/progress.md`, and the row status must be one of `pending`, `in-progress`,
    `blocked`, or `done`. If a planned change lacks this layout, stores attempt history in root
    progress, or otherwise exposes `legacy-unsupported`, stop at the between-changes migration

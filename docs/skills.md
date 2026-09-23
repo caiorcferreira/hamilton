@@ -213,10 +213,11 @@ commits.
   production edits remain uncommitted.
 - **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
   only its assigned row and appends to that task-local history among execution artifacts. The empty
-  task log stays `pending` until an attempt exists; finalization sets its local status to `done` or
-  `blocked` before synchronizing the root row. It never edits `plan.md`, sibling task state, feedback,
-  root review, or finish history. The checkpoint stays fixed across corrections so code feedback always
-  receives the complete task diff.
+  task log stays `pending` until an attempt exists; a previously finalized log retains its latest
+  `done` or `blocked` local status during a correction and is never made locally `in-progress` before
+  an attempt exists. Finalization sets its local status to `done` or `blocked` before synchronizing
+  the root row. It never edits `plan.md`, sibling task state, feedback, root review, or finish history.
+  The checkpoint stays fixed across corrections so code feedback always receives the complete task diff.
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*

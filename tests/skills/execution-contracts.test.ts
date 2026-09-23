@@ -116,6 +116,9 @@ describe("hamilton-code execution contract", () => {
     expect(process).toMatch(/append.*attempt.*set.*local.*status.*`done` or `blocked`.*before.*lint.*commit/is)
     expect(process).toMatch(/done.*local.*`done`.*blocked.*local.*`blocked`/is)
     expect(process).toMatch(/preserv(?:e|es).*prior attempts.*sibling files/is)
+    expect(process).toMatch(/linked file has no appended attempts.*creation portion.*match/is)
+    expect(process).toMatch(/after attempts exist.*local `status: done` or `blocked`.*latest.*outcome/is)
+    expect(process).toMatch(/previously finalized.*without.*local.*`in-progress`/is)
   })
 
   it("creates checkpoints only before evidence-free first attempts and stops for historical recovery", () => {
