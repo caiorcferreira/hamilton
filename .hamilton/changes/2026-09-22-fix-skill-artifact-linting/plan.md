@@ -18,10 +18,11 @@ route_unit: null
 - Test: `bun run test`
 - Build / typecheck: `bun run build`
 - Context notes: `src/workbench/artifact-body.ts` owns structural body validation; focused coverage lives in `tests/workbench/` and skill contracts in `tests/skills/`. Hamilton skills are standalone instructions, so each artifact writer needs its own scoped lint boundary. Preserve the approved design and existing artifact ownership in `design.md`.
-- Quality notes: none; the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The first review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance. The second review remediations keep ledger synchronization, remaining template guidance, and mapped framework documentation in separate independently testable tasks.
+- Quality notes: the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The first review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance. The second review remediations keep ledger synchronization, remaining template guidance, and mapped framework documentation in separate independently testable tasks. Task 13 isolates progress-ledger ordering from contiguous plan-ledger validation and covers the abandoned-middle case through focused artifact-contract and scoped-lint tests without introducing a structural exception.
 - First review-driven amendment: the committed whole-branch review at `a399fee` requested changes because lint rejects a first pending finish intent and `hamilton-propose` does not bind requirements and design authors to configured Git identity. Tasks 6 and 7 were appended without revising the approved requirements/design or frozen Tasks 1–5.
 - Second review-driven amendment: the committed whole-branch Review Pass 2 at `38128d5` requests three implementation/documentation repairs: synchronize task metadata with root rows so finish can open, remove agent-author guidance from the remaining templates, and update the mapped framework documentation. Append Tasks 8–10 without revising approved requirements/design or frozen Tasks 1–7. During this re-plan, repair only the seven stale root frontmatter statuses to match their existing `done` rows; initialize Tasks 8–10 as pending in both representations without touching task histories.
 - Third review-driven amendment: the fresh whole-branch Review Pass 3 committed at `9d93d49ba6ecccc371c3995721f6144c95f7049e` requests two independent implementation/documentation repairs: code must finalize the assigned task-local frontmatter status with its done or blocked attempt, and re-plan must synchronize a renamed non-done title across the plan heading, root metadata, escaped table row, and task-local heading. Append Tasks 11 and 12; the approved requirements and design remain valid, and frozen Tasks 1–10, their ledger entries, feedback, and histories remain unchanged. The two tasks share a skill-contract test file and mapped skills reference, but own different skill sections and test assertions; serial execution avoids overlapping edits.
+- Fourth review-driven amendment: the fresh committed whole-branch Review Pass 4 at `87a4ca990d816aabb0805c9c47be8b1218ede485` requests one validator/test repair because full change-directory lint rejects a compliant re-plan whose active progress rows skip an abandoned middle task id. Append Task 13 without revising approved requirements/design or frozen Tasks 1–12, preserving contiguous plan-heading records and strict progress-row ordering while allowing abandoned-id gaps.
 
 ## Tasks
 
@@ -294,6 +295,27 @@ route_unit: null
   3. Update the re-plan entry in `docs/skills.md`, run the focused tests and full change lint, and inspect the diff to confirm no execution history, workbench consumer, or approved design/requirements were changed.
 - Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/workbench/precondition.test.ts && bun dist/cli/main.js workbench lint --change-dir .hamilton/changes/2026-09-22-fix-skill-artifact-linting` → rename contract and both precondition outcomes pass and the complete change lints cleanly.
 - Commit: `fix: synchronize re-planned task titles`
+
+### Task 13: Permit abandoned-task gaps in progress ledgers
+
+- Depends on: Tasks 1–12
+- Files:
+  - Created: none
+  - Modified:
+    - `src/workbench/artifact-body.ts`
+    - `tests/workbench/artifact-contracts.test.ts`
+    - `tests/workbench/lint.test.ts`
+  - Deleted: none
+- Acceptance:
+  - A progress ledger with active rows `Task 1` and `Task 3` passes body validation and scoped lint when the missing `Task 2` is an abandoned, removed row; progress ids remain positive, unique, strictly increasing, and retain their exact task identities, statuses, and `[details](tasks/task-N/progress.md)` links. The plan ledger continues to require contiguous task-heading records, so an abandoned plan heading preserves plan-order numbering while the active root table may have a gap. See `requirements/execution.md`, the re-plan abandonment/id-preservation contract in `skills/hamilton-plan/SKILL.md`, and `design.md`, “Instantiate every planning template as a live artifact.”
+  - Focused coverage proves the middle-gap case without weakening duplicate, descending, malformed, unescaped-title, path-mismatch, or metadata-ledger validation; matching root metadata/table records, task statuses, append-only histories, exact links, and all abandoned numeric ids remain governed by their existing checks.
+  - No plan headings, task identities, task logs, attempts, feedback, checkpoints, approved requirements/design, or review history are changed by this remediation; the validator change is limited to progress-ledger ordering.
+- Steps:
+  1. Add a failing artifact-contract test for a contiguous plan ledger containing an abandoned middle heading and a progress ledger containing active `Task 1` and `Task 3` rows, plus focused scoped-lint coverage that expects the middle-gap artifact to exit `0` while the existing malformed, duplicate, descending, and path-mismatch neighbors still exit nonzero.
+  2. Change only `readTaskLedger` in `src/workbench/artifact-body.ts` so `ledger: "plan"` retains one-based contiguous numbering, while `ledger: "progress"` requires each parsed active row id to be strictly greater than its predecessor and still parses every row with its original identity, status, title, and exact link contract.
+  3. Run the focused workbench tests, build the CLI, lint the complete change directory, and inspect the diff to confirm that no metadata, precondition, task-history, or approved-artifact behavior was loosened.
+- Verify: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts tests/workbench/lint.test.ts && bun run build && bun dist/cli/main.js workbench lint --change-dir .hamilton/changes/2026-09-22-fix-skill-artifact-linting` → focused tests, build, and complete change-directory lint all pass with exit `0`.
+- Commit: `fix: allow abandoned-task gaps in progress ledgers`
 
 ## Done when
 

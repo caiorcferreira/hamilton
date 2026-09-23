@@ -53,6 +53,10 @@ tasks:
     title: Synchronize renamed task titles across re-plan artifacts
     status: done
     progress: tasks/task-12/progress.md
+  - id: 13
+    title: Permit abandoned-task gaps in progress ledgers
+    status: pending
+    progress: tasks/task-13/progress.md
 ---
 
 # Progress: Make Hamilton Artifact Authoring Lint-Valid
@@ -71,3 +75,4 @@ tasks:
 | Task 10: Document artifact attribution and scoped lint in the SDD framework | done | [details](tasks/task-10/progress.md) |
 | Task 11: Finalize task-local progress status with the attempt | done | [details](tasks/task-11/progress.md) |
 | Task 12: Synchronize renamed task titles across re-plan artifacts | done | [details](tasks/task-12/progress.md) |
+| Task 13: Permit abandoned-task gaps in progress ledgers | pending | [details](tasks/task-13/progress.md) |
