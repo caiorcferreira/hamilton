@@ -2,37 +2,49 @@
 artifact: progress
 change: 2026-09-22-fix-skill-artifact-linting
 status: in-progress
-updated: 2026-09-22
+updated: 2026-09-23
 decision: accepted
 tasks:
   - id: 1
     title: Accept legitimate pending artifact states
-    status: pending
+    status: done
     progress: tasks/task-1/progress.md
   - id: 2
     title: Initialize lint-valid planning artifacts
-    status: pending
+    status: done
     progress: tasks/task-2/progress.md
   - id: 3
     title: Gate change-scoped artifact writers with lint
-    status: pending
+    status: done
     progress: tasks/task-3/progress.md
   - id: 4
     title: Gate canonical and Wayfinder artifact writers with lint
-    status: pending
+    status: done
     progress: tasks/task-4/progress.md
   - id: 5
     title: Synchronize the artifact and framework documentation
-    status: pending
+    status: done
     progress: tasks/task-5/progress.md
   - id: 6
     title: Accept the first pending finish intent
-    status: pending
+    status: done
     progress: tasks/task-6/progress.md
   - id: 7
     title: Attribute every proposed artifact to Git identity
-    status: pending
+    status: done
     progress: tasks/task-7/progress.md
+  - id: 8
+    title: Synchronize task ledger metadata through execution
+    status: pending
+    progress: tasks/task-8/progress.md
+  - id: 9
+    title: Correct remaining author-bearing template guidance
+    status: pending
+    progress: tasks/task-9/progress.md
+  - id: 10
+    title: Document artifact attribution and scoped lint in the SDD framework
+    status: pending
+    progress: tasks/task-10/progress.md
 ---
 
 # Progress: Make Hamilton Artifact Authoring Lint-Valid
@@ -46,3 +58,6 @@ tasks:
 | Task 5: Synchronize the artifact and framework documentation | done | [details](tasks/task-5/progress.md) |
 | Task 6: Accept the first pending finish intent | done | [details](tasks/task-6/progress.md) |
 | Task 7: Attribute every proposed artifact to Git identity | done | [details](tasks/task-7/progress.md) |
+| Task 8: Synchronize task ledger metadata through execution | pending | [details](tasks/task-8/progress.md) |
+| Task 9: Correct remaining author-bearing template guidance | pending | [details](tasks/task-9/progress.md) |
+| Task 10: Document artifact attribution and scoped lint in the SDD framework | pending | [details](tasks/task-10/progress.md) |

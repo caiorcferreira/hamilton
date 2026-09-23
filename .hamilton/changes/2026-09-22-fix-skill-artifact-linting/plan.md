@@ -18,8 +18,9 @@ route_unit: null
 - Test: `bun run test`
 - Build / typecheck: `bun run build`
 - Context notes: `src/workbench/artifact-body.ts` owns structural body validation; focused coverage lives in `tests/workbench/` and skill contracts in `tests/skills/`. Hamilton skills are standalone instructions, so each artifact writer needs its own scoped lint boundary. Preserve the approved design and existing artifact ownership in `design.md`.
-- Quality notes: none; the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance.
-- Review-driven amendment: the committed whole-branch review at `a399fee` requested changes because lint rejects a first pending finish intent and `hamilton-propose` does not bind requirements and design authors to configured Git identity. Append Tasks 6 and 7 without revising the approved requirements/design or frozen Tasks 1–5; the two repairs can be implemented independently.
+- Quality notes: none; the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The first review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance. The second review remediations keep ledger synchronization, remaining template guidance, and mapped framework documentation in separate independently testable tasks.
+- First review-driven amendment: the committed whole-branch review at `a399fee` requested changes because lint rejects a first pending finish intent and `hamilton-propose` does not bind requirements and design authors to configured Git identity. Tasks 6 and 7 were appended without revising the approved requirements/design or frozen Tasks 1–5.
+- Second review-driven amendment: the committed whole-branch Review Pass 2 at `38128d5` requests three implementation/documentation repairs: synchronize task metadata with root rows so finish can open, remove agent-author guidance from the remaining templates, and update the mapped framework documentation. Append Tasks 8–10 without revising approved requirements/design or frozen Tasks 1–7. During this re-plan, repair only the seven stale root frontmatter statuses to match their existing `done` rows; initialize Tasks 8–10 as pending in both representations without touching task histories.
 
 ## Tasks
 
@@ -183,6 +184,71 @@ route_unit: null
   3. Run the focused skill and template contract tests; fix wording or test failures without changing proposal, requirements, or design artifacts for this change.
 - Verify: `bun --bun vitest run tests/skills/change-artifact-lint-contract.test.ts tests/templates/artifact-contracts.test.ts` → all tests pass and each of the three output contracts is covered.
 - Commit: `docs: attribute proposal artifacts to Git identity`
+
+### Task 8: Synchronize task ledger metadata through execution
+
+- Depends on: Task 2
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-code/SKILL.md`
+    - `skills/hamilton-plan/SKILL.md`
+    - `.hamilton/specs/execution.md`
+    - `tests/skills/execution-contracts.test.ts`
+    - `tests/workbench/precondition.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The root `progress.md` frontmatter `tasks` entry and Markdown row for each active task agree on numeric id, exact title, status, and `tasks/task-N/progress.md` link. Starting an attempt changes only its assigned entry and row together to `in-progress`; finalizing a done or blocked attempt changes both together to the outcome, preserving siblings and history. Re-plan retains the matching metadata and row for frozen done tasks and existing non-done tasks, and adds new matching pending entries and rows. See `requirements/execution.md`, “Initialize task execution artifacts in a lint-valid state,” matching task status, and `design.md`, “Instantiate every planning template as a live artifact.”
+  - Retain the existing `src/workbench/precondition-artifacts.ts` gate unchanged: a committed all-done ledger with matching metadata, rows, task evidence, and reviews opens; a metadata status mismatch closes the gate even when scoped lint accepts the file. Cover both using the real precondition test fixture, with the mismatch committed so clean-tree failure cannot mask the ledger check. A pending/blocked task still prevents finish.
+  - Update `.hamilton/specs/execution.md` to describe the mirrored root metadata/table status and transition invariant without changing its existing `author`; skill-contract tests cover both code transitions and re-plan preservation. This change's repaired completed metadata remains in agreement with its frozen rows.
+- Steps:
+  1. Add failing assertions in `tests/skills/execution-contracts.test.ts` for paired frontmatter/table transitions at begin/finalize and re-plan retention of existing statuses; in `tests/workbench/precondition.test.ts`, use a committed mismatched metadata fixture and a committed synchronized all-done fixture to assert closed and open gates respectively, including the ledger diagnostic.
+  2. Update `hamilton-code` to change the assigned root metadata entry and row together at `in-progress` and final `done`/`blocked` transitions, leaving siblings and the finish precondition untouched. Update `hamilton-plan` so re-plan carries forward each surviving task's actual root-row status in both representations and initializes new entries and rows as pending; preserve frozen rows and attempts. State the matching metadata/table contract at capability altitude in `.hamilton/specs/execution.md`, retaining its author.
+  3. Run the focused skill and precondition tests, lint the changed canonical spec with the built workbench, and confirm the gate still rejects contradictory ledgers and accepts synchronized complete ones.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/workbench/precondition.test.ts && bun run build && bun dist/cli/main.js workbench lint --file .hamilton/specs/execution.md` → tests, build, and spec lint pass; the focused gate regressions exercise both outcomes.
+- Commit: `fix: synchronize task ledger metadata and rows`
+
+### Task 9: Correct remaining author-bearing template guidance
+
+- Depends on: Task 7
+- Files:
+  - Created: none
+  - Modified:
+    - `bundle/templates/plan.md`
+    - `bundle/templates/requirements-spec.md`
+    - `bundle/templates/proposal.md`
+    - `bundle/templates/requirements-change.md`
+    - `bundle/templates/design.md`
+    - `tests/templates/artifact-contracts.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Plan and canonical requirements-spec templates guide creators to read effective `git config user.name` and `git config user.email` and fill `author: Name <email>` using both values; if either is missing, ask or stop rather than infer an agent name or placeholder. All five author-bearing templates explicitly preserve recorded author metadata on edits and handle incomplete Git identity. Keep their disposable instruction blocks and existing template structures. See `requirements/artifact-templates.md`, “Populate artifact authors from configured Git identity,” all three scenarios, and `design.md`, “Populate author metadata from the repository Git identity.”
+  - Template-contract coverage checks all five author-bearing templates (`proposal.md`, `requirements-change.md`, `design.md`, `plan.md`, `requirements-spec.md`) for both Git values, angle-bracketed email, missing-identity handling, preservation on edits, and absence of agent-author hints. The existing `hamilton-plan` and `hamilton-compose-spec` Git-author instructions remain unchanged.
+- Steps:
+  1. Extend `tests/templates/artifact-contracts.test.ts` to fail for the two remaining templates and assert the common five-template author contract, including missing-identity and author-preservation guidance.
+  2. Replace the outdated author hints in `bundle/templates/plan.md` and `bundle/templates/requirements-spec.md`; add concise missing-identity and edit-preservation guidance inside the disposable instruction blocks of all five templates (the earlier three already cover configured Git creation). Do not modify skills or artifact schemas.
+  3. Run the focused template tests, inspect the five changed templates for stale agent hints, and verify that the guidance remains inside removable instruction blocks.
+- Verify: `bun --bun vitest run tests/templates/artifact-contracts.test.ts` → all author-template assertions pass, including the negative agent-guidance check.
+- Commit: `docs: correct plan and spec template authorship guidance`
+
+### Task 10: Document artifact attribution and scoped lint in the SDD framework
+
+- Depends on: Tasks 5 and 9
+- Files:
+  - Created: none
+  - Modified:
+    - `docs/sdd-framework.md`
+    - `tests/docs/workbench-docs.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The mapped `docs/sdd-framework.md` template/lifecycle sections explain `Name <email>` from effective Git `user.name` and `user.email` for newly created author-bearing artifacts, preservation of each existing artifact's recorded author on edits, and asking or stopping when either configured value is missing rather than substituting an agent. See `CONTRIBUTING.md`, “Mapping Code to Docs,” `requirements/artifact-templates.md`, “Populate artifact authors from configured Git identity,” and `requirements/framework-docs.md`, “Document artifact linting at authoring boundaries.”
+  - Framework guidance describes post-mutation `hamilton workbench lint --change-dir <change-dir>` for completed change trees and `--file <file>` for a single recognized artifact, with findings resolved before handoff or commit; unrelated files are outside scope, and a fresh pending task log needs no invented attempt. Tests assert these facts in `docs/sdd-framework.md` itself, not merely in combined documentation or `docs/skills.md`.
+- Steps:
+  1. Add failing document-specific assertions in `tests/docs/workbench-docs.test.ts` for Git author source/format, missing identity, revision preservation, both lint selectors, recognized-artifact scope, post-mutation ordering, and empty pending task-log guidance.
+  2. Update only the template and lifecycle guidance in `docs/sdd-framework.md` to match implemented skill/template behavior and `CONTRIBUTING.md`'s mapping; avoid presenting lint as a substitute for semantic gates.
+  3. Run the focused documentation tests, read back the edited framework sections, and inspect the scoped diff for consistency with `docs/skills.md` and the installed templates.
+- Verify: `bun --bun vitest run tests/docs/workbench-docs.test.ts && git diff --check` → documentation assertions pass and diff check is clean.
+- Commit: `docs: explain template attribution and artifact lint lifecycle`
 
 ## Done when
 
