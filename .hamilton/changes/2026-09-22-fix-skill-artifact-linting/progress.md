@@ -43,7 +43,7 @@ tasks:
     progress: tasks/task-9/progress.md
   - id: 10
     title: Document artifact attribution and scoped lint in the SDD framework
-    status: pending
+    status: done
     progress: tasks/task-10/progress.md
 ---
 
@@ -60,4 +60,4 @@ tasks:
 | Task 7: Attribute every proposed artifact to Git identity | done | [details](tasks/task-7/progress.md) |
 | Task 8: Synchronize task ledger metadata through execution | done | [details](tasks/task-8/progress.md) |
 | Task 9: Correct remaining author-bearing template guidance | done | [details](tasks/task-9/progress.md) |
-| Task 10: Document artifact attribution and scoped lint in the SDD framework | pending | [details](tasks/task-10/progress.md) |
+| Task 10: Document artifact attribution and scoped lint in the SDD framework | done | [details](tasks/task-10/progress.md) |
