@@ -126,8 +126,18 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    path, where the directory is new and empty, skip straight to the reading.
    Read upstream artifacts if present (proposal, design, requirements),
    the canonical specs (`.hamilton/specs/`) for the capabilities the change touches, and the
-   project standards (commands, structure, style, boundaries). If a `route_unit` field is
-   present in frontmatter, follow it to the unit's `backed_by` tickets and treat their Answers as committed decisions the plan must honor.
+   project standards (commands, structure, style, boundaries). In map-aware mode, read
+   the synthesized route body as the primary current context: Destination, Path chosen,
+   Shipping rules, and the selected unit's body, including its destination contribution,
+   goal, observable completion outcome, and binding constraints. Treat the destination and
+   those binding constraints as committed context while leaving implementation decomposition
+   to this planning step. Builder latitude may be resolved here only when the choice remains
+   local and cannot alter the destination; if the route cannot be satisfied, return to
+   Wayfinder rather than designing around the contradiction. If a `route_unit` field is
+   present in frontmatter, preserve it as the route path plus unit number and use it to
+   follow the selected unit's `backed_by` tickets for optional drill-down only. Ticket
+   Answers must not replace or require reconstruction of the destination from the
+   synthesized route.
    In map-aware mode, write the `route_unit` frontmatter field (route path + unit number) into
    the plan yourself — it is the provenance link finish-work uses to flip the unit's status. The route metadata is machine-readable frontmatter; the specs carry the conventions
    and decisions already committed for those capabilities — follow them so the plan stays

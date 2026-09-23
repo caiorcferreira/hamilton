@@ -79,7 +79,20 @@ const bodyFor = (artifact: string): string => {
       "Out of scope",
     ],
     ticket: ["Question", "Answer", "Outdated decisions"],
-    route: ["Shipping rules", "Units", "### 1. Research"],
+    route: [
+      "Point of departure",
+      "Destination",
+      "### 2. Destination checkpoint",
+      "### Concrete shape",
+      "### Guardrails and boundaries",
+      "### Builder latitude",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+      "### 1. Research",
+      "**Destination contribution:** Researches the route contract.",
+      "- **Status:** pending",
+    ],
   };
   const titles: Record<string, string> = {
     proposal: "Proposal: Demo",
@@ -334,6 +347,43 @@ describe("artifact metadata contracts", () => {
     }
   });
 
+  it.each([
+    "Point of departure",
+    "Destination",
+    "Path chosen",
+    "Shipping rules",
+    "Units",
+  ])("requires the route section %s at level 2", (section) => {
+    const body = bodyFor("route")
+      .split("\n")
+      .map((line) => (line === `## ${section}` ? `### ${section}` : line))
+      .join("\n");
+    const result = validateArtifact(
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1], body),
+    );
+    expectInvalid(result, "missing-section");
+    expect(
+      result.diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === "missing-section" &&
+          diagnostic.expected === section,
+      ),
+    ).toBeDefined();
+  });
+
+  it("keeps route subheadings and local labels out of unit records", () => {
+    const result = validateArtifact(
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1]),
+    );
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records).toMatchObject([
+        { kind: "unit", number: 1, title: "Research" },
+      ]);
+      expect(result.body.workflow.records).toHaveLength(1);
+    }
+  });
+
   it("requires every declared metadata field", () => {
     const metadata = { ...validArtifacts[0][1] };
     delete metadata.author;
@@ -472,10 +522,9 @@ Verdict: approved
 
     expect(result._tag).toBe("valid");
     if (result._tag === "valid") {
-      expect(result.body.workflow.records.map((record) => record.number)).toEqual([
-        1,
-        2,
-      ]);
+      expect(
+        result.body.workflow.records.map((record) => record.number),
+      ).toEqual([1, 2]);
     }
   });
 
@@ -1121,9 +1170,9 @@ Head: ${sha}
       ),
       "finish",
     );
-    expect(missingOutcome.workflow.records.map((record) => record.kind)).toEqual([
-      "attempt",
-    ]);
+    expect(
+      missingOutcome.workflow.records.map((record) => record.kind),
+    ).toEqual(["attempt"]);
     expect(missingOutcome.diagnostics).toContainEqual(
       expect.objectContaining({
         code: "missing-section",

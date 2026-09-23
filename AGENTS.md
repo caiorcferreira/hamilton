@@ -42,6 +42,7 @@ CLI commands use `@effect/cli` 0.75.2: `Command.make(name, { args, options }, ha
 - **`Data.TaggedError`** for all custom errors (not `class extends Error`).
 - **`bun.lock` is text** (not `bun.lockb` which is in `.gitignore`).
 - **All dependency versions pinned** — no `~` or `^` in package.json.
+- **Every PR must bump the project version** — keep `package.json`'s `version` and `src/index.ts`'s `VERSION` synchronized.
 - **Shebang**: `#!/usr/bin/env bun` in `src/cli/main.ts`.
 - **`@effect/platform-bun`** (not `platform-node`) since we run on bun.
 

@@ -13,7 +13,7 @@ Templates for the seven-stage spec-driven pipeline. Each maps to a well-known st
 taken in spirit (right-sized), not by conformance.
 
 | Template | Document | Owns | Instance path | Produced or updated by |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `proposal.md` | PRD | Why | `<change>/proposal.md` | hamilton-propose |
 | `requirements-change.md` | SRS (delta) | What | `<change>/requirements/<capability>.md` | hamilton-propose |
 | `requirements-spec.md` | SRS (canonical) | What | `.hamilton/specs/<capability>.md` | hamilton-finish-work |
@@ -43,15 +43,20 @@ These templates support wayfinding—the optional pre-change stage that clarifie
 shape before committing to the SDD loop. They are not SDD pipeline artifacts.
 
 | Template | Artifact | Produced by |
-|---|---|---|
+| --- | --- | --- |
 | `wayfinder/map.md` | Map | hamilton-wayfinder |
 | `wayfinder/ticket.md` | Decision ticket | hamilton-wayfinder |
 | `wayfinder/route.md` | Route | hamilton-wayfinder |
 
 The artifacts these templates produce live under `.hamilton/maps/<effort>/`: `map.md` and
-`route.md` at the root, and decision tickets at `tickets/NN-slug.md`. Unlike `specs/` and
-`changes/`, the `.hamilton/maps/` directory is not scaffolded by `hamilton-init`; the
-wayfinder skill creates it on first use.
+`route.md` at the root, and decision tickets at `tickets/NN-slug.md`. A route is Wayfinder's
+compiled destination-and-path handoff, not a static unit list. Its stable synthesized body has
+five sections — Point of departure, Destination, Path chosen, Shipping rules, and Units — while
+frontmatter owns route status and each unit's identity, lifecycle status, dependencies, and
+backing tickets. Downstream processes update that mutable metadata without rewriting the body;
+Wayfinder clears fog, propose and plan create implementation artifacts, and code and finish-work
+build and ship them. Unlike `specs/` and `changes/`, the `.hamilton/maps/` directory is not
+scaffolded by `hamilton-init`; the wayfinder skill creates it on first use.
 
 ## Where these templates live
 

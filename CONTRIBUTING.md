@@ -9,7 +9,7 @@ or CLI commands must include corresponding documentation updates.
 ### Mapping Code to Docs
 
 | Code change area | Doc to update |
-|------------------|---------------|
+| ------------------ | --------------- |
 | New/changed CLI command, flag, or argument | `docs/skills.md` (setup reference) |
 | New/changed artifact template in `bundle/templates/` | `docs/sdd-framework.md` |
 | New/changed Assisted-mode skill in `skills/hamilton-*/` | `docs/skills.md` |
@@ -72,7 +72,7 @@ Original work:
 This section is the file-native frontmatter contract for map artifacts under `.hamilton/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/hamilton-wayfinder/SKILL.md`, and no other content in this file needs to change.
 
 | Frontmatter field | Valid values |
-|-------------------|--------------|
+| ------------------- | -------------- |
 | `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
 | `status` (ticket) | `open` / `claimed` / `resolved` |
 | `status` (map) | `open` / `cleared` / `shipping` / `shipped` |
@@ -80,3 +80,5 @@ This section is the file-native frontmatter contract for map artifacts under `.h
 | `blocked_by` | YAML list of ticket numbers: `[]` for none, `[01]` for one, `[01, 04, 06, 09]` for several |
 
 Ticket frontmatter is `type`, `status`, `blocked_by`, in that order. `map.md` carries `status` then `branch`, in that order — no `type` — matching the map template. A map created before the `branch` field existed falls back to the repository's default branch as its merge-back target. The map lifecycle is `cleared` → `shipping` → `shipped` once the route is written (ticket 06's three-stage lifecycle, superseding ticket 04's `open`/`cleared` for maps).
+
+The route is Wayfinder's compiled destination-and-path handoff. Its stable synthesized body contains five sections — Point of departure, Destination, Path chosen, Shipping rules, and Units. Frontmatter owns mutable route status plus each unit's identity, lifecycle status, dependencies, and backing tickets; downstream processes update that metadata without rewriting the synthesized body. Wayfinder clears fog, propose and plan turn units into implementation artifacts, and code and finish-work build and ship them.

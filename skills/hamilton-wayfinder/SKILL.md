@@ -75,7 +75,19 @@ Working resolves only the tickets an explicit user request authorizes — invoki
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. This mutates the canonical spec: when creating it, read `git config user.name` and `git config user.email`, record `author: Name <email>` in its frontmatter, if either configured identity is missing, stop and report it; never invent attribution, and preserve an existing recorded author exactly. Immediately after the fold, run `hamilton workbench lint --file <spec-path>`; a nonzero result is a failed gate that must be resolved and rerun before writing the route or handing off. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`, filling its `## Shipping rules` section from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
+When the last ticket resolves, synthesize the current destination and the causal path that makes it necessary. State the point of departure from the goal and resolved ticket questions, not as a chronology of the map. Then synthesize a self-contained destination from the map's destination, current ticket answers, glossary terms, binding constraints, and out-of-scope boundaries. If that synthesis exposes a contradiction or essential ambiguity, keep the map open, resolve the gap through another ticket or user exchange, and do not write the route.
+
+The route is a static handoff written once as the map's closing act, from the installed template at `~/.hamilton/templates/wayfinder/route.md`. Preserve its five body sections:
+
+1. **Point of departure** states the current situation and causal path from the goal and resolved ticket questions.
+2. **Destination** states the outcome, concrete shape where it removes meaningful ambiguity, guardrails, and builder latitude. Builder latitude is limited to local choices that cannot change the destination; unresolved product or architectural decisions keep the map open.
+3. **Path chosen** states each choice, a concise rationale, its binding consequence, and a link to the ticket. Detailed evidence, rejected alternatives, and superseded reasoning stay in tickets; current rationale and consequences travel in the route.
+4. **Shipping rules** names the map's `branch:` as the merge-back target and carries any shipping-relevant Operation rules, so downstream processes that do not open the map can still ship the units correctly.
+5. **Units** lists coarse delivery boundaries in causal order, with each unit's destination contribution, observable completion outcome, unit-specific constraints, dependencies, and backing ticket links. Units do not prescribe implementation steps.
+
+Before closing the map, run the consistency gate against the synthesized route: verify decision coverage, destination coverage by units, causal dependency ordering, and scope boundaries. The gate has no score or report section. If it fails, keep the map open and resolve the gap; contradictions or essential ambiguity must not be carried into the route.
+
+After the consistency gate passes and before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Because this mutates a canonical spec, when creating it, read `git config user.name` and `git config user.email` and record `author: Name <email>` in its frontmatter. If either configured identity is missing, stop and report it; never invent attribution. When editing an existing spec, preserve its recorded author exactly. Immediately after the fold, run `hamilton workbench lint --file <spec-path>`. A nonzero result is a failed gate: resolve the findings and rerun before writing the route or handing off. Then write the route from the installed template; format mechanics remain in that template and in Map mechanics. After writing, run the route's file-scoped lint as specified in Artifact validation.
 
 The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units are executed, and shipped when the last unit lands. Each unit is executed by whatever downstream process the effort uses. The process that starts a unit flips it `pending → in-progress` on its own branch; the process that completes it flips it `in-progress → shipped`, so the flip ships with the work it marks. The process starting the first unit flips the map `cleared → shipping`; the process shipping the last unit flips the map `shipping → shipped`.
 
@@ -142,7 +154,7 @@ digraph hamilton_wayfinder {
     "Consistency pass\n(update superseded tickets + gists)" [shape=box];
     "Graduate fog / close out-of-scope" [shape=box];
     "Every ticket on the map resolved?" [shape=diamond];
-    "Fold glossary + write route\n+ Shipping rules (closing act)" [shape=doublecircle];
+    "Synthesize point of departure + destination\nwrite route after consistency gate\n+ Shipping rules (closing act)" [shape=doublecircle];
 
     "Name destination\n(grilling)" -> "Map frontier breadth-first";
     "Map frontier breadth-first" -> "Fog ahead?";
@@ -168,7 +180,7 @@ digraph hamilton_wayfinder {
     "Record answer in ## Answer\n+ gist in map Decisions so far" -> "Consistency pass\n(update superseded tickets + gists)";
     "Consistency pass\n(update superseded tickets + gists)" -> "Graduate fog / close out-of-scope";
     "Graduate fog / close out-of-scope" -> "Every ticket on the map resolved?";
-    "Every ticket on the map resolved?" -> "Fold glossary + write route\n+ Shipping rules (closing act)" [label="yes"];
+    "Every ticket on the map resolved?" -> "Synthesize point of departure + destination\nwrite route after consistency gate\n+ Shipping rules (closing act)" [label="yes — synthesis and gate pass"];
     "Every ticket on the map resolved?" -> "Authorized member remains?" [label="no"];
 }
 ```
