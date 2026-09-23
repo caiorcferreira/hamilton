@@ -801,6 +801,102 @@ Head: ${sha}
     expect(diagnostic?.location?.line).toBe(6);
   });
 
+  it("accepts an empty pending task-progress artifact only", () => {
+    const sourcePath = ".hamilton/changes/demo/tasks/task-2/progress.md";
+    const body = "# Task Progress: Task 2 — Validate";
+    const pending = {
+      ...validArtifacts[6][1],
+      status: "pending",
+    };
+
+    expect(
+      validateArtifact(recognized(sourcePath, pending, body))._tag,
+    ).toBe("valid");
+    for (const status of ["in-progress", "blocked", "done"] as const)
+      expectInvalid(
+        validateArtifact(
+          recognized(sourcePath, { ...pending, status }, body),
+        ),
+        "missing-section",
+      );
+  });
+
+  it("accepts a pending finish intent after paired history", () => {
+    const sourcePath = ".hamilton/changes/demo/finish.md";
+    const body = `# Finish History: Demo
+
+## Attempt 1 — 2026-09-12
+
+## Outcome 1 — 2026-09-12
+
+## Attempt 2 — 2026-09-13`;
+    const pending = {
+      ...validArtifacts[9][1],
+      status: "pending",
+      result: "pending",
+    };
+
+    expect(validateArtifact(recognized(sourcePath, pending, body))._tag).toBe(
+      "valid",
+    );
+    for (const [status, result] of [
+      ["completed", "completed"],
+      ["blocked", "blocked"],
+    ] as const)
+      expectInvalid(
+        validateArtifact(
+          recognized(sourcePath, { ...pending, status, result }, body),
+        ),
+        "invalid-record",
+      );
+  });
+
+  it.each([
+    [
+      "unmatched outcome",
+      `# Finish History: Demo
+
+## Attempt 1 — 2026-09-12
+
+## Outcome 1 — 2026-09-12
+
+## Outcome 2 — 2026-09-13`,
+    ],
+    [
+      "out-of-order history",
+      `# Finish History: Demo
+
+## Outcome 1 — 2026-09-12
+
+## Attempt 1 — 2026-09-12`,
+    ],
+    [
+      "stale attempt after later records",
+      `# Finish History: Demo
+
+## Attempt 1 — 2026-09-12
+
+## Outcome 1 — 2026-09-12
+
+## Attempt 2 — 2026-09-13
+
+## Outcome 2 — 2026-09-13
+
+## Attempt 1 — 2026-09-14`,
+    ],
+  ])("rejects %s finish history", (_name, body) => {
+    expectInvalid(
+      validateArtifact(
+        recognized(
+          ".hamilton/changes/demo/finish.md",
+          validArtifacts[9][1],
+          body,
+        ),
+      ),
+      "invalid-record",
+    );
+  });
+
   it("reports malformed and non-monotonic records", () => {
     const malformed = recognized(
       ".hamilton/changes/demo/feedback.md",

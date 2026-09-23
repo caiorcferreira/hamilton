@@ -826,6 +826,107 @@ describe("scoped artifact lint", () => {
     },
   );
 
+  it("accepts pending task logs and finish intents only in their pending states", async () => {
+    const directory = await temporaryDirectory();
+    const taskFile = Path.join(
+      directory,
+      ".hamilton",
+      "changes",
+      "demo",
+      "tasks",
+      "task-1",
+      "progress.md",
+    );
+    await Fs.mkdir(Path.dirname(taskFile), { recursive: true });
+    for (const status of ["pending", "in-progress", "blocked", "done"] as const) {
+      await Fs.writeFile(
+        taskFile,
+        `---
+artifact: task-progress
+change: demo
+task: 1
+status: ${status}
+updated: 2026-09-12
+decision: accepted
+---
+# Task Progress: Task 1 — Demo
+`,
+      );
+      const result = await lintScope({ file: taskFile });
+      expectExit(result, status === "pending" ? 0 : 1);
+    }
+
+    const finishFile = Path.join(
+      directory,
+      ".hamilton",
+      "changes",
+      "demo",
+      "finish.md",
+    );
+    const finishBody = `# Finish History: Demo
+
+## Attempt 1 — 2026-09-12
+
+## Outcome 1 — 2026-09-12
+
+## Attempt 2 — 2026-09-13
+`;
+    await Fs.writeFile(
+      finishFile,
+      `---
+artifact: finish
+change: demo
+status: pending
+created: 2026-09-12
+updated: 2026-09-13
+strategy: no-op
+result: pending
+decision: accepted
+---
+${finishBody}`,
+    );
+    expectExit(await lintScope({ file: finishFile }), 0);
+
+    await Fs.writeFile(
+      finishFile,
+      `---
+artifact: finish
+change: demo
+status: completed
+created: 2026-09-12
+updated: 2026-09-13
+strategy: no-op
+result: completed
+decision: accepted
+---
+${finishBody}`,
+    );
+    expectExit(await lintScope({ file: finishFile }), 1);
+
+    await Fs.writeFile(
+      finishFile,
+      `---
+artifact: finish
+change: demo
+status: pending
+created: 2026-09-12
+updated: 2026-09-13
+strategy: no-op
+result: pending
+decision: accepted
+---
+# Finish History: Demo
+
+## Attempt 1 — 2026-09-12
+
+## Outcome 1 — 2026-09-12
+
+## Outcome 2 — 2026-09-13
+`,
+    );
+    expectExit(await lintScope({ file: finishFile }), 1);
+  });
+
   it("accepts valid multi-pass feedback and review evidence", async () => {
     const body = [
       reviewPass({

@@ -179,6 +179,69 @@ describe("change context", () => {
     expect(renderContextResult(first)).toBe(first.stdout.trimEnd());
   });
 
+  it("classifies a current change with an empty pending task log as split", async () => {
+    const repository = makeRepo();
+    const directory = seed(repository, "pending-task", {
+      "proposal.md": "# Proposal: pending-task\n",
+      "plan.md": `---
+artifact: plan
+change: pending-task
+status: approved
+created: 2026-09-12
+author: caio
+decision: accepted
+route_unit: null
+---
+# Plan: pending-task
+
+## Overview
+## Tasks
+
+### Task 1: Build it
+
+## Done when
+`,
+      "progress.md": `---
+artifact: progress
+change: pending-task
+status: pending
+updated: 2026-09-12
+decision: accepted
+tasks:
+  - id: 1
+    title: Build it
+    status: pending
+    progress: tasks/task-1/progress.md
+---
+# Progress: pending-task
+
+| Task | Status | Progress |
+|---|---|---|
+| Task 1: Build it | pending | [details](tasks/task-1/progress.md) |
+`,
+      "tasks/task-1/progress.md": `---
+artifact: task-progress
+change: pending-task
+task: 1
+status: pending
+updated: 2026-09-12
+decision: accepted
+---
+# Task Progress: Task 1 — Build it
+`,
+      "requirements/auth.md": "# Auth\n",
+    });
+
+    const result = await context({ changeDir: directory });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.changes[0]?.format).toBe("split");
+    expect(result.stdout).toContain("Task 1: pending");
+    expect(result.lastLine).toBe(
+      "summary: pending-task — 0/1 tasks done, whole change: not reviewed",
+    );
+  });
+
   it("preserves pre-plan and legacy classifications", async () => {
     const repository = makeRepo();
     const prePlan = seed(repository, "pre-plan", { "proposal.md": proposal });
