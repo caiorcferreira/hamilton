@@ -39,7 +39,7 @@ tasks:
     progress: tasks/task-8/progress.md
   - id: 9
     title: Correct remaining author-bearing template guidance
-    status: pending
+    status: done
     progress: tasks/task-9/progress.md
   - id: 10
     title: Document artifact attribution and scoped lint in the SDD framework
@@ -59,5 +59,5 @@ tasks:
 | Task 6: Accept the first pending finish intent | done | [details](tasks/task-6/progress.md) |
 | Task 7: Attribute every proposed artifact to Git identity | done | [details](tasks/task-7/progress.md) |
 | Task 8: Synchronize task ledger metadata through execution | done | [details](tasks/task-8/progress.md) |
-| Task 9: Correct remaining author-bearing template guidance | pending | [details](tasks/task-9/progress.md) |
+| Task 9: Correct remaining author-bearing template guidance | done | [details](tasks/task-9/progress.md) |
 | Task 10: Document artifact attribution and scoped lint in the SDD framework | pending | [details](tasks/task-10/progress.md) |

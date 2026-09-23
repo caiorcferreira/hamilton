@@ -19,7 +19,10 @@ route_unit: null
   when nuanced. Delete a section that does not apply.
   Delete this comment block and inline hints before finalizing.
   Before creating this artifact, read the configured Git identity with `git config user.name` and
-  `git config user.email`, then write `author: Name <email>` using both configured values.
+  `git config user.email`, then write `author: Name <email>` using both configured values. If either
+  configured value is missing, ask the user or stop with a blocker rather than inventing an identity.
+  When revising an existing artifact, preserve its recorded author unless the user explicitly directs
+  an attribution change.
 -->
 
 # Design: <Change Title>

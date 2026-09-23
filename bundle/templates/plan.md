@@ -3,7 +3,7 @@ artifact: plan
 change: <YYYY-MM-DD-change-title>
 status: draft | approved | in-progress | complete | blocked
 created: <YYYY-MM-DD>
-author: <name or agent>
+author: <Name <email>>
 decision: accepted | rejected | skipped
 route_unit: null
 ---
@@ -37,6 +37,11 @@ route_unit: null
     - Task seams follow the design's structure: each task lands one cohesive unit that can be
       tested in isolation, and its acceptance covers the error/edge behavior, not just the
       happy path. A task you cannot state without "and" is usually two.
+  Before creating this artifact, read the configured Git identity with `git config user.name` and
+  `git config user.email`, then write `author: Name <email>` using both configured values. If either
+  configured value is missing, ask the user or stop with a blocker rather than inventing an identity.
+  When revising an existing artifact, preserve its recorded author unless the user explicitly directs
+  an attribution change.
   Delete this comment block and inline hints before finalizing.
 -->
 
