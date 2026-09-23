@@ -281,6 +281,8 @@ const readWorkflow = (
   artifact: RecognizedArtifact,
   kind: GenericWorkflowRecordKind | readonly GenericWorkflowRecordKind[] | null,
   headings: readonly ArtifactHeading[],
+  allowEmpty = false,
+  allowEmptyKinds: readonly GenericWorkflowRecordKind[] = [],
 ): {
   readonly state: ArtifactWorkflowState;
   readonly diagnostics: readonly ArtifactContractDiagnostic[];
@@ -402,7 +404,11 @@ const readWorkflow = (
     );
   }
   for (const recordKind of kinds) {
-    if (!records.some((record) => record.kind === recordKind)) {
+    if (
+      !records.some((record) => record.kind === recordKind) &&
+      !allowEmpty &&
+      !allowEmptyKinds.includes(recordKind)
+    ) {
       const label = recordLabel(recordKind);
       diagnostics.push(
         bodyDiagnostic(
@@ -439,6 +445,135 @@ const readWorkflow = (
     records,
   };
   return { state, diagnostics };
+};
+
+const pendingTaskProgress = (
+  artifact: RecognizedArtifact,
+  kind: SupportedArtifact,
+  title: ArtifactHeading | null,
+): boolean =>
+  kind === "task-progress" &&
+  artifact.metadata.artifact === kind &&
+  artifact.metadata.status === "pending" &&
+  typeof artifact.metadata.task === "number" &&
+  Number.isInteger(artifact.metadata.task) &&
+  artifact.metadata.task > 0 &&
+  title !== null &&
+  new RegExp(
+    `^Task Progress: Task ${artifact.metadata.task} — .+$`,
+  ).test(title.text);
+
+const pendingFinishIntent = (artifact: RecognizedArtifact): boolean =>
+  artifact.metadata.artifact === "finish" &&
+  artifact.metadata.status === "pending" &&
+  artifact.metadata.result === "pending";
+
+const finishIntentFields = [
+  "Passed preconditions",
+  "Specification synchronization",
+  "Strategy",
+  "Intended workspace result",
+  "Route intent",
+] as const;
+
+const finishAttemptDiagnostics = (
+  artifact: RecognizedArtifact,
+  record: ArtifactWorkflowRecord,
+): readonly ArtifactContractDiagnostic[] =>
+  finishIntentFields.flatMap((field) => {
+    const value = record.fields[field];
+    if (
+      value !== undefined &&
+      value.trim() !== "" &&
+      !/^<[^>]*>$/.test(value.trim())
+    )
+      return [];
+    return [
+      bodyDiagnostic(
+        artifact,
+        "missing-section",
+        `Attempt ${record.number ?? "N"} must declare a non-empty ${field} field`,
+        record.line,
+        `- ${field}: value`,
+        value,
+      ),
+    ];
+  });
+
+const finishWorkflowDiagnostics = (
+  artifact: RecognizedArtifact,
+  records: readonly ArtifactWorkflowRecord[],
+): readonly ArtifactContractDiagnostic[] => {
+  const diagnostics: ArtifactContractDiagnostic[] = [];
+  const pending = pendingFinishIntent(artifact);
+  let expected = 1;
+  let index = 0;
+  while (index < records.length) {
+    const record = records[index];
+    if (record === undefined) break;
+    if (record.kind !== "attempt") {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "invalid-record",
+          "Finish history must pair each Attempt with its matching Outcome",
+          record.line,
+          "Attempt N — YYYY-MM-DD",
+          `Outcome ${record.number ?? ""}`,
+        ),
+      );
+      index += 1;
+      continue;
+    }
+    diagnostics.push(...finishAttemptDiagnostics(artifact, record));
+    const next = records[index + 1];
+    if (next === undefined) {
+      const allowed =
+        pending &&
+        record.number === expected &&
+        index === records.length - 1;
+      if (!allowed)
+        diagnostics.push(
+          bodyDiagnostic(
+            artifact,
+            "invalid-record",
+            "Finish history cannot end with an unmatched Attempt",
+            record.line,
+            `Outcome ${record.number ?? "N"} — YYYY-MM-DD`,
+            `Attempt ${record.number ?? ""}`,
+          ),
+        );
+      break;
+    }
+    if (next.kind !== "outcome") {
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "invalid-record",
+          "Finish history must place each Outcome immediately after its Attempt",
+          next.line,
+          `Outcome ${record.number ?? "N"} — YYYY-MM-DD`,
+          next.kind,
+        ),
+      );
+      index += 1;
+      continue;
+    }
+    if (next.number !== record.number)
+      diagnostics.push(
+        bodyDiagnostic(
+          artifact,
+          "invalid-record",
+          "Each Outcome must match the preceding Attempt number",
+          next.line,
+          String(record.number ?? "N"),
+          next.number,
+        ),
+      );
+    if (record.number === expected) expected += 1;
+    index += 2;
+  }
+  return diagnostics;
 };
 
 const readReviewWorkflow = (
@@ -669,16 +804,24 @@ const readTaskLedger = (
     }
   }
   for (let index = 0; index < records.length; index += 1) {
-    const expected = index + 1;
-    if (records[index]?.number !== expected) {
+    const current = records[index]?.number;
+    const previous = records[index - 1]?.number;
+    const valid =
+      ledger === "plan"
+        ? current === index + 1
+        : index === 0 ||
+          (current !== undefined &&
+            previous !== undefined &&
+            current > previous);
+    if (!valid) {
       diagnostics.push(
         bodyDiagnostic(
           artifact,
           "non-monotonic-record",
           "Task numbering must be append-only and contiguous",
           records[index]?.line ?? artifact.locations.body.startLine,
-          String(expected),
-          records[index]?.number,
+          String(index + 1),
+          current,
         ),
       );
       break;
@@ -729,11 +872,24 @@ export const validateArtifactBody = (
       );
     }
   }
+  const allowEmptyTaskProgress = pendingTaskProgress(artifact, kind, title);
+  const allowEmptyFinishOutcome: readonly GenericWorkflowRecordKind[] =
+    kind === "finish" && pendingFinishIntent(artifact) ? ["outcome"] : [];
   const workflow =
     kind === "feedback" || kind === "review"
       ? readReviewWorkflow(artifact)
-      : readWorkflow(artifact, contract.records ?? null, headings);
+      : readWorkflow(
+          artifact,
+          contract.records ?? null,
+          headings,
+          allowEmptyTaskProgress,
+          allowEmptyFinishOutcome,
+        );
   diagnostics.push(...workflow.diagnostics);
+  if (kind === "finish")
+    diagnostics.push(
+      ...finishWorkflowDiagnostics(artifact, workflow.state.records),
+    );
   const workflowRecords = [...workflow.state.records];
   if (contract.ledger) {
     const ledger = readTaskLedger(artifact, contract.ledger, headings);

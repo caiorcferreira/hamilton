@@ -4,7 +4,7 @@ capability: <capability-name>
 change: <YYYY-MM-DD-change-title>
 status: draft
 created: <YYYY-MM-DD>
-author: <name or agent>
+author: <Name <email>>
 decision: accepted | rejected | skipped
 ---
 
@@ -21,6 +21,11 @@ decision: accepted | rejected | skipped
   Scenarios (WHEN/THEN) are proto-conformance tests — write them so a test could be
   derived directly. OPTIONAL artifact — skip when a change needs no formal requirements.
   Delete this comment block and inline hints before finalizing.
+  Before creating this artifact, read the configured Git identity with `git config user.name` and
+  `git config user.email`, then write `author: Name <email>` using both configured values. If either
+  configured value is missing, ask the user or stop with a blocker rather than inventing an identity.
+  When revising an existing artifact, preserve its recorded author unless the user explicitly directs
+  an attribution change.
 -->
 
 # Capability: <capability-name>

@@ -3,7 +3,7 @@ artifact: requirements-spec
 capability: <capability-name>
 status: current
 updated: <YYYY-MM-DD>
-author: <name or agent>
+author: <Name <email>>
 decision: accepted | rejected | skipped
 ---
 
@@ -24,7 +24,12 @@ decision: accepted | rejected | skipped
 
   The skeleton below is universal but right-sized: keep the sections a capability
   needs, omit the ones it has nothing for. Write flowing prose — do not hard-wrap at
-  a fixed width. Delete this comment block and inline hints before finalizing.
+  a fixed width. Before creating this artifact, read the configured Git identity with
+  `git config user.name` and `git config user.email`, then write `author: Name <email>` using both
+  configured values. If either configured value is missing, ask the user or stop with a blocker rather
+  than inventing an identity. When revising an existing artifact, preserve its recorded author unless
+  the user explicitly directs an attribution change. Delete this comment block and inline hints before
+  finalizing.
 -->
 
 # Capability: <capability-name>

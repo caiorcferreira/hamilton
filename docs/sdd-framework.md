@@ -243,6 +243,34 @@ ledger and task-local progress files; execution updates those operational artifa
 them into a second plan. Task feedback, whole-branch review, and finish history remain separate so
 each stage has one durable owner.
 
+### Artifact authorship and authoring-boundary lint
+
+For a newly created workbench-recognized artifact whose template requires an `author` field, a skill
+reads the effective repository Git identity from `git config user.name` and `git config user.email`
+and writes both values as `Name <email>`. If either configured value is missing, the skill asks the
+user or stops with a blocker; it never substitutes an agent name, operating-system username, or an
+unresolved template placeholder. When editing an existing artifact, the skill preserves that
+artifact's recorded author rather than replacing the original attribution.
+
+Every skill that creates or edits a workbench-recognized Hamilton artifact runs the scoped workbench
+lint command after the mutation. For a coordinated change tree, validate the complete tree with:
+
+```bash
+hamilton workbench lint --change-dir <change-dir>
+```
+
+For one recognized artifact, validate only that file with:
+
+```bash
+hamilton workbench lint --file <file>
+```
+
+After the mutation, inspect every lint finding and resolve it before handoff or commit. The explicit selector
+keeps unrelated outputs outside Hamilton artifact scope; research notes and prototype files are not
+linted as Hamilton artifacts. A newly initialized pending task log is valid with its task identity
+and heading but no attempt record, so it does not need a fabricated attempt to pass lint. Lint is an
+artifact-shape and lifecycle check, not a substitute for semantic gates, tests, or review.
+
 ## Upgrading to the split workflow
 
 Treat this artifact split as a clean break between changes. Finish every active old-format change

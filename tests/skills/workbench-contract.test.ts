@@ -7,7 +7,9 @@ const skillNames = [
   "hamilton-propose",
   "hamilton-plan",
   "hamilton-code",
+  "hamilton-code-feedback",
   "hamilton-orchestrate",
+  "hamilton-review",
   "hamilton-critique",
   "hamilton-finish-work",
   "hamilton-wayfinder-prototype",
@@ -79,6 +81,40 @@ describe("Hamilton skill workbench contract", () => {
       "hamilton workbench diff --whole-change",
     );
   });
+
+  it("maps recognized artifact mutations to scoped lint commands", () => {
+    const skills = readSkills()
+
+    for (const name of [
+      "hamilton-propose",
+      "hamilton-code",
+      "hamilton-code-feedback",
+      "hamilton-critique",
+      "hamilton-review",
+      "hamilton-finish-work",
+    ] as const) {
+      expect(skills[name]).toContain("hamilton workbench lint")
+    }
+
+    expect(skills["hamilton-propose"]).toContain(
+      "hamilton workbench lint --change-dir <change-dir>",
+    )
+    expect(skills["hamilton-code"]).toContain(
+      "hamilton workbench lint --change-dir <change-dir>",
+    )
+    expect(skills["hamilton-code-feedback"]).toContain(
+      "hamilton workbench lint --file <change-dir>/tasks/task-N/feedback.md",
+    )
+    expect(skills["hamilton-critique"]).toContain(
+      "hamilton workbench lint --file <change-dir>/critique.md",
+    )
+    expect(skills["hamilton-review"]).toContain(
+      "hamilton workbench lint --file <change-dir>/review.md",
+    )
+    expect(skills["hamilton-finish-work"]).toContain(
+      "hamilton workbench lint --file <file>",
+    )
+  })
 
   it("maps context and precondition call sites to workbench commands", () => {
     const skills = readSkills();

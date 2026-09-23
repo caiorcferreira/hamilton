@@ -251,7 +251,11 @@ pass.
 
 ## Record and commit
 
-After appending the complete pass, stage only root `review.md`. Create an artifact-only bookkeeping commit with the exact path-limited invocation
+After appending the complete pass, run
+`hamilton workbench lint --file <change-dir>/review.md` before staging or committing. A nonzero
+lint result is a failed gate: resolve the finding and rerun lint, or report its exact blocker
+without staging, committing, or handing off. Then stage only root `review.md`. Create an
+artifact-only bookkeeping commit with the exact path-limited invocation
 `git commit --only -- <change-dir>/review.md`. Do not use an unrestricted commit. Commit no code or task artifact. After
 the commit, verify that its path list contains only root `review.md`; if it includes any other path,
 stop and report the invalid commit rather than advancing. Also compare the index with the

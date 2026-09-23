@@ -44,6 +44,7 @@ If the Hamilton CLI is not installed (`hamilton setup` has not run), do the same
 4. **Skip the polish.** No tests, no error handling beyond what makes the prototype _runnable_, no abstractions. The point is to learn something fast.
 5. **Surface the state.** After every action or variant switch, print or render the full relevant state so the user can see what changed.
 6. **Capture it when done.** The branch gate already put the prototype on its own branch, so closing is commit-and-return, not move-off: commit any outstanding prototype work on the `prototype/...` branch, then switch back to the branch the session started from. Fold any validated decision into the real artifact there — the branch you returned to, not the prototype branch. Leave a context pointer to the `prototype/...` branch in the resolving ticket's body, and capture the answer too — the verdict and the question it settled — in that ticket's `## Answer`. The prototype branch stays reachable, holding only the throwaway; the working branch it was gated off never carried prototype code at all.
+7. **Lint only a recognized mutation.** Throwaway prototype files remain outside lint scope. If the resolving ticket is edited for the pointer or answer, run `hamilton workbench lint --file <ticket-path>` immediately after the mutation. A nonzero result is a failed gate: resolve the finding and rerun lint, or report the exact blocker. The latest successful lint is required before handoff or commit. If no recognized ticket is edited, do not run Hamilton lint.
 
 ## Process flow
 

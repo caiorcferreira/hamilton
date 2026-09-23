@@ -87,11 +87,21 @@ hamilton workbench lint --file <file>
 hamilton workbench lint --change-dir <dir>
 ```
 
-`--file` validates only the named regular file. `--change-dir` recursively visits regular files
-within the supplied change directory and never crosses that recursive boundary. Unrelated files are
-reported as skipped. Conventional artifact filenames without frontmatter produce warnings, while
-malformed recognized artifacts fail closed; lint returns success only when no errors or warnings
-remain.
+Artifact-writing skills choose the narrowest selector for the mutation. Use `--file` when one
+recognized artifact is created or edited, such as a canonical spec, map, ticket, route, feedback,
+review, critique, or finish history. Use `--change-dir` when a skill creates or updates a
+coordinated change directory, such as proposal artifacts or the plan, progress, and task-log
+scaffold. Run the selected lint after the mutation boundary and before the next mutation, handoff,
+or commit.
+
+A nonzero lint result is a failed gate: resolve every warning or error, rerun the same scoped
+command, and do not hand off or commit until it succeeds. Lint stays within the explicit selector;
+unrelated outputs such as research notes and prototype files remain outside Hamilton artifact lint,
+and skipped unrelated files do not affect success. A newly initialized pending task log is valid
+with its task identity and heading but no attempt record, so planning must not invent a synthetic
+attempt merely to satisfy lint. Conventional artifact filenames without frontmatter produce
+warnings, while malformed recognized artifacts fail closed; lint returns success only when no errors
+or warnings remain.
 
 ## The skills
 
@@ -181,8 +191,12 @@ declarative handoff contract between planning and coding. **This skill never wri
   current-status ledger with one linked row per active task; and one initialized
   `tasks/task-N/progress.md` implementation-history file per task.
 - **Notes:** all sequencing happens here because code follows each task's steps verbatim. Re-plan
-  preserves done tasks and stable numeric task identities, appends remediation tasks, and reconciles
-  the root ledger without rewriting task histories. On handoff it names `hamilton-code` or
+  preserves done tasks byte-for-byte and stable numeric task identities, appends remediation tasks,
+  and reconciles the root ledger without rewriting task histories. A renamed non-done task
+  synchronizes its exact unescaped title across the plan heading, root metadata, and task-local
+  heading while Markdown-escaping the root table display; its status, path, link, and append-only
+  attempts remain unchanged. After the complete amendment, run
+  `hamilton workbench lint --change-dir <change-dir>`. On handoff it names `hamilton-code` or
   `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
@@ -202,9 +216,12 @@ commits.
   commit contains the appended blocked attempt and the assigned row set to `blocked`; partial
   production edits remain uncommitted.
 - **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
-  only its assigned row and appends to that task-local history among execution artifacts. It never
-  edits `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
-  fixed across corrections so code feedback always receives the complete task diff.
+  only its assigned row and appends to that task-local history among execution artifacts. The empty
+  task log stays `pending` until an attempt exists; a previously finalized log retains its latest
+  `done` or `blocked` local status during a correction and is never made locally `in-progress` before
+  an attempt exists. Finalization sets its local status to `done` or `blocked` before synchronizing
+  the root row. It never edits `plan.md`, sibling task state, feedback, root review, or finish history.
+  The checkpoint stays fixed across corrections so code feedback always receives the complete task diff.
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*

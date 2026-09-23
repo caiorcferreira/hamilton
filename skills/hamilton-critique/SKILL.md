@@ -98,7 +98,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `accepted` when the user accepts a verdict that needs no remediation, `applied` when the
    user accepts and applies the requested changes, `rejected` when the user dismisses the
    critique, and `skipped` when no user decision is collected. Never add a second resolution
-   field.
+   field. After you write the report, run
+   `hamilton workbench lint --file <change-dir>/critique.md` before printing it or handing it off.
+   A nonzero lint result is a failed gate: correct the report and rerun lint, or stop with the
+   exact finding without declaring the critique compliant.
 
 ## Review dimensions
 

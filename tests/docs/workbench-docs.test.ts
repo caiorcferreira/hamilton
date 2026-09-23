@@ -62,6 +62,20 @@ describe("workbench documentation", () => {
     expect(allDocumentation).toMatch(/hamilton purge/);
   });
 
+  it("documents artifact attribution and authoring-boundary lint in the SDD framework", () => {
+    const framework = content["docs/sdd-framework.md"];
+    expect(framework).toMatch(/newly created.*author/is);
+    expect(framework).toMatch(/git config user\.name.*git config user\.email.*Name <email>/is);
+    expect(framework).toMatch(/either.*configured value.*missing.*(?:ask|stop).*blocker.*(?:agent|username)/is);
+    expect(framework).toMatch(/edit(?:ing)? an existing.*preserv(?:e|es).*recorded author/is);
+    expect(framework).toMatch(/hamilton workbench lint --change-dir <change-dir>/);
+    expect(framework).toMatch(/hamilton workbench lint --file <file>/);
+    expect(framework).toMatch(/(?:after|post)[- ](?:the )?mutation.*(?:finding|warning|error).*before (?:handoff|commit)/is);
+    expect(framework).toMatch(/unrelated.*(?:outside|not).*scope/is);
+    expect(framework).toMatch(/pending task log.*(?:no|without).*attempt/is);
+    expect(framework).toMatch(/lint.*(?:not|does not).*semantic gates/is);
+  });
+
   it.each(contractDocuments)(
     "defines review history modes and evidence authority independently in %s",
     (document) => {

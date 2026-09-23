@@ -3,7 +3,7 @@ artifact: proposal
 change: <YYYY-MM-DD-change-title>
 status: draft | approved | implemented
 decision: accepted | rejected | skipped
-author: <name or agent>
+author: <Name <email>>
 created: <YYYY-MM-DD>
 route_unit: <.hamilton/maps/<effort>/route.md — unit N, or null>
 ---
@@ -14,6 +14,11 @@ route_unit: <.hamilton/maps/<effort>/route.md — unit N, or null>
   Owns the WHY and the product-level WHAT. Target length: 1–2 pages.
   OPTIONAL artifact — skip for small changes and start at plan.md.
   Delete this comment block and every inline <!-- ... --> hint before finalizing.
+  Before creating this artifact, read the configured Git identity with `git config user.name` and
+  `git config user.email`, then write `author: Name <email>` using both configured values. If either
+  configured value is missing, ask the user or stop with a blocker rather than inventing an identity.
+  When revising an existing artifact, preserve its recorded author unless the user explicitly directs
+  an attribution change.
 -->
 
 # Proposal: <Change Title>

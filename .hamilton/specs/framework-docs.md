@@ -1,3 +1,12 @@
+---
+artifact: requirements-spec
+capability: framework-docs
+status: current
+updated: 2026-09-23
+author: Caio Ferreira <caiorcferreira@gmail.com>
+decision: accepted
+---
+
 # Capability: framework-docs
 
 ## Overview
@@ -28,6 +37,8 @@ The framework names `plan.md` as the declarative task handoff. Planning initiali
 ## Behavior
 
 A reader who opens `docs/skills.md` finds the seven-stage pipeline diagram (`init ──▶ [ propose ] ──▶ plan ──▶ code ↔ code-feedback ──▶ review ──▶ finish-work`) followed by the identity phrasing, then one entry per skill in the fixed shape. The entries are ordered by lifecycle: the once-per-project setup skill (`init`), then the per-change stages beginning with the optional planner (`wayfinder`), the optional heavyweight front door (`propose`), and the required `plan`, `code`, `code-feedback`, `review`, and `finish-work` stages.
+
+The Workbench section distinguishes `--file` for one recognized artifact from `--change-dir` for a coordinated change directory. Artifact-writing skills run the narrowest scoped lint immediately after each recognized-artifact mutation and resolve every finding before the next mutation, handoff, or commit; a nonzero result is a failed gate, not a warning to ignore. Unrelated outputs remain outside Hamilton lint, while a newly initialized pending task log is valid without a synthetic attempt.
 
 `hamilton-wayfinder` is the optional pre-change planning stage. Its entry sits immediately before `hamilton-propose` and presents the route as Wayfinder's compiled destination-and-path handoff, not a lightweight unit index. The route body has five required sections — Point of departure, Destination, Path chosen, Shipping rules, and Units — and remains stable after synthesis; frontmatter owns mutable route and unit lifecycle metadata. Wayfinder clears fog, propose and plan turn units into implementation artifacts, and code and finish-work build and ship them. The entry also carries the skill's fork provenance in prose — it names the upstream (`mattpocock/skills`) and its licence (MIT) and links to `NOTICE` for the full legal credit, without reproducing the licence text inline.
 
