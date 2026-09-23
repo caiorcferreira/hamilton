@@ -95,6 +95,23 @@ This section is the contract between the wayfinder methodology and its file-nati
 
 **Branching.** Map artifacts are ordinary repo content, versioned and branched like source. A status flip rides the unit's own branch and lands on the default branch at merge, so the flip ships with the work it marks. Between merges the route lags on the default branch; that staleness is accepted, not a defect.
 
+## Artifact validation
+
+Maps, tickets, and routes are recognized Hamilton artifacts. Research notes under
+`.hamilton/maps/<effort>/research/` and prototype files are unrelated outputs and stay outside
+this lint gate. After each write or edit of a map, ticket, or route, run the narrowest file-scoped
+command for the artifact:
+
+- `hamilton workbench lint --file <map-path>` for `.hamilton/maps/<effort>/map.md`.
+- `hamilton workbench lint --file <ticket-path>` for `.hamilton/maps/<effort>/tickets/NN-slug.md`.
+- `hamilton workbench lint --file <route-path>` for `.hamilton/maps/<effort>/route.md`.
+
+A nonzero lint result is a failed gate. Resolve the findings and rerun the matching command, or
+report the exact blocker without handing off, claiming resolution, or committing. Charting lints
+the map after creation, each ticket after creation or dependency edit, and the route after it is
+written. The work loop applies the same gate after every ticket answer, map gist, or route change
+before the next mutation or handoff.
+
 ## Process flow
 
 ```dot

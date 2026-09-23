@@ -13,6 +13,8 @@ Do not act on it until I confirm we have reached a shared understanding.
 
 If the user reverses an earlier recorded decision, update the artifact that records it to state the current truth — never leave the stale version standing.
 
+When the answer is written to a recognized ticket, map, or route, run the narrowest file-scoped command immediately after the mutation: `hamilton workbench lint --file <ticket-path>`, `hamilton workbench lint --file <map-path>`, or `hamilton workbench lint --file <route-path>`. A nonzero lint result is a failed gate: resolve the finding and rerun lint, or report the exact blocker. The latest successful lint is required before handoff or commit. Do not lint conversation text or unrelated notes.
+
 ## Challenge posture
 
 Evaluate every answer the user gives before moving on. If it has a concrete weakness — a failure scenario, a cost, a contradiction with a prior decision or the glossary — push back **once**, stating the objection specifically. If the user reaffirms, or marks the decision final, accept it: record their decision as the authoritative answer, note any reservation in one line, and drop the point for the rest of the session. The user owns decisions; you own making sure they were made with eyes open.

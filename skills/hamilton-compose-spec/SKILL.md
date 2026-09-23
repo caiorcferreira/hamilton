@@ -90,18 +90,27 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `~/
    keys, field names and types) → `## Contract`; observable input→output → `## Behavior` plus an
    **Examples** bullet; properties that always hold → `## Invariants`; reusable rules → `## Decisions`;
    a one-paragraph orientation → `## Overview`.
-5. **Write the spec.** Compose `.hamilton/specs/<capability>.md` from the template in flowing
-   prose and tables. Add `### <subsection>` anchors under Contract/Behavior when a capability has
-   several distinct surfaces (event types, endpoints). Fold behaviors into greppable Examples
-   bullets (input → outcome). Keep the voice natural; use `MUST`/`NEVER` only in Invariants.
-6. **Self-review against altitude.** Re-read each spec against `references/spec-altitude.md`:
-   no control flow, no private names that are not the contract, no library calls, no file paths
-   as requirements, nothing that could only be verified by reading source. For reformat, also
-   confirm no durable fact from the original was lost. Fix in place.
-7. **Present and commit.** Show the composed or reformatted specs for review. On approval (or,
-   running unattended, after the self-review passes), commit following the project's git
-   workflow. Reformatting a whole directory or bootstrapping a project is a large diff — group it
-   into a sensible commit (e.g. one per capability, or one per run) per `AGENTS.md`.
+5. **Write the spec.** For a new author-bearing canonical spec, read `git config user.name` and
+   `git config user.email` and record the configured identity as `author: Name <email>` in the
+   requirements-spec frontmatter. If either value is missing, stop and report the missing identity;
+   never invent attribution. When revising an existing spec, preserve its recorded `author`
+   exactly. Compose `.hamilton/specs/<capability>.md` from the template in flowing prose and
+   tables. Add `### <subsection>` anchors under Contract/Behavior when a capability has several
+   distinct surfaces (event types, endpoints). Fold behaviors into greppable Examples bullets
+   (input → outcome). Keep the voice natural; use `MUST`/`NEVER` only in Invariants.
+6. **Lint each mutation.** After writing or editing each canonical spec, run
+   `hamilton workbench lint --file <spec-path>`. Treat a nonzero lint result as a failed gate:
+   resolve the findings and rerun lint, or report the exact blocker without handing off or
+   committing. Any correction made during self-review is another mutation and requires the same
+   file-scoped lint command before handoff or commit.
+7. **Self-review and commit.** Re-read each spec against `references/spec-altitude.md`: no control
+   flow, no private names that are not the contract, no library calls, no file paths as
+   requirements, nothing that could only be verified by reading source. For reformat, also confirm
+   no durable fact from the original was lost. Show the composed or reformatted specs for review.
+   On approval (or, running unattended, after self-review and a successful latest lint), commit
+   following the project's git workflow. Reformatting a whole directory or bootstrapping a project
+   is a large diff — group it into a sensible commit (e.g. one per capability, or one per run) per
+   `AGENTS.md`.
 
 ## Boundaries
 

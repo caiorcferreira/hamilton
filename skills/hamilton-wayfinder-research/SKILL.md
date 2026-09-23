@@ -9,8 +9,8 @@ Its job:
 
 1. Investigate the question against **primary sources** — official docs, source code, specs, first-party APIs — not a secondary write-up of them. Follow every claim back to the source that owns it.
 2. Write the findings to a single Markdown file, citing each claim's source.
-3. Save it to `.hamilton/maps/<effort>/research/`, where `<effort>` is the map being worked.
-4. Leave a pointer in the resolving ticket's body — `findings at research/<file>.md` — so the returning session finds the findings from the ticket, never by scanning the directory.
+3. Save it to `.hamilton/maps/<effort>/research/`, where `<effort>` is the map being worked. Research notes are unrelated outputs and remain outside lint scope; do not lint the research file.
+4. If the resolving ticket is edited to leave a pointer in its body — `findings at research/<file>.md` — run `hamilton workbench lint --file <ticket-path>` immediately after the mutation. A nonzero lint result is a failed gate: resolve the finding and rerun lint, or report the exact blocker. The latest successful lint is required before handoff or commit. If the ticket is not edited, no Hamilton lint is needed.
 
 ## Process flow
 

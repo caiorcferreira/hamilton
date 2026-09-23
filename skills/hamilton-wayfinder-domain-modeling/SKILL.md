@@ -41,6 +41,21 @@ When several efforts are worked against a single canonical glossary:
 
 Create files lazily — only when you have something to write. The canonical `.hamilton/specs/glossary.md` is the source of truth; each map's working `glossary.md` holds that effort's working language. A decision is written into the resolving ticket's `## Answer` — there is no separate directory to create.
 
+## Artifact validation
+
+The canonical glossary is an author-bearing requirements-spec, and a resolving ticket is a
+recognized Hamilton artifact. After each canonical glossary or ticket mutation, run the matching
+file-scoped command: `hamilton workbench lint --file <spec-path>` for
+`.hamilton/specs/glossary.md` or `hamilton workbench lint --file <ticket-path>` for
+`.hamilton/maps/<effort>/tickets/NN-slug.md`. A working map glossary is not a recognized artifact
+and is not linted. A nonzero lint result is a failed gate: resolve the finding and rerun lint, or
+report the exact blocker without handing off or committing. The gate runs before handoff or commit.
+
+When creating the canonical glossary, read `git config user.name` and `git config user.email` and
+record `author: Name <email>` in its frontmatter. If either identity value is missing, stop and
+report it instead of inventing attribution. Preserve the recorded author exactly when editing an
+existing canonical glossary.
+
 ## During the session
 
 ### Challenge against the glossary
