@@ -22,3 +22,19 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 2 — 2026-09-23
+
+Base: 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa
+Head: f0a3d979dc4d6eadc1bbb35f2c082fd826afbbb3
+Verdict: changes-requested
+
+### Blocking
+
+- [.hamilton/changes/2026-09-22-fix-skill-artifact-linting/progress.md:8-35; skills/hamilton-code/SKILL.md:102-125; src/workbench/precondition-artifacts.ts:174-200] Planning now creates a frontmatter `tasks` ledger, but code updates only the Markdown row during task transitions. All seven frontmatter entries still say `pending` while their rows say `done`; the unchanged finish precondition requires these statuses to agree and fails seven times, although file-scoped lint reports success. Synchronize each task's frontmatter status and row at every code transition, retain that agreement on re-plan, repair this change's ledger, and cover the integration with a finish-precondition test. (violates: requirements/execution.md, “Initialize task execution artifacts in a lint-valid state,” matching task status; design decision “Instantiate every planning template as a live artifact”)
+- [bundle/templates/plan.md:6; bundle/templates/requirements-spec.md:6] These two unchanged, installed author-bearing templates still instruct authors to use a name or agent, despite the new Git-identity rules in `skills/hamilton-plan/SKILL.md:158-168` and `skills/hamilton-compose-spec/SKILL.md:92-101`. An author following either template can enter an agent name while lint accepts any nonempty string. Replace both hints with configured Git name and angle-bracketed email guidance, including missing-identity handling, and extend template coverage beyond the three proposal outputs. (violates: requirements/artifact-templates.md, “Populate artifact authors from configured Git identity”; design decision “Populate author metadata from the repository Git identity”)
+- [docs/sdd-framework.md:184-238; bundle/templates/proposal.md:6; bundle/templates/requirements-change.md:7; bundle/templates/design.md:6] The three bundled templates changed their author contract, but the framework's artifact/template documentation was not updated. `CONTRIBUTING.md:13-22` explicitly maps every `bundle/templates/` change to `docs/sdd-framework.md` and requires documentation to reflect changed behavior. Update that document's template and lifecycle guidance for configured attribution and post-mutation scoped lint; the `docs/skills.md` update alone does not satisfy the repository's mapped documentation requirement. (violates: `CONTRIBUTING.md`, Documentation Conventions and Mapping Code to Docs; requirement framework-docs, “Document artifact linting at authoring boundaries”)
+
+### Suggestions
+
+- None.
