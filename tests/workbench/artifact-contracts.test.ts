@@ -11,6 +11,24 @@ import type {
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
 
+const finishIntentFields = [
+  "- Passed preconditions: all required gates passed",
+  "- Specification synchronization: canonical specs unchanged",
+  "- Strategy: no-op",
+  "- Intended workspace result: branch and working tree unchanged",
+  "- Route intent: none",
+] as const;
+
+const finishAttempt = (
+  number: number,
+  date: string,
+  fields: readonly string[] = finishIntentFields,
+): string =>
+  [`## Attempt ${number} — ${date}`, "", ...fields].join("\n");
+
+const finishOutcome = (number: number, date: string): string =>
+  `## Outcome ${number} — ${date}`;
+
 const bodyFor = (artifact: string): string => {
   const sections: Record<string, string[]> = {
     proposal: [
@@ -47,7 +65,10 @@ const bodyFor = (artifact: string): string => {
     "task-progress": ["Attempt 1 — 2026-09-12"],
     feedback: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
     review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
-    finish: ["Attempt 1 — 2026-09-12", "Outcome 1 — 2026-09-12"],
+    finish: [
+      finishAttempt(1, "2026-09-12").replace(/^## /, ""),
+      finishOutcome(1, "2026-09-12").replace(/^## /, ""),
+    ],
     critique: ["Scope", "Findings", "Quality Lens", "Summary"],
     map: [
       "Destination",
@@ -82,7 +103,7 @@ const bodyFor = (artifact: string): string => {
     ...(sections[artifact] ?? []).map((section) =>
       section.startsWith("###") || section.startsWith("|")
         ? section
-        : `## ${section}`,
+        : `## ${section}`
     ),
     artifact === "plan" ? "- Depends on: none" : "",
   ].join("\n");
@@ -821,15 +842,35 @@ Head: ${sha}
       );
   });
 
+  it("accepts a first pending finish intent with complete fields", () => {
+    const sourcePath = ".hamilton/changes/demo/finish.md";
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+    ].join("\n\n");
+    const pending = {
+      ...validArtifacts[9][1],
+      status: "pending",
+      result: "pending",
+    };
+
+    const result = validateArtifact(recognized(sourcePath, pending, body));
+
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid")
+      expect(result.body.workflow.records).toMatchObject([
+        { kind: "attempt", number: 1 },
+      ]);
+  });
+
   it("accepts a pending finish intent after paired history", () => {
     const sourcePath = ".hamilton/changes/demo/finish.md";
-    const body = `# Finish History: Demo
-
-## Attempt 1 — 2026-09-12
-
-## Outcome 1 — 2026-09-12
-
-## Attempt 2 — 2026-09-13`;
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+      finishOutcome(1, "2026-09-12"),
+      finishAttempt(2, "2026-09-13"),
+    ].join("\n\n");
     const pending = {
       ...validArtifacts[9][1],
       status: "pending",
@@ -852,44 +893,89 @@ Head: ${sha}
   });
 
   it.each([
-    [
-      "unmatched outcome",
-      `# Finish History: Demo
+    ["completed", "completed"],
+    ["blocked", "blocked"],
+  ] as const)("accepts a complete paired %s finish history", (status, result) => {
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+      finishOutcome(1, "2026-09-12"),
+    ].join("\n\n");
+    expect(
+      validateArtifact(
+        recognized(".hamilton/changes/demo/finish.md", {
+          ...validArtifacts[9][1],
+          status,
+          result,
+        }, body),
+      )._tag,
+    ).toBe("valid");
+  });
 
-## Attempt 1 — 2026-09-12
-
-## Outcome 1 — 2026-09-12
-
-## Outcome 2 — 2026-09-13`,
-    ],
-    [
-      "out-of-order history",
-      `# Finish History: Demo
-
-## Outcome 1 — 2026-09-12
-
-## Attempt 1 — 2026-09-12`,
-    ],
-    [
-      "stale attempt after later records",
-      `# Finish History: Demo
-
-## Attempt 1 — 2026-09-12
-
-## Outcome 1 — 2026-09-12
-
-## Attempt 2 — 2026-09-13
-
-## Outcome 2 — 2026-09-13
-
-## Attempt 1 — 2026-09-14`,
-    ],
-  ])("rejects %s finish history", (_name, body) => {
+  it.each(
+    finishIntentFields.map((field, index) => [field, index] as const),
+  )("rejects a pending attempt missing %s", (_field, missingIndex) => {
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(
+        1,
+        "2026-09-12",
+        finishIntentFields.filter((_field, index) => index !== missingIndex),
+      ),
+    ].join("\n\n");
     expectInvalid(
       validateArtifact(
         recognized(
           ".hamilton/changes/demo/finish.md",
-          validArtifacts[9][1],
+          {
+            ...validArtifacts[9][1],
+            status: "pending",
+            result: "pending",
+          },
+          body,
+        ),
+      ),
+      "missing-section",
+    );
+  });
+
+  it.each([
+    ["unmatched outcome", [finishOutcome(1, "2026-09-12")]],
+    [
+      "non-contiguous numbering",
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(3, "2026-09-13"),
+      ],
+    ],
+    [
+      "duplicate numbering",
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(1, "2026-09-13"),
+      ],
+    ],
+    [
+      "non-final unmatched attempt",
+      [finishAttempt(1, "2026-09-12"), finishAttempt(2, "2026-09-13"), finishOutcome(2, "2026-09-13")],
+    ],
+    [
+      "malformed attempt",
+      ["## Attempt 1 - 2026-09-12"],
+    ],
+  ] as const)("rejects %s finish history", (_name, records) => {
+    const body = ["# Finish History: Demo", ...records].join("\n\n");
+    expectInvalid(
+      validateArtifact(
+        recognized(
+          ".hamilton/changes/demo/finish.md",
+          {
+            ...validArtifacts[9][1],
+            status: "pending",
+            result: "pending",
+          },
           body,
         ),
       ),

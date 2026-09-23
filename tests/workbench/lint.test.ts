@@ -22,6 +22,24 @@ const proposal = (
 ) =>
   `---\nartifact: proposal\nchange: demo\nstatus: approved\ndecision: accepted\nauthor: caio\ncreated: 2026-09-12\nroute_unit: null\n---\n${body}`;
 
+const finishIntentFields = [
+  "- Passed preconditions: all required gates passed",
+  "- Specification synchronization: canonical specs unchanged",
+  "- Strategy: no-op",
+  "- Intended workspace result: branch and working tree unchanged",
+  "- Route intent: none",
+] as const;
+
+const finishAttempt = (
+  number: number,
+  date: string,
+  fields: readonly string[] = finishIntentFields,
+): string =>
+  [`## Attempt ${number} — ${date}`, "", ...fields].join("\n");
+
+const finishOutcome = (number: number, date: string): string =>
+  `## Outcome ${number} — ${date}`;
+
 type ReviewArtifactKind = "feedback" | "review";
 
 type ReviewGlobals = {
@@ -142,6 +160,23 @@ const sourceLine = (
   }
   return source.slice(0, offset).split(/\r\n|\n|\r/).length;
 };
+
+const finishSource = (
+  status: string,
+  result: string,
+  body: string,
+): string => `---
+artifact: finish
+change: demo
+status: ${status}
+created: 2026-09-12
+updated: 2026-09-13
+strategy: no-op
+result: ${result}
+decision: accepted
+---
+${body}
+`;
 
 const reviewTitle = (kind: ReviewArtifactKind): string =>
   kind === "feedback"
@@ -863,14 +898,12 @@ decision: accepted
       "demo",
       "finish.md",
     );
-    const finishBody = `# Finish History: Demo
-
-## Attempt 1 — 2026-09-12
-
-## Outcome 1 — 2026-09-12
-
-## Attempt 2 — 2026-09-13
-`;
+    const finishBody = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+      finishOutcome(1, "2026-09-12"),
+      finishAttempt(2, "2026-09-13"),
+    ].join("\n\n");
     await Fs.writeFile(
       finishFile,
       `---
@@ -925,6 +958,110 @@ decision: accepted
 `,
     );
     expectExit(await lintScope({ file: finishFile }), 1);
+  });
+
+  it("accepts the first pending finish intent and rejects neighboring histories", async () => {
+    const directory = await temporaryDirectory();
+    const file = Path.join(
+      directory,
+      ".hamilton",
+      "changes",
+      "demo",
+      "finish.md",
+    );
+    const writeFinish = async (
+      status: string,
+      result: string,
+      records: readonly string[],
+    ) => {
+      const body = ["# Finish History: Demo", ...records].join("\n\n");
+      await Fs.mkdir(Path.dirname(file), { recursive: true });
+      await Fs.writeFile(file, finishSource(status, result, body));
+    };
+    const expectFinish = async (
+      status: string,
+      result: string,
+      records: readonly string[],
+      exitCode: 0 | 1,
+    ) => {
+      await writeFinish(status, result, records);
+      expectExit(await lintScope({ file }), exitCode);
+    };
+
+    await expectFinish(
+      "pending",
+      "pending",
+      [finishAttempt(1, "2026-09-12")],
+      0,
+    );
+    await expectFinish(
+      "pending",
+      "pending",
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(2, "2026-09-13"),
+      ],
+      0,
+    );
+    await expectFinish(
+      "completed",
+      "completed",
+      [finishAttempt(1, "2026-09-12"), finishOutcome(1, "2026-09-12")],
+      0,
+    );
+    await expectFinish(
+      "pending",
+      "pending",
+      [
+        finishAttempt(
+          1,
+          "2026-09-12",
+          finishIntentFields.slice(1),
+        ),
+      ],
+      1,
+    );
+    for (const [status, result] of [
+      ["pending", "completed"],
+      ["completed", "pending"],
+    ] as const)
+      await expectFinish(
+        status,
+        result,
+        [finishAttempt(1, "2026-09-12")],
+        1,
+      );
+    for (const [status, result] of [
+      ["completed", "completed"],
+      ["blocked", "blocked"],
+    ] as const)
+      await expectFinish(
+        status,
+        result,
+        [finishAttempt(1, "2026-09-12")],
+        1,
+      );
+    for (const records of [
+      [finishOutcome(1, "2026-09-12")],
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishOutcome(2, "2026-09-13"),
+      ],
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(3, "2026-09-13"),
+      ],
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(1, "2026-09-13"),
+      ],
+      [finishAttempt(1, "2026-09-12"), finishAttempt(2, "2026-09-13"), finishOutcome(2, "2026-09-13")],
+    ] as const)
+      await expectFinish("pending", "pending", records, 1);
   });
 
   it("accepts valid multi-pass feedback and review evidence", async () => {

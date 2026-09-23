@@ -274,6 +274,7 @@ const readWorkflow = (
     | null,
   headings: readonly ArtifactHeading[],
   allowEmpty = false,
+  allowEmptyKinds: readonly GenericWorkflowRecordKind[] = [],
 ): {
   readonly state: ArtifactWorkflowState;
   readonly diagnostics: readonly ArtifactContractDiagnostic[];
@@ -373,7 +374,11 @@ const readWorkflow = (
     );
   }
   for (const recordKind of kinds) {
-    if (!records.some((record) => record.kind === recordKind) && !allowEmpty) {
+    if (
+      !records.some((record) => record.kind === recordKind) &&
+      !allowEmpty &&
+      !allowEmptyKinds.includes(recordKind)
+    ) {
       const label = recordLabel(recordKind);
       diagnostics.push(
         bodyDiagnostic(
@@ -433,6 +438,38 @@ const pendingFinishIntent = (artifact: RecognizedArtifact): boolean =>
   artifact.metadata.status === "pending" &&
   artifact.metadata.result === "pending";
 
+const finishIntentFields = [
+  "Passed preconditions",
+  "Specification synchronization",
+  "Strategy",
+  "Intended workspace result",
+  "Route intent",
+] as const;
+
+const finishAttemptDiagnostics = (
+  artifact: RecognizedArtifact,
+  record: ArtifactWorkflowRecord,
+): readonly ArtifactContractDiagnostic[] =>
+  finishIntentFields.flatMap((field) => {
+    const value = record.fields[field];
+    if (
+      value !== undefined &&
+      value.trim() !== "" &&
+      !/^<[^>]*>$/.test(value.trim())
+    )
+      return [];
+    return [
+      bodyDiagnostic(
+        artifact,
+        "missing-section",
+        `Attempt ${record.number ?? "N"} must declare a non-empty ${field} field`,
+        record.line,
+        `- ${field}: value`,
+        value,
+      ),
+    ];
+  });
+
 const finishWorkflowDiagnostics = (
   artifact: RecognizedArtifact,
   records: readonly ArtifactWorkflowRecord[],
@@ -458,11 +495,11 @@ const finishWorkflowDiagnostics = (
       index += 1;
       continue;
     }
+    diagnostics.push(...finishAttemptDiagnostics(artifact, record));
     const next = records[index + 1];
     if (next === undefined) {
       const allowed =
         pending &&
-        expected > 1 &&
         record.number === expected &&
         index === records.length - 1;
       if (!allowed)
@@ -796,6 +833,8 @@ export const validateArtifactBody = (
     }
   }
   const allowEmptyTaskProgress = pendingTaskProgress(artifact, kind, title);
+  const allowEmptyFinishOutcome: readonly GenericWorkflowRecordKind[] =
+    kind === "finish" && pendingFinishIntent(artifact) ? ["outcome"] : [];
   const workflow =
     kind === "feedback" || kind === "review"
       ? readReviewWorkflow(artifact)
@@ -804,6 +843,7 @@ export const validateArtifactBody = (
           contract.records ?? null,
           headings,
           allowEmptyTaskProgress,
+          allowEmptyFinishOutcome,
         );
   diagnostics.push(...workflow.diagnostics);
   if (kind === "finish")
