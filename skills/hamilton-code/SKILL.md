@@ -102,8 +102,10 @@ Plus:
 5. **Begin the attempt.** Update only the assigned task's root row to `in-progress` before
    executing implementation steps. A `pending`, `blocked`, or `done` row may enter
    `in-progress`; `done` means only that the latest implementation attempt completed. Preserve
-   every sibling row and file unchanged. Do not append an attempt yet: if the process terminates
-   unexpectedly, `in-progress` remains the interruption signal.
+   every sibling row and file unchanged. At this supported staged boundary, run
+   `hamilton workbench lint --change-dir <change-dir>` and stop on any nonzero result before
+   implementation. Do not append an attempt yet: if the process terminates unexpectedly,
+   `in-progress` remains the interruption signal.
 6. **Execute the task Steps in order.** Touch only the task's listed files. Run any tests or
    commands required by individual steps and keep actual results for the attempt evidence.
 7. **Verify.** Run the task's Verify command, then the full test suite and build or typecheck from
@@ -117,7 +119,10 @@ Plus:
    the installed-template lifecycle record completely with the final done or blocked outcome,
    created, modified, and deleted paths, every verification command and observed result, and notes
    for deviations, decisions, or concerns. Then update the same root row from `in-progress` to
-   the matching `done` or `blocked` status. Do not change another row or append review, feedback,
+   the matching `done` or `blocked` status. After the synchronized task-progress attempt and
+   root-row transition, run `hamilton workbench lint --change-dir <change-dir>`. A nonzero lint
+   result is a failed gate: correct the artifacts and rerun lint, or report the exact blocker
+   without committing or claiming compliance. Do not change another row or append review, feedback,
    or finish summaries anywhere in progress.
 10. **Commit according to the outcome.** For `done`, commit the assigned task's implementation,
     tests, its task-progress attempt, and its root-row final transition together using the task's
