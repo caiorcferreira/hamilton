@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-22-fix-skill-artifact-linting
-status: pending
+status: completed
 created: 2026-09-23
 updated: 2026-09-23
 strategy: pull-request
-result: pending
+result: completed
 decision: accepted
 ---
 
@@ -18,3 +18,12 @@ decision: accepted
 - Strategy: pull request
 - Intended workspace result: Push `wt/fix-progress-task-non-conformant-worktree-20260922` to `origin`, open a pull request against `main`, and leave the branch and linked worktree in place with a clean tree.
 - Route intent: none; `route_unit` is `null` and no route or map mutation is required.
+
+## Outcome 1 — 2026-09-23
+
+- Result: completed
+- External result: Pull request #47 was read back at https://github.com/caiorcferreira/hamilton/pull/47 with state `OPEN`, head branch `wt/fix-progress-task-non-conformant-worktree-20260922`, head commit `4ecffd98a09386347730e8ead27f0e018a241d8f`, and base branch `main`.
+- Remote branch result: `origin/wt/fix-progress-task-non-conformant-worktree-20260922` was read back at `4ecffd98a09386347730e8ead27f0e018a241d8f`, matching the Attempt 1 commit.
+- Workspace result: the linked worktree remains at `/home/caio/.local/share/pi-worktrees/20260922231140/fix-progress-task-non-conformant-worktree-20260922` on the intended branch with a clean tree.
+- Route result: no route or map mutation; `route_unit` remains `null`.
+- Partial state or blocker: none; the branch and worktree remain in place as authorized.
