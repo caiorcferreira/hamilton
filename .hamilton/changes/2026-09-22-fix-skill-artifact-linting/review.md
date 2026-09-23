@@ -53,3 +53,17 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 4 — 2026-09-23
+
+Base: 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa
+Head: a31bc444e6f16f2dcb8bc01d5cfb1ba6e90e1c1d
+Verdict: changes-requested
+
+### Blocking
+
+- [skills/hamilton-plan/SKILL.md:222-235; affected consumer src/workbench/artifact-body.ts:778-787] Re-plan now mandates full change-directory lint after amendments, while the same skill requires abandoned task ids to remain reserved and removes abandoned tasks from the active root ledger. If Task 2 is abandoned while Task 3 remains active, the valid active ledger contains Tasks 1 and 3, but `readTaskLedger` still requires each progress-row id to equal its one-based row index; lint rejects Task 3 with `non-monotonic-record` (expected 2, actual 3), so the new required lint gate blocks a compliant re-plan. Permit strictly increasing active progress-row ids with gaps for abandoned tasks while preserving plan-order matching, unique identities, metadata, and exact links, and add lint coverage for an abandoned middle task. Focused verification: `bun --bun -e 'import{validateArtifactBody as v}from"./src/workbench/artifact-body.ts";let a={sourcePath:"x",metadata:{artifact:"progress"},body:"# Progress: Demo\\n| Task | Status | Progress |\\n| --- | --- | --- |\\n| Task 1: A | done | [details](tasks/task-1/progress.md) |\\n| Task 3: C | pending | [details](tasks/task-3/progress.md) |",locations:{body:{startLine:1}}};console.log(v(a,"progress").diagnostics.map(function(x){return [x.code,x.expected,x.actual]}))'` returned `non-monotonic-record` (expected 2, actual 3). (violates: the re-plan abandonment/id-preservation contract in `skills/hamilton-plan/SKILL.md`, `requirements/execution.md`, “Initialize task execution artifacts in a lint-valid state,” and design decision “Instantiate every planning template as a live artifact”)
+
+### Suggestions
+
+- None.
