@@ -38,3 +38,18 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 3 — 2026-09-23
+
+Base: 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa
+Head: 8e72175110a85e503db02711587821e9f3a39290
+Verdict: changes-requested
+
+### Blocking
+
+- [skills/hamilton-code/SKILL.md:114-131; affected consumer src/workbench/precondition-artifacts.ts:216-229] Planning now initializes every task-local progress file with `status: pending`, but code's begin/finalize steps change only the root metadata and row and append an attempt: neither step transitions the task-local frontmatter status to `done` or `blocked`. Following the stated steps exactly leaves a completed task log marked pending, so the unchanged finish precondition rejects even an otherwise synchronized all-done ledger. Explicitly synchronize the assigned task-local status with its final outcome, preserving the valid attempt-free pending creation state and sibling histories, and add a skill-contract assertion for that transition. Focused verification: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/workbench/precondition.test.ts tests/templates/artifact-contracts.test.ts tests/docs/workbench-docs.test.ts` passed 72 tests (the precondition suite already rejects a pending task log with a done attempt); `git diff --check 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa 8e72175110a85e503db02711587821e9f3a39290` was clean. (violates: requirements/execution.md, “Initialize task execution artifacts in a lint-valid state”; design decision “Instantiate every planning template as a live artifact”; finish-work's unchanged task-evidence gate)
+- [skills/hamilton-plan/SKILL.md:213-220; affected consumer src/workbench/precondition-artifacts.ts:169-199] Re-plan says a renamed non-done task may update *only* the root Markdown title and task-progress heading while preserving the surviving metadata entry's exact title. Its plan heading and root row then use the new title but the root `tasks` frontmatter retains the old one. Lint does not compare these titles across representations, yet the finish precondition rejects their mismatch. Require the same new unescaped title in the assigned root metadata entry, row, plan heading, and task-local heading, retain the task id/status/link/attempt history, and test the rename path rather than only retained status. (violates: requirements/execution.md, “Initialize task execution artifacts in a lint-valid state,” matching exact title; design decision “Instantiate every planning template as a live artifact”)
+
+### Suggestions
+
+- None.
