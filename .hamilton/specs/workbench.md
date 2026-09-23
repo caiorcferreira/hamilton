@@ -2,7 +2,7 @@
 artifact: requirements-spec
 capability: workbench
 status: current
-updated: 2026-09-13
+updated: 2026-09-23
 author: Hermes Agent
 decision: accepted
 ---
