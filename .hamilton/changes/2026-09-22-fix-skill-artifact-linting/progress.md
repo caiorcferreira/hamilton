@@ -51,7 +51,7 @@ tasks:
     progress: tasks/task-11/progress.md
   - id: 12
     title: Synchronize renamed task titles across re-plan artifacts
-    status: pending
+    status: done
     progress: tasks/task-12/progress.md
 ---
 
@@ -70,4 +70,4 @@ tasks:
 | Task 9: Correct remaining author-bearing template guidance | done | [details](tasks/task-9/progress.md) |
 | Task 10: Document artifact attribution and scoped lint in the SDD framework | done | [details](tasks/task-10/progress.md) |
 | Task 11: Finalize task-local progress status with the attempt | done | [details](tasks/task-11/progress.md) |
-| Task 12: Synchronize renamed task titles across re-plan artifacts | pending | [details](tasks/task-12/progress.md) |
+| Task 12: Synchronize renamed task titles across re-plan artifacts | done | [details](tasks/task-12/progress.md) |

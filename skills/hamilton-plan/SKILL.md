@@ -215,9 +215,12 @@ amend the plan without reading or rewriting sibling attempt histories.
   exact numeric identity, title, link, directory, and append-only history.
 - Append each new active task with a new numeric id, add matching frontmatter metadata and root row
   in amended plan order with status `pending`, and initialize its `tasks/task-N/progress.md` heading.
-- A renamed non-done task may update only its Markdown-escaped display title in the root row and
-  task-progress heading. Preserve its numeric id, path, current status, and every existing
-  `## Attempt N` block.
+- A renamed non-done task updates its root Markdown table display title with correct Markdown
+  escaping, while the exact unescaped title is written to its assigned root frontmatter metadata
+  entry, active plan heading, and task-progress heading. Preserve its current status in both root
+  representations, numeric id, exact path and link, and every existing append-only `## Attempt N` block; leave
+  done tasks byte-for-byte unchanged. After the complete amendment, run
+  `hamilton workbench lint --change-dir <change-dir>`.
 - Preserve an existing plan's `author` attribution exactly across re-plans; do not replace it
   with current Git values, an agent name, or a placeholder. If a new plan needs attribution and
   either `git config user.name` or `git config user.email` is unavailable, ask the user instead of

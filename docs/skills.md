@@ -191,8 +191,12 @@ declarative handoff contract between planning and coding. **This skill never wri
   current-status ledger with one linked row per active task; and one initialized
   `tasks/task-N/progress.md` implementation-history file per task.
 - **Notes:** all sequencing happens here because code follows each task's steps verbatim. Re-plan
-  preserves done tasks and stable numeric task identities, appends remediation tasks, and reconciles
-  the root ledger without rewriting task histories. On handoff it names `hamilton-code` or
+  preserves done tasks byte-for-byte and stable numeric task identities, appends remediation tasks,
+  and reconciles the root ledger without rewriting task histories. A renamed non-done task
+  synchronizes its exact unescaped title across the plan heading, root metadata, and task-local
+  heading while Markdown-escaping the root table display; its status, path, link, and append-only
+  attempts remain unchanged. After the complete amendment, run
+  `hamilton workbench lint --change-dir <change-dir>`. On handoff it names `hamilton-code` or
   `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 

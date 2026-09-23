@@ -35,6 +35,7 @@ const reviewDocument = (
   material: string,
   mode: ReviewFixtureMode,
   blockingFeedback = false,
+  taskTitle = "Implement",
 ): string => {
   const compatibility =
     mode === "compatibility" || mode === "ambiguous-compatibility";
@@ -68,7 +69,7 @@ const reviewDocument = (
         ];
   const title =
     kind === "feedback"
-      ? "# Code Feedback: Task 1 — Implement"
+      ? `# Code Feedback: Task 1 — ${taskTitle}`
       : "# Whole-branch Review: Demo";
   const blocking = blockingFeedback
     ? "- [src/main.ts:1] Fix this (violates: acceptance)"
@@ -112,6 +113,8 @@ const makeEvidence = (
     readonly blockingFeedback?: boolean;
     readonly taskProgressStatus?: string;
     readonly metadataStatus?: string;
+    readonly taskTitle?: string;
+    readonly metadataTitle?: string;
     readonly feedbackMode?: ReviewFixtureMode;
     readonly reviewMode?: ReviewFixtureMode;
   } = {},
@@ -122,20 +125,23 @@ const makeEvidence = (
 } => {
   const changeDir = makeChangeDir(repository, "demo");
   const base = git(repository, "rev-parse", "HEAD");
+  const taskTitle = options.taskTitle ?? "Implement";
+  const metadataTitle = options.metadataTitle ?? taskTitle;
+  const displayTitle = taskTitle.replaceAll("|", "\\|");
   write(
     repository,
     evidencePath("demo", "plan.md"),
-    `---\nartifact: plan\nchange: demo\nstatus: approved\ncreated: 2026-09-12\nauthor: test\ndecision: accepted\nroute_unit: null\n---\n# Plan: Demo\n\n## Overview\nA plan.\n\n## Tasks\n\n### Task 1: Implement\n\n## Done when\nIt works.\n`,
+    `---\nartifact: plan\nchange: demo\nstatus: approved\ncreated: 2026-09-12\nauthor: test\ndecision: accepted\nroute_unit: null\n---\n# Plan: Demo\n\n## Overview\nA plan.\n\n## Tasks\n\n### Task 1: ${taskTitle}\n\n## Done when\nIt works.\n`,
   );
   write(
     repository,
     evidencePath("demo", "progress.md"),
-    `---\nartifact: progress\nchange: demo\nstatus: complete\nupdated: 2026-09-12\ndecision: accepted\ntasks:\n  - id: 1\n    title: Implement\n    status: ${options.metadataStatus ?? "done"}\n    progress: tasks/task-1/progress.md\n---\n# Progress: Demo\n\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Implement | done | [details](tasks/task-1/progress.md) |\n`,
+    `---\nartifact: progress\nchange: demo\nstatus: complete\nupdated: 2026-09-12\ndecision: accepted\ntasks:\n  - id: 1\n    title: ${metadataTitle}\n    status: ${options.metadataStatus ?? "done"}\n    progress: tasks/task-1/progress.md\n---\n# Progress: Demo\n\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: ${displayTitle} | done | [details](tasks/task-1/progress.md) |\n`,
   );
   write(
     repository,
     evidencePath("demo", "tasks/task-1/progress.md"),
-    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — Implement\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
+    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — ${taskTitle}\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
   );
   const material = commitAll(repository, "material");
   write(
@@ -147,6 +153,7 @@ const makeEvidence = (
       material,
       options.feedbackMode ?? "compatibility",
       options.blockingFeedback,
+      taskTitle,
     ),
   );
   commitPaths(
@@ -430,6 +437,36 @@ it("opens the gate with a committed synchronized all-done ledger", async () => {
   expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
   expect(result.stdout).toContain("[PASS] Final clean tree");
   expect(result.lastLine).toBe("gate: open");
+});
+
+it("opens the gate for a committed synchronized renamed task title", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    taskTitle: "Rename | delimiter",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Clean tree");
+  expect(result.stdout).toContain("[PASS] Tasks (1 implemented)");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it("rejects a committed stale metadata title with the ledger diagnostic", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    taskTitle: "Rename | delimiter",
+    metadataTitle: "Stale title",
+  });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("[PASS] Clean tree");
+  expect(result.stdout).not.toContain("[FAIL] Clean tree");
+  expect(result.stdout).toContain("progress metadata ledger does not match");
+  expect(result.lastLine).toContain("gate: closed");
 });
 
 it("rejects a committed metadata status mismatch despite a synchronized task row", async () => {
