@@ -43,6 +43,9 @@ describe("hamilton-plan execution contract", () => {
     expect(replan).toContain("A renamed non-done task")
     expect(replan).toMatch(/Mark an abandoned task.*retain its existing task directory/s)
     expect(replan).toContain("Renumber nothing")
+    expect(replan).toMatch(/surviving task's actual status in both the root frontmatter.*row/is)
+    expect(replan).toMatch(/new active task.*matching frontmatter metadata and root row.*status `pending`/is)
+    expect(replan).toContain("including frozen `done` tasks and existing non-done tasks")
   })
 
   it("uses only the exact canonical abandonment suffix and preserves abandoned history", () => {
@@ -86,8 +89,11 @@ describe("hamilton-code execution contract", () => {
     expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
     expect(skill).toMatch(/instruction block.*inline hint/is)
     expect(skill).toMatch(/must not survive|remov(?:e|ing)/is)
-    expect(process).toMatch(/Update only the assigned task's root row to `in-progress`/)
-    expect(process).toMatch(/update the same root row from `in-progress` to\s+the matching `done` or `blocked` status/)
+    expect(process).toMatch(/Update only the assigned task's root frontmatter metadata entry and\s+Markdown row together to `in-progress`/is)
+    expect(process).toMatch(/update the same root frontmatter metadata entry\s+and Markdown row together from `in-progress` to\s+the matching `done` or `blocked` status/is)
+    expect(process).toMatch(/frontmatter.*(?:metadata|entry).*and.*(?:Markdown )?row.*together.*`in-progress`/is)
+    expect(process).toMatch(/frontmatter.*(?:metadata|entry).*and.*(?:Markdown )?row.*together.*`(?:done|blocked)`/is)
+    expect(process).toMatch(/preserv(?:e|es).*sibling.*(?:unchanged|status)/is)
     expect(skill).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(skill).toMatch(/append.*next-numbered.*attempt.*physical end/is)
     expect(skill).toMatch(/preserve.*prior attempt/is)

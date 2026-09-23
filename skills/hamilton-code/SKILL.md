@@ -73,8 +73,9 @@ Plus:
    metadata source. Instantiate a cleaned in-memory copy with the assigned task id and title by
    removing its opening instruction block and every inline hint, then
    require `plan.md`, the root
-   `<change-dir>/progress.md` task table, exactly one active row for the assigned task, and the
-   linked `<change-dir>/tasks/task-N/progress.md`. The linked file's creation portion must match
+   `<change-dir>/progress.md` frontmatter `tasks` entry and Markdown table, exactly one active
+   metadata entry and row for the assigned task, and the linked `<change-dir>/tasks/task-N/progress.md`.
+   The frontmatter entry and table row must match on numeric id, exact title, status, and link. The linked file's creation portion must match
    that cleaned instantiation before any appended attempts; no template instruction or hint may
    survive in the live artifact. The row link must be the exact relative path
    `tasks/task-N/progress.md`, and the row status must be one of `pending`, `in-progress`,
@@ -99,10 +100,11 @@ Plus:
    validate only that identifier. Stop and request intervention if candidates are absent,
    conflicting, ambiguous, or fail ancestry validation. Never invoke `--record` at current `HEAD`
    after historical evidence exists, and never substitute `HEAD~1` or another guessed base.
-5. **Begin the attempt.** Update only the assigned task's root row to `in-progress` before
-   executing implementation steps. A `pending`, `blocked`, or `done` row may enter
-   `in-progress`; `done` means only that the latest implementation attempt completed. Preserve
-   every sibling row and file unchanged. At this supported staged boundary, run
+5. **Begin the attempt.** Update only the assigned task's root frontmatter metadata entry and
+   Markdown row together to `in-progress` before executing implementation steps. A `pending`,
+   `blocked`, or `done` task may enter `in-progress`; `done` means only that the latest
+   implementation attempt completed. Preserve every sibling metadata entry, row, and file
+   unchanged. At this supported staged boundary, run
    `hamilton workbench lint --change-dir <change-dir>` and stop on any nonzero result before
    implementation. Do not append an attempt yet: if the process terminates unexpectedly,
    `in-progress` remains the interruption signal.
@@ -118,8 +120,9 @@ Plus:
    physical end of `<change-dir>/tasks/task-N/progress.md`, preserving every prior attempt. Populate
    the installed-template lifecycle record completely with the final done or blocked outcome,
    created, modified, and deleted paths, every verification command and observed result, and notes
-   for deviations, decisions, or concerns. Then update the same root row from `in-progress` to
-   the matching `done` or `blocked` status. After the synchronized task-progress attempt and
+   for deviations, decisions, or concerns. Then update the same root frontmatter metadata entry
+   and Markdown row together from `in-progress` to the matching `done` or `blocked` status.
+   Preserve every sibling metadata entry, row, and file unchanged. After the synchronized task-progress attempt and
    root-row transition, run `hamilton workbench lint --change-dir <change-dir>`. A nonzero lint
    result is a failed gate: correct the artifacts and rerun lint, or report the exact blocker
    without committing or claiming compliance. Do not change another row or append review, feedback,
@@ -180,7 +183,7 @@ continuing or resolving it.
 - Are naming, structure, and error handling consistent with the codebase?
 - Are there no dead paths, stubs, debug output, TODOs, or commented-out blocks?
 - Is every acceptance criterion satisfied by observed evidence?
-- Did only the assigned root row and task progress file change among execution artifacts?
+- Did only the assigned root metadata entry and row and the task progress file change among execution artifacts?
 - Does the final commit match the task outcome and leave the checkpoint untracked?
 
 ## Output

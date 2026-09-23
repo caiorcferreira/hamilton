@@ -111,6 +111,7 @@ const makeEvidence = (
   options: {
     readonly blockingFeedback?: boolean;
     readonly taskProgressStatus?: string;
+    readonly metadataStatus?: string;
     readonly feedbackMode?: ReviewFixtureMode;
     readonly reviewMode?: ReviewFixtureMode;
   } = {},
@@ -129,7 +130,7 @@ const makeEvidence = (
   write(
     repository,
     evidencePath("demo", "progress.md"),
-    `---\nartifact: progress\nchange: demo\nstatus: complete\nupdated: 2026-09-12\ndecision: accepted\ntasks:\n  - id: 1\n    title: Implement\n    status: done\n    progress: tasks/task-1/progress.md\n---\n# Progress: Demo\n\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Implement | done | [details](tasks/task-1/progress.md) |\n`,
+    `---\nartifact: progress\nchange: demo\nstatus: complete\nupdated: 2026-09-12\ndecision: accepted\ntasks:\n  - id: 1\n    title: Implement\n    status: ${options.metadataStatus ?? "done"}\n    progress: tasks/task-1/progress.md\n---\n# Progress: Demo\n\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Implement | done | [details](tasks/task-1/progress.md) |\n`,
   );
   write(
     repository,
@@ -417,7 +418,7 @@ describe("precondition repository gates", () => {
   });
 });
 
-it("opens the gate with one-pass compatibility evidence", async () => {
+it("opens the gate with a committed synchronized all-done ledger", async () => {
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository);
 
@@ -429,6 +430,17 @@ it("opens the gate with one-pass compatibility evidence", async () => {
   expect(result.stdout).toContain("[PASS] Whole-branch review freshness");
   expect(result.stdout).toContain("[PASS] Final clean tree");
   expect(result.lastLine).toBe("gate: open");
+});
+
+it("rejects a committed metadata status mismatch despite a synchronized task row", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, { metadataStatus: "pending" });
+
+  const result = await precondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toContain("progress metadata ledger does not match");
+  expect(result.lastLine).toContain("gate: closed");
 });
 
 it("opens the gate for an all-abandoned plan with an empty progress ledger", async () => {

@@ -210,8 +210,11 @@ amend the plan without reading or rewriting sibling attempt histories.
   status row, identifier, link, directory, or task-local history.
 - Renumber nothing and never reuse an abandoned task id. Stable numeric task ids and
   `tasks/task-N/` paths are the execution identity.
-- Append each new active task with a new numeric id, add its root row in amended plan order with
-  status `pending`, and initialize its `tasks/task-N/progress.md` heading.
+- Preserve each surviving task's actual status in both the root frontmatter `tasks` metadata
+  entry and Markdown row, including frozen `done` tasks and existing non-done tasks. Keep their
+  exact numeric identity, title, link, directory, and append-only history.
+- Append each new active task with a new numeric id, add matching frontmatter metadata and root row
+  in amended plan order with status `pending`, and initialize its `tasks/task-N/progress.md` heading.
 - A renamed non-done task may update only its Markdown-escaped display title in the root row and
   task-progress heading. Preserve its numeric id, path, current status, and every existing
   `## Attempt N` block.
