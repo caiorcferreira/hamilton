@@ -1,0 +1,192 @@
+---
+artifact: plan
+change: 2026-09-22-fix-skill-artifact-linting
+status: approved
+created: 2026-09-22
+author: "Caio Ferreira <caiorcferreira@gmail.com>"
+decision: accepted
+route_unit: null
+---
+
+# Plan: Make Hamilton Artifact Authoring Lint-Valid
+
+## Overview
+
+- Change: `.hamilton/changes/2026-09-22-fix-skill-artifact-linting/`
+- Route unit: none; `route_unit` is `null`.
+- Goal: Align workbench lint with legitimate pending task and finish lifecycle states, make planning initialize complete lint-valid artifacts, and require scoped lint after every mutation of a recognized Hamilton artifact.
+- Test: `bun run test`
+- Build / typecheck: `bun run build`
+- Context notes: `src/workbench/artifact-body.ts` owns structural body validation; focused coverage lives in `tests/workbench/` and skill contracts in `tests/skills/`. Hamilton skills are standalone instructions, so each artifact writer needs its own scoped lint boundary. Preserve the approved design and existing artifact ownership in `design.md`.
+- Quality notes: none; the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance.
+- Review-driven amendment: the committed whole-branch review at `a399fee` requested changes because lint rejects a first pending finish intent and `hamilton-propose` does not bind requirements and design authors to configured Git identity. Append Tasks 6 and 7 without revising the approved requirements/design or frozen Tasks 1–5; the two repairs can be implemented independently.
+
+## Tasks
+
+### Task 1: Accept legitimate pending artifact states
+
+- Depends on: none
+- Files:
+  - Created: none
+  - Modified:
+    - `src/workbench/artifact-body.ts`
+    - `tests/workbench/artifact-contracts.test.ts`
+    - `tests/workbench/context.test.ts`
+    - `tests/workbench/lint.test.ts`
+  - Deleted: none
+- Acceptance:
+  - A structurally valid `task-progress` artifact with `status: pending`, the matching task identity, and no attempts passes validation; the same empty body with `in-progress`, `blocked`, or `done` status fails. See `requirements/workbench.md`, “Lint accepts a pristine pending task log.”
+  - A finish history with correctly paired ordered attempts and outcomes may end in exactly one unmatched final Attempt only when both `status` and `result` are `pending`. Unmatched outcomes, malformed or non-contiguous records, mispaired or out-of-order history, and an unmatched attempt with non-pending metadata remain invalid. See `requirements/workbench.md`, “Lint accepts a persisted finish intent awaiting its outcome.”
+  - Scoped lint exercises the accepted and rejected states without relaxing unrelated artifact contracts, and `hamilton workbench context` classifies a planned change with an empty pending task log as `split` rather than `invalid`.
+- Steps:
+  1. Add failing artifact-contract and scoped-lint tests for an empty pending task log, its non-pending neighbors, a pending finish intent after valid paired history, and malformed finish-history neighbors.
+  2. Update the existing body validator to make the two exceptions depend on the exact artifact lifecycle metadata and to retain strict finish record pairing and ordering.
+  3. Run the focused workbench tests and resolve any regression without changing task or finish ownership.
+- Verify: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts tests/workbench/context.test.ts tests/workbench/lint.test.ts` → all tests pass.
+- Commit: `fix: accept legitimate pending artifact states`
+
+### Task 2: Initialize lint-valid planning artifacts
+
+- Depends on: Task 1
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-plan/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Planning instructions populate `plan.md`, root `progress.md`, and each active `tasks/task-N/progress.md` with the complete required metadata and matching identities. Root task frontmatter and Markdown rows come from the same ordered task list, with exact links and escaped display titles; task logs use the exact task heading and remain attempt-free with `status: pending`. See `requirements/execution.md`, “Initialize task execution artifacts in a lint-valid state.”
+  - A new plan's `author` uses both configured repository values from `git config user.name` and `git config user.email`; replanning preserves existing authorship. Missing identity values are never replaced with an agent name or placeholder.
+  - The skill runs `hamilton workbench lint --change-dir <change-dir>` after completing the scaffold and resolves findings before handoff. A map-aware route or map mutation is linted with `--file` after its own write.
+- Steps:
+  1. Add failing skill-contract assertions for required plan/root/task metadata, exact task headings, empty pending histories, Git author attribution, re-plan preservation, and post-scaffold lint ordering.
+  2. Update `hamilton-plan` to instantiate all three templates with concrete values, preserve stable task identities and existing attribution, and run lint at the valid mutation boundary without inventing attempts.
+  3. Run the focused skill tests, then build the CLI and lint this complete change directory using the built CLI.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts && bun run build && bun dist/cli/main.js workbench lint --change-dir .hamilton/changes/2026-09-22-fix-skill-artifact-linting` → tests pass and lint exits `0`.
+- Commit: `fix: initialize lint-valid plan artifacts`
+
+### Task 3: Gate change-scoped artifact writers with lint
+
+- Depends on: Task 1
+- Files:
+  - Created:
+    - `tests/skills/change-artifact-lint-contract.test.ts`
+  - Modified:
+    - `skills/hamilton-propose/SKILL.md`
+    - `skills/hamilton-code/SKILL.md`
+    - `skills/hamilton-code-feedback/SKILL.md`
+    - `skills/hamilton-critique/SKILL.md`
+    - `skills/hamilton-review/SKILL.md`
+    - `skills/hamilton-finish-work/SKILL.md`
+    - `tests/skills/workbench-contract.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Every listed skill runs lint after each valid mutation of a recognized artifact and treats findings as a gate, not a bypass. Complete change trees use `--change-dir`; single owned histories and canonical specs, route, or map artifacts use `--file` at the mutation boundary. Lint does not replace the skills' existing semantic, freshness, ancestry, or completion gates. See `requirements/execution.md`, “Lint after recognized artifact mutations.”
+  - New author-bearing proposal artifacts use the configured Git name and email; revisions preserve existing attribution. Finish-work preserves author metadata when synchronizing an existing canonical spec.
+  - Tests verify writer coverage, selector scope, and that lint follows mutation and precedes handoff or commit.
+- Steps:
+  1. Add failing contract tests for each change-scoped writer's recognized outputs, correct selector, post-write timing, nonzero handling, and applicable author-preservation behavior.
+  2. Update the six skills at their owning mutation boundaries; do not lint unrelated code, docs, or other unrecognized outputs.
+  3. Run the focused skill-contract tests and correct any scope or ordering failures.
+- Verify: `bun --bun vitest run tests/skills/change-artifact-lint-contract.test.ts tests/skills/workbench-contract.test.ts tests/skills/finish-work-contract.test.ts` → all tests pass.
+- Commit: `docs: lint change artifact mutations`
+
+### Task 4: Gate canonical and Wayfinder artifact writers with lint
+
+- Depends on: Task 1
+- Files:
+  - Created:
+    - `tests/skills/canonical-artifact-lint-contract.test.ts`
+  - Modified:
+    - `skills/hamilton-compose-spec/SKILL.md`
+    - `skills/hamilton-wayfinder/SKILL.md`
+    - `skills/hamilton-wayfinder-domain-modeling/SKILL.md`
+    - `skills/hamilton-wayfinder-research/SKILL.md`
+    - `skills/hamilton-wayfinder-prototype/SKILL.md`
+    - `skills/hamilton-grilling/SKILL.md`
+  - Deleted: none
+- Acceptance:
+  - Each listed skill runs `hamilton workbench lint --file <file>` after creating or editing a recognized canonical spec, map, route, or ticket, and resolves findings before handoff. Conditional ticket edits are linted when they occur. Research notes and throwaway prototype files are not linted unless a recognized ticket is also mutated. See `requirements/execution.md`, “Lint after recognized artifact mutations,” and `requirements/framework-docs.md`.
+  - Newly created author-bearing canonical specs use configured `git config user.name` and `git config user.email`; edits preserve the recorded author. Missing identity is handled without inventing attribution.
+  - Tests cover every recognized-artifact writer and distinguish recognized outputs from unrelated research and prototype files.
+- Steps:
+  1. Add failing skill-contract tests that map each writer to its recognized outputs and verify its file-scoped lint boundary, timing, and applicable author handling.
+  2. Update the six skills so ticket answer/pointer writes and map, route, and canonical-spec mutations are linted, while unrelated notes and throwaway code remain outside lint scope.
+  3. Run the focused canonical/Wayfinder skill-contract tests and resolve findings.
+- Verify: `bun --bun vitest run tests/skills/canonical-artifact-lint-contract.test.ts` → all tests pass.
+- Commit: `docs: lint canonical and Wayfinder artifact mutations`
+
+### Task 5: Synchronize the artifact and framework documentation
+
+- Depends on: Tasks 2, 3, and 4
+- Files:
+  - Created: none
+  - Modified:
+    - `.hamilton/specs/artifact-templates.md`
+    - `.hamilton/specs/execution.md`
+    - `.hamilton/specs/framework-docs.md`
+    - `.hamilton/specs/workbench.md`
+    - `docs/skills.md`
+  - Deleted: none
+- Acceptance:
+  - The canonical specs describe configured Git attribution and preservation, lint-valid planning initialization, the two precise pending states, and the scoped post-mutation lint gate without broadening it to unrelated outputs. Existing author metadata is preserved.
+  - The skills reference explains when artifact-writing skills use `--file` versus `--change-dir`, how they handle findings, and why a new pending task log has no synthetic attempt. See `requirements/framework-docs.md`, “Document artifact linting at authoring boundaries.”
+  - Updated canonical specs pass their individual workbench lint checks; documentation accurately reflects the implemented skill behavior.
+- Steps:
+  1. Update the four canonical specs from the approved requirements while preserving each existing author and avoiding implementation details in the prose.
+  2. Update the Workbench section of `docs/skills.md` to explain selectors, artifact-writer timing, and the valid empty pending task-log state.
+  3. Lint each changed canonical spec with `hamilton workbench lint --file <spec-path>`, read back the changed documentation, inspect the final diff, and run the repository build and full test suite.
+- Verify: `bun run build && bun run test && hamilton workbench lint --file .hamilton/specs/artifact-templates.md && hamilton workbench lint --file .hamilton/specs/execution.md && hamilton workbench lint --file .hamilton/specs/framework-docs.md && hamilton workbench lint --file .hamilton/specs/workbench.md && git diff --check` → build and tests pass, every spec lint exits `0`, and diff check is clean.
+- Commit: `docs: document artifact lint gate`
+
+### Task 6: Accept the first pending finish intent
+
+- Depends on: Task 1
+- Files:
+  - Created: none
+  - Modified:
+    - `src/workbench/artifact-body.ts`
+    - `tests/workbench/artifact-contracts.test.ts`
+    - `tests/workbench/lint.test.ts`
+  - Deleted: none
+- Acceptance:
+  - A finish artifact with `status: pending` and `result: pending` and a complete, physically final `Attempt 1` with no `Outcome 1` passes `hamilton workbench lint --file <finish.md>`; a valid contiguous history of paired attempts and outcomes may likewise end in one complete pending Attempt N without an Outcome. See `requirements/workbench.md`, “Lint accepts a persisted finish intent awaiting its outcome,” scenario “Lint a newly committed finish intent,” and `design.md`, “Align lint with precise legitimate lifecycle states.”
+  - The accepted pending attempt has the template-defined intent fields (`Passed preconditions`, `Specification synchronization`, `Strategy`, `Intended workspace result`, `Route intent`) filled with actual values. Do not relax finish-history validation for an empty or malformed attempt, absent Outcome in completed/blocked histories, non-pending status or result, an unmatched Outcome, duplicate or non-contiguous numbering, or an unmatched attempt followed by a later record. Completed histories remain strictly paired, and existing task-progress handling is unchanged. See the requirement's “Reject invalid finish history” scenario.
+  - The file-scoped lint test writes an actual first pending finish artifact and verifies exit `0`, alongside invalid adjacent states returning nonzero; existing later-intent and paired-history tests continue to pass.
+- Steps:
+  1. Add failing focused body-contract and real temporary-file `lintScope({ file })` tests for complete first pending Attempt 1, including positive later pending and completed paired cases and negative metadata, missing-field, missing-outcome, numbering, and physical-order neighbors. Include an explicit file-scoped first-intent regression asserting success.
+  2. Narrowly adjust `src/workbench/artifact-body.ts` so the generic finish workflow does not require an Outcome for exactly one complete pending last Attempt, including Attempt 1; update the pairing check to permit that case without dropping the contiguous-numbering, physical-order, or completed-history checks. Do not change other artifact validators or fabricate an Outcome.
+  3. Run the focused body-contract and scoped-lint tests; resolve failures while preserving existing legitimate later pending attempts and all completed-history rejections.
+- Verify: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts tests/workbench/lint.test.ts` → all tests pass, including the first pending finish-intent `--file` regression and rejection neighbors.
+- Commit: `fix: accept first pending finish intent`
+
+### Task 7: Attribute every proposed artifact to Git identity
+
+- Depends on: Task 3
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-propose/SKILL.md`
+    - `bundle/templates/proposal.md`
+    - `bundle/templates/requirements-change.md`
+    - `bundle/templates/design.md`
+    - `tests/skills/change-artifact-lint-contract.test.ts`
+    - `tests/templates/artifact-contracts.test.ts`
+  - Deleted: none
+- Acceptance:
+  - `hamilton-propose` reads effective repository `git config user.name` and `git config user.email` before creating any new proposal, requirements change, or design artifact, writes each new `author` as `Name <email>` using both values, and blocks or asks for either missing value without inventing an agent or placeholder author. The rule applies to each artifact even if the proposal already exists. See `requirements/artifact-templates.md`, “Populate artifact authors from configured Git identity,” scenarios “Create an author-bearing artifact” and “Git identity is incomplete,” and `design.md`, “Populate author metadata from the repository Git identity.”
+  - Editing an existing proposal, requirement, or design preserves that artifact's recorded `author` exactly unless explicitly directed otherwise. The three bundled templates instruct authors to use configured Git name and email rather than suggesting `name or agent`; retain their disposable instruction-block pattern. See the requirement's “Revise an existing artifact” scenario.
+  - Focused skill-contract tests assert creation, missing-identity handling, and revision-preservation guidance independently for proposal, requirements, and design, while template-contract tests assert all three author hints and reject agent guidance. The existing post-write scoped lint gate remains in place for all outputs.
+- Steps:
+  1. Add failing assertions in `tests/skills/change-artifact-lint-contract.test.ts` for all three output creation paths, missing either Git value, and per-artifact author preservation on revisions; add failing `tests/templates/artifact-contracts.test.ts` checks for proposal, requirements-change, and design guidance.
+  2. Update `hamilton-propose` to obtain the effective repository identity for every newly created author-bearing output, including creation after an existing proposal, and to stop on either missing value; preserve recorded authors on edits. Replace `author: <name or agent>` in each of the three templates with a Git-identity hint in `Name <email>` form, without modifying artifact schema or lint scope.
+  3. Run the focused skill and template contract tests; fix wording or test failures without changing proposal, requirements, or design artifacts for this change.
+- Verify: `bun --bun vitest run tests/skills/change-artifact-lint-contract.test.ts tests/templates/artifact-contracts.test.ts` → all tests pass and each of the three output contracts is covered.
+- Commit: `docs: attribute proposal artifacts to Git identity`
+
+## Done when
+
+- All tasks are implemented and their outcomes are recorded in `progress.md` and the linked task logs.
+- `bun run test` passes and `bun run build` succeeds.
+- The complete change directory and the changed canonical specs pass their scoped workbench lint checks.
+- All review feedback has been addressed.
