@@ -25,6 +25,14 @@ Subagent:
     task's own evidence. Do not read or touch a sibling task. Follow the task's Steps exactly;
     do not redesign, reorder, or add work.
 
+    ## TDD evidence
+
+    The task-local report must carry the red/green/refactor evidence for this attempt: record the
+    commands and observed results for the failing red check, smallest green implementation,
+    behavior-preserving refactor, and relevant verification after any correction. If a conventional
+    red check cannot be written, record the exception reason and a repeatable alternative
+    verification; do not omit the evidence.
+
     ## Context
 
     [ONE_LINE_CONTEXT]
@@ -41,7 +49,10 @@ Subagent:
     Follow hamilton-code completely: transition only Task [N]'s root row, execute and verify the
     task, append exactly one canonical attempt to the task log, and commit the implementation plus
     that synchronized evidence with the task's specified commit message. Leave plan.md, sibling
-    evidence, and feedback untouched.
+    evidence, and feedback untouched. This task range is handed to the existing
+    `hamilton-code-feedback` refactor-phase review. A `changes-requested` refactor-phase review
+    returns the same Task [N] to `hamilton-code`; relevant verification is required before a fresh
+    `hamilton-code-feedback` pass.
 
     The task log is the detailed report. Return only concise status and commit information:
     - Status: done | blocked

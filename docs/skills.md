@@ -190,14 +190,17 @@ declarative handoff contract between planning and coding. **This skill never wri
 - **Produces:** the declarative `plan.md` task contract; root `progress.md`, initialized as the
   current-status ledger with one linked row per active task; and one initialized
   `tasks/task-N/progress.md` implementation-history file per task.
-- **Notes:** all sequencing happens here because code follows each task's steps verbatim. Re-plan
-  preserves done tasks byte-for-byte and stable numeric task identities, appends remediation tasks,
+- **Notes:** all sequencing happens here because code follows each task's steps verbatim. Each task
+  runs Red before production edits, reruns the same check to Green, verifies behavior after Refactor,
+  and then runs its Verify command. If a failing check is technically impossible, the task specifies
+  a reason and repeatable pre-change/post-change observation. Corrections stay in the same task;
+  the serial driver, not the task Steps, dispatches feedback and awaits fresh approval. Re-plan
+  preserves done tasks byte-for-byte and stable numeric identities, appends remediation tasks,
   and reconciles the root ledger without rewriting task histories. A renamed non-done task
-  synchronizes its exact unescaped title across the plan heading, root metadata, and task-local
-  heading while Markdown-escaping the root table display; its status, path, link, and append-only
-  attempts remain unchanged. After the complete amendment, run
-  `hamilton workbench lint --change-dir <change-dir>`. On handoff it names `hamilton-code` or
-  `hamilton-orchestrate`.
+  synchronizes its unescaped title across the plan heading, root metadata, and task-local heading
+  while escaping the root table display; its status, path, link, and attempts stay unchanged.
+  After the amendment, run `hamilton workbench lint --change-dir <change-dir>`. On handoff it names
+  `hamilton-code` or `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
 ### `hamilton-code` — implement one task *(step 3)*
@@ -207,21 +210,29 @@ commits.
 
 - **When:** for each task's first implementation attempt, and again when fresh task feedback requests
   changes.
-- **Inputs:** one exact active `Task N`; its root ledger row and linked
+- **Inputs:** one exact active `Task N`; its root ledger metadata entry, row, and linked
   `tasks/task-N/progress.md`; its stable `tasks/task-N/.base` checkpoint; `AGENTS.md`; and, on a
   correction, that task's `feedback.md`.
 - **Produces:** for a successful attempt, the task's tests and code plus one implementation commit
-  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root row's
-  transition through `in-progress` to `done`. For a graceful blocker, an artifact-only bookkeeping
-  commit contains the appended blocked attempt and the assigned row set to `blocked`; partial
-  production edits remain uncommitted.
-- **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
-  only its assigned row and appends to that task-local history among execution artifacts. The empty
-  task log stays `pending` until an attempt exists; a previously finalized log retains its latest
-  `done` or `blocked` local status during a correction and is never made locally `in-progress` before
-  an attempt exists. Finalization sets its local status to `done` or `blocked` before synchronizing
-  the root row. It never edits `plan.md`, sibling task state, feedback, root review, or finish history.
-  The checkpoint stays fixed across corrections so code feedback always receives the complete task diff.
+  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root metadata entry
+  and row's transition through `in-progress` to `done`. For a graceful blocker, an artifact-only
+  bookkeeping commit contains the appended blocked attempt and the assigned entry and row set to
+  `blocked`; partial production edits remain uncommitted.
+- **Notes:** `hamilton-plan` initializes the root ledger and task progress file; `hamilton-code` changes
+  only its assigned root metadata entry and row, and appends to that task-local history among
+  execution artifacts. The empty task log stays `pending` until an attempt exists; a previously
+  finalized log retains its latest `done` or `blocked` local status during a correction and is
+  never made locally `in-progress` before an attempt exists. Finalization sets its local status
+  to `done` or `blocked` before synchronizing the root metadata entry and row. It never edits
+  `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
+  fixed across corrections so code feedback always receives the complete task diff.
+
+For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,
+make it pass in green, then refactor while keeping the test green. The refactor phase uses
+`hamilton-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result
+returns the same task to a fresh correction cycle, with verification before advancement. When a task has
+no conventional failing test, it must record the justification and use repeatable alternative verification.
+
 - Source: [`skills/hamilton-code/SKILL.md`](../skills/hamilton-code/SKILL.md)
 
 ### `hamilton-code-feedback` — review one task diff *(step 4, tactical gate)*

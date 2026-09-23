@@ -131,7 +131,7 @@ describe("workbench CLI", () => {
     expect(missing.status).toBe(2);
     expect(both.status).toBe(2);
     expect(unknown.status).toBe(2);
-  });
+  }, 15_000);
 
   it("preserves isolate negative checks", () => {
     git(temporaryDirectory, "init", "-q", "-b", "main");

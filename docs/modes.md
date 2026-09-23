@@ -30,6 +30,12 @@ design-phase gate. Neither belongs to the seven-skill core sequence. Planning wr
 `tasks/task-N/feedback.md`; one whole-branch review writes root `review.md`; finish-work records its
 paired history in root `finish.md`.
 
+For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,
+make it pass in green, then refactor while keeping the test green. The refactor phase uses
+`hamilton-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result
+returns the same task to a fresh correction cycle, with verification before advancement. When a task has
+no conventional failing test, it must record the justification and use repeatable alternative verification.
+
 Each step is a self-contained skill that names no tool and depends on no engine internals — only on
 the project's standards (`AGENTS.md`) and the shared artifacts under the project's `.hamilton/`
 directory. The same skill guides a human in an editor and a coding agent.
