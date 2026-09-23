@@ -49,6 +49,19 @@ describe("split execution artifact templates", () => {
     expect(template).toContain("status: pending | in-progress | blocked | complete")
   })
 
+  it("guides every proposed artifact template to configured Git identity", () => {
+    for (const name of ["proposal.md", "requirements-change.md", "design.md"]) {
+      const template = readTemplate(name)
+
+      expect(template).toContain("author: <Name <email>>")
+      expect(template).toMatch(
+        /configured Git identity[\s\S]*git config user\.name[\s\S]*git config user\.email[\s\S]*Name <email>/i,
+      )
+      expect(template).not.toMatch(/author: <name or agent>/i)
+      expect(template).not.toMatch(/\b(?:name or agent|agent name)\b/i)
+    }
+  })
+
   it("defines the task-local progress artifact", () => {
     const template = readTemplate("task-progress.md")
 

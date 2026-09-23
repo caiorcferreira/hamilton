@@ -147,6 +147,54 @@ describe("change-scoped artifact lint contract", () => {
     )
   })
 
+  it("attributes each new proposed artifact to the effective Git identity", () => {
+    const propose = section(readWriters()["hamilton-propose"], "## Process")
+    const creationGuidance = propose.match(
+      /For every\s+new author-bearing output[\s\S]*?before writing;[\s\S]*?never use an agent name,[\s\S]*?operating-system username,[\s\S]*?unresolved template placeholder\./i,
+    )?.[0]
+
+    expect(creationGuidance).toBeDefined()
+    for (const artifact of [
+      "proposal.md",
+      "requirements/<capability>.md",
+      "design.md",
+    ]) {
+      expect(creationGuidance).toContain(artifact)
+    }
+    expect(creationGuidance).toMatch(/effective repository[\s\S]*git config user\.name/i)
+    expect(creationGuidance).toMatch(/git config user\.name[\s\S]*git config user\.email/i)
+    expect(creationGuidance).toMatch(/author: Name <email>/i)
+    expect(creationGuidance).toMatch(/even when[\s\S]*`proposal\.md` already exists/i)
+  })
+
+  it("stops every proposed output when either Git identity value is unavailable", () => {
+    const propose = section(readWriters()["hamilton-propose"], "## Process")
+
+    expect(propose).toMatch(
+      /If either configured Git value is unavailable[\s\S]*ask the user or\s+stop with a blocker before writing/i,
+    )
+    expect(propose).toMatch(
+      /never use an agent name,[\s\S]*?operating-system username,[\s\S]*?unresolved template placeholder/i,
+    )
+  })
+
+  it("preserves each existing proposed artifact author on revisions", () => {
+    const propose = section(readWriters()["hamilton-propose"], "## Process")
+    const revisionGuidance = propose.match(
+      /On (?:a\s+)?revisions?[\s\S]*?unless explicitly directed otherwise\./i,
+    )?.[0]
+
+    expect(revisionGuidance).toBeDefined()
+    for (const artifact of [
+      "proposal.md",
+      "requirements/<capability>.md",
+      "design.md",
+    ]) {
+      expect(revisionGuidance).toContain(artifact)
+    }
+    expect(revisionGuidance).toMatch(/preserve[\s\S]*recorded author[\s\S]*exactly/i)
+  })
+
   it("preserves semantic and authorship gates around lint", () => {
     const skills = readWriters()
 

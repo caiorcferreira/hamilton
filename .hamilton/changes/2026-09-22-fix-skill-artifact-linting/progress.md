@@ -45,4 +45,4 @@ tasks:
 | Task 4: Gate canonical and Wayfinder artifact writers with lint | done | [details](tasks/task-4/progress.md) |
 | Task 5: Synchronize the artifact and framework documentation | done | [details](tasks/task-5/progress.md) |
 | Task 6: Accept the first pending finish intent | done | [details](tasks/task-6/progress.md) |
-| Task 7: Attribute every proposed artifact to Git identity | pending | [details](tasks/task-7/progress.md) |
+| Task 7: Attribute every proposed artifact to Git identity | done | [details](tasks/task-7/progress.md) |

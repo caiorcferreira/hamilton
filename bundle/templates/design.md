@@ -3,7 +3,7 @@ artifact: design
 change: <YYYY-MM-DD-change-title>
 status: draft
 created: <YYYY-MM-DD>
-author: <name or agent>
+author: <Name <email>>
 decision: accepted | rejected | skipped
 route_unit: null
 ---
@@ -18,6 +18,8 @@ route_unit: null
   Scale each section to its complexity: a sentence when obvious, a few paragraphs
   when nuanced. Delete a section that does not apply.
   Delete this comment block and inline hints before finalizing.
+  Before creating this artifact, read the configured Git identity with `git config user.name` and
+  `git config user.email`, then write `author: Name <email>` using both configured values.
 -->
 
 # Design: <Change Title>

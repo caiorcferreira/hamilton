@@ -128,10 +128,16 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements. In
    map-aware mode, fill the frontmatter's `route_unit` field with the route path and unit
-   number — it is the provenance link every downstream step follows back to the map. For new
-   author-bearing proposal artifacts, read `git config user.name` and `git config user.email`
-   and use `author: Name <email>`; if either value is missing, ask the user and stop rather than
-   inventing attribution. On a revision, preserve each existing author attribution exactly.
+   number — it is the provenance link every downstream step follows back to the map. For every
+   new author-bearing output — `proposal.md`, each `requirements/<capability>.md`, and
+   `design.md` — read the effective repository Git identity immediately before creation with
+   `git config user.name` and `git config user.email`; write `author: Name <email>` using both
+   configured values, including when a requirements or design artifact is created even when
+   `proposal.md` already exists. If either configured Git value is unavailable, ask the user or
+   stop with a blocker before writing; never use an agent name, operating-system username, or
+   unresolved template placeholder. On a revision of `proposal.md`,
+   `requirements/<capability>.md`, or `design.md`, preserve each existing author attribution and
+   each recorded author exactly unless explicitly directed otherwise.
    Populate the proposal frontmatter fields `change`, `status`, `author`, and `created`; do not
    recreate them as a Markdown metadata table. After every proposal artifact mutation, run
    `hamilton workbench lint --change-dir <change-dir>` and resolve every warning or error before
