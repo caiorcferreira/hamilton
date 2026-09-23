@@ -176,6 +176,21 @@ describe("change-scoped artifact lint contract", () => {
     expect(propose).toMatch(
       /never use an agent name,[\s\S]*?operating-system username,[\s\S]*?unresolved template placeholder/i,
     )
+
+    for (const artifact of [
+      "proposal.md",
+      "requirements/<capability>.md",
+      "design.md",
+    ]) {
+      const escapedArtifact = artifact.replace(/\./g, "\\.")
+
+      expect(propose).toMatch(
+        new RegExp(
+          `For every\\s+new author-bearing output[\\s\\S]*?${escapedArtifact}[\\s\\S]*?git config user\\.name[\\s\\S]*?git config user\\.email[\\s\\S]*?If either configured Git value is unavailable[\\s\\S]*?ask the user or\\s+stop with a blocker before writing`,
+          "i",
+        ),
+      )
+    }
   })
 
   it("preserves each existing proposed artifact author on revisions", () => {
