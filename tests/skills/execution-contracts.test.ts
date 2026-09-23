@@ -42,6 +42,7 @@ describe("hamilton-plan execution contract", () => {
     expect(replan).toMatch(/Append each new active task.*status `pending`/s)
     expect(replan).toContain("A renamed non-done task")
     expect(replan).toMatch(/renamed non-done task.*exact unescaped title.*root.*frontmatter.*task-progress heading/is)
+    expect(replan).toMatch(/exact unescaped title.*active plan heading/is)
     expect(replan).toMatch(/Markdown table.*escaped.*title.*root.*frontmatter.*task-progress heading/is)
     expect(replan).toMatch(/preserve.*status.*id.*path.*append-only.*attempt/is)
     expect(replan).toMatch(/done tasks.*byte-for-byte unchanged/is)
