@@ -774,16 +774,24 @@ const readTaskLedger = (
     }
   }
   for (let index = 0; index < records.length; index += 1) {
-    const expected = index + 1;
-    if (records[index]?.number !== expected) {
+    const current = records[index]?.number;
+    const previous = records[index - 1]?.number;
+    const valid =
+      ledger === "plan"
+        ? current === index + 1
+        : index === 0 ||
+          (current !== undefined &&
+            previous !== undefined &&
+            current > previous);
+    if (!valid) {
       diagnostics.push(
         bodyDiagnostic(
           artifact,
           "non-monotonic-record",
           "Task numbering must be append-only and contiguous",
           records[index]?.line ?? artifact.locations.body.startLine,
-          String(expected),
-          records[index]?.number,
+          String(index + 1),
+          current,
         ),
       );
       break;

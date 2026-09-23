@@ -767,6 +767,46 @@ Head: ${sha}
     ]);
   });
 
+  it("accepts abandoned middle-task gaps while keeping the plan ledger contiguous", () => {
+    const plan = recognized(
+      ".hamilton/changes/demo/plan.md",
+      validArtifacts[4][1],
+      "# Plan: Demo\n## Overview\n## Tasks\n### Task 1: Keep\n### Task 2: Skip (abandoned — no longer needed)\n### Task 3: Resume\n## Done when",
+    );
+    const planBody = validateArtifactBody(plan, "plan");
+    expect(planBody.diagnostics).toEqual([]);
+    expect(planBody.workflow.records.map((record) => record.number)).toEqual([
+      1, 2, 3,
+    ]);
+
+    const progress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      {
+        ...validArtifacts[5][1],
+        tasks: [
+          {
+            id: 1,
+            title: "Keep",
+            status: "done",
+            progress: "tasks/task-1/progress.md",
+          },
+          {
+            id: 3,
+            title: "Resume",
+            status: "pending",
+            progress: "tasks/task-3/progress.md",
+          },
+        ],
+      },
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Keep | done | [details](tasks/task-1/progress.md) |\n| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+    );
+    const progressBody = validateArtifactBody(progress, "progress");
+    expect(progressBody.diagnostics).toEqual([]);
+    expect(progressBody.workflow.records.map((record) => record.number)).toEqual([
+      1, 3,
+    ]);
+  });
+
   it("parses escaped progress-table delimiters inside task titles", () => {
     const progress = recognized(
       ".hamilton/changes/demo/progress.md",
@@ -1023,7 +1063,7 @@ Head: ${sha}
     const staleProgress = recognized(
       ".hamilton/changes/demo/progress.md",
       validArtifacts[5][1],
-      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2: Lint | done | [details](tasks/task-2/progress.md) |",
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2: Lint | done | [details](tasks/task-2/progress.md) |\n| Task 1: Lint | done | [details](tasks/task-1/progress.md) |",
     );
     const staleProgressBody = validateArtifactBody(staleProgress, "progress");
     expect(staleProgressBody.diagnostics.map((item) => item.code)).toContain(

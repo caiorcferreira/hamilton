@@ -540,6 +540,28 @@ const parserFailureCases: readonly {
   },
 ];
 
+const progressSource = (rows: readonly string[]): string => `---
+artifact: progress
+change: demo
+status: in-progress
+updated: 2026-09-12
+decision: accepted
+tasks:
+  - id: 1
+    title: Keep
+    status: done
+    progress: tasks/task-1/progress.md
+  - id: 3
+    title: Resume
+    status: pending
+    progress: tasks/task-3/progress.md
+---
+# Progress: Demo
+| Task | Status | Progress |
+| --- | --- | --- |
+${rows.join("\n")}
+`;
+
 const expectExit = (result: LintResult, exitCode: 0 | 1 | 2) => {
   expect(result.exitCode).toBe(exitCode);
   expect(renderLintResult(result)).toContain(
@@ -860,6 +882,67 @@ describe("scoped artifact lint", () => {
       }
     },
   );
+
+  it("accepts abandoned middle-task gaps and rejects invalid progress neighbors", async () => {
+    const cases = [
+      {
+        name: "abandoned middle-task gap",
+        rows: [
+          "| Task 1: Keep | done | [details](tasks/task-1/progress.md) |",
+          "| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+        ],
+        exitCode: 0,
+      },
+      {
+        name: "malformed row",
+        rows: [
+          "| Task 1: Keep | done | [details](tasks/task-1/progress.md) |",
+          "| Task 3 Resume | pending | [details](tasks/task-3/progress.md) |",
+        ],
+        exitCode: 1,
+      },
+      {
+        name: "duplicate row",
+        rows: [
+          "| Task 1: Keep | done | [details](tasks/task-1/progress.md) |",
+          "| Task 1: Resume | pending | [details](tasks/task-1/progress.md) |",
+        ],
+        exitCode: 1,
+      },
+      {
+        name: "descending rows",
+        rows: [
+          "| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+          "| Task 1: Keep | done | [details](tasks/task-1/progress.md) |",
+        ],
+        exitCode: 1,
+      },
+      {
+        name: "path mismatch",
+        rows: [
+          "| Task 1: Keep | done | [details](tasks/task-2/progress.md) |",
+          "| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+        ],
+        exitCode: 1,
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const directory = await temporaryDirectory();
+      const changeDirectory = Path.join(
+        directory,
+        ".hamilton",
+        "changes",
+        "demo",
+      );
+      await Fs.mkdir(changeDirectory, { recursive: true });
+      await Fs.writeFile(
+        Path.join(changeDirectory, "progress.md"),
+        progressSource(testCase.rows),
+      );
+      expectExit(await lintScope({ changeDir: changeDirectory }), testCase.exitCode);
+    }
+  });
 
   it("accepts pending task logs and finish intents only in their pending states", async () => {
     const directory = await temporaryDirectory();
