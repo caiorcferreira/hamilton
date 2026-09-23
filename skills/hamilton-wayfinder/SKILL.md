@@ -75,7 +75,7 @@ Working resolves only the tickets an explicit user request authorizes — invoki
 
 ## The route
 
-When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`, filling its `## Shipping rules` section from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
+When the last ticket resolves, the map clears and the route is written — once, as a closing act. The route is a static handoff: it lists the change-sized units in order. Each unit carries its goal paragraph plus one line per backing decision stating its outcome — e.g. "Decided: Postgres for the write model (ticket 02)". Reasoning, context, and alternatives stay in the ticket; the route line is the drill-down entry point, so an implementer knows every decision constraining a unit from the route alone and opens tickets only for the why. Before writing the route, fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`, favoring the newer term and confirming with the user any change to committed language. This mutates the canonical spec: when creating it, read `git config user.name` and `git config user.email`, record `author: Name <email>` in its frontmatter, if either configured identity is missing, stop and report it; never invent attribution, and preserve an existing recorded author exactly. Immediately after the fold, run `hamilton workbench lint --file <spec-path>`; a nonzero result is a failed gate that must be resolved and rerun before writing the route or handing off. Then write the route from the installed template at `~/.hamilton/templates/wayfinder/route.md`, filling its `## Shipping rules` section from the map's `branch:` field — the merge-back target — plus any Operation rules that concern shipping, so the route stays self-contained for downstream processes that never open the map.
 
 The map then moves through its lifecycle: open while charting and working, cleared when every ticket is resolved and the route is written, shipping while the route's units are executed, and shipped when the last unit lands. Each unit is executed by whatever downstream process the effort uses. The process that starts a unit flips it `pending → in-progress` on its own branch; the process that completes it flips it `in-progress → shipped`, so the flip ships with the work it marks. The process starting the first unit flips the map `cleared → shipping`; the process shipping the last unit flips the map `shipping → shipped`.
 
@@ -97,11 +97,12 @@ This section is the contract between the wayfinder methodology and its file-nati
 
 ## Artifact validation
 
-Maps, tickets, and routes are recognized Hamilton artifacts. Research notes under
+Canonical specs, maps, tickets, and routes are recognized Hamilton artifacts. Research notes under
 `.hamilton/maps/<effort>/research/` and prototype files are unrelated outputs and stay outside
-this lint gate. After each write or edit of a map, ticket, or route, run the narrowest file-scoped
+this lint gate. After each write or edit of a recognized artifact, run the narrowest file-scoped
 command for the artifact:
 
+- `hamilton workbench lint --file <spec-path>` for `.hamilton/specs/glossary.md`.
 - `hamilton workbench lint --file <map-path>` for `.hamilton/maps/<effort>/map.md`.
 - `hamilton workbench lint --file <ticket-path>` for `.hamilton/maps/<effort>/tickets/NN-slug.md`.
 - `hamilton workbench lint --file <route-path>` for `.hamilton/maps/<effort>/route.md`.
@@ -109,8 +110,9 @@ command for the artifact:
 A nonzero lint result is a failed gate. Resolve the findings and rerun the matching command, or
 report the exact blocker without handing off, claiming resolution, or committing. Charting lints
 the map after creation, each ticket after creation or dependency edit, and the route after it is
-written. The work loop applies the same gate after every ticket answer, map gist, or route change
-before the next mutation or handoff.
+written. Route closing lints the canonical spec immediately after folding the working glossary.
+The work loop applies the same gate after every ticket answer, map gist, or route change before the
+next mutation or handoff.
 
 ## Process flow
 

@@ -49,6 +49,9 @@ describe("canonical and Wayfinder artifact lint contract", () => {
       ".hamilton/maps/<effort>/route.md",
     )
     expect(skills["hamilton-wayfinder"]).toContain(
+      ".hamilton/specs/glossary.md",
+    )
+    expect(skills["hamilton-wayfinder"]).toContain(
       "hamilton workbench lint --file <map-path>",
     )
     expect(skills["hamilton-wayfinder"]).toContain(
@@ -56,6 +59,9 @@ describe("canonical and Wayfinder artifact lint contract", () => {
     )
     expect(skills["hamilton-wayfinder"]).toContain(
       "hamilton workbench lint --file <route-path>",
+    )
+    expect(skills["hamilton-wayfinder"]).toContain(
+      "hamilton workbench lint --file <spec-path>",
     )
 
     expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
@@ -66,6 +72,9 @@ describe("canonical and Wayfinder artifact lint contract", () => {
     )
     expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
       "hamilton workbench lint --file <ticket-path>",
+    )
+    expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
+      "hamilton workbench lint --file <spec-path>",
     )
 
     expect(skills["hamilton-wayfinder-research"]).toContain(
@@ -107,8 +116,18 @@ describe("canonical and Wayfinder artifact lint contract", () => {
     )
     expectOrdered(
       skills["hamilton-wayfinder"],
-      "After each write or edit of a map, ticket, or route",
+      "After each write or edit of a recognized artifact",
       "hamilton workbench lint --file <map-path>",
+    )
+    expectOrdered(
+      skills["hamilton-wayfinder"],
+      "fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`",
+      "hamilton workbench lint --file <spec-path>",
+    )
+    expectOrdered(
+      skills["hamilton-wayfinder-domain-modeling"],
+      "After each canonical glossary or ticket mutation",
+      "hamilton workbench lint --file <spec-path>",
     )
     expectOrdered(
       skills["hamilton-wayfinder-domain-modeling"],
@@ -139,16 +158,22 @@ describe("canonical and Wayfinder artifact lint contract", () => {
   })
 
   it("keeps author attribution explicit for author-bearing canonical specs", () => {
-    const composeSpec = readWriters()["hamilton-compose-spec"]
+    const skills = readWriters()
 
-    expect(composeSpec).toMatch(
-      /git config user\.name[\s\S]*git config user\.email/i,
-    )
-    expect(composeSpec).toMatch(
-      /preserve.*(?:recorded|existing).*author|author.*preserve.*(?:recorded|existing)/is,
-    )
-    expect(composeSpec).toMatch(
-      /missing.*identity[\s\S]*(?:stop|report)[\s\S]*(?:not|never) invent/is,
-    )
+    for (const name of [
+      "hamilton-compose-spec",
+      "hamilton-wayfinder",
+      "hamilton-wayfinder-domain-modeling",
+    ] as const) {
+      expect(skills[name]).toMatch(
+        /git config user\.name[\s\S]*git config user\.email/i,
+      )
+      expect(skills[name]).toMatch(
+        /preserve.*(?:recorded|existing).*author|author.*preserve.*(?:recorded|existing)/is,
+      )
+      expect(skills[name]).toMatch(
+        /(?:missing.*identity|identity.*missing|identity.*unavailable)[\s\S]*(?:stop|report)[\s\S]*(?:(?:not|never) invent|instead of invent)/is,
+      )
+    }
   })
 })
