@@ -116,8 +116,11 @@ complete and mutually consistent. Treat them as read-only inputs throughout fini
 
 For each approved `requirements/<capability>.md`, read the current
 `.hamilton/specs/<capability>.md` together with the delta, then draw durable rationale, decisions,
-and reusable patterns from the approved `design.md` and `proposal.md`. Write canonical
-`.hamilton/specs/` documents only from those already approved change artifacts.
+and reusable patterns from the approved `design.md` and `proposal.md`. Before writing a new
+author-bearing canonical spec, read `git config user.name` and `git config user.email` and use
+`author: Name <email>`; if either value is missing, stop without inventing attribution. When
+editing an existing canonical spec, preserve its recorded author metadata exactly. Write
+canonical `.hamilton/specs/` documents only from those already approved change artifacts.
 
 The content set comes from those approved change artifacts. Never invent canonical behavior from
 the raw diff, root or task progress, task feedback, whole-branch review comments, or an external
@@ -149,11 +152,15 @@ If behavior changed, treat the absent delta as a missing change requirement: abo
 revision and fresh whole-branch review. Otherwise record that no canonical spec changed. A
 tactical path does not permit spec drift.
 
-Review the synchronization and stage only canonical `.hamilton/specs/` paths derived from the
-already approved artifacts. If any changed, commit them before allocating the finish attempt,
-verify the commit, and restore a clean tree. If none changed, record the verified no-change
-`HEAD` instead of manufacturing an empty commit. Either result is an expected finish-owned
-synchronization for this attempt, but it does not make an unrelated edit safe.
+After every canonical spec mutation, run `hamilton workbench lint --file <file>` at the
+mutation boundary. A nonzero lint result is a failed gate: correct the spec and rerun lint, or
+stop with the exact finding without staging or committing it. This file-scoped lint is additive;
+it does not replace the semantic, freshness, ancestry, or completion gates. Review the
+synchronization and stage only canonical `.hamilton/specs/` paths derived from the already
+approved artifacts. If any changed, commit them before allocating the finish attempt, verify the
+commit, and restore a clean tree. If none changed, record the verified no-change `HEAD` instead of
+manufacturing an empty commit. Either result is an expected finish-owned synchronization for this
+attempt, but it does not make an unrelated edit safe.
 
 ## Finish history
 
@@ -242,14 +249,17 @@ not excuse any post-gate mutation outside this allowlist.
    `hamilton workbench isolate --check`, resolve the actual base branch and selected
    strategy, and identify any exact route and map transitions. Ask if the strategy is still
    unspecified and no project default exists.
-6. **Commit intent.** Append the template-defined `Attempt N` with complete durable intent. Commit
-   that attempt alone on the change branch, verify the commit contains the expected finish path,
-   and confirm it is reachable from the branch. This commit must exist before any external finish
-   action.
+6. **Commit intent.** Append the template-defined `Attempt N` with complete durable intent. Run
+   `hamilton workbench lint --file <change-dir>/finish.md` after the finish-history mutation and
+   before committing. A nonzero lint result is a failed gate: correct the history and rerun lint,
+   or report the exact blocker without committing or handing off. Commit that attempt alone on the
+   change branch, verify the commit contains the expected finish path, and confirm it is reachable
+   from the branch. This commit must exist before any external finish action.
 7. **Apply route intent.** If route-backed, update only the named unit from `in-progress` to
-   `shipped`; update the map from `shipping` to `shipped` only when every unit is verified
-   shipped. Commit the exact route/map paths and read them back. If not route-backed, record no
-   route mutation.
+   `shipped`; after each route or map write, run `hamilton workbench lint --file <path>` and
+   resolve every finding before the next mutation. Update the map from `shipping` to `shipped`
+   only when every unit is verified shipped. Commit the exact route/map paths and read them back.
+   If not route-backed, record no route mutation.
 8. **Check the boundary.** Reinspect all post-gate commits and working-tree paths. Abort on any
    mutation not owned by this attempt.
 9. **Execute the strategy.** Follow exactly one branch in **Strategy execution**. Treat the
@@ -259,8 +269,11 @@ not excuse any post-gate mutation outside this allowlist.
     list, and route files. Collect actual identifiers and states; do not draft the outcome from
     intended values.
 11. **Persist the outcome.** Append the matching `Outcome N` as `completed` only when every
-    intended effect was verified, otherwise as `blocked` with the verified partial state. Commit
-    it on the surviving branch or base. Push and read it back when a remote branch participates.
+    intended effect was verified, otherwise as `blocked` with the verified partial state. Run
+    `hamilton workbench lint --file <change-dir>/finish.md` after the outcome mutation and before
+    committing. A nonzero lint result is a failed gate: correct the history and rerun lint, or
+    report the exact blocker without committing or claiming completion. Commit it on the surviving
+    branch or base. Push and read it back when a remote branch participates.
 12. **Report.** Re-read the persisted pair and disclose only the verified external, workspace,
     route, branch, request, and history state.
 

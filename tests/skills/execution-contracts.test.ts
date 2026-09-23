@@ -15,14 +15,42 @@ describe("hamilton-plan execution contract", () => {
     expect(process).toMatch(/identity is not derived from the title/)
   })
 
+  it("instantiates lint-valid planning artifacts with repository authorship", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/plan\.md.*frontmatter.*`artifact`, `change`, `status`, `created`, `author`, `decision`, and `route_unit`/is)
+    expect(process).toMatch(/root.*progress.*frontmatter.*`artifact`,\s+`change`,\s+`status`,\s+`updated`,\s+`decision`,\s+and\s+`tasks`/is)
+    expect(process).toMatch(/each active.*tasks\/task-N\/progress\.md.*`artifact`,\s+`change`,\s+numeric `task`,\s+`status: pending`,\s+`updated`, and `decision`.*frontmatter/is)
+    expect(process).toMatch(/same ordered task list.*frontmatter.*Markdown table.*one row/is)
+    expect(process).toContain("# Task Progress: Task N — <title>")
+    expect(process).toMatch(/`status: pending`.*no attempt|no attempt.*`status: pending`/is)
+    expect(process).toMatch(/exact.*task heading|exact heading.*Task N/is)
+    expect(process).toMatch(/escaped display titles|escape.*`\|`/is)
+    expect(process).toMatch(/git config user\.name/)
+    expect(process).toMatch(/git config user\.email/)
+    expect(process).toMatch(/Name <email>/)
+    expect(process).toMatch(/missing.*identity.*ask the user.*not invent/is)
+    expect(process).toMatch(/preserv(?:e|es).*existing.*author/i)
+    expect(process).toMatch(/after.*complete.*scaffold.*hamilton workbench lint --change-dir <change-dir>/is)
+    expect(process).toMatch(/map-aware.*lint.*--file|--file.*map-aware.*lint/is)
+  })
+
   it("reconciles re-plans without rewriting task history", () => {
     const replan = section(skill, "## Re-plan mode")
 
     expect(replan).toContain("Tasks the root ledger marks `done` are frozen")
     expect(replan).toMatch(/Append each new active task.*status `pending`/s)
     expect(replan).toContain("A renamed non-done task")
+    expect(replan).toMatch(/renamed non-done task.*exact unescaped title.*root.*frontmatter.*task-progress heading/is)
+    expect(replan).toMatch(/exact unescaped title.*active plan heading/is)
+    expect(replan).toMatch(/Markdown table.*escaped.*title.*root.*frontmatter.*task-progress heading/is)
+    expect(replan).toMatch(/preserve.*status.*id.*path.*append-only.*attempt/is)
+    expect(replan).toMatch(/done tasks.*byte-for-byte unchanged/is)
     expect(replan).toMatch(/Mark an abandoned task.*retain its existing task directory/s)
     expect(replan).toContain("Renumber nothing")
+    expect(replan).toMatch(/surviving task's actual status in both the root frontmatter.*row/is)
+    expect(replan).toMatch(/new active task.*matching frontmatter metadata and root row.*status `pending`/is)
+    expect(replan).toContain("including frozen `done` tasks and existing non-done tasks")
   })
 
   it("uses only the exact canonical abandonment suffix and preserves abandoned history", () => {
@@ -66,8 +94,11 @@ describe("hamilton-code execution contract", () => {
     expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
     expect(skill).toMatch(/instruction block.*inline hint/is)
     expect(skill).toMatch(/must not survive|remov(?:e|ing)/is)
-    expect(process).toMatch(/Update only the assigned task's root row to `in-progress`/)
-    expect(process).toMatch(/update the same root row from `in-progress` to\s+the matching `done` or `blocked` status/)
+    expect(process).toMatch(/Update only the assigned task's root frontmatter metadata entry and\s+Markdown row together to `in-progress`/is)
+    expect(process).toMatch(/update the same root frontmatter metadata entry\s+and Markdown row together from `in-progress` to\s+the matching `done` or `blocked` status/is)
+    expect(process).toMatch(/frontmatter.*(?:metadata|entry).*and.*(?:Markdown )?row.*together.*`in-progress`/is)
+    expect(process).toMatch(/frontmatter.*(?:metadata|entry).*and.*(?:Markdown )?row.*together.*`(?:done|blocked)`/is)
+    expect(process).toMatch(/preserv(?:e|es).*sibling.*(?:unchanged|status)/is)
     expect(skill).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(skill).toMatch(/append.*next-numbered.*attempt.*physical end/is)
     expect(skill).toMatch(/preserve.*prior attempt/is)
@@ -80,6 +111,19 @@ describe("hamilton-code execution contract", () => {
     expect(skill).toMatch(/full commit identifier/)
     expect(skill).toMatch(/never overwrite|does not overwrite/i)
     expect(skill).toMatch(/does not receive attempt sections, changed paths, commands, notes, feedback\s+verdicts, whole-branch review summaries, or finish outcomes/)
+  })
+
+  it("finalizes assigned task-local status only with its attempt outcome", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/empty local task log.*`status: pending`/is)
+    expect(process).toMatch(/Do not set.*local.*`in-progress`.*before.*attempt/is)
+    expect(process).toMatch(/append.*attempt.*set.*local.*status.*`done` or `blocked`.*before.*lint.*commit/is)
+    expect(process).toMatch(/done.*local.*`done`.*blocked.*local.*`blocked`/is)
+    expect(process).toMatch(/preserv(?:e|es).*prior attempts.*sibling files/is)
+    expect(process).toMatch(/linked file has no appended attempts.*creation portion.*match/is)
+    expect(process).toMatch(/after attempts exist.*local `status: done` or `blocked`.*latest.*outcome/is)
+    expect(process).toMatch(/previously finalized.*without.*local.*`in-progress`/is)
   })
 
   it("creates checkpoints only before evidence-free first attempts and stops for historical recovery", () => {

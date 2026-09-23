@@ -90,10 +90,13 @@ The framework is a synthesis, not an invention.
 Seven core skills define the fixed order. Step 0 runs once per project, step 1 is optional per
 change, and steps 2–6 form the per-change sequence. Wayfinder is an optional pre-change planning
 stage, and `hamilton-critique` is an optional design-phase gate; neither is counted in this core
-sequence.
+sequence. Wayfinder clears fog by compiling a route: a stable destination-and-path handoff with
+Point of departure, Destination, Path chosen, Shipping rules, and Units. Its frontmatter owns
+mutable route and unit lifecycle metadata. Propose and plan turn units into implementation
+artifacts; code and finish-work build and ship them.
 
 | Step | Skill | Role |
-|------|-------|------|
+| ------ | ------- | ------ |
 | 0 | `hamilton-init` | Set up the project: write `AGENTS.md`, scaffold `.hamilton/` |
 | 1 | `hamilton-propose` | Idea → proposal (why), requirements (what), design (how) |
 | 2 | `hamilton-plan` | Design → `plan.md`: small, TDD-sized, independently verifiable tasks |
@@ -207,7 +210,7 @@ installed copy, so there is one definition of each artifact's shape.
 The document set and the standards it borrows from:
 
 | Artifact | Document | Owns | Inspiration |
-|----------|----------|------|-------------|
+| ---------- | ---------- | ------ | ------------- |
 | `proposal.md` | PRD | Why | — |
 | `requirements/<capability>.md` | SRS (delta) | What | ISO/IEC/IEEE 29148 |
 | `specs/<capability>.md` | SRS (canonical) | What | ISO/IEC/IEEE 29148 |
@@ -239,6 +242,34 @@ folded into `specs/`, which is the project's consolidated, always-current requir
 ledger and task-local progress files; execution updates those operational artifacts without turning
 them into a second plan. Task feedback, whole-branch review, and finish history remain separate so
 each stage has one durable owner.
+
+### Artifact authorship and authoring-boundary lint
+
+For a newly created workbench-recognized artifact whose template requires an `author` field, a skill
+reads the effective repository Git identity from `git config user.name` and `git config user.email`
+and writes both values as `Name <email>`. If either configured value is missing, the skill asks the
+user or stops with a blocker; it never substitutes an agent name, operating-system username, or an
+unresolved template placeholder. When editing an existing artifact, the skill preserves that
+artifact's recorded author rather than replacing the original attribution.
+
+Every skill that creates or edits a workbench-recognized Hamilton artifact runs the scoped workbench
+lint command after the mutation. For a coordinated change tree, validate the complete tree with:
+
+```bash
+hamilton workbench lint --change-dir <change-dir>
+```
+
+For one recognized artifact, validate only that file with:
+
+```bash
+hamilton workbench lint --file <file>
+```
+
+After the mutation, inspect every lint finding and resolve it before handoff or commit. The explicit selector
+keeps unrelated outputs outside Hamilton artifact scope; research notes and prototype files are not
+linted as Hamilton artifacts. A newly initialized pending task log is valid with its task identity
+and heading but no attempt record, so it does not need a fabricated attempt to pass lint. Lint is an
+artifact-shape and lifecycle check, not a substitute for semantic gates, tests, or review.
 
 ## Upgrading to the split workflow
 

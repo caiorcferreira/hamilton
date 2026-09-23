@@ -15,37 +15,128 @@ units:
 ---
 
 <!--
-  Route — the handoff from a cleared map to the SDD loop.
+  Route — the compiled outcome of a cleared Wayfinder map.
   Produced by: hamilton-wayfinder
   Lives at: .hamilton/maps/<effort>/route.md
-  Written once when the map clears. Each unit states its backing decisions'
-  outcomes in one line each; reasoning stays in the tickets. The process that
-  executes a unit flips its status on its own branch.
-  Delete this comment block and every inline hint comment before finalizing.
+
+  The body explains the destination and the causal path chosen. Tickets hold
+  detailed evidence, rejected alternatives, and decision history.
+
+  Unit identity, lifecycle, dependencies, and backing tickets live only in
+  frontmatter. Downstream processes update lifecycle metadata without rewriting
+  the synthesized body.
+
+  Delete this comment block and every inline hint before finalizing.
 -->
 
 # Route — <Effort Name>
 
-<!-- hint: the preamble — the constants that would otherwise repeat on every unit
-     below, stated once. What the route is, and any standing rule every unit inherits. -->
+## Point of departure
+
+<!--
+  Describe in one short paragraph, or a few bullets, what was materially unclear
+  when wayfinding began. Include only ambiguity that shaped the destination.
+  This is orientation, not a chronological history.
+-->
+
+## Destination
+
+### Outcome
+
+<!--
+  State what will be true when this destination is eventually built. Describe
+  the intended result, not the implementation work or the Wayfinder process.
+-->
+
+### Concrete shape
+
+<!--
+  Make the destination imaginable to an agent that did not participate in
+  wayfinding. Use only the representations that remove meaningful ambiguity:
+  a walkthrough, examples, process flow, state model, component view, decision
+  table, or another domain-appropriate model.
+-->
+
+### Guardrails and boundaries
+
+<!--
+  State the invariants, constraints, and explicit exclusions that future
+  proposals and implementations must preserve.
+-->
+
+-
+
+### Builder latitude
+
+<!--
+  Record choices deliberately left to propose, design, or implementation because
+  they cannot change the destination. Do not place unresolved product or
+  architectural decisions here; those are remaining fog and require tickets.
+-->
+
+-
+
+## Path chosen
+
+<!--
+  Synthesize the decisions that define the destination. This is a causal path,
+  not meeting minutes or ticket chronology.
+
+  Each entry states:
+  1. what was chosen or ruled out;
+  2. why;
+  3. what consequence binds the destination;
+  4. where to inspect the full evidence.
+
+  Include rejected branches only when their rejection establishes an important
+  boundary. Current truth belongs here; superseded answers remain in tickets.
+-->
+
+- **<Decision name>.** Chose <choice> because <reason>. Therefore <binding consequence>. ([<ticket title>](tickets/NN-slug.md))
+- **<Boundary name>.** Ruled out <option> because <reason>. Therefore <excluded behavior or scope>. ([<ticket title>](tickets/NN-slug.md))
 
 ## Shipping rules
 
-<!-- hint: how the units will be shipped — the branch units merge back into
-     (seeded from the map's `branch:` field), commit and merge/PR conventions,
-     and any standing shipping constraint every unit inherits, including
-     shipping-relevant operation rules carried over from the map. -->
+<!--
+  Describe how downstream processes execute the units: merge-back branch,
+  commit and merge/PR conventions, and shipping-relevant operation rules carried
+  from the map. Wayfinder defines these rules but does not perform the work.
+-->
+
+- Merge-back branch: `<branch from map>`
+- <standing shipping rule>
 
 ## Units
 
+<!--
+  Units are coarse delivery boundaries. Each unit enters the downstream process
+  once. They are not implementation tasks and do not prescribe design that
+  belongs in propose, design, or plan artifacts.
+
+  The matching frontmatter entry owns the unit's id, stable name, lifecycle
+  status, dependencies, and backing ticket paths.
+-->
+
 ### 1. <Unit name>
 
-<!-- Unit metadata is represented by the matching entry in the document frontmatter `units` list. -->
+**Destination contribution:** <Name the part of the destination this unit makes real.>
 
-Decisions:
-- Decided: <outcome in one line> ([<ticket title>](tickets/NN-slug.md))
+<!--
+  In one paragraph, explain what this unit delivers, why it forms one coherent
+  change, and how it advances the destination. Describe outcome and intent, not
+  implementation steps.
+-->
 
-<!-- hint: the goal as a paragraph, then one Decisions line per backing decision
-     stating its outcome. Reasoning, context, and alternatives stay in the ticket —
-     the Decisions lines are the drill-down entry points. Status values:
-     pending / in-progress / shipped. -->
+**Done when**
+
+- <Observable outcome proving this destination facet exists>
+- <Relevant boundary or failure condition that must hold>
+
+**Binding constraints**
+
+<!--
+  Restate only the decision consequences that directly constrain this unit.
+  Link to tickets for detailed reasoning and alternatives.
+-->
+
+- <Constraint and its practical consequence> ([<ticket title>](tickets/NN-slug.md))

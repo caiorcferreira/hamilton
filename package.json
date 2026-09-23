@@ -1,6 +1,6 @@
 {
   "name": "hamilton",
-  "version": "0.8.7",
+  "version": "0.8.10",
   "type": "module",
   "private": true,
   "license": "Apache-2.0",

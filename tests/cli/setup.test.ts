@@ -73,6 +73,25 @@ describe("setupHamilton", () => {
     for (const file of WAYFINDER_TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true);
     }
+
+    const installedRoute = Fs.readFileSync(
+      Path.join(templatesBase, "wayfinder", "route.md"),
+      "utf-8",
+    );
+    const bundledRoute = Fs.readFileSync(
+      Path.join(process.cwd(), "bundle", "templates", "wayfinder", "route.md"),
+      "utf-8",
+    );
+    expect(installedRoute).toBe(bundledRoute);
+    for (const section of [
+      "Point of departure",
+      "Destination",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+    ]) {
+      expect(installedRoute).toContain(`## ${section}`);
+    }
   });
 
   it("copies guideline manifests", async () => {

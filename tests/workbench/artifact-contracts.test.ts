@@ -11,6 +11,24 @@ import type {
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
 
+const finishIntentFields = [
+  "- Passed preconditions: all required gates passed",
+  "- Specification synchronization: canonical specs unchanged",
+  "- Strategy: no-op",
+  "- Intended workspace result: branch and working tree unchanged",
+  "- Route intent: none",
+] as const;
+
+const finishAttempt = (
+  number: number,
+  date: string,
+  fields: readonly string[] = finishIntentFields,
+): string =>
+  [`## Attempt ${number} — ${date}`, "", ...fields].join("\n");
+
+const finishOutcome = (number: number, date: string): string =>
+  `## Outcome ${number} — ${date}`;
+
 const bodyFor = (artifact: string): string => {
   const sections: Record<string, string[]> = {
     proposal: [
@@ -47,7 +65,10 @@ const bodyFor = (artifact: string): string => {
     "task-progress": ["Attempt 1 — 2026-09-12"],
     feedback: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
     review: ["Pass 1 — 2026-09-12", "### Blocking", "### Suggestions"],
-    finish: ["Attempt 1 — 2026-09-12", "Outcome 1 — 2026-09-12"],
+    finish: [
+      finishAttempt(1, "2026-09-12").replace(/^## /, ""),
+      finishOutcome(1, "2026-09-12").replace(/^## /, ""),
+    ],
     critique: ["Scope", "Findings", "Quality Lens", "Summary"],
     map: [
       "Destination",
@@ -58,7 +79,20 @@ const bodyFor = (artifact: string): string => {
       "Out of scope",
     ],
     ticket: ["Question", "Answer", "Outdated decisions"],
-    route: ["Shipping rules", "Units", "### 1. Research"],
+    route: [
+      "Point of departure",
+      "Destination",
+      "### 2. Destination checkpoint",
+      "### Concrete shape",
+      "### Guardrails and boundaries",
+      "### Builder latitude",
+      "Path chosen",
+      "Shipping rules",
+      "Units",
+      "### 1. Research",
+      "**Destination contribution:** Researches the route contract.",
+      "- **Status:** pending",
+    ],
   };
   const titles: Record<string, string> = {
     proposal: "Proposal: Demo",
@@ -82,7 +116,7 @@ const bodyFor = (artifact: string): string => {
     ...(sections[artifact] ?? []).map((section) =>
       section.startsWith("###") || section.startsWith("|")
         ? section
-        : `## ${section}`,
+        : `## ${section}`
     ),
     artifact === "plan" ? "- Depends on: none" : "",
   ].join("\n");
@@ -313,6 +347,43 @@ describe("artifact metadata contracts", () => {
     }
   });
 
+  it.each([
+    "Point of departure",
+    "Destination",
+    "Path chosen",
+    "Shipping rules",
+    "Units",
+  ])("requires the route section %s at level 2", (section) => {
+    const body = bodyFor("route")
+      .split("\n")
+      .map((line) => (line === `## ${section}` ? `### ${section}` : line))
+      .join("\n");
+    const result = validateArtifact(
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1], body),
+    );
+    expectInvalid(result, "missing-section");
+    expect(
+      result.diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === "missing-section" &&
+          diagnostic.expected === section,
+      ),
+    ).toBeDefined();
+  });
+
+  it("keeps route subheadings and local labels out of unit records", () => {
+    const result = validateArtifact(
+      recognized(".hamilton/maps/effort/route.md", validArtifacts[13][1]),
+    );
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid") {
+      expect(result.body.workflow.records).toMatchObject([
+        { kind: "unit", number: 1, title: "Research" },
+      ]);
+      expect(result.body.workflow.records).toHaveLength(1);
+    }
+  });
+
   it("requires every declared metadata field", () => {
     const metadata = { ...validArtifacts[0][1] };
     delete metadata.author;
@@ -451,10 +522,9 @@ Verdict: approved
 
     expect(result._tag).toBe("valid");
     if (result._tag === "valid") {
-      expect(result.body.workflow.records.map((record) => record.number)).toEqual([
-        1,
-        2,
-      ]);
+      expect(
+        result.body.workflow.records.map((record) => record.number),
+      ).toEqual([1, 2]);
     }
   });
 
@@ -746,6 +816,46 @@ Head: ${sha}
     ]);
   });
 
+  it("accepts abandoned middle-task gaps while keeping the plan ledger contiguous", () => {
+    const plan = recognized(
+      ".hamilton/changes/demo/plan.md",
+      validArtifacts[4][1],
+      "# Plan: Demo\n## Overview\n## Tasks\n### Task 1: Keep\n### Task 2: Skip (abandoned — no longer needed)\n### Task 3: Resume\n## Done when",
+    );
+    const planBody = validateArtifactBody(plan, "plan");
+    expect(planBody.diagnostics).toEqual([]);
+    expect(planBody.workflow.records.map((record) => record.number)).toEqual([
+      1, 2, 3,
+    ]);
+
+    const progress = recognized(
+      ".hamilton/changes/demo/progress.md",
+      {
+        ...validArtifacts[5][1],
+        tasks: [
+          {
+            id: 1,
+            title: "Keep",
+            status: "done",
+            progress: "tasks/task-1/progress.md",
+          },
+          {
+            id: 3,
+            title: "Resume",
+            status: "pending",
+            progress: "tasks/task-3/progress.md",
+          },
+        ],
+      },
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 1: Keep | done | [details](tasks/task-1/progress.md) |\n| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+    );
+    const progressBody = validateArtifactBody(progress, "progress");
+    expect(progressBody.diagnostics).toEqual([]);
+    expect(progressBody.workflow.records.map((record) => record.number)).toEqual([
+      1, 3,
+    ]);
+  });
+
   it("parses escaped progress-table delimiters inside task titles", () => {
     const progress = recognized(
       ".hamilton/changes/demo/progress.md",
@@ -801,6 +911,167 @@ Head: ${sha}
     expect(diagnostic?.location?.line).toBe(6);
   });
 
+  it("accepts an empty pending task-progress artifact only", () => {
+    const sourcePath = ".hamilton/changes/demo/tasks/task-2/progress.md";
+    const body = "# Task Progress: Task 2 — Validate";
+    const pending = {
+      ...validArtifacts[6][1],
+      status: "pending",
+    };
+
+    expect(
+      validateArtifact(recognized(sourcePath, pending, body))._tag,
+    ).toBe("valid");
+    for (const status of ["in-progress", "blocked", "done"] as const)
+      expectInvalid(
+        validateArtifact(
+          recognized(sourcePath, { ...pending, status }, body),
+        ),
+        "missing-section",
+      );
+  });
+
+  it("accepts a first pending finish intent with complete fields", () => {
+    const sourcePath = ".hamilton/changes/demo/finish.md";
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+    ].join("\n\n");
+    const pending = {
+      ...validArtifacts[9][1],
+      status: "pending",
+      result: "pending",
+    };
+
+    const result = validateArtifact(recognized(sourcePath, pending, body));
+
+    expect(result._tag).toBe("valid");
+    if (result._tag === "valid")
+      expect(result.body.workflow.records).toMatchObject([
+        { kind: "attempt", number: 1 },
+      ]);
+  });
+
+  it("accepts a pending finish intent after paired history", () => {
+    const sourcePath = ".hamilton/changes/demo/finish.md";
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+      finishOutcome(1, "2026-09-12"),
+      finishAttempt(2, "2026-09-13"),
+    ].join("\n\n");
+    const pending = {
+      ...validArtifacts[9][1],
+      status: "pending",
+      result: "pending",
+    };
+
+    expect(validateArtifact(recognized(sourcePath, pending, body))._tag).toBe(
+      "valid",
+    );
+    for (const [status, result] of [
+      ["completed", "completed"],
+      ["blocked", "blocked"],
+    ] as const)
+      expectInvalid(
+        validateArtifact(
+          recognized(sourcePath, { ...pending, status, result }, body),
+        ),
+        "invalid-record",
+      );
+  });
+
+  it.each([
+    ["completed", "completed"],
+    ["blocked", "blocked"],
+  ] as const)("accepts a complete paired %s finish history", (status, result) => {
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(1, "2026-09-12"),
+      finishOutcome(1, "2026-09-12"),
+    ].join("\n\n");
+    expect(
+      validateArtifact(
+        recognized(".hamilton/changes/demo/finish.md", {
+          ...validArtifacts[9][1],
+          status,
+          result,
+        }, body),
+      )._tag,
+    ).toBe("valid");
+  });
+
+  it.each(
+    finishIntentFields.map((field, index) => [field, index] as const),
+  )("rejects a pending attempt missing %s", (_field, missingIndex) => {
+    const body = [
+      "# Finish History: Demo",
+      finishAttempt(
+        1,
+        "2026-09-12",
+        finishIntentFields.filter((_field, index) => index !== missingIndex),
+      ),
+    ].join("\n\n");
+    expectInvalid(
+      validateArtifact(
+        recognized(
+          ".hamilton/changes/demo/finish.md",
+          {
+            ...validArtifacts[9][1],
+            status: "pending",
+            result: "pending",
+          },
+          body,
+        ),
+      ),
+      "missing-section",
+    );
+  });
+
+  it.each([
+    ["unmatched outcome", [finishOutcome(1, "2026-09-12")]],
+    [
+      "non-contiguous numbering",
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(3, "2026-09-13"),
+      ],
+    ],
+    [
+      "duplicate numbering",
+      [
+        finishAttempt(1, "2026-09-12"),
+        finishOutcome(1, "2026-09-12"),
+        finishAttempt(1, "2026-09-13"),
+      ],
+    ],
+    [
+      "non-final unmatched attempt",
+      [finishAttempt(1, "2026-09-12"), finishAttempt(2, "2026-09-13"), finishOutcome(2, "2026-09-13")],
+    ],
+    [
+      "malformed attempt",
+      ["## Attempt 1 - 2026-09-12"],
+    ],
+  ] as const)("rejects %s finish history", (_name, records) => {
+    const body = ["# Finish History: Demo", ...records].join("\n\n");
+    expectInvalid(
+      validateArtifact(
+        recognized(
+          ".hamilton/changes/demo/finish.md",
+          {
+            ...validArtifacts[9][1],
+            status: "pending",
+            result: "pending",
+          },
+          body,
+        ),
+      ),
+      "invalid-record",
+    );
+  });
+
   it("reports malformed and non-monotonic records", () => {
     const malformed = recognized(
       ".hamilton/changes/demo/feedback.md",
@@ -841,7 +1112,7 @@ Head: ${sha}
     const staleProgress = recognized(
       ".hamilton/changes/demo/progress.md",
       validArtifacts[5][1],
-      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2: Lint | done | [details](tasks/task-2/progress.md) |",
+      "# Progress: Demo\n| Task | Status | Progress |\n| --- | --- | --- |\n| Task 2: Lint | done | [details](tasks/task-2/progress.md) |\n| Task 1: Lint | done | [details](tasks/task-1/progress.md) |",
     );
     const staleProgressBody = validateArtifactBody(staleProgress, "progress");
     expect(staleProgressBody.diagnostics.map((item) => item.code)).toContain(
@@ -899,9 +1170,9 @@ Head: ${sha}
       ),
       "finish",
     );
-    expect(missingOutcome.workflow.records.map((record) => record.kind)).toEqual([
-      "attempt",
-    ]);
+    expect(
+      missingOutcome.workflow.records.map((record) => record.kind),
+    ).toEqual(["attempt"]);
     expect(missingOutcome.diagnostics).toContainEqual(
       expect.objectContaining({
         code: "missing-section",

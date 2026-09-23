@@ -107,10 +107,15 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
    metadata source. Instantiate a cleaned in-memory copy with the assigned task id and title by
    removing its opening instruction block and every inline hint, then
    require `plan.md`, the root
-   `<change-dir>/progress.md` task table, exactly one active row for the assigned task, and the
-   linked `<change-dir>/tasks/task-N/progress.md`. The linked file's creation portion must match
-   that cleaned instantiation before any appended attempts; no template instruction or hint may
-   survive in the live artifact. The row link must be the exact relative path
+   `<change-dir>/progress.md` frontmatter `tasks` entry and Markdown table, exactly one active
+   metadata entry and row for the assigned task, and the linked `<change-dir>/tasks/task-N/progress.md`.
+   The frontmatter entry and table row must match on numeric id, exact title, status, and link. When the linked file has no appended attempts, its creation portion must match
+   that cleaned instantiation, including `status: pending`; after attempts exist, preserve the
+   same identity fields and require local `status: done` or `blocked` that matches the latest
+   attempt outcome. The installed template's initial `status: pending` is not immutable after a canonical
+   attempt. A previously finalized task log may be accepted for a correction without changing
+   its local status to `in-progress`; no template instruction or hint may survive in the live
+   artifact. The row link must be the exact relative path
    `tasks/task-N/progress.md`, and the row status must be one of `pending`, `in-progress`,
    `blocked`, or `done`. If a planned change lacks this layout, stores attempt history in root
    progress, or otherwise exposes `legacy-unsupported`, stop at the between-changes migration
@@ -133,11 +138,16 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
    validate only that identifier. Stop and request intervention if candidates are absent,
    conflicting, ambiguous, or fail ancestry validation. Never invoke `--record` at current `HEAD`
    after historical evidence exists, and never substitute `HEAD~1` or another guessed base.
-5. **Begin the attempt.** Update only the assigned task's root row to `in-progress` before
-   executing implementation steps. A `pending`, `blocked`, or `done` row may enter
-   `in-progress`; `done` means only that the latest implementation attempt completed. Preserve
-   every sibling row and file unchanged. Do not append an attempt yet: if the process terminates
-   unexpectedly, `in-progress` remains the interruption signal.
+5. **Begin the attempt.** Update only the assigned task's root frontmatter metadata entry and
+   Markdown row together to `in-progress` before executing implementation steps. A `pending`,
+   `blocked`, or `done` task may enter `in-progress`; `done` means only that the latest
+   implementation attempt completed. Preserve every sibling metadata entry, row, and file
+   unchanged. At this supported staged boundary, run
+   `hamilton workbench lint --change-dir <change-dir>` and stop on any nonzero result before
+   implementation. The empty local task log remains `status: pending` with no attempt at
+   this boundary; do not set its local status to `in-progress` before an attempt exists. Do not
+   append an attempt yet: if the process terminates unexpectedly, `in-progress` remains the
+   interruption signal.
 6. **Execute the task Steps in order.** Touch only the task's listed files. For ordinary
    implementation work, execute the [TDD implementation cycle](#tdd-implementation-cycle) for
    each behavior change, including its Red, Green, and Refactor evidence. Run any additional tests
@@ -145,20 +155,28 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
 7. **Verify.** Run the task's Verify command after the final Refactor, then the full test suite and
    build or typecheck from `AGENTS.md`. Every command must pass before the attempt is marked
    done. A project standard may explicitly scope the per-task suite in a large repository;
-   otherwise the full suite remains required. If verification or self-review finds a correction, repeat the complete correction
-   cycle before declaring the attempt done.
+   otherwise the full suite remains required. If verification or self-review finds a correction,
+   repeat the complete correction cycle before declaring the attempt done.
 8. **Check acceptance and self-review.** Confirm every acceptance criterion, including the recorded
    Red, Green, and Refactor phases or a justified exceptional Red alternative, then inspect the diff
    against the code-quality checklist. Resolve issues by repeating the relevant specified step and
    its TDD cycle, or finish as blocked when a specified step or criterion cannot be completed.
 9. **Finalize synchronized evidence.** Append exactly one next-numbered dated attempt at the
    physical end of `<change-dir>/tasks/task-N/progress.md`, preserving every prior attempt. Populate
-   the installed-template lifecycle record with the final outcome (`done` or `blocked`),
+   the installed-template lifecycle record completely with the final done or blocked outcome,
    created, modified, and deleted paths, every verification command and observed result, the
    Red/Green/Refactor commands and observed results (or the exceptional Red reason and repeatable
-   alternative verification), and notes for deviations, decisions, corrections, or concerns. Then
-   update the same root row from `in-progress` to the matching `done` or `blocked` status. Do not
-   change another row or append review, feedback, or finish summaries anywhere in progress.
+   alternative verification), and notes for deviations, decisions, corrections, or concerns.
+   Then set the assigned task log frontmatter status: for a done attempt, its local `status` is
+   `done`; for a blocked attempt, its local `status` is `blocked`. Preserve prior attempts and
+   sibling files unchanged, including every sibling metadata entry and row.
+   Then update the same root frontmatter metadata entry
+   and Markdown row together from `in-progress` to the matching `done` or `blocked` status.
+   After the synchronized task-progress attempt and root-row transition, run
+   `hamilton workbench lint --change-dir <change-dir>` before the outcome-specific commit. A nonzero
+   lint result is a failed gate: correct the artifacts and rerun lint, or report the exact blocker
+   without committing or claiming compliance. Do not change another row or append
+   review, feedback, or finish summaries anywhere in progress.
 10. **Commit according to the outcome.** For `done`, commit the assigned task's implementation,
     tests, its task-progress attempt, and its root-row final transition together using the task's
     Commit message. Do not commit the ignored `.base`. For a gracefully reported `blocked`
@@ -215,7 +233,7 @@ continuing or resolving it.
 - Are naming, structure, and error handling consistent with the codebase?
 - Are there no dead paths, stubs, debug output, TODOs, or commented-out blocks?
 - Is every acceptance criterion satisfied by observed evidence?
-- Did only the assigned root row and task progress file change among execution artifacts?
+- Did only the assigned root metadata entry and row and the task progress file change among execution artifacts?
 - Does the final commit match the task outcome and leave the checkpoint untracked?
 
 ## Output

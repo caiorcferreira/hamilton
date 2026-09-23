@@ -35,13 +35,17 @@ records only a one-line gist pointing back.
 file-per-ticket layout, numbering, and reading order; explicit-claim, batch-authorized working
 target per [`wayfinder`](wayfinder.md#decisions))
 
-**route** — A static handoff document written once at map close, listing change-sized units in order
-with their dependencies. Each unit carries a name, a goal paragraph, links to the decisions backing
-it, and its ordering against the other units; a Shipping rules section states how the units ship —
-the merge-back branch and any standing shipping constraints. The route points and does not restate — an implementer
-follows the decision links back to the map's tickets, which keeps the source of truth in one place.
-It is written as a closing act after every ticket is resolved rather than grown incrementally, and it
-carries a per-unit status field so it tracks which units have shipped.
+**route** — A static handoff document written once at map close that compiles the current understanding
+of the destination and the causal path chosen. The map remains the live exploration index and tickets
+remain the detailed evidence and decision records; the route is self-contained at the outcome-and-
+constraints level while linking tickets for detailed evidence, rejected alternatives, and superseded
+reasoning. It contains Point of departure, Destination, Path chosen, Shipping rules, and Units. Units
+are coarse delivery boundaries listed in order with their dependencies, not implementation tasks or
+designs. Shipping rules state the merge-back branch and standing shipping constraints, and each unit
+carries a status for the downstream SDD loop. It is written as a closing act after every ticket is
+resolved; route writing is gated by destination coherence, decision traceability, unit coverage,
+causal dependencies, and boundary preservation. Contradictions or essential ambiguity keep the map
+open for another consistency pass or decision ticket.
 ([route.md shape and the SDD join](../maps/hamilton-wayfinder/tickets/06-route-shape-and-sdd-join.md))
 
 ## Working the map

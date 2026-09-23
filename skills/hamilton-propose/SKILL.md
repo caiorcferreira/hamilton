@@ -105,17 +105,23 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
    In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
    copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
-   `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding
-   (step 3). The claim rides the branch, so it ships with the work it marks.
+   `status:` to `shipping` in `map.md`. After each route or map write, run
+   `hamilton workbench lint --file <path>` and resolve every finding before the next mutation.
+   Then commit the flips with the change scaffolding (step 3). The claim rides the branch, so it
+   ships with the work it marks.
 3. **Set up the change.** Create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 4. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
    specs (`.hamilton/specs/`). Read the specs before drafting: they hold the conventions and
    prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
    canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
    Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
-   also navigate the selected unit's `backed_by` links — reading each linked
-   `tickets/NN-slug.md` to pull the full decision context — and feed it into this exploration.
-   If the unit has no `backed_by` entry, proceed with its route entry's goal paragraph alone.
+   read the route body as the primary current context: Point of departure, Destination,
+   Path chosen, Shipping rules, and Units. Enter the selected unit's destination contribution,
+   goal, observable completion outcome, and binding constraints into that context before any
+   optional ticket drill-down. Navigate the selected unit's `backed_by` links only when deeper
+   reasoning or rejected alternatives need their evidence; they are not a substitute for the
+   synthesized route body. If the selected unit has no `backed_by` entry, proceed from the
+   route body alone.
    If the request spans several independent subsystems, stop and help decompose it first —
    one change per spec.
 5. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
@@ -126,9 +132,20 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    changes, and the Capabilities list (new vs modified — check `.hamilton/specs/` for
    existing names). The Capabilities list is the contract into the requirements. In
    map-aware mode, fill the frontmatter's `route_unit` field with the route path and unit
-   number — it is the provenance link every downstream step follows back to the map. Populate
-   the proposal frontmatter fields `change`, `status`, `author`, and `created`; do not recreate
-   them as a Markdown metadata table.
+   number — it is the provenance link every downstream step follows back to the map. For every
+   new author-bearing output — `proposal.md`, each `requirements/<capability>.md`, and
+   `design.md` — read the effective repository Git identity immediately before creation with
+   `git config user.name` and `git config user.email`; write `author: Name <email>` using both
+   configured values, including when a requirements or design artifact is created even when
+   `proposal.md` already exists. If either configured Git value is unavailable, ask the user or
+   stop with a blocker before writing; never use an agent name, operating-system username, or
+   unresolved template placeholder. On a revision of `proposal.md`,
+   `requirements/<capability>.md`, or `design.md`, preserve each existing author attribution and
+   each recorded author exactly unless explicitly directed otherwise.
+   Populate the proposal frontmatter fields `change`, `status`, `author`, and `created`; do not
+   recreate them as a Markdown metadata table. After every proposal artifact mutation, run
+   `hamilton workbench lint --change-dir <change-dir>` and resolve every warning or error before
+   the next mutation or handoff.
 
    **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
    capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so
@@ -143,10 +160,11 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    let its requirement cover the aspects.
 
    | Over-split (bad) | Right-sized (good) |
-   |------------------|--------------------|
+   | ------------------ | -------------------- |
    | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
    | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
    | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
+
 7. **Write the requirements (what).** For each capability named in the proposal, write
    `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
    normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the
@@ -154,7 +172,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    requirement block to copy — the canonical spec is prose; instead read the behavior its
    relevant section documents, then write a MODIFIED requirement that names the behavior it
    changes clearly enough for finish-work to locate the spec section, and states the *whole* new
-   behavior (not just the diff).
+   behavior (not just the diff). After every requirements artifact mutation, run
+   `hamilton workbench lint --change-dir <change-dir>` and resolve every warning or error before
+   the next mutation or handoff.
 8. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it
    with their trade-offs and a recommendation. Attended, invoke `hamilton-grilling` with
    the approaches as content and "an approach is chosen" as the exit condition.
@@ -165,7 +185,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `references/code-quality.md` (read from this skill's references directory) — cohesive
    units with one reason to change, narrow boundaries, inverted dependencies with named
    testable seams — sized to the change, not gold-plated. Capture the outcome in the
-   design's **Quality Lens** subsection (one line for a trivial change).
+   design's **Quality Lens** subsection (one line for a trivial change). After the design
+   artifact mutation, run `hamilton workbench lint --change-dir <change-dir>` and resolve every
+   warning or error before self-review or handoff.
 10. **Self-review each artifact.** First confirm the workspace: `git rev-parse --show-toplevel`
     ends in `.worktrees/<title>` (or you were legitimately working in place per step 2) and every
     artifact was written under that root, not the default checkout. Then scan for placeholders,
@@ -177,7 +199,9 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
     gate failure. Fix the structure, or, if you are deliberately accepting it, record it in
     the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
     not pass the gate with a silent smell — a weak coder cannot recover quality the design
-    did not encode.
+    did not encode. After every in-place correction of a recognized artifact, rerun
+    `hamilton workbench lint --change-dir <change-dir>`; a nonzero lint result is a failed gate,
+    not a bypass.
 11. **Get approval.** Present the artifacts for review. Attended, invoke
     `hamilton-grilling` with the revision feedback as content and "artifacts approved"
     as the exit condition. Unattended, record open questions. Do not pass the gate

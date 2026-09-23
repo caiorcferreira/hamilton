@@ -87,11 +87,21 @@ hamilton workbench lint --file <file>
 hamilton workbench lint --change-dir <dir>
 ```
 
-`--file` validates only the named regular file. `--change-dir` recursively visits regular files
-within the supplied change directory and never crosses that recursive boundary. Unrelated files are
-reported as skipped. Conventional artifact filenames without frontmatter produce warnings, while
-malformed recognized artifacts fail closed; lint returns success only when no errors or warnings
-remain.
+Artifact-writing skills choose the narrowest selector for the mutation. Use `--file` when one
+recognized artifact is created or edited, such as a canonical spec, map, ticket, route, feedback,
+review, critique, or finish history. Use `--change-dir` when a skill creates or updates a
+coordinated change directory, such as proposal artifacts or the plan, progress, and task-log
+scaffold. Run the selected lint after the mutation boundary and before the next mutation, handoff,
+or commit.
+
+A nonzero lint result is a failed gate: resolve every warning or error, rerun the same scoped
+command, and do not hand off or commit until it succeeds. Lint stays within the explicit selector;
+unrelated outputs such as research notes and prototype files remain outside Hamilton artifact lint,
+and skipped unrelated files do not affect success. A newly initialized pending task log is valid
+with its task identity and heading but no attempt record, so planning must not invent a synthetic
+attempt merely to satisfy lint. Conventional artifact filenames without frontmatter produce
+warnings, while malformed recognized artifacts fail closed; lint returns success only when no errors
+or warnings remain.
 
 ## The skills
 
@@ -112,23 +122,23 @@ Prepares an existing repository for the pipeline.
 
 ### `hamilton-wayfinder` — chart the route before a change *(optional pre-change planning stage)*
 
-Charts a map of decision tickets for a goal too big for one session, then works only the decision
-tickets the user explicitly requests — one ticket or a named batch — until the way to the
-destination is clear. The map plans the way; the doing comes later, one change at a time.
+Compiles a cleared map into a destination-and-path handoff for a goal too big for one session.
+The route is not a lightweight unit index: it gives downstream work the stable synthesized context
+needed to understand what will be true, why this path was chosen, and how delivery is bounded.
 
 - **When:** before `hamilton-propose`, for a goal too big for one change session — one that needs
   its way found before the SDD loop begins.
 - **Inputs:** a complex goal; the project's `AGENTS.md`.
 - **Produces:** a map at `.hamilton/maps/<effort>/` (`map.md`, `tickets/`, and `route.md` once the
-  map clears) — a static handoff listing the change-sized units in order, each pointing at the
-  decisions backing it.
-- **Notes:** use wayfinder to break a complex goal into clear, realizable units. The wayfinder
-  skill itself names no SDD step — it defines an abstract executing-process contract, and the SDD
-  skills implement it for software: `hamilton-propose` (spec-worthy units) or `hamilton-plan`
-  (tactical units) starts a unit and flips it `in-progress` (flipping the map to `shipping` on the
-  first unit), and `hamilton-finish-work` flips the unit `shipped` (and the map, on the last unit).
-  A non-code effort — a presentation, an RFC, a strategy — binds its own executing process to the
-  same contract. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
+  map clears). The route body is a stable synthesized handoff with exactly five sections — Point
+  of departure, Destination, Path chosen, Shipping rules, and Units — while frontmatter owns the
+  route status and each unit's identity, lifecycle status, dependencies, and backing tickets.
+- **Notes:** Wayfinder clears fog and compiles the destination and causal path; it does not execute
+  the units. `hamilton-propose` and `hamilton-plan` turn units into implementation artifacts,
+  while `hamilton-code` and `hamilton-finish-work` build and ship them. Downstream processes may
+  update mutable lifecycle metadata without rewriting the stable synthesized body. A non-code
+  effort — a presentation, an RFC, a strategy — binds its own executing process to the same
+  contract. `hamilton-wayfinder` is a fork of upstream `mattpocock/skills` (MIT); see
   [`NOTICE`](../NOTICE) for the full legal credit.
 - Source: [`skills/hamilton-wayfinder/SKILL.md`](../skills/hamilton-wayfinder/SKILL.md)
 
@@ -185,9 +195,12 @@ declarative handoff contract between planning and coding. **This skill never wri
   and then runs its Verify command. If a failing check is technically impossible, the task specifies
   a reason and repeatable pre-change/post-change observation. Corrections stay in the same task;
   the serial driver, not the task Steps, dispatches feedback and awaits fresh approval. Re-plan
-  preserves done tasks and stable numeric task identities, appends remediation tasks, and reconciles
-  the root ledger without rewriting task histories. On handoff it names `hamilton-code` or
-  `hamilton-orchestrate`.
+  preserves done tasks byte-for-byte and stable numeric identities, appends remediation tasks,
+  and reconciles the root ledger without rewriting task histories. A renamed non-done task
+  synchronizes its unescaped title across the plan heading, root metadata, and task-local heading
+  while escaping the root table display; its status, path, link, and attempts stay unchanged.
+  After the amendment, run `hamilton workbench lint --change-dir <change-dir>`. On handoff it names
+  `hamilton-code` or `hamilton-orchestrate`.
 - Source: [`skills/hamilton-plan/SKILL.md`](../skills/hamilton-plan/SKILL.md)
 
 ### `hamilton-code` — implement one task *(step 3)*
@@ -197,17 +210,21 @@ commits.
 
 - **When:** for each task's first implementation attempt, and again when fresh task feedback requests
   changes.
-- **Inputs:** one exact active `Task N`; its root ledger row and linked
+- **Inputs:** one exact active `Task N`; its root ledger metadata entry, row, and linked
   `tasks/task-N/progress.md`; its stable `tasks/task-N/.base` checkpoint; `AGENTS.md`; and, on a
   correction, that task's `feedback.md`.
 - **Produces:** for a successful attempt, the task's tests and code plus one implementation commit
-  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root row's
-  transition through `in-progress` to `done`. For a graceful blocker, an artifact-only bookkeeping
-  commit contains the appended blocked attempt and the assigned row set to `blocked`; partial
-  production edits remain uncommitted.
-- **Notes:** `hamilton-plan` initializes the root row and task progress file; `hamilton-code` changes
-  only its assigned row and appends to that task-local history among execution artifacts. It never
-  edits `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
+  that includes the appended `tasks/task-N/progress.md` attempt and the assigned root metadata entry
+  and row's transition through `in-progress` to `done`. For a graceful blocker, an artifact-only
+  bookkeeping commit contains the appended blocked attempt and the assigned entry and row set to
+  `blocked`; partial production edits remain uncommitted.
+- **Notes:** `hamilton-plan` initializes the root ledger and task progress file; `hamilton-code` changes
+  only its assigned root metadata entry and row, and appends to that task-local history among
+  execution artifacts. The empty task log stays `pending` until an attempt exists; a previously
+  finalized log retains its latest `done` or `blocked` local status during a correction and is
+  never made locally `in-progress` before an attempt exists. Finalization sets its local status
+  to `done` or `blocked` before synchronizing the root metadata entry and row. It never edits
+  `plan.md`, sibling task state, feedback, root review, or finish history. The checkpoint stays
   fixed across corrections so code feedback always receives the complete task diff.
 
 For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,

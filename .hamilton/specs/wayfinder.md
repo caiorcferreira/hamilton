@@ -15,7 +15,7 @@ The skill is user-invoked (`disable-model-invocation: true`). The `description` 
 A ticket's `type` frontmatter field decides which skill resolves it, and loading that skill is a hard precondition of resolution: the resolving skill is read (or invoked via the Skill tool) before any resolution work begins, never acted for in spirit. The skill reaches each by name, which is possible because all four are model-invoked:
 
 | ticket type | resolving skill |
-|---|---|
+| --- | --- |
 | `research` | `hamilton-wayfinder-research` |
 | `prototype` | `hamilton-wayfinder-prototype` |
 | `grilling` | `hamilton-grilling` + `hamilton-wayfinder-domain-modeling` |
@@ -26,7 +26,7 @@ A ticket's `type` frontmatter field decides which skill resolves it, and loading
 Format details live in the installed templates, not in the skill body. The skill points at them and never reproduces their structure:
 
 | artifact | template |
-|---|---|
+| --- | --- |
 | map | `~/.hamilton/templates/wayfinder/map.md` |
 | ticket | `~/.hamilton/templates/wayfinder/ticket.md` |
 | route | `~/.hamilton/templates/wayfinder/route.md` |
@@ -36,7 +36,7 @@ Format details live in the installed templates, not in the skill body. The skill
 The file-native contract for map artifacts. This is the swappable surface — a future tracker backend changes this section and nothing else in the skill, together with the self-contained `## Map mechanics` section in `CONTRIBUTING.md` that serves contributors. The two sections document the same contract for different audiences (agent runtime vs human contributor); consolidating them is a deliberate future effort.
 
 | frontmatter field | valid values |
-|---|---|
+| --- | --- |
 | `type` (ticket) | `research` / `prototype` / `grilling` / `task` |
 | `status` (ticket) | `open` / `claimed` / `resolved` |
 | `status` (map) | `open` / `cleared` / `shipping` / `shipped` |
@@ -53,7 +53,7 @@ The file-native contract for map artifacts. This is the swappable surface — a 
 
 Starting an eligible member sets its status to `claimed` before any work; claiming is the start of resolution, not a handoff — the claiming session immediately takes the ticket as far as its type allows: a HITL ticket resolves in that session, and a research ticket is dispatched then, resolving when its findings return and a later session's step 1 absorbs them as continuation of that same authorization, not as authorization for a new ticket. It resolves the ticket by loading the skill its type delegates to before any resolution work — for a prototype ticket, no prototype code is written before `hamilton-wayfinder-prototype` is loaded and its branch gate has run — then appends the answer under `## Answer` in the ticket file, flips the ticket's status to `resolved`, and appends a one-line gist to the map's Decisions so far with a link to the ticket. When a resolution makes new tickets specifiable, it creates them and clears the graduated fog from Not yet specified; a ticket newly created or newly unblocked outside the fixed authorization set is recorded but not started without its own explicit request. When a resolution reveals a ticket sits beyond the destination, it closes the ticket and leaves one line in Out of scope. The session advances only to the next member of the fixed authorization set; when the set is exhausted, it stops and waits for another explicit request rather than selecting any other frontier ticket.
 
-**The route.** When every ticket is resolved, the map clears and a `route.md` is written as a static handoff to the SDD loop — a closing act, not grown incrementally. The route lists change-sized units in order with their dependencies; it points at decisions and does not restate them. It carries a Shipping rules section describing how the units will be shipped — the branch they merge back into, taken from the map's `branch`, plus any shipping-relevant operation rules — so the route is self-contained for downstream processes that never open the map. The map's status progresses `open` → `cleared` → `shipping` → `shipped`: `cleared` when the route is written, `shipping` while the route's units flow through the SDD loop, `shipped` when the last unit lands. Each unit runs the propose→finish-work loop once and flips its own status on its own branch.
+**The route.** When every ticket is resolved, the map clears and a `route.md` is written as a static handoff to the SDD loop — a closing act, not grown incrementally. The map remains the live exploration index, and tickets remain the detailed evidence and decision records. The route is the compiled current understanding of the destination and the causal path chosen: it is self-contained at the outcome-and-constraints level, while linking tickets for detailed evidence, rejected alternatives, and superseded reasoning. It contains five sections: **Point of departure**, which states the current situation and the forces that make the effort necessary; **Destination**, which states the outcome and constraints that define success; **Path chosen**, which explains the decisions and causal dependencies that lead from departure to destination, distinguishing builder latitude — choices that cannot change the destination — from unresolved product or architectural choices that keep the map open; **Shipping rules**, which states how units will ship — the branch they merge back into, taken from the map's `branch`, plus any shipping-relevant operation rules; and **Units**, which lists coarse delivery boundaries in order with their dependencies, without prescribing implementation tasks or designs. The route carries per-unit status for the downstream SDD loop. The map's status progresses `open` → `cleared` → `shipping` → `shipped`: `cleared` when the route is written, `shipping` while the route's units flow through the SDD loop, `shipped` when the last unit lands. Each unit runs the propose→finish-work loop once and flips its own status on its own branch. Wayfinder planning finishes when the route is accepted; downstream processes own construction and later route and unit lifecycle mutations.
 
 **Strict HITL for planning.** A HITL ticket resolves only through live exchange with a human; the agent never stands in for the human's side of a planning dialogue. Hamilton's three-tier attendance model ("Always / Ask first / Never") applies to SDD execution, not to wayfinder's planning phase.
 
@@ -89,6 +89,12 @@ Starting an eligible member sets its status to `claimed` before any work; claimi
 
 ## Invariants
 
+- A route MUST compile the current destination and causal path from the resolved map; it MUST NOT become a second live exploration index.
+- A route MUST preserve links to tickets as the drill-down source for detailed evidence, rejected alternatives, and superseded reasoning, while restating the outcome and constraints needed by downstream readers.
+- A route MUST contain Point of departure, Destination, Path chosen, Shipping rules, and Units sections.
+- Route units MUST be coarse delivery boundaries, not implementation tasks or designs; their change-sized-unit boundary and ordering dependencies MUST remain intact.
+- The route-writing gate MUST verify destination coherence, decision-to-destination traceability, unit coverage, causal dependencies, and preservation of lifecycle and shipping boundaries. Contradictions or essential ambiguity MUST prevent map clearance and require another consistency pass or a decision ticket.
+- Wayfinder planning MUST finish when the route is accepted; downstream processes own construction and later route and unit lifecycle mutations.
 - The skill MUST be user-invoked (`disable-model-invocation: true`). A model-invoked description would add per-turn context load for a skill that fires only when a person chooses to start planning.
 - The `## Map mechanics` section MUST be the only place in the skill body where file-native mechanics — frontmatter fields, file layout, claiming, branching — are defined. The rest of the body MUST refer to concepts without depending on the specific mechanics, so the section is genuinely swappable.
 - The skill MUST NEVER reproduce format details that the templates at `~/.hamilton/templates/wayfinder/` already define. It points at the templates; it does not inline them.
@@ -112,6 +118,7 @@ Starting an eligible member sets its status to `claimed` before any work; claimi
 - **The skill points at templates, never reproduces them.** The templates are the single source of truth for each artifact's shape; restating them in the skill body would duplicate that truth. The skill orients the agent to what each artifact is and when to create it; the template fixes what it looks like.
 - **Original `NOTICE`, no provenance line.** The skill text is original — no upstream prose is copied, and ideas and methodologies are not copyrightable. The MIT license does not require attribution for an independent implementation. The root `NOTICE` carries the repo-level upstream attribution; the per-skill `NOTICE` follows the root's own-work copyright pattern.
 - **Operation rules are a dedicated map section, not Notes.** Notes orients; rules bind. A prescriptive rule buried in orienting context is how it gets ignored, so the obligation gets a section a working session can be checked against, mirroring the route's Shipping rules.
+- **The route is destination-first synthesis.** The map stays the live exploration index and tickets stay detailed evidence; the route compiles the accepted destination, constraints, and causal path so downstream readers can act without reopening the map. A consistency gate rejects contradictions and essential ambiguity before clearance.
 - **The map records its merge-back branch.** A session in a linked worktree or on a prototype branch must learn where home is from the map alone; recording the charting branch once in frontmatter serves every downstream reader — the work loop, the route's Shipping rules — without tracking per-session branch history.
 - **One capability, bounded against two neighbours.** `glossary` defines what a term means (what a map is); `ticket-resolution` defines how each ticket type is resolved and where its artifacts land; `wayfinder` owns how the map is charted and worked — the processes, the lifecycle, and the file-native mechanics.
 - **Two homes for the mechanics contract.** The `## Map mechanics` contract lives in the skill (agent-facing, loaded at runtime) and in `CONTRIBUTING.md` (contributor-facing, self-contained and swappable). They serve different audiences and are not a copy; a future tracker backend swaps both. Consolidating them — making the skill point at `CONTRIBUTING.md` as the single source — is a deliberate future effort that touches the skill.
