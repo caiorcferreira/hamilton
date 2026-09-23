@@ -21,6 +21,7 @@ route_unit: null
 - Quality notes: none; the task boundaries follow the validator, planning scaffold, change-artifact writers, canonical/Wayfinder writers, and documentation/specs. The first review remediations are separate: Task 6 fixes finish-history validation, while Task 7 fixes proposal artifact attribution and template guidance. The second review remediations keep ledger synchronization, remaining template guidance, and mapped framework documentation in separate independently testable tasks.
 - First review-driven amendment: the committed whole-branch review at `a399fee` requested changes because lint rejects a first pending finish intent and `hamilton-propose` does not bind requirements and design authors to configured Git identity. Tasks 6 and 7 were appended without revising the approved requirements/design or frozen Tasks 1–5.
 - Second review-driven amendment: the committed whole-branch Review Pass 2 at `38128d5` requests three implementation/documentation repairs: synchronize task metadata with root rows so finish can open, remove agent-author guidance from the remaining templates, and update the mapped framework documentation. Append Tasks 8–10 without revising approved requirements/design or frozen Tasks 1–7. During this re-plan, repair only the seven stale root frontmatter statuses to match their existing `done` rows; initialize Tasks 8–10 as pending in both representations without touching task histories.
+- Third review-driven amendment: the fresh whole-branch Review Pass 3 committed at `9d93d49ba6ecccc371c3995721f6144c95f7049e` requests two independent implementation/documentation repairs: code must finalize the assigned task-local frontmatter status with its done or blocked attempt, and re-plan must synchronize a renamed non-done title across the plan heading, root metadata, escaped table row, and task-local heading. Append Tasks 11 and 12; the approved requirements and design remain valid, and frozen Tasks 1–10, their ledger entries, feedback, and histories remain unchanged. The two tasks share a skill-contract test file and mapped skills reference, but own different skill sections and test assertions; serial execution avoids overlapping edits.
 
 ## Tasks
 
@@ -249,6 +250,50 @@ route_unit: null
   3. Run the focused documentation tests, read back the edited framework sections, and inspect the scoped diff for consistency with `docs/skills.md` and the installed templates.
 - Verify: `bun --bun vitest run tests/docs/workbench-docs.test.ts && git diff --check` → documentation assertions pass and diff check is clean.
 - Commit: `docs: explain template attribution and artifact lint lifecycle`
+
+### Task 11: Finalize task-local progress status with the attempt
+
+- Depends on: Tasks 3, 5, and 8
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-code/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts` (code lifecycle contract assertions only)
+    - `.hamilton/specs/execution.md`
+    - `docs/skills.md` (code task-progress lifecycle guidance only)
+  - Deleted: none
+- Acceptance:
+  - Code's finalization instructions append one complete assigned attempt and set that task-local `progress.md` frontmatter `status` to its matching `done` or `blocked` outcome before the post-mutation lint and outcome-specific commit, together with the assigned root metadata entry and row. Preserve the matching task identity, prior attempts, and every sibling file. The existing finish gate in `src/workbench/precondition-artifacts.ts` is unchanged: a done row and attempt with local `status: pending` still fail. See `requirements/execution.md`, “Initialize task execution artifacts in a lint-valid state,” and `design.md`, “Instantiate every planning template as a live artifact.”
+  - A new attempt-free task log remains `status: pending` during planning and while code has only changed its root entry/row to `in-progress`; do not set its local status to `in-progress` before an attempt exists. The already covered pending/blocked-vs-done precondition cases remain intact; a finalized blocked attempt has local `status: blocked`, not `done` or `pending`.
+  - A focused skill-contract assertion tests both done and blocked local finalization, the absence of premature local `in-progress`, and preservation of siblings; the canonical execution spec states the local status lifecycle at capability altitude while preserving its existing author, and the mapped skills reference reflects the new instruction.
+- Steps:
+  1. Add failing assertions to the code contract in `tests/skills/execution-contracts.test.ts` for assigned task-local frontmatter finalization to either outcome before lint/commit, no pre-attempt local `in-progress`, and sibling preservation; retain its existing root status assertions.
+  2. Update only the begin/finalize and relevant lifecycle guidance in `skills/hamilton-code/SKILL.md`: at begin move the assigned root metadata and row but leave an empty local log pending; at finalization append the attempt, set the assigned local status to its outcome, then synchronize the assigned root metadata and row before lint and commit. Do not rewrite prior attempts, sibling files, or the workbench gate.
+  3. State the same pending-before-first-attempt and done/blocked-after-finalization status contract in `.hamilton/specs/execution.md` without changing its author; update the code entry in `docs/skills.md`, run focused tests and spec lint, and inspect the diff for scope and lifecycle consistency.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/workbench/precondition.test.ts && bun dist/cli/main.js workbench lint --file .hamilton/specs/execution.md` → contract and existing gate regressions pass and the canonical spec lints cleanly.
+- Commit: `fix: finalize task-local progress status with outcomes`
+
+### Task 12: Synchronize renamed task titles across re-plan artifacts
+
+- Depends on: Tasks 2 and 8
+- Files:
+  - Created: none
+  - Modified:
+    - `skills/hamilton-plan/SKILL.md`
+    - `tests/skills/execution-contracts.test.ts` (re-plan rename contract assertions only)
+    - `tests/workbench/precondition.test.ts`
+    - `docs/skills.md` (plan re-plan guidance only)
+  - Deleted: none
+- Acceptance:
+  - Re-planning a renamed non-done task writes the exact new unescaped title in its active `plan.md` task heading, its assigned root `progress.md` frontmatter `tasks[].title`, and its task-progress heading; the root table displays the same title with correct Markdown escaping, including `|` delimiters. Preserve numeric id, current status in both root representations, exact path/link, other tasks, and every append-only attempt; do not rename or otherwise alter frozen done tasks. See `requirements/execution.md`, “Initialize task execution artifacts in a lint-valid state,” scenarios “Planning initializes active tasks” and “Task display title contains a table delimiter,” and `design.md`, “Instantiate every planning template as a live artifact.”
+  - A skill-contract regression asserts all four renamed representations and preserved identity/status/history rather than merely checking status retention. A committed precondition fixture with the plan heading, row, task-local heading, and metadata all synchronized opens the finish gate once task evidence is done; an otherwise identical committed fixture with a stale metadata title fails with the metadata-ledger diagnostic, not a dirty-tree error. Keep the existing precondition implementation unchanged.
+  - The plan entry in the mapped skills reference describes synchronized non-done renames, and the re-plan skill's lint boundary remains `--change-dir <change-dir>` after the complete artifact amendment.
+- Steps:
+  1. Add failing re-plan assertions in `tests/skills/execution-contracts.test.ts` for exact unescaped metadata and headings, escaped table title, stable status/id/path and attempts, and frozen done tasks; add committed synchronized-rename and stale-metadata-title cases in `tests/workbench/precondition.test.ts` using its existing fixture and freshness pattern, verifying clean-tree and exact ledger diagnostics.
+  2. Change only the renamed non-done task guidance in `skills/hamilton-plan/SKILL.md` so the assigned root metadata title, table display, plan heading, and task-local heading transition together; retain the existing id, link, status, and append-only evidence and leave done tasks byte-for-byte unchanged. Keep the full change-dir lint after the amendment.
+  3. Update the re-plan entry in `docs/skills.md`, run the focused tests and full change lint, and inspect the diff to confirm no execution history, workbench consumer, or approved design/requirements were changed.
+- Verify: `bun --bun vitest run tests/skills/execution-contracts.test.ts tests/workbench/precondition.test.ts && bun dist/cli/main.js workbench lint --change-dir .hamilton/changes/2026-09-22-fix-skill-artifact-linting` → rename contract and both precondition outcomes pass and the complete change lints cleanly.
+- Commit: `fix: synchronize re-planned task titles`
 
 ## Done when
 
