@@ -2,8 +2,8 @@
 artifact: review
 change: 2026-09-22-fix-skill-artifact-linting
 created: 2026-09-23
-status: open
-decision: rejected
+status: complete
+decision: accepted
 ---
 
 # Whole-branch Review: Make Hamilton Artifact Authoring Lint-Valid
@@ -67,3 +67,17 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 5 — 2026-09-23
+
+Base: 2512f85a7e0ee092e9f4e3ab6f08bd761a949ffa
+Head: 463630dbd0aab14eaea3f461d95697d084f646fc
+Verdict: approved
+
+### Blocking
+
+- None.
+
+### Suggestions
+
+- [src/workbench/artifact-body.ts:791] Distinguish the plan ledger's contiguous numbering diagnostic from the progress ledger's strictly increasing numbering diagnostic; the current message still says task numbering must be contiguous even though abandoned-task gaps are valid. Focused verification: `bun --bun vitest run tests/workbench/artifact-contracts.test.ts tests/workbench/lint.test.ts` — 106 tests passed; `bun dist/cli/main.js workbench lint --change-dir .hamilton/changes/2026-09-22-fix-skill-artifact-linting` — lint: success.
