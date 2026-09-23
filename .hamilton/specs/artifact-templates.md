@@ -1,3 +1,12 @@
+---
+artifact: requirements-spec
+capability: artifact-templates
+status: current
+updated: 2026-09-23
+author: Caio Ferreira <caiorcferreira@gmail.com>
+decision: accepted
+---
+
 # Capability: artifact-templates
 
 ## Overview
@@ -52,7 +61,7 @@ Every template, wayfinder's included, opens with a comment block naming the arti
 
 The report describes what landed on disk rather than what the bundle asked for, so a file that failed to arrive is not announced as installed. A bundle carrying no templates directory at all is not an error: setup succeeds and reports an empty set.
 
-For a split-pipeline installation, setup also installs the task progress, task feedback, and finish-history shapes. Planning instantiates the root task index and one task-progress file per active task. Code appends implementation attempts to the task-owned shape; code feedback and whole-branch review append only to their respective single-file verdict histories; and finish-work creates or appends paired finish history after the gates pass. Each producer leaves the other owners' artifacts unchanged.
+For a split-pipeline installation, setup also installs the task progress, task feedback, and finish-history shapes. Planning instantiates the root task index and one task-progress file per active task from those shapes, records configured Git attribution for new author-bearing artifacts, and preserves an existing author exactly when revising a plan. A newly initialized pending task log contains only its identity and heading; it has no synthetic attempt and is a valid creation state. Code appends implementation attempts to the task-owned shape; code feedback and whole-branch review append only to their respective single-file verdict histories; and finish-work creates or appends paired finish history after the gates pass. Each producer leaves the other owners' artifacts unchanged.
 
 **Examples**
 

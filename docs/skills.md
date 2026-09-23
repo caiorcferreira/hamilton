@@ -87,11 +87,21 @@ hamilton workbench lint --file <file>
 hamilton workbench lint --change-dir <dir>
 ```
 
-`--file` validates only the named regular file. `--change-dir` recursively visits regular files
-within the supplied change directory and never crosses that recursive boundary. Unrelated files are
-reported as skipped. Conventional artifact filenames without frontmatter produce warnings, while
-malformed recognized artifacts fail closed; lint returns success only when no errors or warnings
-remain.
+Artifact-writing skills choose the narrowest selector for the mutation. Use `--file` when one
+recognized artifact is created or edited, such as a canonical spec, map, ticket, route, feedback,
+review, critique, or finish history. Use `--change-dir` when a skill creates or updates a
+coordinated change directory, such as proposal artifacts or the plan, progress, and task-log
+scaffold. Run the selected lint after the mutation boundary and before the next mutation, handoff,
+or commit.
+
+A nonzero lint result is a failed gate: resolve every warning or error, rerun the same scoped
+command, and do not hand off or commit until it succeeds. Lint stays within the explicit selector;
+unrelated outputs such as research notes and prototype files remain outside Hamilton artifact lint,
+and skipped unrelated files do not affect success. A newly initialized pending task log is valid
+with its task identity and heading but no attempt record, so planning must not invent a synthetic
+attempt merely to satisfy lint. Conventional artifact filenames without frontmatter produce
+warnings, while malformed recognized artifacts fail closed; lint returns success only when no errors
+or warnings remain.
 
 ## The skills
 

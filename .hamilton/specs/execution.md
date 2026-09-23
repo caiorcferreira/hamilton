@@ -1,3 +1,12 @@
+---
+artifact: requirements-spec
+capability: execution
+status: current
+updated: 2026-09-23
+author: Caio Ferreira <caiorcferreira@gmail.com>
+decision: accepted
+---
+
 # Capability: execution
 
 ## Overview
@@ -20,13 +29,13 @@ The change-level `finish.md` contains paired `Attempt N` and `Outcome N` section
 
 ## Behavior
 
-Planning initializes the complete task structure for active tasks, preserving exact numeric identities and escaping titles for the Markdown table. Re-planning preserves done tasks, existing directories, and append-only histories; it adds new active tasks as pending, may rename a non-done display title, and removes abandoned tasks from the active ledger without deleting their history or reusing their identifiers.
+Planning initializes the complete task structure for active tasks from the installed plan, progress, and task-progress shapes, preserving exact numeric identities and escaping titles for the Markdown table. A new author-bearing plan records the configured Git identity as `Name <email>`; re-planning preserves an existing non-empty author exactly. New task logs are initialized as pending with no attempt record. Re-planning preserves done tasks, existing directories, and append-only histories; it adds new active tasks as pending, may rename a non-done display title, and removes abandoned tasks from the active ledger without deleting their history or reusing their identifiers.
 
 Code starts one identified task by moving only its row to `in-progress`. A completed implementation appends the task-local attempt and changes the same row to `done` or `blocked`; a correction can reopen a prior `done` or `blocked` task. An interrupted run leaves `in-progress` as an explicit signal for inspection. A blocked run persists its task evidence and status without committing partial production edits.
 
 Resume uses the root row as current implementation truth and the task-local log as evidence. Pending or blocked tasks need implementation handling; an in-progress task needs inspection of its current git and log state; a done task without fresh feedback needs feedback; a done task with fresh changes requested needs correction; and only a done task with fresh approved feedback advances. Missing or malformed checkpoints stop packaging rather than guessing a base.
 
-Finish-work records its intent only after all preconditions and specification synchronization pass. It verifies the external strategy and workspace state before appending the matching outcome. A dangling attempt is reconciled against git, remote, request, route, and workspace state before any new attempt number is allocated.
+Finish-work records its intent only after all preconditions and specification synchronization pass. It verifies the external strategy and workspace state before appending the matching outcome. A dangling attempt is reconciled against git, remote, request, route, and workspace state before any new attempt number is allocated. Validation permits exactly two intentional pending exceptions: a newly initialized pending task log may contain no attempts, and a pending finish history may end with one unmatched final attempt only after all earlier attempts are paired. Other task-progress and finish states require complete records.
 
 Planned changes using the old mixed review or monolithic progress layout are inventoried as unsupported historical format rather than interpreted. A directory without `plan.md` remains a valid pre-plan state.
 

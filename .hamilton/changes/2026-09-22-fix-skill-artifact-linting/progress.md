@@ -35,4 +35,4 @@ tasks:
 | Task 2: Initialize lint-valid planning artifacts | done | [details](tasks/task-2/progress.md) |
 | Task 3: Gate change-scoped artifact writers with lint | done | [details](tasks/task-3/progress.md) |
 | Task 4: Gate canonical and Wayfinder artifact writers with lint | done | [details](tasks/task-4/progress.md) |
-| Task 5: Synchronize the artifact and framework documentation | pending | [details](tasks/task-5/progress.md) |
+| Task 5: Synchronize the artifact and framework documentation | done | [details](tasks/task-5/progress.md) |
