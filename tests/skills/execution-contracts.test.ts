@@ -108,6 +108,16 @@ describe("hamilton-code execution contract", () => {
     expect(skill).toMatch(/does not receive attempt sections, changed paths, commands, notes, feedback\s+verdicts, whole-branch review summaries, or finish outcomes/)
   })
 
+  it("finalizes assigned task-local status only with its attempt outcome", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/empty local task log.*`status: pending`/is)
+    expect(process).toMatch(/Do not set.*local.*`in-progress`.*before.*attempt/is)
+    expect(process).toMatch(/append.*attempt.*set.*local.*status.*`done` or `blocked`.*before.*lint.*commit/is)
+    expect(process).toMatch(/done.*local.*`done`.*blocked.*local.*`blocked`/is)
+    expect(process).toMatch(/preserv(?:e|es).*prior attempts.*sibling files/is)
+  })
+
   it("creates checkpoints only before evidence-free first attempts and stops for historical recovery", () => {
     const process = section(skill, "## Process")
 
