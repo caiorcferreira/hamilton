@@ -114,8 +114,10 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
    In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
    copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
-   `status:` to `shipping` in `map.md` — then commit the flips with the change scaffolding. The
-   claim rides the branch, so it ships with the work it marks.
+   `status:` to `shipping` in `map.md`. After each route or map write, run
+   `hamilton workbench lint --file <path>` for that file and resolve its findings before the next
+   mutation. Then commit the flips with the change scaffolding. The claim rides the branch, so it
+   ships with the work it marks.
 3. **Locate the change.** Find or create `.hamilton/changes/<YYYY-MM-DD-title>/`.
 4. **Gather context.** When the change directory already holds artifacts — the rich path, or a
    re-plan — open with `hamilton workbench context <change-dir>` to see which
@@ -152,20 +154,42 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 8. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
-9. **Write `plan.md` and initialize execution progress.** Write `plan.md` from
-   `~/.hamilton/templates/plan.md` (installed by `hamilton setup`) into the change directory.
-   Then create `<change-dir>/progress.md` as the task-only current-status ledger and create
-   `<change-dir>/tasks/task-N/progress.md` for every active `Task N`. The root table contains
-   exactly one row per active task in plan order, with columns `Task`, `Status`, and `Progress`.
-   Render its identity as `Task N: <title>`, initialize new rows to `pending`, and link each row
-   to the exact relative path `tasks/task-N/progress.md`. The only status vocabulary is
-   `pending`, `in-progress`, `blocked`, and `done`. Apply standard Markdown table escaping to
-   display titles, including escaping `|`, but derive identity and the lowercase `task-N`
-   directory only from the numeric `Task N`; identity is not derived from the title. Initialize
-   each task file from `~/.hamilton/templates/task-progress.md` with the heading
-   `# Task Progress: Task N — <title>` and no attempt block. Root progress contains no changed
-   paths, commands, notes, attempts, task feedback verdicts, whole-branch review summaries, or
-   finish outcomes.
+9. **Write `plan.md` and initialize execution progress.** Instantiate the installed
+   `~/.hamilton/templates/plan.md`, `~/.hamilton/templates/progress.md`, and
+   `~/.hamilton/templates/task-progress.md` templates as concrete cleaned artifacts: remove each
+   template's opening instruction block and every inline hint before writing it. For a new plan,
+   read the configured repository identity with `git config user.name` and `git config user.email`.
+   If either Git value is missing or an identity is unavailable, ask the user for it and stop;
+   do not invent or substitute an agent name, placeholder, or other identity. Populate `plan.md` frontmatter with
+   concrete `artifact`, `change`, `status`, `created`, `author`, `decision`, and `route_unit`
+   values, using `author: Name <email>` from both Git values and a valid lifecycle status. On a
+   re-plan, preserve the existing non-empty `author` value exactly instead of recomputing or
+   overwriting it.
+
+   Derive one ordered active-task list from the final plan and use that same ordered task list
+   for all three artifacts. Root `progress.md` frontmatter must contain concrete `artifact`, `change`, `status`,
+   `updated`, `decision`, and `tasks` values. Add one `tasks` metadata entry per active task in
+   plan order with its numeric `id`, exact unescaped `title`, `status: pending`, and
+   `progress: tasks/task-N/progress.md`. The root Markdown table must contain exactly one row per
+   active task from that same ordered list, with columns `Task`, `Status`, and `Progress`; the
+   only status vocabulary is `pending`, `in-progress`, `blocked`, and `done`. Render each
+   identity as `Task N: <escaped display title>`, initialize it to `pending`, and use the
+   exact link `[details](tasks/task-N/progress.md)`. Apply standard Markdown table escaping to
+   display titles, including escaping `|` and other delimiters; identity is not derived from the title.
+   Derive the numeric identity and lowercase `task-N` directory from `Task N`, never from the title.
+
+   Initialize each active `tasks/task-N/progress.md` from the cleaned task-progress template with
+   concrete `artifact`, `change`, numeric `task`, `status: pending`, `updated`, and `decision`
+   frontmatter, followed by the exact heading `# Task Progress: Task N — <title>` using the
+   unescaped title. Its creation portion must have matching change and task identities, no attempt
+   record (`## Attempt` or other execution-history record), and no template placeholder. Root progress
+   remains only the current task ledger: it contains no changed paths, commands, notes, attempts,
+   task feedback verdicts, whole-branch review summaries, or finish outcomes.
+
+   After the complete scaffold of `plan.md`, root `progress.md`, and every active task log is
+   written, run `hamilton workbench lint --change-dir <change-dir>` at this valid mutation
+   boundary. Resolve every warning or error and rerun the scoped lint before handoff; do not
+   invent an attempt or otherwise mutate execution history to satisfy lint.
 
 ## Task-sizing heuristics
 
@@ -191,6 +215,10 @@ amend the plan without reading or rewriting sibling attempt histories.
 - A renamed non-done task may update only its Markdown-escaped display title in the root row and
   task-progress heading. Preserve its numeric id, path, current status, and every existing
   `## Attempt N` block.
+- Preserve an existing plan's `author` attribution exactly across re-plans; do not replace it
+  with current Git values, an agent name, or a placeholder. If a new plan needs attribution and
+  either `git config user.name` or `git config user.email` is unavailable, ask the user instead of
+  inventing an identity.
 - Mark an abandoned task with the canonical heading
   `### Task N: <title> (abandoned — <reason>)`. Only a heading that ends with this complete
   canonical form and supplies a nonempty reason is abandoned. Headings that use

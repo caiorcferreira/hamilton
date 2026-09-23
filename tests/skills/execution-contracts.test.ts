@@ -15,6 +15,26 @@ describe("hamilton-plan execution contract", () => {
     expect(process).toMatch(/identity is not derived from the title/)
   })
 
+  it("instantiates lint-valid planning artifacts with repository authorship", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/plan\.md.*frontmatter.*`artifact`, `change`, `status`, `created`, `author`, `decision`, and `route_unit`/is)
+    expect(process).toMatch(/root.*progress.*frontmatter.*`artifact`,\s+`change`,\s+`status`,\s+`updated`,\s+`decision`,\s+and\s+`tasks`/is)
+    expect(process).toMatch(/each active.*tasks\/task-N\/progress\.md.*`artifact`,\s+`change`,\s+numeric `task`,\s+`status: pending`,\s+`updated`, and `decision`.*frontmatter/is)
+    expect(process).toMatch(/same ordered task list.*frontmatter.*Markdown table.*one row/is)
+    expect(process).toContain("# Task Progress: Task N — <title>")
+    expect(process).toMatch(/`status: pending`.*no attempt|no attempt.*`status: pending`/is)
+    expect(process).toMatch(/exact.*task heading|exact heading.*Task N/is)
+    expect(process).toMatch(/escaped display titles|escape.*`\|`/is)
+    expect(process).toMatch(/git config user\.name/)
+    expect(process).toMatch(/git config user\.email/)
+    expect(process).toMatch(/Name <email>/)
+    expect(process).toMatch(/missing.*identity.*ask the user.*not invent/is)
+    expect(process).toMatch(/preserv(?:e|es).*existing.*author/i)
+    expect(process).toMatch(/after.*complete.*scaffold.*hamilton workbench lint --change-dir <change-dir>/is)
+    expect(process).toMatch(/map-aware.*lint.*--file|--file.*map-aware.*lint/is)
+  })
+
   it("reconciles re-plans without rewriting task history", () => {
     const replan = section(skill, "## Re-plan mode")
 
