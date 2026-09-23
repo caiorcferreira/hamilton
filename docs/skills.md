@@ -180,7 +180,11 @@ declarative handoff contract between planning and coding. **This skill never wri
 - **Produces:** the declarative `plan.md` task contract; root `progress.md`, initialized as the
   current-status ledger with one linked row per active task; and one initialized
   `tasks/task-N/progress.md` implementation-history file per task.
-- **Notes:** all sequencing happens here because code follows each task's steps verbatim. Re-plan
+- **Notes:** all sequencing happens here because code follows each task's steps verbatim. Each task
+  runs Red before production edits, reruns the same check to Green, verifies behavior after Refactor,
+  and then runs its Verify command. If a failing check is technically impossible, the task specifies
+  a reason and repeatable pre-change/post-change observation. Corrections stay in the same task;
+  the serial driver, not the task Steps, dispatches feedback and awaits fresh approval. Re-plan
   preserves done tasks and stable numeric task identities, appends remediation tasks, and reconciles
   the root ledger without rewriting task histories. On handoff it names `hamilton-code` or
   `hamilton-orchestrate`.

@@ -44,14 +44,14 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 - **Plan-first, read-only.** Explore the code you will touch before writing the plan.
   Understand existing patterns and how tests run. Make no edits in this step.
 - **TDD-sized tasks.** Each task is small enough to implement and verify in isolation —
-  about one red→green→refactor loop. "Build authentication" is too big; "add a
+  about one Red → Green → Refactor loop. "Build authentication" is too big; "add a
   registration endpoint that validates email format" is right.
 - **One task at a time.** The coder consumes a single task and nothing else, so each task
   must be self-contained: its files, acceptance, and verification stand alone.
 - **Steps are executed verbatim.** The coder follows a task's Steps exactly and adds no
-  design of its own (it may be a weak model). Make the steps explicit, ordered, and
-  test-first where behavior is testable — all the sequencing thinking happens here, not at
-  code time.
+  design of its own (it may be a weak model). Specify the complete Red → Green → Refactor
+  sequence, or a justified alternative Red when a conventional failing check is impossible.
+  The coder cannot invent missing steps or treat Green as completion.
 - **Reference, don't copy.** Point to `design.md` / `requirements/`; do not duplicate them.
 - **Honor the canonical specs.** Before decomposing, read the `.hamilton/specs/` entries for
   the capabilities the change touches. They record the conventions and decisions the project
@@ -69,6 +69,39 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
   not hard-wrap text at ~80 characters or any fixed width; insert a line break only at a
   real boundary (between paragraphs, list items, or headings). Code blocks and commands
   keep their own formatting; soft-wrapping prose is the reader's job, not yours.
+
+## TDD task contract
+
+Plan each ordinary behavior-changing task as a complete Red → Green → Refactor cycle before
+its final Verify command. A task may need several related checks or cycles, but split independent
+behaviors into separate tasks. Write the phase actions in each task's Steps so a coder who reads
+only that block can execute them in order:
+
+- **Red:** Write or update a failing behavioral check and run it before production edits. Name the
+  command and intended failure; an already-passing check or broken harness does not establish
+  Red. If a conventional failing behavioral check cannot be written, specify the
+  concrete technical reason before production edits and a repeatable alternative verification that
+  distinguishes the pre-change and post-change states. Run and record the alternative as Red
+  before production edits. Preference alone is not a valid exception.
+- **Green:** Make the smallest passing implementation and rerun the same check (or documented
+  alternative) until it passes for the intended reason. Green is not task completion.
+- **Refactor:** Specify behavior-preserving cleanup and rerun relevant tests after Green. If no
+  cleanup is needed, inspect for opportunities, record that decision, and still rerun the
+  relevant behavioral and regression checks; do not invent a cosmetic edit to satisfy the phase.
+
+After Refactor, run the task's Verify command and the full test/build commands from `AGENTS.md`
+unless those standards explicitly scope a per-task suite. Require exact commands and observed
+results for every phase in task-local progress, including the technical reason and observations
+for an exceptional Red. If a phase fails for the wrong reason, Verify fails, or feedback is
+`changes-requested`, record the correction and repeat Red → Green → Refactor with relevant
+verification within the same task. If the correction falls outside the task's Files or acceptance
+boundaries, block for re-plan rather than improvise.
+
+Do not invoke feedback in task Steps during implementation: `hamilton-code` owns the task attempt
+and commit, and the driver dispatches `hamilton-code-feedback` as the refactor-phase review
+afterward. A fresh durable `approved` pass is required before the next task or whole-branch
+review. `changes-requested` feedback returns the same task for a correction cycle with
+verification and another feedback pass. This handoff belongs to the driver, not the coder's Steps.
 
 ## Process
 
@@ -139,16 +172,19 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
    `plan.md` is pre-plan, not legacy.
 5. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
-6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark dependencies so
-   independent tasks can run in parallel. Prefer more small tasks over few large ones. Cut
-   the seams along the design's boundaries so each task lands one cohesive unit — a task you
-   cannot describe without "and" is usually two.
+6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark logical dependencies
+   without implying concurrent implementation: the driver uses one task lane and serial execution.
+   Prefer more small tasks over few large ones. Cut the seams along the design's boundaries so
+   each task lands one cohesive unit — a task you cannot describe without "and" is usually two.
 7. **Specify each task.** For every task capture: files (created / modified / deleted),
    acceptance criteria (testable; cite the requirement scenario when one exists — and cover
-   the error/edge behavior, not just the happy path), steps (write failing test → implement
-   → verify), a verify command with its expected result, and a commit message. Where a step
-   includes a code snippet, make it model the clean shape from `references/code-quality.md`;
-   the coder copies it verbatim.
+   the error/edge behavior, not just the happy path), Steps ordered Red → Green → Refactor
+   (or a technically justified alternative Red) followed by a Verify command with its expected
+   result, and a commit message. In Red, explicitly run the check and observe the intended failure before
+   production edits; in Green, rerun that check; in Refactor, rerun relevant tests after cleanup.
+   Include the correction rule from **TDD task contract** in each task block, since the coder reads
+   no sibling block or plan-wide instructions. Where a step includes a code snippet, make it
+   model the clean shape from `references/code-quality.md`; the coder copies it verbatim.
 8. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
@@ -169,8 +205,8 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 
 ## Task-sizing heuristics
 
-- Implementable and testable in isolation — one red-green loop.
-- If a task needs more than one independent test to prove it, consider splitting it.
+- Implementable and testable in isolation — about one Red → Green → Refactor loop.
+- Split independently changing behaviors, not the related checks needed to prove one behavior and its edge cases.
 - A task whose title contains "and" is often two tasks.
 
 ## Re-plan mode
@@ -187,7 +223,9 @@ amend the plan without reading or rewriting sibling attempt histories.
 - Renumber nothing and never reuse an abandoned task id. Stable numeric task ids and
   `tasks/task-N/` paths are the execution identity.
 - Append each new active task with a new numeric id, add its root row in amended plan order with
-  status `pending`, and initialize its `tasks/task-N/progress.md` heading.
+  status `pending`, and initialize its `tasks/task-N/progress.md` heading. Give remediation tasks
+  the same Red → Green → Refactor steps, exceptional Red rule, and feedback handoff as ordinary
+  tasks; an evidence-only task must observe a real pre-change defect, not manufacture one.
 - A renamed non-done task may update only its Markdown-escaped display title in the root row and
   task-progress heading. Preserve its numeric id, path, current status, and every existing
   `## Attempt N` block.
@@ -198,6 +236,10 @@ amend the plan without reading or rewriting sibling attempt histories.
   retain them under ordinary active or malformed task handling. Remove an exactly abandoned
   task's row from the active root table and retain its existing task directory and append-only
   history. Do not delete them or reuse the numeric id.
+- Do not make a new task edit a sibling's task progress, feedback, checkpoint, or root status row.
+  Each task owns only its listed implementation files and its own execution evidence. If correcting
+  a frozen task requires editing its owned evidence, report the ownership conflict and stop for
+  adjudication instead of planning a task that `hamilton-code` cannot execute.
 - Preserve all other existing task directories and append-only evidence, and record the reason
   for the amendment in the plan's Overview.
 
@@ -211,7 +253,13 @@ Before finishing, confirm:
 - You are inside the intended worktree, not the default branch: `git rev-parse --show-toplevel`
   ends in `.worktrees/<title>` (or you were legitimately working in place per step 2), and
   `plan.md` was written under that root.
-- Every task is independently verifiable, with a concrete verify command.
+- Every task is independently verifiable, with a concrete Verify command.
+- Each task's Steps run Red before production edits, rerun the same check to Green, and verify
+  behavior after Refactor. Any alternative Red has a concrete technical reason and repeatable
+  pre-change/post-change check; none is a preference-based omission.
+- Each task includes the conditional correction cycle and its own task-local phase evidence; no
+  task Step invokes `hamilton-code-feedback` or edits sibling evidence. The driver obtains fresh
+  approval before advancing.
 - Each task's Steps are explicit enough to follow with no further design.
 - Each Files list is complete (created / modified / deleted).
 - Each acceptance criterion ties to a requirement scenario where one exists.
@@ -220,7 +268,8 @@ Before finishing, confirm:
   lands a unit that can be tested in isolation (`references/code-quality.md`, proportional to
   the change).
 - Any code snippet in a task models the clean shape — the coder copies it verbatim.
-- "Done when" captures: all tasks done, tests green, reviews addressed.
+- "Done when" requires all tasks `done`, tests and build passing, fresh committed `approved`
+  feedback for every task before advancement, and an approved whole-branch review.
 - Root progress has exactly one correctly ordered row per active task, uses only `pending`,
   `in-progress`, `blocked`, and `done`, and every link resolves to an initialized task progress
   file.

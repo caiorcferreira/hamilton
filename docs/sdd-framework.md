@@ -285,6 +285,12 @@ task. The feedback parser and every downstream consumer use the physically lates
 malformed latest evidence cannot revive an earlier approval. The skills do not call each other — a
 person or `hamilton-orchestrate` owns the loop.
 
+The installed `plan.md` template makes that handoff explicit: each task runs Red before production
+edits, reruns the same check to Green, and verifies behavior after Refactor before its final Verify
+command. If a failing check is technically impossible, the task gives a reason and a repeatable
+pre-change/post-change observation. Its Steps allow same-task corrections but never dispatch
+feedback; the driver obtains fresh approval before advancing.
+
 For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,
 make it pass in green, then refactor while keeping the test green. The refactor phase uses
 `hamilton-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result

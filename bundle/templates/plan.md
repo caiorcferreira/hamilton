@@ -25,8 +25,17 @@ route_unit: null
     - hamilton-review (step 5) owns the whole-branch review.md after all task feedback;
       hamilton-finish-work (step 6) owns finish.md.
     - Each task is a TDD-sized unit: small enough to implement and verify in isolation,
-      carrying its own acceptance check. "Build authentication" is too big;
-      "add a user-registration endpoint that validates email format" is right.
+      carrying its own acceptance check. Specify and execute Red before production edits,
+      Green on the same check, and behavior-preserving Refactor with relevant tests afterward.
+      Record exact commands and observed results in task-local progress. "Build authentication"
+      is too big; "add a user-registration endpoint that validates email format" is right.
+    - When a conventional failing behavioral check is technically impossible, the task's Red
+      step must give the concrete reason and a repeatable alternative verification that
+      distinguishes pre-change and post-change behavior before production edits. Preference
+      alone is not an exception. A no-op cleanup still gets a documented Refactor check.
+    - `hamilton-code-feedback` supplies the refactor-phase review after the implementation
+      commit; the task Steps must not invoke it. Requested changes return the same task to a
+      verified Red → Green → Refactor correction cycle, not a new task by default.
     - Reference upstream artifacts (design.md, requirements/) — do not copy them. Even
       when the pipeline starts at this step, plan.md still lives in a change directory;
       if there are no upstream docs, state the minimal why/what inline.
@@ -59,8 +68,8 @@ route_unit: null
 ## Tasks
 
 <!-- Numbered for stable reference (hamilton-code is pointed at "Task 3").
-     "Depends on" expresses ordering; execution is serial — implementers share a
-     working tree. -->
+     "Depends on" expresses logical prerequisites; execution is serial — implementers
+     share a working tree. -->
 
 ### Task 1: <imperative title>
 
@@ -72,10 +81,11 @@ route_unit: null
 - Acceptance:
   - <testable criterion — what "done" means; cite requirement/scenario if one exists>
 - Steps:
-  1. <write a failing test for the behavior>
-  2. <implement it>
-  3. <run `test` — expect green>
-- Verify: `<command>` → <expected result>
+  1. Red — <write or update a behavioral check, run it before production edits, and observe the intended failure; if a conventional failing check is technically impossible, record the concrete reason and run the planned repeatable alternative before editing production files>
+  2. Green — <make the smallest passing implementation, then rerun the same check or alternative to confirm it passes for the intended reason>
+  3. Refactor — <perform behavior-preserving cleanup or record why none is needed, then rerun relevant behavioral and regression tests>
+  4. If a phase fails for the wrong reason, Verify fails, or feedback is `changes-requested`, record the correction and repeat Red → Green → Refactor with relevant verification in this task; block for re-plan if the correction exceeds Files or Acceptance.
+- Verify: `<command after Refactor, plus full tests and build per AGENTS.md>` → <expected result>
 - Commit: `<type: message>`
 
 ### Task 2: <imperative title>
@@ -98,6 +108,7 @@ route_unit: null
      Task completion is tracked by the root progress.md index and each linked task log,
      not on the tasks here. -->
 
-- All tasks implemented (recorded in progress.md)
-- `<test command>` passes; build / typecheck is clean
-- All review feedback has been addressed
+- All active tasks are `done` in `progress.md` with task-local Red, Green, and Refactor evidence (or a justified alternative Red).
+- Each task has fresh committed `approved` feedback from `hamilton-code-feedback` before the next task or whole-branch review; `changes-requested` returns the same task for correction and another pass.
+- `<test command>` passes; build / typecheck is clean.
+- Whole-branch review is approved with no blocking findings.
