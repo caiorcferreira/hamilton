@@ -4,10 +4,9 @@ import * as Path from "node:path";
 import * as Os from "node:os";
 import * as Yaml from "yaml";
 import { Effect, Exit } from "effect";
-import {
-  setupHamilton,
-  buildSettingsYaml,
-} from "../../src/cli/commands/setup.js";
+import { setupHamilton } from "../../src/cli/commands/setup.js";
+import { SetupService } from "../../src/cli/setup.service.js";
+import { buildSettingsYaml } from "../../src/cli/setup-settings.js";
 
 const TEMPLATE_FILES = [
   "critique.md",
@@ -29,6 +28,83 @@ const WAYFINDER_TEMPLATE_FILES = [
   "wayfinder/ticket.md",
   "wayfinder/route.md",
 ];
+
+describe("SetupService", () => {
+  const bundleRoot = "/bundle";
+  const templates = "/home/.hamilton/templates";
+  const guidelines = "/home/.hamilton/guidelines";
+  const settings = "/home/.hamilton/settings.yaml";
+
+  function makePorts(existingSettings?: string) {
+    const files = new Map<string, string>();
+    if (existingSettings !== undefined) files.set(settings, existingSettings);
+    const copies: Array<[string, string]> = [];
+    const fileSystemHome = {
+      ensureHamiltonHome: () => {},
+      existsSync: (path: string) =>
+        path === Path.join(bundleRoot, "templates") ||
+        path === Path.join(bundleRoot, "guidelines") ||
+        files.has(path),
+      copyDirectory: (source: string, destination: string) => {
+        copies.push([source, destination]);
+      },
+      readdirRecursive: (directory: string) =>
+        directory === templates ? ["plan.md"] : [],
+      isFile: (path: string) => path === Path.join(templates, "plan.md"),
+      writeFileSync: (path: string, content: string) => {
+        files.set(path, content);
+      },
+      guidelinesDir: () => guidelines,
+      settingsPath: () => settings,
+      templatesDir: () => templates,
+    };
+    return { fileSystemHome, files, copies };
+  }
+
+  it("installs into fresh and existing homes through supplied ports", () => {
+    const fresh = makePorts();
+    const freshService = new SetupService(
+      fresh.fileSystemHome,
+      () => bundleRoot,
+    );
+    expect(freshService.setup()).toEqual({ templates: ["plan.md"] });
+    expect(fresh.files.get(settings)).toContain("name: rtk");
+    expect(fresh.copies).toEqual([
+      [Path.join(bundleRoot, "templates"), templates],
+      [Path.join(bundleRoot, "guidelines"), guidelines],
+    ]);
+
+    const existing = makePorts("custom settings\n");
+    const existingService = new SetupService(
+      existing.fileSystemHome,
+      () => bundleRoot,
+    );
+    existingService.setup();
+    expect(existing.files.get(settings)).toBe("custom settings\n");
+  });
+
+  it("reports filesystem and bundle failures from supplied ports", () => {
+    const filesystemFailure = makePorts();
+    filesystemFailure.fileSystemHome.ensureHamiltonHome = () => {
+      throw new Error("permission denied");
+    };
+    expect(
+      () =>
+        new SetupService(
+          filesystemFailure.fileSystemHome,
+          () => bundleRoot,
+        ).setup(),
+    ).toThrow("Failed to create hamilton home directories");
+
+    const bundleFailure = makePorts();
+    expect(
+      () =>
+        new SetupService(bundleFailure.fileSystemHome, () => {
+          throw new Error("bundle unavailable");
+        }).setup(),
+    ).toThrow("bundle unavailable");
+  });
+});
 
 describe("setupHamilton", () => {
   let tmpHome: string;
