@@ -3,8 +3,8 @@ artifact: feedback
 change: 2026-09-25-replace-effect-cli-with-nestjs
 task: 1
 created: 2026-09-25
-status: open
-decision: rejected
+status: resolved
+decision: accepted
 ---
 
 # Code Feedback: Task 1 — Pin Nest runtime and compiler support
@@ -22,3 +22,17 @@ Verdict: changes-requested
 ### Suggestions
 
 - None.
+
+## Pass 2 — 2026-09-25
+
+Base: 01fbd58a835e3d7363bb3d5967aa37f2d5ed7bb5
+Head: 60dd1e436af1ce67e450e76576fcf82fed11666c
+Verdict: approved
+
+### Blocking
+
+- None.
+
+### Suggestions
+
+- [bun.lock:75] Keep compatibility claims scoped to the `CommandFactory.runWithoutClosing` path exercised here; `@golevelup/nestjs-discovery@7.0.3` still declares Nest 11-only peer ranges.
