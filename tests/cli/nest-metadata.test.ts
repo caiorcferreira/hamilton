@@ -1,34 +1,58 @@
 import "reflect-metadata";
-import { Inject, Injectable } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
-import { CommandFactory } from "nest-commander";
+import { Inject, Module, type INestApplicationContext } from "@nestjs/common";
+import { Command, CommandFactory, CommandRunner } from "nest-commander";
 import { describe, expect, it } from "vitest";
 
 const STORAGE_PORT = Symbol("storage-port");
+const executions: Array<{ arguments: string[]; value: string }> = [];
 
 interface StoragePort {
   read(): string;
 }
 
-@Injectable()
-class StorageConsumer {
-  constructor(@Inject(STORAGE_PORT) readonly storage: StoragePort) {}
+@Command({ name: "metadata-probe" })
+class MetadataProbeCommand extends CommandRunner {
+  constructor(@Inject(STORAGE_PORT) private readonly storage: StoragePort) {
+    super();
+  }
+
+  async run(arguments_: string[]): Promise<void> {
+    executions.push({ arguments: arguments_, value: this.storage.read() });
+  }
 }
 
+@Module({
+  providers: [
+    MetadataProbeCommand,
+    { provide: STORAGE_PORT, useValue: { read: () => "resolved" } },
+  ],
+})
+class MetadataProbeModule {}
+
 describe("Nest metadata", () => {
-  it("loads Nest commands and resolves a decorated provider through an explicit token", async () => {
-    const storage = { read: () => "value" };
-    const module = await Test.createTestingModule({
-      providers: [
-        StorageConsumer,
-        { provide: STORAGE_PORT, useValue: storage },
-      ],
-    }).compile();
+  it(
+    "discovers and executes a command with an explicit token in a Nest application context",
+    async () => {
+      const originalArgv = process.argv;
+      let application: INestApplicationContext | undefined;
+      executions.length = 0;
 
-    expect(CommandFactory).toBeDefined();
-    expect(Reflect.getMetadata("design:paramtypes", StorageConsumer)).toEqual([Object]);
-    expect(module.get(StorageConsumer).storage).toBe(storage);
+      try {
+        process.argv = [...originalArgv.slice(0, 2), "metadata-probe", "argument"];
+        application = await CommandFactory.runWithoutClosing(MetadataProbeModule, {
+          serviceErrorHandler: (error) => {
+            throw error;
+          },
+        });
 
-    await module.close();
-  });
+        expect(
+          Reflect.getMetadata("design:paramtypes", MetadataProbeCommand),
+        ).toEqual([Object]);
+        expect(executions).toEqual([{ arguments: ["argument"], value: "resolved" }]);
+      } finally {
+        process.argv = originalArgv;
+        await application?.close();
+      }
+    },
+  );
 });
