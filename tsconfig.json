@@ -2,6 +2,8 @@
   "$schema": "./node_modules/@effect/language-service/schema.json",
   "compilerOptions": {
     "target": "ES2024",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "module": "Node16",
     "moduleResolution": "node16",
     "outDir": "dist",

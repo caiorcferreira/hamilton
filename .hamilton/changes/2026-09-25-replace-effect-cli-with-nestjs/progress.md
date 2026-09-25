@@ -7,7 +7,7 @@ decision: accepted
 tasks:
   - id: 1
     title: Pin Nest runtime and compiler support
-    status: pending
+    status: done
     progress: tasks/task-1/progress.md
   - id: 2
     title: Add CLI result reporting
@@ -102,7 +102,7 @@ tasks:
 
 | Task | Status | Progress |
 | --- | --- | --- |
-| Task 1: Pin Nest runtime and compiler support | pending | [details](tasks/task-1/progress.md) |
+| Task 1: Pin Nest runtime and compiler support | done | [details](tasks/task-1/progress.md) |
 | Task 2: Add CLI result reporting | pending | [details](tasks/task-2/progress.md) |
 | Task 3: Extract setup service | pending | [details](tasks/task-3/progress.md) |
 | Task 4: Move isolation into IsolateService | pending | [details](tasks/task-4/progress.md) |
