@@ -105,7 +105,7 @@ tasks:
 | Task 1: Pin Nest runtime and compiler support | done | [details](tasks/task-1/progress.md) |
 | Task 2: Add CLI result reporting | done | [details](tasks/task-2/progress.md) |
 | Task 3: Extract setup service | done | [details](tasks/task-3/progress.md) |
-| Task 4: Move isolation into IsolateService | pending | [details](tasks/task-4/progress.md) |
+| Task 4: Move isolation into IsolateService | done | [details](tasks/task-4/progress.md) |
 | Task 5: Move diff into DiffService | pending | [details](tasks/task-5/progress.md) |
 | Task 6: Move precondition into PreconditionService | pending | [details](tasks/task-6/progress.md) |
 | Task 7: Move context into ContextService | pending | [details](tasks/task-7/progress.md) |

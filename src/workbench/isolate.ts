@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Path from "node:path";
 import {
   createIsolationGitAdapter,
@@ -220,15 +221,27 @@ const verify = async (
   return output(args.mode, "success", `verified: ${root.value}\n`);
 };
 
+export const ISOLATION_RUNTIME = Symbol("ISOLATION_RUNTIME");
+
+@Injectable()
+export class IsolateService {
+  constructor(
+    @Inject(ISOLATION_RUNTIME) private readonly runtime: IsolationRuntime,
+  ) {}
+
+  async execute(args: IsolationArguments): Promise<IsolationResult> {
+    const runtime = this.runtime;
+    const git = createIsolationGitAdapter(runtime);
+    if (args.mode === "check") return check(args, git, runtime);
+    if (args.mode === "create") return create(args, git, runtime);
+    return verify(args, git, runtime);
+  }
+}
+
 export const isolate = async (
   args: IsolationArguments,
   runtime: IsolationRuntime = createRuntime(),
-): Promise<IsolationResult> => {
-  const git = createIsolationGitAdapter(runtime);
-  if (args.mode === "check") return check(args, git, runtime);
-  if (args.mode === "create") return create(args, git, runtime);
-  return verify(args, git, runtime);
-};
+): Promise<IsolationResult> => new IsolateService(runtime).execute(args);
 
 export const checkIsolation = (
   changeDir?: string,
