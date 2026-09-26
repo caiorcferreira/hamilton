@@ -4,6 +4,7 @@ import {
   ContextService,
   createContextRuntime,
 } from "../../workbench/context.js";
+import { ContextCommand } from "./context.command.js";
 import {
   createDiffRuntime,
   DIFF_RUNTIME,
@@ -41,6 +42,7 @@ import { WorkbenchCommand } from "./workbench.command.js";
     WorkbenchCommand,
     IsolateCommand,
     DiffCommand,
+    ContextCommand,
     PreconditionCommand,
     IsolateService,
     DiffService,

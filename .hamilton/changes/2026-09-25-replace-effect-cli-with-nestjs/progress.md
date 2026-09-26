@@ -63,7 +63,7 @@ tasks:
     progress: tasks/task-14/progress.md
   - id: 15
     title: Register context subcommand
-    status: pending
+    status: done
     progress: tasks/task-15/progress.md
   - id: 16
     title: Register prototype subcommand
@@ -116,7 +116,7 @@ tasks:
 | Task 12: Register isolate subcommand | done | [details](tasks/task-12/progress.md) |
 | Task 13: Register diff subcommand | done | [details](tasks/task-13/progress.md) |
 | Task 14: Register precondition subcommand | done | [details](tasks/task-14/progress.md) |
-| Task 15: Register context subcommand | pending | [details](tasks/task-15/progress.md) |
+| Task 15: Register context subcommand | done | [details](tasks/task-15/progress.md) |
 | Task 16: Register prototype subcommand | pending | [details](tasks/task-16/progress.md) |
 | Task 17: Register lint subcommand | pending | [details](tasks/task-17/progress.md) |
 | Task 18: Switch root command dispatch | pending | [details](tasks/task-18/progress.md) |
