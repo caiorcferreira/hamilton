@@ -29,6 +29,7 @@ import {
   PrototypeService,
 } from "../../workbench/prototype.js";
 import { createRuntime } from "../../workbench/runtime.js";
+import { DiffCommand } from "./diff.command.js";
 import { IsolateCommand } from "./isolate.command.js";
 import { ResultModule } from "./result.module.js";
 import { WorkbenchCommand } from "./workbench.command.js";
@@ -38,6 +39,7 @@ import { WorkbenchCommand } from "./workbench.command.js";
   providers: [
     WorkbenchCommand,
     IsolateCommand,
+    DiffCommand,
     IsolateService,
     DiffService,
     PreconditionService,

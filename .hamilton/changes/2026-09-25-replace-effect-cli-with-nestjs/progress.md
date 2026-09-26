@@ -55,7 +55,7 @@ tasks:
     progress: tasks/task-12/progress.md
   - id: 13
     title: Register diff subcommand
-    status: pending
+    status: done
     progress: tasks/task-13/progress.md
   - id: 14
     title: Register precondition subcommand
@@ -114,7 +114,7 @@ tasks:
 | Task 10: Compose workbench providers | done | [details](tasks/task-10/progress.md) |
 | Task 11: Register Nest setup command | done | [details](tasks/task-11/progress.md) |
 | Task 12: Register isolate subcommand | done | [details](tasks/task-12/progress.md) |
-| Task 13: Register diff subcommand | pending | [details](tasks/task-13/progress.md) |
+| Task 13: Register diff subcommand | done | [details](tasks/task-13/progress.md) |
 | Task 14: Register precondition subcommand | pending | [details](tasks/task-14/progress.md) |
 | Task 15: Register context subcommand | pending | [details](tasks/task-15/progress.md) |
 | Task 16: Register prototype subcommand | pending | [details](tasks/task-16/progress.md) |
