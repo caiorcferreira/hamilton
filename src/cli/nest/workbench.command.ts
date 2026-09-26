@@ -4,6 +4,7 @@ import { ContextCommand } from "./context.command.js";
 import { DiffCommand } from "./diff.command.js";
 import { IsolateCommand } from "./isolate.command.js";
 import { PreconditionCommand } from "./precondition.command.js";
+import { PrototypeCommand } from "./prototype.command.js";
 
 @Command({
   name: "workbench",
@@ -13,6 +14,7 @@ import { PreconditionCommand } from "./precondition.command.js";
     DiffCommand,
     PreconditionCommand,
     ContextCommand,
+    PrototypeCommand,
   ],
 })
 export class WorkbenchCommand extends CommandRunner {
