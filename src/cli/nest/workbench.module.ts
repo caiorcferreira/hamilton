@@ -32,6 +32,7 @@ import {
 import { createRuntime } from "../../workbench/runtime.js";
 import { DiffCommand } from "./diff.command.js";
 import { IsolateCommand } from "./isolate.command.js";
+import { LintCommand } from "./lint.command.js";
 import { PreconditionCommand } from "./precondition.command.js";
 import { PrototypeCommand } from "./prototype.command.js";
 import { ResultModule } from "./result.module.js";
@@ -46,6 +47,7 @@ import { WorkbenchCommand } from "./workbench.command.js";
     ContextCommand,
     PreconditionCommand,
     PrototypeCommand,
+    LintCommand,
     IsolateService,
     DiffService,
     PreconditionService,

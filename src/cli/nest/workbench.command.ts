@@ -3,6 +3,7 @@ import { ResultReporter } from "./result-reporter.js";
 import { ContextCommand } from "./context.command.js";
 import { DiffCommand } from "./diff.command.js";
 import { IsolateCommand } from "./isolate.command.js";
+import { LintCommand } from "./lint.command.js";
 import { PreconditionCommand } from "./precondition.command.js";
 import { PrototypeCommand } from "./prototype.command.js";
 
@@ -15,6 +16,7 @@ import { PrototypeCommand } from "./prototype.command.js";
     PreconditionCommand,
     ContextCommand,
     PrototypeCommand,
+    LintCommand,
   ],
 })
 export class WorkbenchCommand extends CommandRunner {
