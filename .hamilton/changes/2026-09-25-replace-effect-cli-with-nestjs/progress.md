@@ -113,7 +113,7 @@ tasks:
 | Task 9: Move lint into LintService | done | [details](tasks/task-9/progress.md) |
 | Task 10: Compose workbench providers | done | [details](tasks/task-10/progress.md) |
 | Task 11: Register Nest setup command | done | [details](tasks/task-11/progress.md) |
-| Task 12: Register isolate subcommand | pending | [details](tasks/task-12/progress.md) |
+| Task 12: Register isolate subcommand | done | [details](tasks/task-12/progress.md) |
 | Task 13: Register diff subcommand | pending | [details](tasks/task-13/progress.md) |
 | Task 14: Register precondition subcommand | pending | [details](tasks/task-14/progress.md) |
 | Task 15: Register context subcommand | pending | [details](tasks/task-15/progress.md) |
