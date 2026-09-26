@@ -23,7 +23,7 @@ tasks:
     progress: tasks/task-4/progress.md
   - id: 5
     title: Move diff into DiffService
-    status: pending
+    status: done
     progress: tasks/task-5/progress.md
   - id: 6
     title: Move precondition into PreconditionService
