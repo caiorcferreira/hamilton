@@ -4,8 +4,10 @@ import * as Os from "node:os";
 import * as Path from "node:path";
 import {
   createPrototypeRuntime,
-  prototype,
+  PrototypeService,
+  type PrototypeArguments,
   type PrototypeGitPort,
+  type PrototypeRuntime,
 } from "../../src/workbench/prototype.js";
 import { cleanupRepos, git, makeRepo, runCommand, write } from "./helpers.js";
 
@@ -20,6 +22,11 @@ const inDirectory = (directory: string) => {
   process.chdir(directory);
   return directory;
 };
+
+const executePrototype = (
+  args: PrototypeArguments,
+  runtime: PrototypeRuntime = createPrototypeRuntime(),
+) => new PrototypeService(runtime).execute(args);
 
 const failingGit = (
   repository: string,
@@ -47,8 +54,11 @@ const failingGit = (
 describe("prototype create and resume", () => {
   it("creates a mapped branch from the current branch and switches to it", async () => {
     const repo = inDirectory(makeRepo());
+    const service = new PrototypeService(
+      createPrototypeRuntime({ cwd: () => repo }),
+    );
 
-    const result = await prototype({
+    const result = await service.execute({
       mode: "mapped",
       mapName: "payments-redesign",
       ticketName: "03-storage-model",
@@ -68,7 +78,7 @@ describe("prototype create and resume", () => {
     const repo = inDirectory(makeRepo());
     const file = write(repo, "scratch.txt", "wip\n");
 
-    const result = await prototype({
+    const result = await executePrototype({
       mode: "mapped",
       mapName: "payments-redesign",
       ticketName: "03-storage-model",
@@ -81,14 +91,14 @@ describe("prototype create and resume", () => {
 
   it("resumes an existing mapped branch and switches to it", async () => {
     const repo = inDirectory(makeRepo());
-    await prototype({
+    await executePrototype({
       mode: "mapped",
       mapName: "payments-redesign",
       ticketName: "03-storage-model",
     });
     git(repo, "checkout", "-q", "main");
 
-    const result = await prototype({
+    const result = await executePrototype({
       mode: "mapped",
       mapName: "payments-redesign",
       ticketName: "03-storage-model",
@@ -107,7 +117,7 @@ describe("prototype create and resume", () => {
   it("creates a standalone branch from a question slug", async () => {
     const repo = inDirectory(makeRepo());
 
-    const result = await prototype({ mode: "standalone", slug: "my-question" });
+    const result = await executePrototype({ mode: "standalone", slug: "my-question" });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("mode: created");
@@ -118,14 +128,14 @@ describe("prototype create and resume", () => {
 
 describe("prototype verify", () => {
   it("succeeds when the current branch matches", async () => {
-    const repo = inDirectory(makeRepo());
-    await prototype({
+    inDirectory(makeRepo());
+    await executePrototype({
       mode: "mapped",
       mapName: "payments-redesign",
       ticketName: "03-storage-model",
     });
 
-    const result = await prototype({
+    const result = await executePrototype({
       mode: "verify",
       expectedBranch: "prototype/payments-redesign/03-storage-model",
     });
@@ -139,7 +149,7 @@ describe("prototype verify", () => {
   it("fails when the current branch does not match", async () => {
     inDirectory(makeRepo());
 
-    const result = await prototype({
+    const result = await executePrototype({
       mode: "verify",
       expectedBranch: "prototype/payments-redesign/03-storage-model",
     });
@@ -156,7 +166,7 @@ describe("prototype usage and environment errors", () => {
   it("rejects invalid mapped arguments before repository work", async () => {
     const repo = inDirectory(makeRepo());
 
-    const result = await prototype({
+    const result = await executePrototype({
       mode: "mapped",
       mapName: "",
       ticketName: "03-storage-model",
@@ -170,7 +180,7 @@ describe("prototype usage and environment errors", () => {
   it("rejects invalid standalone arguments before repository work", async () => {
     const repo = inDirectory(makeRepo());
 
-    const result = await prototype({ mode: "standalone", slug: "" });
+    const result = await executePrototype({ mode: "standalone", slug: "" });
 
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("slug");
@@ -183,7 +193,7 @@ describe("prototype usage and environment errors", () => {
     );
     try {
       inDirectory(directory);
-      const result = await prototype({
+      const result = await executePrototype({
         mode: "mapped",
         mapName: "payments-redesign",
         ticketName: "03-storage-model",
@@ -202,14 +212,11 @@ describe("prototype usage and environment errors", () => {
       git: failingGit(repo, "branchExists"),
     });
 
-    const result = await prototype(
-      {
-        mode: "mapped",
-        mapName: "payments-redesign",
-        ticketName: "03-storage-model",
-      },
-      runtime,
-    );
+    const result = await new PrototypeService(runtime).execute({
+      mode: "mapped",
+      mapName: "payments-redesign",
+      ticketName: "03-storage-model",
+    });
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
@@ -225,7 +232,7 @@ describe("prototype usage and environment errors", () => {
       git: failingGit(repo, "createBranch"),
     });
 
-    const result = await prototype(
+    const result = await executePrototype(
       {
         mode: "mapped",
         mapName: "payments-redesign",
@@ -249,7 +256,7 @@ describe("prototype usage and environment errors", () => {
       git: failingGit(repo, "switchBranch"),
     });
 
-    const result = await prototype(
+    const result = await executePrototype(
       {
         mode: "mapped",
         mapName: "payments-redesign",
@@ -276,7 +283,7 @@ describe("prototype usage and environment errors", () => {
       process: { run: process },
     });
 
-    const result = await prototype(
+    const result = await executePrototype(
       {
         mode: "mapped",
         mapName: "payments-redesign",
