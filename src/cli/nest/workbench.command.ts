@@ -1,9 +1,11 @@
 import { Command, CommandRunner } from "nest-commander";
 import { ResultReporter } from "./result-reporter.js";
+import { IsolateCommand } from "./isolate.command.js";
 
 @Command({
   name: "workbench",
   description: "Hamilton workflow mechanics and artifact validation",
+  subCommands: [IsolateCommand],
 })
 export class WorkbenchCommand extends CommandRunner {
   constructor(private readonly reporter: ResultReporter) {

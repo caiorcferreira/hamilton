@@ -51,7 +51,7 @@ tasks:
     progress: tasks/task-11/progress.md
   - id: 12
     title: Register isolate subcommand
-    status: pending
+    status: done
     progress: tasks/task-12/progress.md
   - id: 13
     title: Register diff subcommand
