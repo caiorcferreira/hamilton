@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Path from "node:path";
 import {
   cleanTree,
@@ -58,74 +59,86 @@ const isResult = (
   value: CleanTreeGate | ProcessResult | PreconditionResult,
 ): value is PreconditionResult => resultIsFailure(value);
 
+export const PRECONDITION_RUNTIME = Symbol("PRECONDITION_RUNTIME");
+
+@Injectable()
+export class PreconditionService {
+  constructor(
+    @Inject(PRECONDITION_RUNTIME) private readonly runtime: PreconditionRuntime,
+  ) {}
+
+  async execute(args: PreconditionArguments): Promise<PreconditionResult> {
+    const runtime = this.runtime;
+    const target = await resolveTarget(args, runtime);
+    if (typeof target !== "string") return target;
+    let output = "";
+    let failures = 0;
+
+    const initial = await cleanTree(runtime, target, "Clean tree");
+    if (isResult(initial)) return initial;
+    output += initial.output;
+    if (!initial.clean) failures += 1;
+
+    const execution = await runTestCommand(runtime, args.testCommand, target);
+    if (isResult(execution)) return execution;
+    const tests = testGate(args.testCommand, execution);
+    output += tests.output;
+    if (!tests.passed) failures += 1;
+
+    const after = await cleanTree(
+      runtime,
+      target,
+      "Clean tree after verification",
+    );
+    if (isResult(after)) return result("error", 2, output, after.stderr);
+    output += after.output;
+    if (!after.clean) failures += 1;
+
+    const tasks: TaskInspection = await inspectTasks(
+      runtime,
+      target,
+      Path.resolve(args.changeDir),
+    );
+    output += tasks.output;
+    if (!tasks.passed) failures += 1;
+    const reviews: ReviewInspection = await inspectReviews(
+      runtime,
+      target,
+      Path.resolve(args.changeDir),
+      tasks,
+    );
+    output += reviews.output;
+    if (!reviews.passed) failures += 1;
+    const freshness = await inspectFreshness(
+      runtime,
+      target,
+      tasks,
+      reviews,
+      args.wholeChangeWaived === true,
+    );
+    output += freshness.output;
+    if (!freshness.passed) failures += 1;
+
+    if (failures === 0) {
+      const final = await cleanTree(runtime, target, "Final clean tree");
+      if (isResult(final)) return result("error", 2, output, final.stderr);
+      output += final.output;
+      if (!final.clean) failures += 1;
+    }
+
+    if (failures === 0) {
+      output += "gate: open\n";
+      return result("success", 0, output);
+    }
+    output += `gate: closed (${failures} failing)\n`;
+    return result("negative", 1, output);
+  }
+}
+
 export const precondition = async (
   args: PreconditionArguments,
   runtime: PreconditionRuntime = createPreconditionRuntime(),
-): Promise<PreconditionResult> => {
-  const target = await resolveTarget(args, runtime);
-  if (typeof target !== "string") return target;
-  let output = "";
-  let failures = 0;
-
-  const initial = await cleanTree(runtime, target, "Clean tree");
-  if (isResult(initial)) return initial;
-  output += initial.output;
-  if (!initial.clean) failures += 1;
-
-  const execution = await runTestCommand(runtime, args.testCommand, target);
-  if (isResult(execution)) return execution;
-  const tests = testGate(args.testCommand, execution);
-  output += tests.output;
-  if (!tests.passed) failures += 1;
-
-  const after = await cleanTree(
-    runtime,
-    target,
-    "Clean tree after verification",
-  );
-  if (isResult(after)) return result("error", 2, output, after.stderr);
-  output += after.output;
-  if (!after.clean) failures += 1;
-
-  const tasks: TaskInspection = await inspectTasks(
-    runtime,
-    target,
-    Path.resolve(args.changeDir),
-  );
-  output += tasks.output;
-  if (!tasks.passed) failures += 1;
-  const reviews: ReviewInspection = await inspectReviews(
-    runtime,
-    target,
-    Path.resolve(args.changeDir),
-    tasks,
-  );
-  output += reviews.output;
-  if (!reviews.passed) failures += 1;
-  const freshness = await inspectFreshness(
-    runtime,
-    target,
-    tasks,
-    reviews,
-    args.wholeChangeWaived === true,
-  );
-  output += freshness.output;
-  if (!freshness.passed) failures += 1;
-
-  if (failures === 0) {
-    const final = await cleanTree(runtime, target, "Final clean tree");
-    if (isResult(final)) return result("error", 2, output, final.stderr);
-    output += final.output;
-    if (!final.clean) failures += 1;
-  }
-
-  if (failures === 0) {
-    output += "gate: open\n";
-    return result("success", 0, output);
-  }
-  output += `gate: closed (${failures} failing)\n`;
-  return result("negative", 1, output);
-};
+): Promise<PreconditionResult> => new PreconditionService(runtime).execute(args);
 
 export const renderPreconditionResult = (
   preconditionResult: PreconditionResult,

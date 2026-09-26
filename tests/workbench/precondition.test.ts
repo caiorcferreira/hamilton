@@ -3,7 +3,9 @@ import * as Fs from "node:fs";
 import * as Path from "node:path";
 import {
   createPreconditionRuntime,
-  precondition,
+  PreconditionService,
+  type PreconditionArguments,
+  type PreconditionRuntime,
 } from "../../src/workbench/precondition.js";
 import {
   cleanupRepos,
@@ -16,6 +18,11 @@ import {
 } from "./helpers.js";
 
 afterEach(cleanupRepos);
+
+const runPrecondition = (
+  args: PreconditionArguments,
+  runtime: PreconditionRuntime = createPreconditionRuntime(),
+) => new PreconditionService(runtime).execute(args);
 
 const evidencePath = (slug: string, file: string): string =>
   `.hamilton/changes/${slug}/${file}`;
@@ -241,7 +248,7 @@ describe("precondition repository gates", () => {
     const repository = makeRepo();
     const changeDir = makeChangeDir(repository, "add-auth");
 
-    const result = await precondition({
+    const result = await runPrecondition({
       changeDir,
       testCommand: "true",
     });
@@ -258,7 +265,7 @@ describe("precondition repository gates", () => {
     const repository = makeRepo();
     const changeDir = makeChangeDir(repository, "add-auth");
 
-    const result = await precondition({ changeDir, testCommand: "" });
+    const result = await runPrecondition({ changeDir, testCommand: "" });
 
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("--test-cmd is required");
@@ -270,7 +277,7 @@ describe("precondition repository gates", () => {
     const changeDir = makeChangeDir(repository, "add-auth");
     write(repository, "stray.ts", "never committed\n");
 
-    const result = await precondition({
+    const result = await runPrecondition({
       changeDir,
       testCommand: "true",
     });
@@ -290,7 +297,7 @@ describe("precondition repository gates", () => {
     write(target, "target-only.txt", "target\n");
     commitAll(target, "add target marker");
 
-    const result = await precondition(
+    const result = await runPrecondition(
       {
         changeDir,
         testCommand: "test -f target-only.txt",
@@ -311,7 +318,7 @@ describe("precondition repository gates", () => {
     write(caller, "caller-only.txt", "caller\n");
     commitAll(caller, "add caller marker");
 
-    const result = await precondition(
+    const result = await runPrecondition(
       {
         changeDir,
         testCommand: "test -f caller-only.txt",
@@ -330,7 +337,7 @@ describe("precondition repository gates", () => {
     const repository = makeRepo();
     const changeDir = makeChangeDir(repository, "add-auth");
 
-    const result = await precondition({
+    const result = await runPrecondition({
       changeDir,
       testCommand: "echo 'boom: 2 failed'; exit 3",
     });
@@ -344,7 +351,7 @@ describe("precondition repository gates", () => {
   it("closes the gate when the test command is unavailable", async () => {
     const repository = makeRepo();
     const changeDir = makeChangeDir(repository, "add-auth");
-    const result = await precondition(
+    const result = await runPrecondition(
       { changeDir, testCommand: "unavailable-test" },
       createPreconditionRuntime({
         process: {
@@ -381,7 +388,7 @@ describe("precondition repository gates", () => {
     const changeDir = makeChangeDir(target, "add-auth");
     const command = "printf mutation >> README.md";
 
-    const result = await precondition(
+    const result = await runPrecondition(
       { changeDir, testCommand: command },
       createPreconditionRuntime({ cwd: () => caller }),
     );
@@ -414,7 +421,7 @@ describe("precondition repository gates", () => {
         statusPorcelain: () => ({ status: 0, stdout: "", stderr: "" }),
       },
     });
-    const result = await precondition(
+    const result = await runPrecondition(
       { changeDir, testCommand: "injected-test" },
       runtime,
     );
@@ -428,8 +435,11 @@ describe("precondition repository gates", () => {
 it("opens the gate with a committed synchronized all-done ledger", async () => {
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository);
+  const service = new PreconditionService(
+    createPreconditionRuntime({ cwd: () => repository }),
+  );
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await service.execute({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Tasks (1 implemented)");
@@ -445,7 +455,7 @@ it("opens the gate for a committed synchronized renamed task title", async () =>
     taskTitle: "Rename | delimiter",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Clean tree");
@@ -460,7 +470,7 @@ it("rejects a committed stale metadata title with the ledger diagnostic", async 
     metadataTitle: "Stale title",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("[PASS] Clean tree");
@@ -473,7 +483,7 @@ it("rejects a committed metadata status mismatch despite a synchronized task row
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository, { metadataStatus: "pending" });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("progress metadata ledger does not match");
@@ -484,7 +494,7 @@ it("opens the gate for an all-abandoned plan with an empty progress ledger", asy
   const repository = makeRepo();
   const { changeDir } = makeEmptyProgressEvidence(repository, true);
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Tasks (0 implemented)");
@@ -495,7 +505,7 @@ it("rejects an empty progress ledger when the plan has an active task", async ()
   const repository = makeRepo();
   const { changeDir } = makeEmptyProgressEvidence(repository, false);
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("plan and progress ledgers do not match");
@@ -509,7 +519,7 @@ it("opens the gate with requested-change then approved per-pass evidence", async
     reviewMode: "multi-pass",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Reviews");
@@ -524,7 +534,7 @@ it("opens the gate with a legacy-global history whose latest pass is approved", 
     reviewMode: "legacy-multi-pass",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Reviews");
@@ -539,7 +549,7 @@ it("opens the gate with a migrated fieldless prefix and explicit latest pass", a
     reviewMode: "migrated",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode, result.stdout).toBe(0);
   expect(result.stdout).toContain("[PASS] Reviews");
@@ -553,7 +563,7 @@ it("rejects a malformed physical-last task feedback pass", async () => {
     feedbackMode: "malformed-latest",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Task 1 feedback malformed");
@@ -565,8 +575,11 @@ it("rejects a malformed physical-last whole-branch review pass", async () => {
   const { changeDir } = makeEvidence(repository, {
     reviewMode: "malformed-latest",
   });
+  const service = new PreconditionService(
+    createPreconditionRuntime({ cwd: () => repository }),
+  );
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await service.execute({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("whole-branch review malformed");
@@ -579,7 +592,7 @@ it("rejects a stale latest task feedback approval", async () => {
     feedbackMode: "stale-latest",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Task 1 feedback is stale");
@@ -592,7 +605,7 @@ it("rejects a stale latest whole-branch review approval", async () => {
     reviewMode: "stale-latest",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("review head does not contain material");
@@ -605,7 +618,7 @@ it("rejects contradictory one-pass compatibility provenance", async () => {
     feedbackMode: "ambiguous-compatibility",
   });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Task 1 feedback malformed");
@@ -616,7 +629,7 @@ it("fails closed when split ledgers or task evidence contradict", async () => {
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository);
   write(repository, evidencePath("demo", "progress.md"), "broken\n");
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("[FAIL] Clean tree");
@@ -631,7 +644,7 @@ it.each(["pending", "blocked"])(
       taskProgressStatus: status,
     });
 
-    const result = await precondition({ changeDir, testCommand: "true" });
+    const result = await runPrecondition({ changeDir, testCommand: "true" });
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toContain(`Task 1 progress status: ${status}`);
@@ -643,7 +656,7 @@ it("rejects contradictory approved blocking findings", async () => {
   const repository = makeRepo();
   const { changeDir } = makeEvidence(repository, { blockingFeedback: true });
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Task 1 feedback malformed");
@@ -656,8 +669,8 @@ it("waives only whole-change material freshness", async () => {
   write(repository, "material.txt", "new material\n");
   commitAll(repository, "material after review");
 
-  const closed = await precondition({ changeDir, testCommand: "true" });
-  const waived = await precondition({
+  const closed = await runPrecondition({ changeDir, testCommand: "true" });
+  const waived = await runPrecondition({
     changeDir,
     testCommand: "true",
     wholeChangeWaived: true,
@@ -687,7 +700,7 @@ it("rejects a stale task feedback range", async () => {
     evidencePath("demo", "tasks/task-1/feedback.md"),
   );
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("Task 1 feedback is stale");
@@ -709,7 +722,7 @@ it("rejects a mixed feedback commit", async () => {
   write(repository, "mixed.txt", "mixed\n");
   commitAll(repository, "mixed feedback");
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain(
@@ -724,7 +737,7 @@ it("rejects a missing review without inheriting task approval", async () => {
   Fs.unlinkSync(Path.join(changeDir, "review.md"));
   commitAll(repository, "remove review");
 
-  const result = await precondition({ changeDir, testCommand: "true" });
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
 
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toContain("whole-branch review missing");
@@ -734,7 +747,7 @@ it("rejects a missing review without inheriting task approval", async () => {
 it("rejects a missing change directory before running gates", async () => {
   const repository = makeRepo();
 
-  const result = await precondition({
+  const result = await runPrecondition({
     changeDir: Path.join(repository, "nope"),
     testCommand: "true",
   });
@@ -746,7 +759,7 @@ it("rejects a missing change directory before running gates", async () => {
 it("preserves a target repository environment failure", async () => {
   const repository = makeRepo();
   const changeDir = makeChangeDir(repository, "add-auth");
-  const result = await precondition(
+  const result = await runPrecondition(
     { changeDir, testCommand: "true" },
     createPreconditionRuntime({
       fileSystem: {
