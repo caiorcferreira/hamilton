@@ -1,0 +1,70 @@
+import { Module } from "@nestjs/common";
+import {
+  CONTEXT_RUNTIME,
+  ContextService,
+  createContextRuntime,
+} from "../../workbench/context.js";
+import {
+  createDiffRuntime,
+  DIFF_RUNTIME,
+  DiffService,
+} from "../../workbench/diff.js";
+import {
+  ISOLATION_RUNTIME,
+  IsolateService,
+} from "../../workbench/isolate.js";
+import {
+  LINT_DEPENDENCIES,
+  LintService,
+  type LintDependencies,
+} from "../../workbench/lint.js";
+import {
+  PRECONDITION_RUNTIME,
+  PreconditionService,
+} from "../../workbench/precondition.js";
+import { createPreconditionRuntime } from "../../workbench/precondition-runtime.js";
+import {
+  createPrototypeRuntime,
+  PROTOTYPE_RUNTIME,
+  PrototypeService,
+} from "../../workbench/prototype.js";
+import { createRuntime } from "../../workbench/runtime.js";
+import { ResultModule } from "./result.module.js";
+import { WorkbenchCommand } from "./workbench.command.js";
+
+@Module({
+  imports: [ResultModule],
+  providers: [
+    WorkbenchCommand,
+    IsolateService,
+    DiffService,
+    PreconditionService,
+    ContextService,
+    PrototypeService,
+    LintService,
+    { provide: ISOLATION_RUNTIME, useFactory: createRuntime },
+    { provide: DIFF_RUNTIME, useFactory: createDiffRuntime },
+    { provide: PRECONDITION_RUNTIME, useFactory: createPreconditionRuntime },
+    { provide: CONTEXT_RUNTIME, useFactory: createContextRuntime },
+    { provide: PROTOTYPE_RUNTIME, useFactory: createPrototypeRuntime },
+    {
+      provide: LINT_DEPENDENCIES,
+      useFactory: (): LintDependencies => ({}),
+    },
+  ],
+  exports: [
+    IsolateService,
+    DiffService,
+    PreconditionService,
+    ContextService,
+    PrototypeService,
+    LintService,
+    ISOLATION_RUNTIME,
+    DIFF_RUNTIME,
+    PRECONDITION_RUNTIME,
+    CONTEXT_RUNTIME,
+    PROTOTYPE_RUNTIME,
+    LINT_DEPENDENCIES,
+  ],
+})
+export class WorkbenchModule {}
