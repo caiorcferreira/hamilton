@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Fs from "node:fs/promises";
 import * as Path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -1309,11 +1310,25 @@ const contextAll = async (runtime: ContextRuntime): Promise<ContextResult> => {
   );
 };
 
+export const CONTEXT_RUNTIME = Symbol("CONTEXT_RUNTIME");
+
+@Injectable()
+export class ContextService {
+  constructor(
+    @Inject(CONTEXT_RUNTIME) private readonly runtime: ContextRuntime,
+  ) {}
+
+  execute(args: ContextArguments): Promise<ContextResult> {
+    return args.all
+      ? contextAll(this.runtime)
+      : contextOne(this.runtime, args.changeDir);
+  }
+}
+
 export const context = async (
   args: ContextArguments = {},
   runtime: ContextRuntime = createContextRuntime(),
-): Promise<ContextResult> =>
-  args.all ? contextAll(runtime) : contextOne(runtime, args.changeDir);
+): Promise<ContextResult> => new ContextService(runtime).execute(args);
 export const renderContextResult = (contextResult: ContextResult): string =>
   contextResult.stdout.trimEnd() === ""
     ? contextResult.stderr.trimEnd()

@@ -31,7 +31,7 @@ tasks:
     progress: tasks/task-6/progress.md
   - id: 7
     title: Move context into ContextService
-    status: pending
+    status: done
     progress: tasks/task-7/progress.md
   - id: 8
     title: Move prototype into PrototypeService
@@ -108,7 +108,7 @@ tasks:
 | Task 4: Move isolation into IsolateService | done | [details](tasks/task-4/progress.md) |
 | Task 5: Move diff into DiffService | done | [details](tasks/task-5/progress.md) |
 | Task 6: Move precondition into PreconditionService | done | [details](tasks/task-6/progress.md) |
-| Task 7: Move context into ContextService | pending | [details](tasks/task-7/progress.md) |
+| Task 7: Move context into ContextService | done | [details](tasks/task-7/progress.md) |
 | Task 8: Move prototype into PrototypeService | pending | [details](tasks/task-8/progress.md) |
 | Task 9: Move lint into LintService | pending | [details](tasks/task-9/progress.md) |
 | Task 10: Compose workbench providers | pending | [details](tasks/task-10/progress.md) |
