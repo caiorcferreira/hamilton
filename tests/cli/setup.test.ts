@@ -3,9 +3,8 @@ import * as Fs from "node:fs";
 import * as Path from "node:path";
 import * as Os from "node:os";
 import * as Yaml from "yaml";
-import { Effect, Exit } from "effect";
-import { setupHamilton } from "../../src/cli/commands/setup.js";
 import { SetupService } from "../../src/cli/setup.service.js";
+import { createSetupRuntime } from "../../src/cli/setup-runtime.js";
 import { buildSettingsYaml } from "../../src/cli/setup-settings.js";
 
 const TEMPLATE_FILES = [
@@ -28,6 +27,15 @@ const WAYFINDER_TEMPLATE_FILES = [
   "wayfinder/ticket.md",
   "wayfinder/route.md",
 ];
+
+const runSetup = () => {
+  const runtime = createSetupRuntime();
+  const service = new SetupService(
+    runtime.fileSystemHome,
+    runtime.bundleLocator,
+  );
+  return service.setup();
+};
 
 describe("SetupService", () => {
   const bundleRoot = "/bundle";
@@ -106,7 +114,7 @@ describe("SetupService", () => {
   });
 });
 
-describe("setupHamilton", () => {
+describe("SetupService filesystem integration", () => {
   let tmpHome: string;
   const originalHome = process.env.HOME;
 
@@ -120,9 +128,8 @@ describe("setupHamilton", () => {
     Fs.rmSync(tmpHome, { recursive: true, force: true });
   });
 
-  it("creates required directories", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+  it("creates required directories", () => {
+    runSetup();
 
     const home = Path.join(tmpHome, ".hamilton");
     expect(Fs.existsSync(home)).toBe(true);
@@ -131,9 +138,8 @@ describe("setupHamilton", () => {
     expect(Fs.existsSync(Path.join(home, "scripts"))).toBe(false);
   });
 
-  it("copies artifact templates", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+  it("copies artifact templates", () => {
+    runSetup();
 
     const templatesBase = Path.join(tmpHome, ".hamilton", "templates");
     for (const file of TEMPLATE_FILES) {
@@ -141,9 +147,8 @@ describe("setupHamilton", () => {
     }
   });
 
-  it("copies wayfinder artifact templates", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+  it("copies wayfinder artifact templates", () => {
+    runSetup();
 
     const templatesBase = Path.join(tmpHome, ".hamilton", "templates");
     for (const file of WAYFINDER_TEMPLATE_FILES) {
@@ -170,9 +175,8 @@ describe("setupHamilton", () => {
     }
   });
 
-  it("copies guideline manifests", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+  it("copies guideline manifests", () => {
+    runSetup();
 
     const guidelinesBase = Path.join(tmpHome, ".hamilton", "guidelines");
     expect(
@@ -186,30 +190,22 @@ describe("setupHamilton", () => {
     ).toBe(true);
   });
 
-  it("returns installed template filenames", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    if (Exit.isSuccess(exit)) {
-      expect(exit.value.templates).toContain("plan.md");
-      expect(exit.value.templates).toContain("task-progress.md");
-      expect(exit.value.templates).toContain("feedback.md");
-      expect(exit.value.templates).toContain("finish.md");
-      expect(exit.value.templates).toContain("wayfinder/map.md");
-      expect(exit.value.templates.length).toBeGreaterThan(0);
-    } else {
-      expect.unreachable("Expected success");
-    }
+  it("returns installed template filenames", () => {
+    const result = runSetup();
+    expect(result.templates).toContain("plan.md");
+    expect(result.templates).toContain("task-progress.md");
+    expect(result.templates).toContain("feedback.md");
+    expect(result.templates).toContain("finish.md");
+    expect(result.templates).toContain("wayfinder/map.md");
+    expect(result.templates.length).toBeGreaterThan(0);
   });
 
-  it("does not expose installed script filenames", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    if (Exit.isSuccess(exit)) {
-      expect(Object.keys(exit.value)).toEqual(["templates"]);
-    } else {
-      expect.unreachable("Expected success");
-    }
+  it("does not expose installed script filenames", () => {
+    const result = runSetup();
+    expect(Object.keys(result)).toEqual(["templates"]);
   });
 
-  it("leaves an existing helper script directory unchanged", async () => {
+  it("leaves an existing helper script directory unchanged", () => {
     const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts");
     Fs.mkdirSync(Path.join(scriptsBase, "nested"), { recursive: true });
     Fs.writeFileSync(Path.join(scriptsBase, "legacy.sh"), "legacy helper\n");
@@ -222,8 +218,7 @@ describe("setupHamilton", () => {
       Fs.readFileSync(Path.join(scriptsBase, "nested", "config")),
     ];
 
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+    runSetup();
     expect(Fs.readdirSync(scriptsBase).sort()).toEqual(["legacy.sh", "nested"]);
     expect(Fs.readFileSync(Path.join(scriptsBase, "legacy.sh"))).toEqual(
       before[0],
@@ -233,21 +228,17 @@ describe("setupHamilton", () => {
     );
   });
 
-  it("is idempotent", async () => {
-    const exit1 = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit1)).toBe(true);
-
-    const exit2 = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit2)).toBe(true);
+  it("is idempotent", () => {
+    runSetup();
+    runSetup();
 
     expect(
       Fs.existsSync(Path.join(tmpHome, ".hamilton", "templates", "plan.md")),
     ).toBe(true);
   });
 
-  it("creates default settings.yaml on init", async () => {
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+  it("creates default settings.yaml on init", () => {
+    runSetup();
 
     const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml");
     expect(Fs.existsSync(settingsPath)).toBe(true);
@@ -258,8 +249,8 @@ describe("setupHamilton", () => {
     expect(content).toContain("name: git");
   });
 
-  it("does not overwrite existing settings.yaml on re-init", async () => {
-    await Effect.runPromiseExit(setupHamilton());
+  it("does not overwrite existing settings.yaml on re-init", () => {
+    runSetup();
 
     const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml");
     Fs.writeFileSync(
@@ -267,7 +258,7 @@ describe("setupHamilton", () => {
       "extensions:\n  - name: rtk\n    enabled: false\n",
     );
 
-    await Effect.runPromiseExit(setupHamilton());
+    runSetup();
 
     const content = Fs.readFileSync(settingsPath, "utf-8");
     expect(content).toContain("enabled: false");
@@ -318,7 +309,7 @@ describe("bundle root resolution", () => {
     Fs.rmSync(tmpBundleDir, { recursive: true, force: true });
   });
 
-  it("uses HAMILTON_BUNDLE_DIR env var to locate bundle assets", async () => {
+  it("uses HAMILTON_BUNDLE_DIR env var to locate bundle assets", () => {
     const bundleTemplatesDir = Path.join(tmpBundleDir, "templates");
     Fs.mkdirSync(bundleTemplatesDir, { recursive: true });
     Fs.writeFileSync(
@@ -327,8 +318,7 @@ describe("bundle root resolution", () => {
     );
 
     process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir;
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+    runSetup();
 
     const copiedTemplate = Path.join(
       tmpHome,
@@ -344,7 +334,7 @@ describe("bundle root resolution", () => {
     );
   });
 
-  it("succeeds when the bundle has no helper scripts", async () => {
+  it("succeeds when the bundle has no helper scripts", () => {
     const bundleTemplatesDir = Path.join(tmpBundleDir, "templates");
     Fs.mkdirSync(bundleTemplatesDir, { recursive: true });
     Fs.writeFileSync(
@@ -353,8 +343,7 @@ describe("bundle root resolution", () => {
     );
 
     process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir;
-    const exit = await Effect.runPromiseExit(setupHamilton());
-    expect(Exit.isSuccess(exit)).toBe(true);
+    runSetup();
     expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "scripts"))).toBe(
       false,
     );

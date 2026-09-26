@@ -75,7 +75,7 @@ tasks:
     progress: tasks/task-17/progress.md
   - id: 18
     title: Switch root command dispatch
-    status: pending
+    status: done
     progress: tasks/task-18/progress.md
   - id: 19
     title: Remove legacy operation wrappers
@@ -119,7 +119,7 @@ tasks:
 | Task 15: Register context subcommand | done | [details](tasks/task-15/progress.md) |
 | Task 16: Register prototype subcommand | done | [details](tasks/task-16/progress.md) |
 | Task 17: Register lint subcommand | done | [details](tasks/task-17/progress.md) |
-| Task 18: Switch root command dispatch | pending | [details](tasks/task-18/progress.md) |
+| Task 18: Switch root command dispatch | done | [details](tasks/task-18/progress.md) |
 | Task 19: Remove legacy operation wrappers | pending | [details](tasks/task-19/progress.md) |
 | Task 20: Remove Effect tooling | pending | [details](tasks/task-20/progress.md) |
 | Task 21: Refresh project guidance | pending | [details](tasks/task-21/progress.md) |

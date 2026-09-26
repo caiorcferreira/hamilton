@@ -40,6 +40,18 @@ describe("workbench CLI", () => {
     temporaryDirectory = Fs.mkdtempSync(
       Path.join(Os.tmpdir(), "hamilton-workbench-cli-"),
     );
+    Fs.writeFileSync(
+      Path.join(temporaryDirectory, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          target: "ES2024",
+          experimentalDecorators: true,
+          emitDecoratorMetadata: true,
+          module: "Node16",
+          moduleResolution: "node16",
+        },
+      }),
+    );
   });
 
   afterEach(() => {
@@ -69,8 +81,37 @@ describe("workbench CLI", () => {
     const result = runCli(temporaryDirectory, "workbench");
 
     expect(result.status).toBe(2);
+    expect(result.stdout).toBe("");
     expect(result.stderr).toContain("requires a subcommand");
+    expect(result.stderr.match(/error:/g) ?? []).toHaveLength(1);
   });
+
+  it("rejects malformed workbench parser input before running operations", () => {
+    const file = Path.join(temporaryDirectory, "note.md");
+    Fs.writeFileSync(file, "# Note\n");
+
+    const results = [
+      runCli(temporaryDirectory, "workbench", "unknown-operation"),
+      runCli(
+        temporaryDirectory,
+        "workbench",
+        "lint",
+        "--file",
+        file,
+        "--unknown",
+      ),
+      runCli(temporaryDirectory, "workbench", "lint", "--file"),
+    ];
+
+    for (const result of results) {
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr.match(/error:/g) ?? []).toHaveLength(1);
+    }
+    expect(results[0].stderr).toContain("too many arguments");
+    expect(results[1].stderr).toContain("unknown option '--unknown'");
+    expect(results[2].stderr).toContain("option '--file <file>' argument missing");
+  }, 15_000);
 
   it("lints an unrelated file successfully", () => {
     const file = Path.join(temporaryDirectory, "note.md");
