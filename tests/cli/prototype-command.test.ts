@@ -204,6 +204,27 @@ describe("PrototypeCommand", () => {
     }
   });
 
+  it("reports successful service results with exact output streams", async () => {
+    const serviceResult = result({
+      status: "success",
+      exitCode: 0,
+      stdout: "prototype succeeded: exact stdout\n",
+      stderr: "prototype succeeded: exact stderr\n",
+    });
+    const harness = await runCli(
+      ["workbench", "prototype", "city-map", "HAM-123"],
+      serviceResult,
+    );
+
+    expect(harness.commandError).toBeUndefined();
+    expect(harness.calls).toEqual([
+      { mode: "mapped", mapName: "city-map", ticketName: "HAM-123" },
+    ]);
+    expect(harness.exitCode).toBe(0);
+    expect(harness.stdout).toBe("prototype succeeded: exact stdout\n");
+    expect(harness.stderr).toBe("prototype succeeded: exact stderr\n");
+  });
+
   it("reports parser usage errors without calling the service", async () => {
     const invalidArguments = [
       ["workbench", "prototype", "--unknown"],

@@ -26,3 +26,21 @@ Verification:
 - `git diff --check` — passed.
 
 Notes: Checkpoint recorded before implementation at `67c13edbbd4ce5ec1f1bac6da03587a23a3be6c4`; the ignored `.base` was not modified afterward or committed. Parser-level rejection tests run the Nest command factory with a throwing test error handler; they verify the single diagnostic and no service invocation, while the production root's final exit-code translation belongs to Task 18.
+
+## Attempt 2 — 2026-09-26
+
+- Outcome: done
+
+Created: none
+Modified: `tests/cli/prototype-command.test.ts`, `.hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/tasks/task-16/progress.md`
+Deleted: none
+
+Verification:
+- `hamilton workbench isolate --check --change-dir .hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/` — passed; `isolated: yes`.
+- `bun --bun vitest run tests/cli/prototype-command.test.ts` before adding success coverage — passed, 4 tests.
+- `bun --bun vitest run tests/cli/prototype-command.test.ts && bun --bun vitest run && bun run build` — passed; focused suite 5 tests, full suite 37 files and 514 tests, TypeScript build passed.
+- `git diff --check` — passed.
+- `hamilton lint --file .hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/tasks/task-16/progress.md` — failed to route; the CLI requires the `workbench` subcommand.
+- `hamilton workbench lint --file .hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/tasks/task-16/progress.md` — passed; valid task-progress artifact.
+
+Notes: Red is not applicable: this is a test-only coverage correction, and the existing command already forwards successful service results. Added a successful mapped invocation asserting one exact service argument, exit code `0`, and exact nonempty stdout/stderr passthrough; retained the negative-result assertions. No production files changed. The checkpoint remains `67c13edbbd4ce5ec1f1bac6da03587a23a3be6c4`.
