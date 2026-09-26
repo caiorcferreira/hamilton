@@ -89,7 +89,7 @@ describe("SetupCommand", () => {
         {
           type: "stdout",
           value:
-            "Hamilton set up successfully.\nInstalled 2 templates.\n  nested/requirements.md\n  plan.md\n",
+            "Hamilton set up successfully.\nInstalled 2 templates.\n  nested/requirements.md\n  plan.md\nInstalled guidelines.\n",
         },
         { type: "stderr", value: "" },
       ]);
@@ -195,7 +195,7 @@ describe("SetupCommand", () => {
       expect(setupCalls).toBe(1);
       expect(process.exitCode).toBe(0);
       expect(stdout).toBe(
-        "Hamilton set up successfully.\nInstalled 0 templates.\n",
+        "Hamilton set up successfully.\nInstalled 0 templates.\nInstalled guidelines.\n",
       );
       expect(stderr).toBe("");
     } finally {

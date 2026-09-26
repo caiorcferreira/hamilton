@@ -44,6 +44,7 @@ export class SetupCommand extends CommandRunner {
       "Hamilton set up successfully.",
       `Installed ${result.templates.length} templates.`,
       ...result.templates.map((name) => `  ${name}`),
+      "Installed guidelines.",
     ];
     return `${lines.join("\n")}\n`;
   }
