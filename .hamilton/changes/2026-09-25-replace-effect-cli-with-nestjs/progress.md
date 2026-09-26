@@ -39,7 +39,7 @@ tasks:
     progress: tasks/task-8/progress.md
   - id: 9
     title: Move lint into LintService
-    status: pending
+    status: done
     progress: tasks/task-9/progress.md
   - id: 10
     title: Compose workbench providers
@@ -110,7 +110,7 @@ tasks:
 | Task 6: Move precondition into PreconditionService | done | [details](tasks/task-6/progress.md) |
 | Task 7: Move context into ContextService | done | [details](tasks/task-7/progress.md) |
 | Task 8: Move prototype into PrototypeService | done | [details](tasks/task-8/progress.md) |
-| Task 9: Move lint into LintService | pending | [details](tasks/task-9/progress.md) |
+| Task 9: Move lint into LintService | done | [details](tasks/task-9/progress.md) |
 | Task 10: Compose workbench providers | pending | [details](tasks/task-10/progress.md) |
 | Task 11: Register Nest setup command | pending | [details](tasks/task-11/progress.md) |
 | Task 12: Register isolate subcommand | pending | [details](tasks/task-12/progress.md) |
