@@ -11,15 +11,15 @@ tasks:
     progress: tasks/task-1/progress.md
   - id: 2
     title: Add CLI result reporting
-    status: pending
+    status: done
     progress: tasks/task-2/progress.md
   - id: 3
     title: Extract setup service
-    status: pending
+    status: done
     progress: tasks/task-3/progress.md
   - id: 4
     title: Move isolation into IsolateService
-    status: pending
+    status: done
     progress: tasks/task-4/progress.md
   - id: 5
     title: Move diff into DiffService
