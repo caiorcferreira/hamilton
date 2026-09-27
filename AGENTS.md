@@ -1,69 +1,66 @@
 # Hamilton — Agent Instructions
 
-Template-setup CLI (TypeScript, bun, Effect-TS).
+Template-setup CLI (TypeScript, Bun, NestJS with `nest-commander`).
 
 ## Essential Commands
 
 ```bash
-bun install          # install deps
-bun run build        # tsc -p tsconfig.json
-bun run test         # bun --bun vitest run
+bun install
+bun run build
+bun --bun vitest run
 ```
 
-**Do NOT use `bun test`.** The native bun test runner lacks `vi.mocked()`. Always use `bun --bun vitest run`. Use `bun --bun vitest run tests/cli/setup.test.ts` for a single file.
+**Run tests with Vitest on Bun; do not use `bun test`.** Use `bun --bun vitest run` for the full suite or `bun --bun vitest run tests/cli/setup.test.ts` for one file. `bun run test` invokes the same Vitest command.
 
-No lint or typecheck scripts — `bun run build` is the only gate.
+No separate lint or typecheck scripts — `bun run build` is the project's TypeScript gate.
 
-To install the CLI locally after changes: `bun run install-local` (builds + symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`). Purge with `bun run purge`.
+To install the CLI locally after changes: `bun run install-local` (builds and symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`). Remove the CLI symlink and `~/.hamilton/` with `bun run purge`.
 
 ## Architecture
 
 ```
 src/cli/
-  main.ts             # Command.run(rootCommand) → BunRuntime.runMain
-  bundle-root.ts      # Locates bundle/ (env override, binary sibling, source checkout)
-  commands/
-    setup.ts          # setupHamilton effect + setupCommand — copies templates + guidelines, writes settings.yaml
-src/paths.ts          # ~/.hamilton path helpers + ensureHamiltonHome()
-src/index.ts          # VERSION
-bundle/
-  templates/          # SDD artifact templates, copied to ~/.hamilton/templates/ by setup
-  guidelines/         # Coding guidelines, copied to ~/.hamilton/guidelines/ by setup
-skills/               # Assisted skills (hamilton-* SKILL.md files), installed via `npx skills add`
-tests/                # vitest, mirrors src/ structure
+  main.ts             # Bun entrypoint; starts Nest with CommandFactory.run(AppModule)
+  app.module.ts       # root application module
+  nest/               # nest-commander root, setup, and workbench command runners and modules
+  setup.service.ts    # injectable setup use case
+  setup-runtime.ts    # typed setup runtime ports and production adapters
+src/workbench/
+  *.ts                # injectable operation services and pure workbench helpers
+  runtime.ts          # typed workbench runtime ports
+src/paths.ts           # ~/.hamilton path helpers and ensureHamiltonHome()
+src/index.ts           # canonical VERSION
+bundle/                # templates and guidelines installed into ~/.hamilton/
+skills/                # Hamilton skills, installed with `npx skills add`
+tests/                 # Vitest tests, organized by CLI, workbench, and docs
 ```
 
-CLI commands use `@effect/cli` 0.75.2: `Command.make(name, { args, options }, handler)` with `Command.withSubcommands([])`. Each command file exports its `Command` — `main.ts` just composes them.
+Nest commands use `@Command` / `@SubCommand` and `CommandRunner`. Command handlers delegate to `@Injectable()` services; Nest modules bind typed runtime ports to their production adapters and allow test overrides. Workbench operations remain independently testable through their services and ports.
 
 ## Critical Conventions
 
 - **No comments in code** — zero, ever.
-- **ESM with `.js` extension** in imports: `import { x } from "./foo.js"` even when importing `.ts` files.
-- **`Data.TaggedError`** for all custom errors (not `class extends Error`).
-- **`bun.lock` is text** (not `bun.lockb` which is in `.gitignore`).
-- **All dependency versions pinned** — no `~` or `^` in package.json.
+- **ESM with `.js` extensions** in imports: `import { x } from "./foo.js"`, including imports of TypeScript files.
+- **Errors and results**: thrown custom errors extend native `Error`; workbench services return structured results with `stdout`, `stderr`, and `exitCode`.
+- **`bun.lock` is text** (not `bun.lockb`, which is ignored).
+- **Pin every dependency version** — no `~` or `^` in `package.json`.
 - **Every PR must bump the project version** — keep `package.json`'s `version` and `src/index.ts`'s `VERSION` synchronized.
 - **Shebang**: `#!/usr/bin/env bun` in `src/cli/main.ts`.
-- **`@effect/platform-bun`** (not `platform-node`) since we run on bun.
-
-## Effect-TS Quirks
-
-- `Effect.gen(function* (_)` — use `_` for the yielded generator if pattern-matching on yielded values.
-- `Effect.runPromiseExit(effect)` + `Exit.isSuccess(exit)` / `Exit.isFailure(exit)` is the standard async test pattern.
-- `@effect/cli` `Options.choice("name", ["a","b"] as const)` creates a valued option. Pipe with `.pipe(Options.optional)` to make it optional.
+- Release workflows compile a standalone Bun binary for each supported platform; keep the sidecar `bundle/` available for setup.
 
 ## Testing Patterns
 
-- `vitest.config.ts` has `globals: false` — always import `describe`, `it`, `expect`.
-- **Home dir override pattern**: Tests that touch `~/.hamilton/` set `process.env.HOME = tmp` in `beforeEach` and restore in `afterEach`.
-- **Bundle override pattern**: Tests that exercise bundle copy set `process.env.HAMILTON_BUNDLE_DIR` to a temp dir with the expected subdirs.
-- **No mocking libraries** — tests use real temp dirs/files with `node:os.tmpdir()`.
-- Run a single test file: `bun --bun vitest run tests/cli/setup.test.ts`
+- `vitest.config.ts` sets `globals: false`; import `describe`, `it`, and `expect` from `vitest`.
+- Tests that touch `~/.hamilton/` set `process.env.HOME` to a temporary directory and restore it afterward.
+- Tests that exercise bundle lookup use a temporary bundle or set `HAMILTON_BUNDLE_DIR` to one.
+- Prefer real temporary filesystem and Git fixtures where useful; unit tests can inject fake runtime ports, and Nest provider wiring belongs in Nest testing-module coverage.
+- Run one test file with `bun --bun vitest run <path>`.
 
 ## CLI Conventions
 
-- Each command file under `src/cli/commands/` exports both the `Command` and the underlying `Effect` function (for testability).
-- `setup.ts` is the only command — it exports `setupCommand` and `setupHamilton`.
+- Root, setup, and workbench command classes live under `src/cli/nest/`; setup orchestration belongs in the injectable `SetupService`.
+- Workbench operations are injectable services under `src/workbench/`, one per operation. Inject only the operation's typed runtime ports; keep pure helpers independent of Nest.
+- Command handlers report structured output and exit codes through `ResultReporter`.
 
 ## TODO Conventions
 

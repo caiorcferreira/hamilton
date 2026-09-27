@@ -87,7 +87,7 @@ tasks:
     progress: tasks/task-20/progress.md
   - id: 21
     title: Refresh project guidance
-    status: pending
+    status: done
     progress: tasks/task-21/progress.md
   - id: 22
     title: Smoke-test standalone binaries
@@ -122,6 +122,6 @@ tasks:
 | Task 18: Switch root command dispatch | done | [details](tasks/task-18/progress.md) |
 | Task 19: Remove legacy operation wrappers | done | [details](tasks/task-19/progress.md) |
 | Task 20: Remove Effect tooling | done | [details](tasks/task-20/progress.md) |
-| Task 21: Refresh project guidance | pending | [details](tasks/task-21/progress.md) |
+| Task 21: Refresh project guidance | done | [details](tasks/task-21/progress.md) |
 | Task 22: Smoke-test standalone binaries | pending | [details](tasks/task-22/progress.md) |
 | Task 23: Publish versioned migration notes | pending | [details](tasks/task-23/progress.md) |
