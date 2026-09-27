@@ -2,7 +2,7 @@
 artifact: progress
 change: 2026-09-25-replace-effect-cli-with-nestjs
 status: pending
-updated: 2026-09-25
+updated: 2026-09-27
 decision: accepted
 tasks:
   - id: 1

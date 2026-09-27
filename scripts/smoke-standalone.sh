@@ -28,10 +28,14 @@ expected_version=$(awk -F '"' '/^export const VERSION = / { print $2; exit }' "$
 [[ -n "$expected_version" ]] || fail "could not read canonical VERSION from src/index.ts"
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/hamilton-standalone.XXXXXX")
+stage_cleanup_path=$stage
 cleanup() {
-  rm -rf -- "$stage"
+  rm -rf -- "$stage_cleanup_path"
 }
 trap cleanup EXIT
+
+stage=$(cd -- "$stage_cleanup_path" && pwd -P) || fail 'could not resolve temporary stage path'
+stage_cleanup_path=$stage
 
 case "$stage/" in
   "$repo_root/"*) fail "temporary stage must be outside the source checkout" ;;
