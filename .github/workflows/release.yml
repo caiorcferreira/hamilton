@@ -23,7 +23,7 @@ jobs:
         id: read-version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if version should be released
         id: version-check
@@ -32,7 +32,11 @@ jobs:
           TAG="v$VERSION"
 
           # Most recent published release, empty if none exists yet.
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
+          LATEST_RELEASE=$(
+            gh release list --limit 1 \
+              --json tagName \
+              --jq '.[0].tagName' || echo ""
+          )
 
           # No version change: package.json matches the latest published
           # release. Skip cleanly — no tag, no build, no publish.
@@ -48,9 +52,12 @@ jobs:
           # recovery hint rather than pushing it again later (which errors
           # cryptically) or reusing it (which would leave the tag pointing at
           # a different commit than the artifacts built by this run).
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "Error: tag $TAG already exists on the remote but has no matching release." >&2
-            echo "An earlier release run likely failed after creating the tag." >&2
+          if git ls-remote --exit-code --tags origin \
+            "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Error: tag $TAG already exists on the remote but" \
+              "has no matching release." >&2
+            echo "An earlier release run likely failed after" \
+              "creating the tag." >&2
             echo "Delete the tag and re-run:  git push origin --delete $TAG" >&2
             exit 1
           fi
@@ -119,6 +126,11 @@ jobs:
         run: |
           bun build --compile \
             --target=bun-${{ matrix.os }}-${{ matrix.arch }} \
+            --external class-transformer \
+            --external class-validator \
+            --external @nestjs/platform-express \
+            --external @nestjs/microservices \
+            --external @nestjs/websockets \
             src/cli/main.ts \
             --outfile hamilton-${{ matrix.os }}-${{ matrix.arch }}
 
@@ -126,7 +138,7 @@ jobs:
         if: matrix.os == 'linux' && matrix.arch == 'x64'
         run: |
           chmod +x ./hamilton-linux-x64
-          ./hamilton-linux-x64 --version
+          bash scripts/smoke-standalone.sh ./hamilton-linux-x64
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
@@ -192,8 +204,9 @@ jobs:
           path: release-assets
           # Flatten every artifact into release-assets/ instead of one
           # subdirectory per artifact. Without this, each binary lands in a
-          # directory sharing its own name (release-assets/hamilton-darwin-arm64/
-          # hamilton-darwin-arm64), which broke the old manual flatten.
+          # directory sharing its own name, such as
+          # release-assets/hamilton-darwin-arm64/hamilton-darwin-arm64, which
+          # broke the old manual flatten.
           merge-multiple: true
 
       - name: List release assets
