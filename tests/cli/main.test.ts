@@ -105,6 +105,24 @@ describe("main CLI", () => {
     }
   });
 
+  it("rejects surplus setup positionals before setup runs", () => {
+    const directory = Fs.mkdtempSync(
+      Path.join(Os.tmpdir(), "hamilton-main-cli-"),
+    );
+    const invalidHome = Path.join(directory, "home-file");
+    Fs.writeFileSync(invalidHome, "not a directory");
+
+    try {
+      const result = runCli(["setup", "extra-arg"], { HOME: invalidHome });
+
+      expectUsageFailure(result);
+      expect(result.stderr).toContain("too many arguments");
+      expect(result.stderr).not.toContain("Setup failed:");
+    } finally {
+      Fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("reports setup filesystem failures once with exit code 2", () => {
     const directory = Fs.mkdtempSync(
       Path.join(Os.tmpdir(), "hamilton-main-cli-"),

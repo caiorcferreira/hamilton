@@ -113,6 +113,123 @@ describe("workbench CLI", () => {
     expect(results[2].stderr).toContain("option '--file <file>' argument missing");
   }, 15_000);
 
+  it("rejects surplus positionals for every command before operations run", () => {
+    git(temporaryDirectory, "init", "-q", "-b", "main");
+    git(temporaryDirectory, "config", "user.email", "test@example.com");
+    git(temporaryDirectory, "config", "user.name", "Test");
+    const changeDirectory = Path.join(
+      temporaryDirectory,
+      ".hamilton",
+      "changes",
+      "sample",
+    );
+    Fs.mkdirSync(changeDirectory, { recursive: true });
+    Fs.writeFileSync(Path.join(changeDirectory, "placeholder"), "content\n");
+    const file = Path.join(temporaryDirectory, "note.md");
+    Fs.writeFileSync(file, "# Note\n");
+    git(temporaryDirectory, "add", ".");
+    git(temporaryDirectory, "commit", "-qm", "initial");
+
+    const diffOutput = Path.join(temporaryDirectory, "diff-output");
+    const testMarker = Path.join(temporaryDirectory, "test-marker");
+    const statefulCalls = [
+      ["workbench", "isolate", "new-title", "extra"],
+      ["workbench", "prototype", "map", "ticket", "extra"],
+    ];
+    const malformedCalls = [
+      ["workbench", "extra"],
+      ["workbench", "diff", "--whole-change", "--out", diffOutput, "extra"],
+      [
+        "workbench",
+        "precondition",
+        "--change-dir",
+        changeDirectory,
+        "--test-cmd",
+        `touch ${testMarker}`,
+        "extra",
+      ],
+      ["workbench", "lint", "--file", file, "extra"],
+      ["workbench", "context", changeDirectory, "extra"],
+      ["workbench", "isolate", "--check", "one", "extra"],
+      ["workbench", "isolate", "--verify", "main", "one", "extra"],
+      ...statefulCalls,
+      [
+        "workbench",
+        "prototype",
+        "--standalone",
+        "standalone",
+        "one",
+        "two",
+        "extra",
+      ],
+      ["workbench", "prototype", "--verify", "main", "one", "two", "extra"],
+    ];
+    const contextDefault = runCli(changeDirectory, "workbench", "context");
+    expect(contextDefault.status).not.toBe(2);
+    expect(contextDefault.stderr).not.toContain("too many arguments");
+
+    const branchesBefore = gitOutput(temporaryDirectory, "branch", "--list");
+    const worktreesBefore = gitOutput(
+      temporaryDirectory,
+      "worktree",
+      "list",
+      "--porcelain",
+    );
+
+    for (const arguments_ of malformedCalls) {
+      const result = runCli(temporaryDirectory, ...arguments_);
+
+      expect(result.status, arguments_.join(" ")).toBe(2);
+      expect(result.stdout, arguments_.join(" ")).toBe("");
+      expect(result.stderr.match(/error:/g) ?? [], arguments_.join(" ")).toHaveLength(1);
+      expect(result.stderr, arguments_.join(" ")).toContain("too many arguments");
+    }
+
+    expect(Fs.existsSync(diffOutput)).toBe(false);
+    expect(Fs.existsSync(testMarker)).toBe(false);
+    expect(gitOutput(temporaryDirectory, "branch", "--list")).toBe(branchesBefore);
+    expect(
+      gitOutput(temporaryDirectory, "worktree", "list", "--porcelain"),
+    ).toBe(worktreesBefore);
+
+    const isolateCreate = runCli(
+      temporaryDirectory,
+      "workbench",
+      "isolate",
+      "valid-title",
+    );
+    expect(isolateCreate.status).toBe(0);
+    expect(gitOutput(temporaryDirectory, "branch", "--list")).toContain(
+      "valid-title",
+    );
+
+    git(temporaryDirectory, "switch", "main");
+    const prototypeMapped = runCli(
+      temporaryDirectory,
+      "workbench",
+      "prototype",
+      "valid-map",
+      "123",
+    );
+    expect(prototypeMapped.status).toBe(0);
+    expect(gitOutput(temporaryDirectory, "branch", "--list")).toContain(
+      "valid-map/123",
+    );
+
+    git(temporaryDirectory, "switch", "main");
+    const prototypeStandalone = runCli(
+      temporaryDirectory,
+      "workbench",
+      "prototype",
+      "--standalone",
+      "standalone-slug",
+    );
+    expect(prototypeStandalone.status).toBe(0);
+    expect(gitOutput(temporaryDirectory, "branch", "--list")).toContain(
+      "standalone-slug",
+    );
+  }, 30_000);
+
   it("lints an unrelated file successfully", () => {
     const file = Path.join(temporaryDirectory, "note.md");
     Fs.writeFileSync(file, "# Note\n");

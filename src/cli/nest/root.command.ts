@@ -17,13 +17,13 @@ export class HamiltonRootCommand
       command.exitOverride((error) => {
         throw error;
       });
-      command.commands.forEach(configureExitOverride);
+      command.commands.forEach((child) => {
+        child.allowExcessArguments(false);
+        configureExitOverride(child);
+      });
     };
 
     configureExitOverride(this.command);
-    this.command.commands
-      .find((command) => command.name() === "workbench")
-      ?.allowExcessArguments(false);
   }
 
   async run(

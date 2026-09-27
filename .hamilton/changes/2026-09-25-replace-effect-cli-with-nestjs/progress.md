@@ -129,4 +129,4 @@ tasks:
 | Task 21: Refresh project guidance | done | [details](tasks/task-21/progress.md) |
 | Task 22: Smoke-test standalone binaries | done | [details](tasks/task-22/progress.md) |
 | Task 23: Publish versioned migration notes | done | [details](tasks/task-23/progress.md) |
-| Task 24: Reject surplus positional arguments | pending | [details](tasks/task-24/progress.md) |
+| Task 24: Reject surplus positional arguments | done | [details](tasks/task-24/progress.md) |
