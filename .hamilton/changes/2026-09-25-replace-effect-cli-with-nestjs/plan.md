@@ -17,7 +17,7 @@ route_unit: null
 - Test: `bun --bun vitest run`
 - Build / typecheck: `bun run build`
 - Context notes: `src/cli/commands/setup.ts` and `workbench.ts` currently hold Effect adapters; six private `src/workbench/` modules expose free-function operations and typed runtime ports. Use `.js` ESM imports, pinned dependency versions, no code comments, real temporary filesystem/Git fixtures, and explicit Nest tokens for TypeScript interface ports. Keep Bun and the single-package layout. Use the existing four release targets. The confirmed release version is `0.9.0`.
-- Quality notes: Each service and command task owns one use case or adapter with replaceable ports. During migration, old CLI functions may delegate to the new service so the installed CLI remains usable between tasks; they must contain no independent operation policy and Task 19 removes them. Shared reporting and runtime composition each have a single owning task. Pure artifact parsing and validation stay independent of Nest; do not create a universal runtime registry. This bounded temporary delegate is the only accepted migration indirection. Task 18 changes the one root dispatch seam after the independent service and command contracts are tested; its multiple subprocess assertions cover that single cutover rather than bundling separate use cases.
+- Quality notes: Each service and command task owns one use case or adapter with replaceable ports. During migration, old CLI functions may delegate to the new service so the installed CLI remains usable between tasks; they must contain no independent operation policy and Task 19 removes them. Shared reporting and runtime composition each have a single owning task. Pure artifact parsing and validation stay independent of Nest; do not create a universal runtime registry. This bounded temporary delegate is the only accepted migration indirection. Task 18 changes the one root dispatch seam after the independent service and command contracts are tested; its multiple subprocess assertions cover that single cutover rather than bundling separate use cases. Re-plan note: Task 19 includes `tests/workbench/lint.test.ts` because the baseline search found its explicit `lint`/`lintScope` compatibility assertion; remove only that obsolete assertion and imports while retaining service-level behavior coverage.
 
 ## Tasks
 
@@ -336,13 +336,13 @@ route_unit: null
 - Depends on: Task 18
 - Files:
   - Created: none
-  - Modified: `src/workbench/isolate.ts`, `src/workbench/diff.ts`, `src/workbench/precondition.ts`, `src/workbench/context.ts`, `src/workbench/prototype.ts`, `src/workbench/lint.ts`
+  - Modified: `src/workbench/isolate.ts`, `src/workbench/diff.ts`, `src/workbench/precondition.ts`, `src/workbench/context.ts`, `src/workbench/prototype.ts`, `src/workbench/lint.ts`, `tests/workbench/lint.test.ts`
   - Deleted: none
 - Acceptance:
   - Only the six injectable services own workbench use-case entry points; `isolate`, `diff`, `precondition`, `context`, `prototype`, `lintScope`/`lint`, and convenience functions no longer provide a parallel public operation path. Pure result renderers and parsing/validation helpers remain unchanged; see `workbench` injectable use-case scenario.
 - Steps:
   1. Red — a behavioral failure is technically impossible for removal of unused delegates without changing behavior. Before editing, run `rg -n '^export (const|function) (isolate|checkIsolation|createIsolation|verifyIsolation|diff|precondition|context|prototype|createPrototypeBranch|createStandalonePrototypeBranch|verifyPrototypeBranch|lintScope|lint)\b' src/workbench` and record the existing matches as the repeatable alternative check.
-  2. Green — delete only the obsolete free-function orchestration/delegation exports, ensure Nest handlers and direct tests use service methods, and rerun the search expecting no matches.
+  2. Green — delete only the obsolete free-function orchestration/delegation exports, update `tests/workbench/lint.test.ts` to remove the compatibility-wrapper test and imports while retaining its `LintService` behavior tests, ensure Nest handlers and remaining direct tests use service methods, and rerun the search expecting no matches.
   3. Refactor — retain pure renderers and private helpers, run focused workbench tests, full suite, and build to prove no caller still depends on the old entry points.
   4. If compilation reveals an unmigrated caller, fix it within this task only if it falls in Files; otherwise stop for re-plan rather than leaving a compatibility facade.
 - Verify: `! rg -n '^export (const|function) (isolate|checkIsolation|createIsolation|verifyIsolation|diff|precondition|context|prototype|createPrototypeBranch|createStandalonePrototypeBranch|verifyPrototypeBranch|lintScope|lint)\b' src/workbench && bun --bun vitest run tests/workbench && bun --bun vitest run && bun run build` → exit `0` and no obsolete exports remain.
