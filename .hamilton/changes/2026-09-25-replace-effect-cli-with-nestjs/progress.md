@@ -99,7 +99,7 @@ tasks:
     progress: tasks/task-23/progress.md
   - id: 24
     title: Reject surplus positional arguments
-    status: pending
+    status: done
     progress: tasks/task-24/progress.md
 ---
 # Progress: Replace Effect-TS in the CLI with NestJS
