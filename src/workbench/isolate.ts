@@ -6,7 +6,7 @@ import {
   type IsolationGitFailure,
   type IsolationGitValue,
 } from "./isolation-git.js";
-import { createRuntime, type IsolationRuntime } from "./runtime.js";
+import type { IsolationRuntime } from "./runtime.js";
 
 export interface CheckIsolationArguments {
   readonly mode: "check";
@@ -237,26 +237,6 @@ export class IsolateService {
     return verify(args, git, runtime);
   }
 }
-
-export const isolate = async (
-  args: IsolationArguments,
-  runtime: IsolationRuntime = createRuntime(),
-): Promise<IsolationResult> => new IsolateService(runtime).execute(args);
-
-export const checkIsolation = (
-  changeDir?: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "check", ...(changeDir === undefined ? {} : { changeDir }) }, runtime);
-
-export const createIsolation = (
-  title: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "create", title }, runtime);
-
-export const verifyIsolation = (
-  title: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "verify", title }, runtime);
 
 export const renderIsolationResult = (
   isolationResult: IsolationResult,

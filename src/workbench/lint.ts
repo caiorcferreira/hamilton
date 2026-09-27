@@ -394,11 +394,6 @@ export class LintService {
   }
 }
 
-export const lintScope = (
-  scope: LintScope,
-  dependencies: LintDependencies = {},
-): Promise<LintResult> => new LintService(dependencies).execute(scope);
-
 export const renderLintResult = (result: LintResult): string => {
   const lines = result.findings.map((item) => {
     const severity = item.kind.toUpperCase();
@@ -411,5 +406,3 @@ export const renderLintResult = (result: LintResult): string => {
   if (result.status === "findings") summary = "lint: findings";
   return [...lines, summary].join("\n");
 };
-
-export const lint = lintScope;

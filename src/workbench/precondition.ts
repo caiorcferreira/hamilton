@@ -18,7 +18,6 @@ import {
   type ReviewInspection,
 } from "./precondition-reviews.js";
 import {
-  createPreconditionRuntime,
   type PreconditionArguments,
   type PreconditionResult,
   type PreconditionRuntime,
@@ -134,11 +133,6 @@ export class PreconditionService {
     return result("negative", 1, output);
   }
 }
-
-export const precondition = async (
-  args: PreconditionArguments,
-  runtime: PreconditionRuntime = createPreconditionRuntime(),
-): Promise<PreconditionResult> => new PreconditionService(runtime).execute(args);
 
 export const renderPreconditionResult = (
   preconditionResult: PreconditionResult,

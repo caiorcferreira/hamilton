@@ -1325,10 +1325,6 @@ export class ContextService {
   }
 }
 
-export const context = async (
-  args: ContextArguments = {},
-  runtime: ContextRuntime = createContextRuntime(),
-): Promise<ContextResult> => new ContextService(runtime).execute(args);
 export const renderContextResult = (contextResult: ContextResult): string =>
   contextResult.stdout.trimEnd() === ""
     ? contextResult.stderr.trimEnd()

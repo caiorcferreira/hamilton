@@ -249,29 +249,6 @@ export class PrototypeService {
   }
 }
 
-export const prototype = async (
-  args: PrototypeArguments,
-  runtime: PrototypeRuntime = createPrototypeRuntime(),
-): Promise<PrototypeResult> => new PrototypeService(runtime).execute(args);
-
-export const createPrototypeBranch = (
-  mapName: string,
-  ticketName: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> =>
-  prototype({ mode: "mapped", mapName, ticketName }, runtime);
-
-export const createStandalonePrototypeBranch = (
-  slug: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> => prototype({ mode: "standalone", slug }, runtime);
-
-export const verifyPrototypeBranch = (
-  expectedBranch: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> =>
-  prototype({ mode: "verify", expectedBranch }, runtime);
-
 export const renderPrototypeResult = (
   prototypeResult: PrototypeResult,
 ): string =>

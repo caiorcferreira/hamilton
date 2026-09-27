@@ -901,11 +901,6 @@ export class DiffService {
   }
 }
 
-export const diff = async (
-  args: DiffArguments,
-  runtime: DiffRuntime = createDiffRuntime(),
-): Promise<DiffResult> => new DiffService(runtime).execute(args);
-
 export const renderDiffResult = (diffResult: DiffResult): string =>
   diffResult.stdout.trimEnd() === ""
     ? diffResult.stderr.trimEnd()

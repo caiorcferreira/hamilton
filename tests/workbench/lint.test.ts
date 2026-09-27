@@ -4,8 +4,6 @@ import * as Os from "node:os";
 import * as Path from "node:path";
 import {
   LintService,
-  lint,
-  lintScope,
   renderLintResult,
   type LintDependencies,
   type LintResult,
@@ -881,15 +879,6 @@ describe("scoped artifact lint", () => {
     await Fs.writeFile(file, proposal("# Proposal: Demo\n"));
     expect((await executeLint({ file })).exitCode).toBe(1);
     expect((await executeLint({ file: directory })).exitCode).toBe(2);
-  });
-
-  it("keeps lintScope and lint as delegating compatibility entry points", async () => {
-    const directory = await temporaryDirectory();
-    const file = Path.join(directory, "notes.md");
-    await Fs.writeFile(file, "notes\n");
-    const expected = await executeLint({ file });
-    expect(await lintScope({ file })).toEqual(expected);
-    expect(await lint({ file })).toEqual(expected);
   });
 
   it.each(parserFailureCases)(
