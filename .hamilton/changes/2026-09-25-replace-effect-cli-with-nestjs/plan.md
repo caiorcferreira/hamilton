@@ -12,6 +12,8 @@ route_unit: null
 
 ## Overview
 
+- Re-plan: The 2026-09-27 whole-branch review confirmed a baseline parser regression: independent child Commander instances accepted surplus positional arguments and dispatched setup or workbench use cases. Task 24 adds parser-level rejection and no-dispatch regression coverage under the accepted requirements; this same-change remediation does not bump the synchronized `0.9.0` version.
+
 - Change: `.hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/`
 - Goal: Replace the Effect CLI and operation orchestration with a NestJS/`nest-commander` application and injectable setup and workbench use cases, retaining the canonical distribution and workbench contracts except for the approved removal of Effect-generated flags and the corrected setup failure status. Follow `design.md` and both requirements deltas; the canonical specs remain the behavioral baseline.
 - Test: `bun --bun vitest run`
@@ -417,9 +419,26 @@ route_unit: null
 - Verify: `bun --bun vitest run tests/docs/release-notes.test.ts tests/docs/cli-migration.test.ts && bun --bun vitest run && bun run build` → exit `0`; the workflow points to the current version's notes and fails closed on missing notes.
 - Commit: `docs: publish versioned 0.9.0 migration notes`
 
+### Task 24: Reject surplus positional arguments
+
+- Depends on: Tasks 11–18
+- Files:
+  - Created: none
+  - Modified: `src/cli/nest/root.command.ts`, `tests/cli/main.test.ts`, `tests/cli/workbench.test.ts`
+  - Deleted: none
+- Acceptance:
+  - Before command dispatch, the setup command, workbench group, and every workbench leaf reject surplus positionals with one parser usage error on stderr, empty stdout, and exit `2`; no setup or operation service runs. Cover setup and a positional passed directly to the workbench group, plus the zero-positional `diff`, `precondition`, and `lint` leaves, `context` with its optional `[change-dir]`, `isolate`'s optional `[title]` across check/create/verify modes, and `prototype`'s declared `[map-name] [ticket-name]` arity and option-only modes. Preserve every valid declared arity and the existing root no-argument message, root help/version, top-level unknown-command handling, and bare-workbench usage error. Use disposable temporary repositories for stateful isolate/prototype probes and assert that malformed calls create neither branches nor worktrees; use temporary output/marker paths to prove diff/precondition use cases did not run. This addresses `.hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/requirements/cli-distribution.md`'s `CLI parser usage errors` / `Parse fails before command dispatch` and `Installed CLI command options` / `Hamilton-owned commands remain available` scenarios, plus `.hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/requirements/workbench.md`'s `Workbench command contract` / `Usage or environment error` and `Parser rejects malformed workbench invocation` scenarios.
+  - Keep `package.json` and `src/index.ts` at the already-synchronized `0.9.0`; this is remediation within the same change, not another version bump.
+- Steps:
+  1. Red — extend the source-CLI subprocess coverage in `tests/cli/main.test.ts` and `tests/cli/workbench.test.ts` before changing command configuration. Use an invalid temporary `HOME` to distinguish parser rejection of `setup extra-arg` from a dispatched `SetupService` failure, and cover an extra argument passed to the workbench group while retaining the bare-group test. Exercise surplus arguments for each workbench leaf with otherwise valid inputs; prove dispatch did not happen by asserting no lint/context output, no diff output file, no precondition marker, and—inside disposable committed Git fixtures—no isolate branch/worktree or prototype branch. Keep positive controls for supported arities, including `context` with zero or one directory, `isolate` check and one-title create, `prototype`'s two mapped positionals and option-only modes, and the existing valid diff/precondition/lint paths. Assert every malformed call has exactly one stderr usage error, empty stdout, and status `2`.
+  2. Green — apply the smallest parser-level correction in `src/cli/nest/root.command.ts`: configure excess-argument rejection on the nested command tree so it reaches setup and each independently constructed workbench descendant before parsing. Do not apply the setting to the root command itself; preserve its existing top-level unknown-command behavior. Do not add handler-level argument checks or change service contracts. Rerun the focused subprocess tests.
+  3. Refactor — keep the traversal limited to parser configuration, confirm it reaches every registered leaf without changing root/help/version or bare-workbench handling, and rerun focused tests, the full suite, and the build. Confirm no worktree/branch, diff output, or marker was created by a rejected call and that the package/source version pair remains `0.9.0`.
+- Verify: `bun --bun vitest run tests/cli/main.test.ts tests/cli/workbench.test.ts && bun --bun vitest run && bun run build` → exit `0`; focused assertions confirm every surplus-argument invocation returns one stderr usage error with status `2`, no stdout, and no use-case side effects, while valid commands and root behavior retain their existing results.
+- Commit: `fix: reject excess CLI positional arguments`
+
 ## Done when
 
-- All 23 active tasks are `done` in `progress.md`, with task-local Red, Green, and Refactor evidence (or a concrete alternative Red where specified).
+- All 24 active tasks are `done` in `progress.md`, with task-local Red, Green, and Refactor evidence (or a concrete alternative Red where specified).
 - Each task has fresh committed `approved` feedback from `hamilton-code-feedback` before the next task or whole-branch review; requested changes return to that task for another verified pass.
 - `bun --bun vitest run` and `bun run build` pass, and active files contain no Effect-TS runtime, tests, dependency, tooling, or guidance remnants.
 - Four standalone Bun targets build; a staged Linux x64 binary works without Bun/Node or a source checkout for version, setup, workbench help, lint, and setup failure status `2`.

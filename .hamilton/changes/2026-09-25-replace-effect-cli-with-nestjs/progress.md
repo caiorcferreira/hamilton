@@ -97,6 +97,10 @@ tasks:
     title: Publish versioned migration notes
     status: done
     progress: tasks/task-23/progress.md
+  - id: 24
+    title: Reject surplus positional arguments
+    status: pending
+    progress: tasks/task-24/progress.md
 ---
 # Progress: Replace Effect-TS in the CLI with NestJS
 
@@ -125,3 +129,4 @@ tasks:
 | Task 21: Refresh project guidance | done | [details](tasks/task-21/progress.md) |
 | Task 22: Smoke-test standalone binaries | done | [details](tasks/task-22/progress.md) |
 | Task 23: Publish versioned migration notes | done | [details](tasks/task-23/progress.md) |
+| Task 24: Reject surplus positional arguments | pending | [details](tasks/task-24/progress.md) |
