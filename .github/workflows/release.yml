@@ -191,6 +191,9 @@ jobs:
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -206,9 +209,18 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          gh release create "v${{ needs.check-version.outputs.version }}" \
+          VERSION="${{ needs.check-version.outputs.version }}"
+          NOTES_FILE="docs/releases/${VERSION}.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "Release notes file not found: $NOTES_FILE." >&2
+            echo "Add this versioned file before publishing v$VERSION." >&2
+            exit 1
+          fi
+
+          gh release create "v$VERSION" \
             release-assets/* \
-            --title "v${{ needs.check-version.outputs.version }}"
+            --title "v$VERSION" \
+            --notes-file "$NOTES_FILE"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
