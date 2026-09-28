@@ -2,7 +2,7 @@
 artifact: requirements-spec
 capability: workbench
 status: current
-updated: 2026-09-23
+updated: 2026-09-27
 author: Hermes Agent
 decision: accepted
 ---
@@ -26,13 +26,17 @@ The workbench is Hamilton's distributed CLI surface for workflow mechanics forme
 | `hamilton workbench prototype` | Create, resume, switch to, and verify prototype branches in mapped or standalone mode. |
 | `hamilton workbench lint` | Validate one explicitly selected file or a recursively selected change directory. |
 
+### Command arguments
+
+Each operation retains its documented arguments, options, validation rules, and accepted positional arities. Unknown options, missing option values, and extra positional arguments produce one usage error on stderr and exit `2` before dispatch. Invalid argument combinations return `2` without running the operation and preserve its documented diagnostic stream.
+
 ### Lint selectors
 
 `hamilton workbench lint` accepts exactly one of `--file <file>` and `--change-dir <dir>`. The file selector names one regular file. The change-directory selector recursively considers regular files contained within the supplied Hamilton change directory and does not inspect outside files.
 
 ### Result contract
 
-Workbench operations return `0` for success or an affirmative result, `1` for a negative or failed check that is part of normal operation, and `2` for usage or environment errors. Operations with load-bearing results emit a final machine-readable result line. Lint distinguishes errors, warnings, and skipped files and returns `0` only when no errors or warnings remain.
+Workbench operations return `0` for success or an affirmative result, `1` for a negative or failed check that is part of normal operation, and `2` for usage or environment errors, while preserving each operation's documented stdout and stderr behavior. Operations with load-bearing results emit a final machine-readable result line. Lint distinguishes errors, warnings, and skipped files and returns `0` only when no errors or warnings remain.
 
 ## Behavior
 
@@ -46,7 +50,8 @@ A conventional Hamilton artifact filename without valid opening frontmatter prod
 
 - isolation check on the default branch without a worktree -> exit `1` with final result `isolated: no`
 - valid workbench operation -> exit `0` with its load-bearing result line
-- invalid option or argument combination -> exit `2` without performing the operation
+- unknown option, missing option value, or extra positional argument -> one usage error on stderr, exit `2`, no operation runs
+- invalid argument combination -> exit `2`, no operation runs, operation's documented diagnostic stream preserved
 - `lint --file <file>` -> only the named regular file is validated
 - `lint --change-dir <dir>` -> regular files below the directory are considered, while sibling changes and outside targets are not
 - lint without a selector or with both selectors -> exit `2` without inspecting anything
