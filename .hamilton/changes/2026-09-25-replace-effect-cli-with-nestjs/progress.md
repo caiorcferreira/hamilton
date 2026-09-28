@@ -134,4 +134,4 @@ tasks:
 | Task 22: Smoke-test standalone binaries | done | [details](tasks/task-22/progress.md) |
 | Task 23: Publish versioned migration notes | done | [details](tasks/task-23/progress.md) |
 | Task 24: Reject surplus positional arguments | done | [details](tasks/task-24/progress.md) |
-| Task 25: Read legacy task outcome fields | pending | [details](tasks/task-25/progress.md) |
+| Task 25: Read legacy task outcome fields | done | [details](tasks/task-25/progress.md) |

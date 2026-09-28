@@ -124,6 +124,7 @@ const makeEvidence = (
     readonly metadataTitle?: string;
     readonly feedbackMode?: ReviewFixtureMode;
     readonly reviewMode?: ReviewFixtureMode;
+    readonly taskOutcomeField?: string;
   } = {},
 ): {
   readonly base: string;
@@ -148,7 +149,7 @@ const makeEvidence = (
   write(
     repository,
     evidencePath("demo", "tasks/task-1/progress.md"),
-    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — ${taskTitle}\n\n## Attempt 1 — 2026-09-12\n- Outcome: done\n`,
+    `---\nartifact: task-progress\nchange: demo\ntask: 1\nstatus: ${options.taskProgressStatus ?? "done"}\nupdated: 2026-09-12\ndecision: accepted\n---\n# Task Progress: Task 1 — ${taskTitle}\n\n## Attempt 1 — 2026-09-12\n${options.taskOutcomeField ?? "- Outcome: done"}\n`,
   );
   const material = commitAll(repository, "material");
   write(
@@ -448,6 +449,33 @@ it("opens the gate with a committed synchronized all-done ledger", async () => {
   expect(result.stdout).toContain("[PASS] Final clean tree");
   expect(result.lastLine).toBe("gate: open");
 });
+
+it("opens the gate for a committed historical unbulleted task outcome", async () => {
+  const repository = makeRepo();
+  const { changeDir } = makeEvidence(repository, {
+    taskOutcomeField: "Outcome: done",
+  });
+
+  const result = await runPrecondition({ changeDir, testCommand: "true" });
+
+  expect(result.exitCode, result.stdout).toBe(0);
+  expect(result.stdout).toContain("[PASS] Tasks (1 implemented)");
+  expect(result.lastLine).toBe("gate: open");
+});
+
+it.each(["", "- Outcome: blocked", "- Outcome:", "Outcome: done extra"])(
+  "closes the gate for a committed invalid task outcome field %s",
+  async (taskOutcomeField) => {
+    const repository = makeRepo();
+    const { changeDir } = makeEvidence(repository, { taskOutcomeField });
+
+    const result = await runPrecondition({ changeDir, testCommand: "true" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain("[FAIL] Tasks");
+    expect(result.lastLine).toContain("gate: closed");
+  },
+);
 
 it("opens the gate for a committed synchronized renamed task title", async () => {
   const repository = makeRepo();
