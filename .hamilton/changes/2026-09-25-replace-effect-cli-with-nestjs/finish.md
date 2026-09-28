@@ -1,11 +1,11 @@
 ---
 artifact: finish
 change: 2026-09-25-replace-effect-cli-with-nestjs
-status: pending
+status: completed
 created: 2026-09-27
 updated: 2026-09-27
 strategy: pull-request
-result: pending
+result: completed
 decision: accepted
 ---
 
@@ -18,3 +18,12 @@ decision: accepted
 - Strategy: pull request
 - Intended workspace result: Push `wt/refacto-effect-to-nest-worktree-20260925` to `origin`, open a pull request against `main`, and leave the branch and linked worktree at `/home/caio/.local/share/pi-worktrees/20260925181958/refacto-effect-to-nest-worktree-20260925` in place with a clean tree. Do not merge or remove the worktree.
 - Route intent: none; `route_unit` is `null` and no route or map mutation is required.
+
+## Outcome 1 — 2026-09-27
+
+- Result: completed
+- External result: Pull request #48 was read back at https://github.com/caiorcferreira/hamilton/pull/48 with state `OPEN`, head branch `wt/refacto-effect-to-nest-worktree-20260925`, Attempt 1 head commit `bfd171b27fe741e7e4bc9525e0d37ae424490935`, and base branch `main`.
+- Remote branch result: `origin/wt/refacto-effect-to-nest-worktree-20260925` was read back at `bfd171b27fe741e7e4bc9525e0d37ae424490935` after the Attempt 1 push.
+- Workspace result: the linked worktree remains at `/home/caio/.local/share/pi-worktrees/20260925181958/refacto-effect-to-nest-worktree-20260925` on `wt/refacto-effect-to-nest-worktree-20260925` with a clean tree.
+- Route result: no route or map mutation; `route_unit` remains `null`.
+- Partial state or blocker: none.
