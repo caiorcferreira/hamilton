@@ -14,6 +14,7 @@ route_unit: null
 
 - Re-plan: The 2026-09-27 whole-branch review confirmed a baseline parser regression: independent child Commander instances accepted surplus positional arguments and dispatched setup or workbench use cases. Task 24 adds parser-level rejection and no-dispatch regression coverage under the accepted requirements; this same-change remediation does not bump the synchronized `0.9.0` version.
 
+- Re-plan: Finish-work's Tasks gate was the only failed precondition: already-approved Tasks 14 and 23 record the exact unbulleted `Outcome: done` field, while `recordFields` currently reads only `- Field:` lines. Task 25 adds compatibility for task-progress attempt evidence without rewriting those histories or changing the CLI contract or version.
 - Change: `.hamilton/changes/2026-09-25-replace-effect-cli-with-nestjs/`
 - Goal: Replace the Effect CLI and operation orchestration with a NestJS/`nest-commander` application and injectable setup and workbench use cases, retaining the canonical distribution and workbench contracts except for the approved removal of Effect-generated flags and the corrected setup failure status. Follow `design.md` and both requirements deltas; the canonical specs remain the behavioral baseline.
 - Test: `bun --bun vitest run`
@@ -436,9 +437,27 @@ route_unit: null
 - Verify: `bun --bun vitest run tests/cli/main.test.ts tests/cli/workbench.test.ts && bun --bun vitest run && bun run build` → exit `0`; focused assertions confirm every surplus-argument invocation returns one stderr usage error with status `2`, no stdout, and no use-case side effects, while valid commands and root behavior retain their existing results.
 - Commit: `fix: reject excess CLI positional arguments`
 
+### Task 25: Read legacy task outcome fields
+
+- Depends on: Task 6
+- Files:
+  - Created: none
+  - Modified: `src/workbench/artifact-body.ts`, `tests/workbench/precondition.test.ts`
+  - Deleted: none
+- Acceptance:
+  - The precondition task gate opens for a committed `task-progress` attempt containing the exact historical unbulleted `Outcome: done` field and continues to open for the modern `- Outcome: done` field, preserving the committed task-evidence gate in `.hamilton/specs/workbench.md`.
+  - Missing, non-`done`, and malformed outcome values still close the task gate. The compatibility path applies only to `task-progress` attempt fields; it does not alter other artifact records, append-only histories, review evidence, the CLI contract, or the synchronized `0.9.0` version.
+- Steps:
+  1. Red — add committed-fixture cases in `tests/workbench/precondition.test.ts` for the exact historical unbulleted success, the existing modern success, and missing, non-done, or malformed outcome fields. Run the focused test before production edits and confirm the historical success falsely closes the task gate while the negative cases remain closed.
+  2. Green — update `src/workbench/artifact-body.ts` to recognize the exact unbulleted `Outcome: done` only in `task-progress` attempt fields, preserving the existing bulleted form and all other artifact/record parsing. Rerun the focused test.
+  3. Refactor — keep compatibility scoped to task-progress attempts, confirm modern success and the missing, non-done, and malformed cases retain their outcomes, then rerun the focused test, full suite, and build.
+  4. If a phase fails for the wrong reason, Verify fails, or feedback is `changes-requested`, record the correction and repeat Red → Green → Refactor within this task; block for re-plan if the correction exceeds Files or Acceptance.
+- Verify: `bun --bun vitest run tests/workbench/precondition.test.ts && bun --bun vitest run && bun run build` → exit `0`; historical and modern success open the task gate, while missing, non-done, and malformed outcomes keep it closed.
+- Commit: `fix: accept historical task outcomes`
+
 ## Done when
 
-- All 24 active tasks are `done` in `progress.md`, with task-local Red, Green, and Refactor evidence (or a concrete alternative Red where specified).
+- All 25 active tasks are `done` in `progress.md`, with task-local Red, Green, and Refactor evidence (or a concrete alternative Red where specified).
 - Each task has fresh committed `approved` feedback from `hamilton-code-feedback` before the next task or whole-branch review; requested changes return to that task for another verified pass.
 - `bun --bun vitest run` and `bun run build` pass, and active files contain no Effect-TS runtime, tests, dependency, tooling, or guidance remnants.
 - Four standalone Bun targets build; a staged Linux x64 binary works without Bun/Node or a source checkout for version, setup, workbench help, lint, and setup failure status `2`.

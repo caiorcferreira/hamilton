@@ -101,6 +101,10 @@ tasks:
     title: Reject surplus positional arguments
     status: done
     progress: tasks/task-24/progress.md
+  - id: 25
+    title: Read legacy task outcome fields
+    status: pending
+    progress: tasks/task-25/progress.md
 ---
 # Progress: Replace Effect-TS in the CLI with NestJS
 
@@ -130,3 +134,4 @@ tasks:
 | Task 22: Smoke-test standalone binaries | done | [details](tasks/task-22/progress.md) |
 | Task 23: Publish versioned migration notes | done | [details](tasks/task-23/progress.md) |
 | Task 24: Reject surplus positional arguments | done | [details](tasks/task-24/progress.md) |
+| Task 25: Read legacy task outcome fields | pending | [details](tasks/task-25/progress.md) |
