@@ -266,13 +266,18 @@ const recordFields = (
   lines: readonly string[],
   start: number,
   end: number,
+  allowLegacyTaskOutcome = false,
 ): Readonly<Record<string, string>> => {
   const fields: Record<string, string> = {};
   for (let index = start + 1; index < end; index += 1) {
-    const match = /^- ([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/.exec(
-      lines[index] || "",
-    );
-    if (match) fields[match[1]?.trim() ?? ""] = match[2]?.trim() ?? "";
+    const line = lines[index] || "";
+    const match = /^- ([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/.exec(line);
+    if (match) {
+      fields[match[1]?.trim() ?? ""] = match[2]?.trim() ?? "";
+    } else if (allowLegacyTaskOutcome) {
+      const legacyOutcome = /^Outcome:[ \t]+(.*)$/.exec(line);
+      if (legacyOutcome) fields.Outcome = legacyOutcome[1]?.trim() ?? "";
+    }
   }
   return fields;
 };
@@ -383,7 +388,13 @@ const readWorkflow = (
       ...(parsed && "date" in parsed ? { date: parsed.date } : {}),
       ...(parsed && "title" in parsed ? { title: parsed.title } : {}),
       line: heading.line,
-      fields: recordFields(lines, start, end),
+      fields: recordFields(
+        lines,
+        start,
+        end,
+        artifact.metadata.artifact === "task-progress" &&
+          matchingKind === "attempt",
+      ),
     });
   }
   for (const heading of commentedRecordHeadings(artifact, kinds)) {

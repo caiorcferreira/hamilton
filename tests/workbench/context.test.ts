@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import * as Fs from "node:fs";
 import * as Path from "node:path";
 import {
-  context,
+  ContextService,
   createContextRuntime,
   renderContextResult,
+  type ContextArguments,
+  type ContextRuntime,
 } from "../../src/workbench/context.js";
 import {
   cleanupRepos,
@@ -154,14 +156,19 @@ const seed = (
   return directory;
 };
 
+const runContext = (
+  args: ContextArguments = {},
+  runtime: ContextRuntime = createContextRuntime(),
+) => new ContextService(runtime).execute(args);
+
 afterEach(cleanupRepos);
 
 describe("change context", () => {
   it("renders a deterministic split inventory and task standing", async () => {
     const repository = makeRepo();
     const directory = seed(repository, "add-auth", splitFiles);
-    const first = await context({ changeDir: directory });
-    const second = await context({ changeDir: directory });
+    const first = await runContext({ changeDir: directory });
+    const second = await runContext({ changeDir: directory });
 
     expect(first.exitCode).toBe(0);
     expect(first.stdout).toBe(second.stdout);
@@ -232,7 +239,7 @@ decision: accepted
       "requirements/auth.md": "# Auth\n",
     });
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.changes[0]?.format).toBe("split");
@@ -251,8 +258,11 @@ decision: accepted
         "# Progress: add auth\n\n## Task 1: Add auth — 2026-09-12\n\n- Outcome: done\n",
     });
 
-    const prePlanResult = await context({ changeDir: prePlan });
-    const legacyResult = await context({ changeDir: legacy });
+    const service = new ContextService(
+      createContextRuntime({ cwd: () => repository }),
+    );
+    const prePlanResult = await service.execute({ changeDir: prePlan });
+    const legacyResult = await runContext({ changeDir: legacy });
 
     expect(prePlanResult.exitCode).toBe(0);
     expect(prePlanResult.stdout).toContain("format: pre-plan");
@@ -273,7 +283,7 @@ decision: accepted
       new Date("2026-01-03T12:00:00Z"),
       new Date("2026-01-03T12:00:00Z"),
     );
-    const result = await context(
+    const result = await runContext(
       { all: true },
       createContextRuntime({ cwd: () => repository }),
     );
@@ -293,7 +303,7 @@ decision: accepted
       recursive: true,
     });
     const runtime = createContextRuntime({ cwd: () => repository });
-    const result = await context(
+    const result = await runContext(
       { all: true },
       createContextRuntime({
         cwd: () => repository,
@@ -318,7 +328,7 @@ decision: accepted
     const repository = makeRepo();
     const runtime = createContextRuntime({ cwd: () => repository });
     const changesDir = Path.join(repository, ".hamilton", "changes");
-    const result = await context(
+    const result = await runContext(
       { all: true },
       createContextRuntime({
         cwd: () => repository,
@@ -342,7 +352,7 @@ decision: accepted
 
   it("returns an environment error for invalid paths", async () => {
     const repository = makeRepo();
-    const result = await context({
+    const result = await runContext({
       changeDir: Path.join(repository, "missing"),
     });
 
@@ -421,7 +431,7 @@ decision: accepted
 `,
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.changes[0]?.format).toBe("split");
@@ -450,7 +460,7 @@ decision: accepted
     write(directory, "review.md", reviewEvidence("multi-pass", "add auth", passes));
     commitPaths(repository, "review", ".hamilton/changes/multi-pass/review.md");
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -495,7 +505,7 @@ decision: accepted
       ".hamilton/changes/requested-approved/review.md",
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -538,7 +548,7 @@ decision: accepted
       ".hamilton/changes/legacy-global-history/review.md",
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -578,7 +588,7 @@ decision: accepted
       ".hamilton/changes/migrated-history/review.md",
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -610,7 +620,7 @@ decision: accepted
       ".hamilton/changes/malformed-physical-last/tasks/task-1/feedback.md",
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -641,7 +651,7 @@ decision: accepted
     );
     commitPaths(repository, "review", ".hamilton/changes/one-pass/review.md");
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.status).toBe("success");
@@ -660,7 +670,10 @@ decision: accepted
       const directory = seed(repository, `malformed-${artifact}`, {
         [filename]: `---\nartifact: ${artifact}\n---\n# ${artifact}\n`,
       });
-      const result = await context({ changeDir: directory });
+      const service = new ContextService(
+        createContextRuntime({ cwd: () => repository }),
+      );
+      const result = await service.execute({ changeDir: directory });
 
       expect(result.exitCode).toBe(0);
       expect(result.changes[0]?.format).toBe("invalid");
@@ -686,7 +699,7 @@ decision: accepted
           "# Progress: legacy-task\n\n| Task | Status | Progress |\n|---|---|---|\n| Task 1: Build it | done | [details](tasks/task-1/progress.md) |\n",
         "tasks/task-1/progress.md": taskSource,
       });
-      const result = await context({ changeDir: directory });
+      const result = await runContext({ changeDir: directory });
 
       expect(result.exitCode).toBe(0);
       expect(result.changes[0]?.format).toBe(expectedFormat);
@@ -737,7 +750,7 @@ Verdict: approved
 `,
     });
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Task 1: done, feedback: malformed");
@@ -756,7 +769,7 @@ Verdict: approved
     );
 
     write(directory, "review.md", `${review}\n`);
-    const unstaged = await context({ changeDir: directory });
+    const unstaged = await runContext({ changeDir: directory });
     expect(unstaged.stdout).toContain("whole change: approved (uncommitted)");
 
     write(directory, "review.md", `${review}\n`);
@@ -766,7 +779,7 @@ Verdict: approved
       "--",
       ".hamilton/changes/uncommitted-review/review.md",
     );
-    const staged = await context({ changeDir: directory });
+    const staged = await runContext({ changeDir: directory });
     expect(staged.stdout).toContain("whole change: approved (uncommitted)");
   });
 
@@ -788,7 +801,7 @@ Verdict: approved
       ".hamilton/changes/regex-review/review.md",
     );
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("whole change: approved (fresh)");
@@ -821,7 +834,7 @@ Verdict: approved
 `,
     });
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("format: invalid");
@@ -835,7 +848,7 @@ Verdict: approved
         "---\nartifact: plan\nchange: malformed\n: bad\n---\n# Plan: malformed\n",
     });
 
-    const result = await context({ changeDir: directory });
+    const result = await runContext({ changeDir: directory });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("format: invalid");

@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Fs from "node:fs/promises";
 import type { Dirent, Stats } from "node:fs";
 import * as Path from "node:path";
@@ -276,7 +277,7 @@ const collectFiles = async (
   return error ? { error } : { paths: files.sort(comparePaths) };
 };
 
-export const lintScope = async (
+const executeLint = async (
   scope: LintScope,
   dependencies: LintDependencies = {},
 ): Promise<LintResult> => {
@@ -380,6 +381,19 @@ export const lintScope = async (
   };
 };
 
+export const LINT_DEPENDENCIES = Symbol("LINT_DEPENDENCIES");
+
+@Injectable()
+export class LintService {
+  constructor(
+    @Inject(LINT_DEPENDENCIES) private readonly dependencies: LintDependencies,
+  ) {}
+
+  execute(scope: LintScope): Promise<LintResult> {
+    return executeLint(scope, this.dependencies);
+  }
+}
+
 export const renderLintResult = (result: LintResult): string => {
   const lines = result.findings.map((item) => {
     const severity = item.kind.toUpperCase();
@@ -392,5 +406,3 @@ export const renderLintResult = (result: LintResult): string => {
   if (result.status === "findings") summary = "lint: findings";
   return [...lines, summary].join("\n");
 };
-
-export const lint = lintScope;

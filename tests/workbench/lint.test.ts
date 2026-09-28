@@ -3,9 +3,11 @@ import * as Fs from "node:fs/promises";
 import * as Os from "node:os";
 import * as Path from "node:path";
 import {
-  lintScope,
+  LintService,
   renderLintResult,
+  type LintDependencies,
   type LintResult,
+  type LintScope,
 } from "../../src/workbench/lint.js";
 import { validateArtifact as validateArtifactContract } from "../../src/workbench/artifact-contracts.js";
 
@@ -569,6 +571,11 @@ const expectExit = (result: LintResult, exitCode: 0 | 1 | 2) => {
   );
 };
 
+const executeLint = (
+  scope: LintScope,
+  dependencies: LintDependencies = {},
+): Promise<LintResult> => new LintService(dependencies).execute(scope);
+
 afterEach(async () => {
   await Promise.all(
     temporaryDirectories
@@ -597,11 +604,11 @@ describe("scoped artifact lint", () => {
         return Fs.readdir(sourcePath, { withFileTypes: true });
       },
       realpath: Fs.realpath,
-      readFile: Fs.readFile,
+      readFile: (sourcePath: string) => Fs.readFile(sourcePath, "utf8"),
     };
-    expectExit(await lintScope({}, { fileSystem }), 2);
+    expectExit(await executeLint({}, { fileSystem }), 2);
     expectExit(
-      await lintScope({ file, changeDir: directory }, { fileSystem }),
+      await executeLint({ file, changeDir: directory }, { fileSystem }),
       2,
     );
     expect(reads).toBe(0);
@@ -612,15 +619,15 @@ describe("scoped artifact lint", () => {
     const file = Path.join(directory, "artifact.md");
     await Fs.writeFile(file, "text");
     expectExit(
-      await lintScope({ file: Path.join(directory, "missing.md") }),
+      await executeLint({ file: Path.join(directory, "missing.md") }),
       2,
     );
-    expectExit(await lintScope({ file: directory }), 2);
+    expectExit(await executeLint({ file: directory }), 2);
     expectExit(
-      await lintScope({ changeDir: Path.join(directory, "missing") }),
+      await executeLint({ changeDir: Path.join(directory, "missing") }),
       2,
     );
-    expectExit(await lintScope({ changeDir: file }), 2);
+    expectExit(await executeLint({ changeDir: file }), 2);
   });
 
   it("validates only the selected regular file", async () => {
@@ -636,7 +643,14 @@ describe("scoped artifact lint", () => {
     await Fs.mkdir(Path.dirname(file), { recursive: true });
     await Fs.writeFile(file, proposal());
     await Fs.writeFile(outside, "# unrelated");
-    const result = await lintScope({ file });
+    const fileSystem = {
+      readFile: (sourcePath: string) => Fs.readFile(sourcePath, "utf8"),
+      stat: (sourcePath: string) => Fs.stat(sourcePath),
+      readdir: (sourcePath: string) =>
+        Fs.readdir(sourcePath, { withFileTypes: true }),
+      realpath: (sourcePath: string) => Fs.realpath(sourcePath),
+    };
+    const result = await new LintService({ fileSystem }).execute({ file });
     expectExit(result, 0);
     expect(result.findings.map((finding) => finding.sourcePath)).toEqual([
       file,
@@ -658,7 +672,7 @@ describe("scoped artifact lint", () => {
         Fs.readdir(sourcePath, { withFileTypes: true }),
       realpath: (sourcePath: string) => Fs.realpath(sourcePath),
     };
-    const result = await lintScope(
+    const result = await executeLint(
       { file },
       {
         fileSystem,
@@ -705,7 +719,7 @@ describe("scoped artifact lint", () => {
         Fs.readdir(sourcePath, { withFileTypes: true }),
       realpath: (sourcePath: string) => Fs.realpath(sourcePath),
     };
-    const result = await lintScope(
+    const result = await executeLint(
       { changeDir: changeDirectory },
       {
         fileSystem,
@@ -741,7 +755,7 @@ describe("scoped artifact lint", () => {
         Fs.readdir(sourcePath, { withFileTypes: true }),
       realpath: (sourcePath: string) => Fs.realpath(sourcePath),
     };
-    const result = await lintScope({ file }, { fileSystem });
+    const result = await executeLint({ file }, { fileSystem });
     expect(result.status).toBe("findings");
     expect(result.exitCode).toBe(1);
     expect(result.findings).toEqual([
@@ -768,12 +782,26 @@ describe("scoped artifact lint", () => {
     await Fs.writeFile(Path.join(nested, "notes.md"), "# Notes\n");
     await Fs.writeFile(outside, "---\nartifact: proposal\n---\n# invalid\n");
     await Fs.symlink(outside, Path.join(changeDirectory, "outside.md"));
-    const result = await lintScope({ changeDir: changeDirectory });
+    const readPaths: string[] = [];
+    const fileSystem = {
+      readFile: async (sourcePath: string) => {
+        readPaths.push(sourcePath);
+        return Fs.readFile(sourcePath, "utf8");
+      },
+      stat: (sourcePath: string) => Fs.stat(sourcePath),
+      readdir: (sourcePath: string) =>
+        Fs.readdir(sourcePath, { withFileTypes: true }),
+      realpath: (sourcePath: string) => Fs.realpath(sourcePath),
+    };
+    const result = await new LintService({ fileSystem }).execute({
+      changeDir: changeDirectory,
+    });
     expectExit(result, 0);
     expect(result.findings.map((finding) => finding.sourcePath)).toEqual([
       Path.join(changeDirectory, "nested", "notes.md"),
       Path.join(changeDirectory, "proposal.md"),
     ]);
+    expect(readPaths).not.toContain(outside);
   });
 
   it("warns for conventional artifact filenames without frontmatter and skips unrelated files", async () => {
@@ -782,7 +810,7 @@ describe("scoped artifact lint", () => {
     const notes = Path.join(directory, "notes.md");
     await Fs.writeFile(plan, "# Plan: Demo\n");
     await Fs.writeFile(notes, "# Notes\n");
-    const result = await lintScope({ changeDir: directory });
+    const result = await executeLint({ changeDir: directory });
     expectExit(result, 1);
     expect(result.findings).toEqual([
       expect.objectContaining({ kind: "skipped", sourcePath: notes, line: 1 }),
@@ -794,7 +822,7 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const file = Path.join(directory, "proposal.md");
     await Fs.writeFile(file, proposal("# Proposal: Demo\n## Why\n"));
-    const result = await lintScope({ file });
+    const result = await executeLint({ file });
     expectExit(result, 1);
     expect(
       result.findings.filter((finding) => finding.kind === "error").length,
@@ -812,7 +840,7 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const file = Path.join(directory, "proposal.md");
     await Fs.writeFile(file, "---\nartifact: [broken\n---\n# Proposal: Demo\n");
-    const result = await lintScope({ file });
+    const result = await executeLint({ file });
     expectExit(result, 1);
     expect(result.findings).toEqual([
       expect.objectContaining({
@@ -832,7 +860,7 @@ describe("scoped artifact lint", () => {
     await Fs.mkdir(Path.dirname(second), { recursive: true });
     await Fs.writeFile(first, proposal("# Proposal: Demo\n"));
     await Fs.writeFile(second, proposal("# Proposal: Demo\n"));
-    const result = await lintScope({ changeDir: directory });
+    const result = await executeLint({ changeDir: directory });
     expectExit(result, 1);
     const paths = result.findings
       .filter((finding) => finding.kind === "error")
@@ -847,10 +875,10 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const file = Path.join(directory, "notes.md");
     await Fs.writeFile(file, "notes\n");
-    expect((await lintScope({ file })).exitCode).toBe(0);
+    expect((await executeLint({ file })).exitCode).toBe(0);
     await Fs.writeFile(file, proposal("# Proposal: Demo\n"));
-    expect((await lintScope({ file })).exitCode).toBe(1);
-    expect((await lintScope({ file: directory })).exitCode).toBe(2);
+    expect((await executeLint({ file })).exitCode).toBe(1);
+    expect((await executeLint({ file: directory })).exitCode).toBe(2);
   });
 
   it.each(parserFailureCases)(
@@ -862,7 +890,7 @@ describe("scoped artifact lint", () => {
           failure.body,
           failure.globals,
         );
-        const result = await lintScope({ file: artifact.file });
+        const result = await executeLint({ file: artifact.file });
         expectExit(result, 1);
         const line = failure.line(artifact.source, kind);
         expect(result.findings).toEqual(
@@ -940,7 +968,10 @@ describe("scoped artifact lint", () => {
         Path.join(changeDirectory, "progress.md"),
         progressSource(testCase.rows),
       );
-      expectExit(await lintScope({ changeDir: changeDirectory }), testCase.exitCode);
+      expectExit(
+        await executeLint({ changeDir: changeDirectory }),
+        testCase.exitCode,
+      );
     }
   });
 
@@ -970,7 +1001,7 @@ decision: accepted
 # Task Progress: Task 1 — Demo
 `,
       );
-      const result = await lintScope({ file: taskFile });
+      const result = await executeLint({ file: taskFile });
       expectExit(result, status === "pending" ? 0 : 1);
     }
 
@@ -1001,7 +1032,7 @@ decision: accepted
 ---
 ${finishBody}`,
     );
-    expectExit(await lintScope({ file: finishFile }), 0);
+    expectExit(await executeLint({ file: finishFile }), 0);
 
     await Fs.writeFile(
       finishFile,
@@ -1017,7 +1048,7 @@ decision: accepted
 ---
 ${finishBody}`,
     );
-    expectExit(await lintScope({ file: finishFile }), 1);
+    expectExit(await executeLint({ file: finishFile }), 1);
 
     await Fs.writeFile(
       finishFile,
@@ -1040,7 +1071,7 @@ decision: accepted
 ## Outcome 2 — 2026-09-13
 `,
     );
-    expectExit(await lintScope({ file: finishFile }), 1);
+    expectExit(await executeLint({ file: finishFile }), 1);
   });
 
   it("accepts the first pending finish intent and rejects neighboring histories", async () => {
@@ -1068,7 +1099,7 @@ decision: accepted
       exitCode: 0 | 1,
     ) => {
       await writeFinish(status, result, records);
-      expectExit(await lintScope({ file }), exitCode);
+      expectExit(await executeLint({ file }), exitCode);
     };
 
     await expectFinish(
@@ -1167,7 +1198,7 @@ decision: accepted
     ].join("\n\n");
     for (const kind of ["feedback", "review"] as const) {
       const artifact = await writeReviewArtifact(kind, body);
-      const result = await lintScope({ file: artifact.file });
+      const result = await executeLint({ file: artifact.file });
       expectExit(result, 0);
       expect(result.findings).toEqual([
         expect.objectContaining({
@@ -1191,7 +1222,7 @@ decision: accepted
         compatibilityPass(1, "2026-09-12"),
         globals,
       );
-      expectExit(await lintScope({ file: single.file }), 0);
+      expectExit(await executeLint({ file: single.file }), 0);
 
       const multiple = await writeReviewArtifact(
         kind,
@@ -1207,7 +1238,7 @@ decision: accepted
         ].join("\n\n"),
         globals,
       );
-      expectExit(await lintScope({ file: multiple.file }), 0);
+      expectExit(await executeLint({ file: multiple.file }), 0);
     }
   });
 
@@ -1230,7 +1261,7 @@ decision: accepted
     ].join("\n\n");
     for (const kind of ["feedback", "review"] as const) {
       const artifact = await writeReviewArtifact(kind, body);
-      expectExit(await lintScope({ file: artifact.file }), 0);
+      expectExit(await executeLint({ file: artifact.file }), 0);
     }
   });
 });

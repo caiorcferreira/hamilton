@@ -3,15 +3,14 @@ import * as Fs from "node:fs";
 import * as Os from "node:os";
 import * as Path from "node:path";
 import {
-  checkIsolation,
-  createIsolation,
-  isolate,
+  IsolateService,
   renderIsolationResult,
-  verifyIsolation,
+  type IsolationArguments,
   type IsolationResult,
 } from "../../src/workbench/isolate.js";
 import {
   createRuntime,
+  type IsolationRuntime,
   type ProcessPort,
 } from "../../src/workbench/runtime.js";
 import {
@@ -33,6 +32,12 @@ const inDirectory = (directory: string) => {
   process.chdir(directory);
   return directory;
 };
+
+const runIsolation = (
+  args: IsolationArguments,
+  runtime: IsolationRuntime = createRuntime(),
+): Promise<IsolationResult> =>
+  new IsolateService(runtime).execute(args);
 
 const outputField = (output: string, key: string): string | undefined =>
   output
@@ -71,27 +76,32 @@ describe("isolation check", () => {
   it("uses the injected cwd instead of the process cwd", async () => {
     const repo = makeRepo();
     process.chdir(Os.tmpdir());
-    const runtime = createRuntime({ cwd: () => repo });
+    let cwd = repo;
+    const service = new IsolateService(createRuntime({ cwd: () => cwd }));
 
-    const checkResult = await checkIsolation(undefined, runtime);
+    const checkResult = await service.execute({ mode: "check" });
     expect(checkResult.exitCode).toBe(1);
     expect(outputField(checkResult.stdout, "root")).toBe(repo);
 
-    const created = await createIsolation("add-auth", runtime);
+    const created = await service.execute({
+      mode: "create",
+      title: "add-auth",
+    });
     expect(created.exitCode).toBe(0);
 
     const worktree = Path.join(repo, ".worktrees", "add-auth");
-    const verifyResult = await verifyIsolation(
-      "add-auth",
-      createRuntime({ cwd: () => worktree }),
-    );
+    cwd = worktree;
+    const verifyResult = await service.execute({
+      mode: "verify",
+      title: "add-auth",
+    });
     expect(verifyResult.exitCode).toBe(0);
     expect(verifyResult.lastLine).toContain(worktree);
   });
 
   it("reports not isolated on the default branch", async () => {
-    const repo = inDirectory(makeRepo());
-    const result = await checkIsolation(undefined);
+    inDirectory(makeRepo());
+    const result = await runIsolation({ mode: "check" });
 
     expect(result.exitCode).toBe(1);
     expect(outputField(result.stdout, "mode")).toBe("none");
@@ -106,7 +116,7 @@ describe("isolation check", () => {
     const repo = inDirectory(makeRepo());
     git(repo, "checkout", "-q", "-b", "add-auth");
 
-    const result = await checkIsolation(undefined);
+    const result = await runIsolation({ mode: "check" });
 
     expect(result.exitCode).toBe(0);
     expect(outputField(result.stdout, "mode")).toBe("in-place-branch");
@@ -117,7 +127,7 @@ describe("isolation check", () => {
   it("detects master as the default branch", async () => {
     inDirectory(makeRepo({ defaultBranch: "master" }));
 
-    const result = await checkIsolation(undefined);
+    const result = await runIsolation({ mode: "check" });
 
     expect(result.exitCode).toBe(1);
     expect(outputField(result.stdout, "default-branch")).toBe("master");
@@ -133,7 +143,7 @@ describe("isolation check", () => {
       "refs/remotes/origin/trunk",
     );
 
-    const result = await checkIsolation(undefined);
+    const result = await runIsolation({ mode: "check" });
 
     expect(outputField(result.stdout, "default-branch")).toBe("trunk");
     expect(result.exitCode).toBe(0);
@@ -143,7 +153,7 @@ describe("isolation check", () => {
     const repo = inDirectory(makeRepo());
     git(repo, "checkout", "-q", "--detach", "HEAD");
 
-    const result = await checkIsolation(undefined);
+    const result = await runIsolation({ mode: "check" });
 
     expect(result.exitCode).toBe(1);
     expect(outputField(result.stdout, "mode")).toBe("detached-head");
@@ -152,11 +162,11 @@ describe("isolation check", () => {
 
   it("reports isolated inside a linked worktree", async () => {
     const repo = inDirectory(makeRepo());
-    const created = await createIsolation("add-auth");
+    const created = await runIsolation({ mode: "create", title: "add-auth" });
     expect(created.exitCode).toBe(0);
 
     inDirectory(Path.join(repo, ".worktrees", "add-auth"));
-    const result = await checkIsolation(undefined);
+    const result = await runIsolation({ mode: "check" });
 
     expect(result.exitCode).toBe(0);
     expect(outputField(result.stdout, "mode")).toBe("linked-worktree");
@@ -168,7 +178,7 @@ describe("isolation check", () => {
     git(repo, "checkout", "-q", "-b", "add-auth");
     const outside = makeChangeDir(other, "add-auth");
 
-    const result = await checkIsolation(outside);
+    const result = await runIsolation({ mode: "check", changeDir: outside });
 
     expect(result.exitCode).toBe(1);
     expect(outputField(result.stdout, "change-dir")).toContain("OUTSIDE root");
@@ -182,7 +192,7 @@ describe("isolation check", () => {
     git(repo, "checkout", "-q", "-b", "add-auth");
     const inside = makeChangeDir(repo, "add-auth");
 
-    const result = await checkIsolation(inside);
+    const result = await runIsolation({ mode: "check", changeDir: inside });
 
     expect(result.exitCode).toBe(0);
     expect(outputField(result.stdout, "change-dir")).toContain("under root");
@@ -193,17 +203,46 @@ describe("isolation check", () => {
     const repo = inDirectory(makeRepo());
     git(repo, "checkout", "-q", "-b", "add-auth");
 
-    const result = await checkIsolation(Path.join(repo, "nope"));
+    const result = await runIsolation({
+      mode: "check",
+      changeDir: Path.join(repo, "nope"),
+    });
 
     expect(result.exitCode).toBe(1);
     expect(result.lastLine).toContain("change dir does not exist");
+  });
+
+  it("reports an unresolved change directory when realpath fails", async () => {
+    const repo = inDirectory(makeRepo());
+    git(repo, "checkout", "-q", "-b", "add-auth");
+    const changeDir = makeChangeDir(repo, "add-auth");
+    const fileSystem = createRuntime().fileSystem;
+    const runtime = createRuntime({
+      cwd: () => repo,
+      fileSystem: {
+        ...fileSystem,
+        realpath: async (sourcePath) => {
+          if (sourcePath === changeDir)
+            throw new Error("simulated realpath failure");
+          return fileSystem.realpath(sourcePath);
+        },
+      },
+    });
+
+    const result = await runIsolation({ mode: "check", changeDir }, runtime);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain(`${changeDir} (does not exist)`);
+    expect(result.lastLine).toContain(
+      `change dir does not exist: ${changeDir}`,
+    );
   });
 
   it("errors outside a git repository", async () => {
     const directory = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-nogit-"));
     try {
       inDirectory(directory);
-      const result = await checkIsolation(undefined);
+      const result = await runIsolation({ mode: "check" });
       expect(result.exitCode).toBe(2);
       expect(result.stderr).toContain("not inside a git repository");
     } finally {
@@ -216,7 +255,7 @@ describe("isolation create", () => {
   it("creates the worktree and branch and prints the path last", async () => {
     const repo = inDirectory(makeRepo());
 
-    const result = await createIsolation("add-auth");
+    const result = await runIsolation({ mode: "create", title: "add-auth" });
 
     expect(result.exitCode).toBe(0);
     expect(result.lastLine).toBe(Path.join(repo, ".worktrees", "add-auth"));
@@ -229,7 +268,7 @@ describe("isolation create", () => {
   it("leaves the tree clean by excluding .worktrees/", async () => {
     const repo = inDirectory(makeRepo());
 
-    const result = await createIsolation("add-auth");
+    const result = await runIsolation({ mode: "create", title: "add-auth" });
 
     expect(result.exitCode).toBe(0);
     expect(git(repo, "status", "--porcelain")).toBe("");
@@ -245,7 +284,7 @@ describe("isolation create", () => {
       ? Fs.readFileSync(exclude, "utf8")
       : undefined;
 
-    const result = await createIsolation("add-auth");
+    const result = await runIsolation({ mode: "create", title: "add-auth" });
 
     expect(result.exitCode).toBe(0);
     const after = Fs.existsSync(exclude)
@@ -257,7 +296,7 @@ describe("isolation create", () => {
   it("refuses a title that is not kebab-case", async () => {
     inDirectory(makeRepo());
 
-    const result = await createIsolation("Add_Auth");
+    const result = await runIsolation({ mode: "create", title: "Add_Auth" });
 
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("kebab-case");
@@ -267,7 +306,7 @@ describe("isolation create", () => {
     const repo = inDirectory(makeRepo());
     git(repo, "branch", "add-auth");
 
-    const result = await createIsolation("add-auth");
+    const result = await runIsolation({ mode: "create", title: "add-auth" });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("never silently reuse it");
@@ -279,7 +318,7 @@ describe("isolation create", () => {
       recursive: true,
     });
 
-    const result = await createIsolation("add-auth");
+    const result = await runIsolation({ mode: "create", title: "add-auth" });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("already exists");
@@ -287,11 +326,11 @@ describe("isolation create", () => {
 
   it("refuses to nest a worktree inside a worktree", async () => {
     const repo = inDirectory(makeRepo());
-    const created = await createIsolation("add-auth");
+    const created = await runIsolation({ mode: "create", title: "add-auth" });
     expect(created.exitCode).toBe(0);
 
     inDirectory(Path.join(repo, ".worktrees", "add-auth"));
-    const result = await createIsolation("add-more");
+    const result = await runIsolation({ mode: "create", title: "add-more" });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("already in a linked worktree");
@@ -301,8 +340,8 @@ describe("isolation create", () => {
   it("returns a failed mutation without a successful verdict", async () => {
     inDirectory(makeRepo());
 
-    const result = await createIsolation(
-      "add-auth",
+    const result = await runIsolation(
+      { mode: "create", title: "add-auth" },
       createRuntime({ process: failingWorktreeProcess() }),
     );
 
@@ -316,11 +355,11 @@ describe("isolation create", () => {
 describe("isolation verify", () => {
   it("succeeds inside the named worktree", async () => {
     const repo = inDirectory(makeRepo());
-    const created = await createIsolation("add-auth");
+    const created = await runIsolation({ mode: "create", title: "add-auth" });
     expect(created.exitCode).toBe(0);
     inDirectory(Path.join(repo, ".worktrees", "add-auth"));
 
-    const result = await verifyIsolation("add-auth");
+    const result = await runIsolation({ mode: "verify", title: "add-auth" });
 
     expect(result.exitCode).toBe(0);
     expect(result.lastLine).toContain(Path.join(".worktrees", "add-auth"));
@@ -328,9 +367,9 @@ describe("isolation verify", () => {
 
   it("fails when the cd never took effect", async () => {
     inDirectory(makeRepo());
-    const created = await createIsolation("add-auth");
+    const created = await runIsolation({ mode: "create", title: "add-auth" });
     expect(created.exitCode).toBe(0);
-    const result = await verifyIsolation("add-auth");
+    const result = await runIsolation({ mode: "verify", title: "add-auth" });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("not in .worktrees/add-auth");
@@ -339,8 +378,8 @@ describe("isolation verify", () => {
 
   it("reports command failures without a successful verification", async () => {
     inDirectory(makeRepo());
-    const result = await verifyIsolation(
-      "add-auth",
+    const result = await runIsolation(
+      { mode: "verify", title: "add-auth" },
       createRuntime({
         process: {
           run: () => ({
@@ -361,7 +400,7 @@ describe("isolation verify", () => {
 describe("isolate operation arguments", () => {
   it("dispatches typed operation modes", async () => {
     inDirectory(makeRepo());
-    const result = await isolate({ mode: "check" });
+    const result = await runIsolation({ mode: "check" });
     expect(result.operation).toBe("check");
     expect(result._tag).toBe("IsolationResult");
   });

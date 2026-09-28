@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Fs from "node:fs/promises";
 import * as Os from "node:os";
 import * as Path from "node:path";
@@ -880,20 +881,25 @@ const packageWholeChange = async (
   );
 };
 
-export const diff = async (
-  args: DiffArguments,
-  runtime: DiffRuntime = createDiffRuntime(),
-): Promise<DiffResult> => {
-  if (args.mode === "record") return recordCheckpoint(args, runtime);
-  if (args.mode === "task") return packageTask(args, runtime);
-  if (args.mode === "base") return packageBase(args, runtime);
-  if (args.changeDir !== undefined)
-    return failure(
-      args.mode,
-      "--change-dir is meaningless with --whole-change",
-    );
-  return packageWholeChange(args, runtime);
-};
+export const DIFF_RUNTIME = Symbol("DIFF_RUNTIME");
+
+@Injectable()
+export class DiffService {
+  constructor(@Inject(DIFF_RUNTIME) private readonly runtime: DiffRuntime) {}
+
+  async execute(args: DiffArguments): Promise<DiffResult> {
+    const runtime = this.runtime;
+    if (args.mode === "record") return recordCheckpoint(args, runtime);
+    if (args.mode === "task") return packageTask(args, runtime);
+    if (args.mode === "base") return packageBase(args, runtime);
+    if (args.changeDir !== undefined)
+      return failure(
+        args.mode,
+        "--change-dir is meaningless with --whole-change",
+      );
+    return packageWholeChange(args, runtime);
+  }
+}
 
 export const renderDiffResult = (diffResult: DiffResult): string =>
   diffResult.stdout.trimEnd() === ""

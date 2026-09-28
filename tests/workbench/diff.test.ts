@@ -4,9 +4,11 @@ import * as Os from "node:os";
 import * as Path from "node:path";
 import {
   createDiffRuntime,
-  diff,
+  DiffService,
+  type DiffArguments,
   type DiffFileSystemPort,
   type DiffGitPort,
+  type DiffRuntime,
 } from "../../src/workbench/diff.js";
 import {
   cleanupRepos,
@@ -28,6 +30,11 @@ const inDirectory = (directory: string) => {
   process.chdir(directory);
   return directory;
 };
+
+const executeDiff = (
+  args: DiffArguments,
+  runtime: DiffRuntime = createDiffRuntime(),
+) => new DiffService(runtime).execute(args);
 
 const taskPlan = (task: number, title = "Test task") =>
   `### Task ${task}: ${title}\n`;
@@ -98,9 +105,10 @@ describe("diff checkpoint recording", () => {
     const changeDir = makeChangeDir(repo, "add-auth");
     prepareTask(repo, changeDir, 2);
     const base = git(repo, "rev-parse", "HEAD");
+    const service = new DiffService(createDiffRuntime({ cwd: () => repo }));
 
-    const first = await diff({ mode: "record", task: "2", changeDir });
-    const second = await diff({ mode: "record", task: "2", changeDir });
+    const first = await service.execute({ mode: "record", task: "2", changeDir });
+    const second = await service.execute({ mode: "record", task: "2", changeDir });
 
     expect(first.exitCode).toBe(0);
     expect(first.lastLine).toBe(basePath(changeDir, 2));
@@ -119,11 +127,11 @@ describe("diff checkpoint recording", () => {
     const changeDir = makeChangeDir(repo, "add-auth");
     prepareTask(repo, changeDir, 2);
     const base = git(repo, "rev-parse", "HEAD");
-    const recorded = await diff({ mode: "record", task: "2", changeDir });
+    const recorded = await executeDiff({ mode: "record", task: "2", changeDir });
     write(repo, "src/auth.ts", "export const auth = true\n");
     commitAll(repo, "implement auth");
 
-    const retry = await diff({ mode: "record", task: "2", changeDir });
+    const retry = await executeDiff({ mode: "record", task: "2", changeDir });
 
     expect(recorded.exitCode).toBe(0);
     expect(retry.exitCode).toBe(0);
@@ -138,7 +146,7 @@ describe("diff checkpoint recording", () => {
       addTask(changeDir, 2, status);
       commitAll(repo, `add ${status} task`);
 
-      const result = await diff({ mode: "record", task: "2", changeDir });
+      const result = await executeDiff({ mode: "record", task: "2", changeDir });
 
       expect(result.exitCode).toBe(2);
       expect(result.stderr).toContain("historical recovery");
@@ -152,7 +160,7 @@ describe("diff checkpoint recording", () => {
     prepareTask(repo, changeDir, 2);
     const checkpoint = basePath(changeDir, 2);
     write(changeDir, "tasks/task-2/.base", "not-a-commit\n");
-    const malformed = await diff({ mode: "task", task: "2", changeDir });
+    const malformed = await executeDiff({ mode: "task", task: "2", changeDir });
     expect(malformed.exitCode).toBe(2);
     expect(malformed.stderr).toContain("exactly one full commit ID");
 
@@ -161,13 +169,13 @@ describe("diff checkpoint recording", () => {
     const offHistory = commitAll(repo, "other history");
     git(repo, "checkout", "-q", "main");
     write(changeDir, "tasks/task-2/.base", `${offHistory}\n`);
-    const unrelated = await diff({ mode: "task", task: "2", changeDir });
+    const unrelated = await executeDiff({ mode: "task", task: "2", changeDir });
     expect(unrelated.exitCode).toBe(2);
     expect(unrelated.stderr).toContain("not an ancestor");
 
     const head = git(repo, "rev-parse", "HEAD");
     write(changeDir, "tasks/task-2/.base", `${head}\n`);
-    const sameHead = await diff({ mode: "task", task: "2", changeDir });
+    const sameHead = await executeDiff({ mode: "task", task: "2", changeDir });
     expect(sameHead.exitCode).toBe(1);
     expect(sameHead.stderr).toContain("BASE equals HEAD");
     expect(Fs.existsSync(checkpoint)).toBe(true);
@@ -179,13 +187,13 @@ describe("diff package ranges", () => {
     const repo = inDirectory(makeRepo());
     const changeDir = makeChangeDir(repo, "add-auth");
     prepareTask(repo, changeDir, 2);
-    const recorded = await diff({ mode: "record", task: "2", changeDir });
+    const recorded = await executeDiff({ mode: "record", task: "2", changeDir });
     const base = git(repo, "rev-parse", "HEAD");
     write(repo, "src/auth.ts", "export const auth = true\n");
     const head = commitAll(repo, "add auth");
     const output = Path.join(repo, "task.diff");
 
-    const result = await diff(
+    const result = await executeDiff(
       { mode: "task", task: "2", out: "task.diff" },
       createDiffRuntime({ cwd: () => changeDir }),
     );
@@ -209,7 +217,7 @@ describe("diff package ranges", () => {
     write(repo, "src/auth.ts", "export const auth = true\n");
     const head = commitAll(repo, "add auth");
 
-    const result = await diff({ mode: "base", base, changeDir });
+    const result = await executeDiff({ mode: "base", base, changeDir });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(`Base: ${base}`);
@@ -229,7 +237,7 @@ describe("diff package ranges", () => {
     commitAll(repo, "add main change");
     const output = Path.join(repo, "explicit.diff");
 
-    const result = await diff({
+    const result = await executeDiff({
       mode: "base",
       base,
       changeDir,
@@ -249,7 +257,7 @@ describe("diff package ranges", () => {
     write(repo, "src/auth.ts", "export const auth = true\n");
     const head = commitAll(repo, "add auth");
 
-    const result = await diff({ mode: "whole-change" });
+    const result = await executeDiff({ mode: "whole-change" });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("default-branch: main");
@@ -262,13 +270,15 @@ describe("diff package ranges", () => {
     const repo = inDirectory(makeRepo());
     const changeDir = makeChangeDir(repo, "add-auth");
     prepareTask(repo, changeDir, 2);
-    await diff({ mode: "record", task: "2", changeDir });
-    const runtime = createDiffRuntime({
-      cwd: () => repo,
-      git: failingGit(repo, "isAncestor"),
-    });
+    await executeDiff({ mode: "record", task: "2", changeDir });
+    const service = new DiffService(
+      createDiffRuntime({
+        cwd: () => repo,
+        git: failingGit(repo, "isAncestor"),
+      }),
+    );
 
-    const result = await diff({ mode: "task", task: "2", changeDir }, runtime);
+    const result = await service.execute({ mode: "task", task: "2", changeDir });
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
@@ -279,15 +289,15 @@ describe("diff package ranges", () => {
     const repo = inDirectory(makeRepo());
     const changeDir = makeChangeDir(repo, "add-auth");
     prepareTask(repo, changeDir, 2);
-    await diff({ mode: "record", task: "2", changeDir });
+    await executeDiff({ mode: "record", task: "2", changeDir });
     write(repo, "src/auth.ts", "export const auth = true\n");
     commitAll(repo, "add auth");
 
-    const gitResult = await diff(
+    const gitResult = await executeDiff(
       { mode: "task", task: "2", changeDir },
       createDiffRuntime({ cwd: () => repo, git: failingGit(repo, "diff") }),
     );
-    const outputResult = await diff(
+    const outputResult = await executeDiff(
       { mode: "task", task: "2", changeDir, out: "failed.diff" },
       createDiffRuntime({
         cwd: () => repo,
@@ -312,7 +322,7 @@ describe("diff validation", () => {
     commitAll(repo, "add task");
 
     for (const task of ["", "0", "-1", "02", "2x", "3"]) {
-      const result = await diff({ mode: "record", task, changeDir });
+      const result = await executeDiff({ mode: "record", task, changeDir });
       expect(result.exitCode).toBe(2);
       expect(result.stderr).toContain("task");
     }
@@ -323,7 +333,7 @@ describe("diff validation", () => {
       "### Task 2: Retired work (abandoned — no longer needed)\n",
     );
     commitAll(repo, "abandon task");
-    const abandoned = await diff({ mode: "record", task: "2", changeDir });
+    const abandoned = await executeDiff({ mode: "record", task: "2", changeDir });
     expect(abandoned.exitCode).toBe(2);
     expect(abandoned.stderr).toContain("abandoned");
   });
@@ -331,11 +341,11 @@ describe("diff validation", () => {
   it("rejects invalid explicit bases and whole-change combinations", async () => {
     const repo = inDirectory(makeRepo());
     const changeDir = makeChangeDir(repo, "add-auth");
-    const invalid = await diff({
+    const invalid = await executeDiff({
       mode: "base",
       base: "0000000000000000000000000000000000000000",
     });
-    const invalidWhole = await diff({
+    const invalidWhole = await executeDiff({
       mode: "whole-change",
       changeDir,
     } as never);
@@ -350,7 +360,7 @@ describe("diff validation", () => {
       Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"),
     );
     try {
-      const result = await diff(
+      const result = await executeDiff(
         { mode: "whole-change" },
         createDiffRuntime({ cwd: () => directory }),
       );

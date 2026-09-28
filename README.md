@@ -20,8 +20,9 @@ curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/instal
 npx skills add https://github.com/caiorcferreira/hamilton
 ```
 
-The first command installs the Hamilton CLI binary and sets up artifacts in `~/.hamilton`. The
-second installs the skills in your preferred coding agent.
+The first command installs the platform-specific standalone Bun executable and its sidecar bundle,
+then sets up artifacts in `~/.hamilton`. The second installs the skills in your preferred coding
+agent.
 
 **Environment variables** (optional):
 - `HAMILTON_VERSION` — install a specific release version (default: latest)
@@ -30,6 +31,13 @@ second installs the skills in your preferred coding agent.
 
 See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
 and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
+
+## Nest CLI migration
+
+The CLI now uses NestJS with `nest-commander`; releases provide a standalone Bun executable with its
+sidecar `bundle/`. The former Effect-generated global options `--completions`, `--log-level`, and
+`--wizard` are removed, absent from help, and rejected as usage errors with exit code `2`.
+A setup failure exits with status `2` instead of `0`.
 
 ## What the CLI does
 
@@ -48,8 +56,8 @@ operations are `hamilton workbench isolate`, `hamilton workbench diff`,
 `hamilton workbench prototype`. Artifact validation uses `hamilton workbench lint`.
 
 ```bash
-hamilton setup          # bootstrap ~/.hamilton/ (idempotent)
-hamilton setup --force  # re-copy templates and guidelines; reset settings
+hamilton setup          # bootstrap ~/.hamilton/ (preserves existing settings)
+hamilton setup --force  # rerun setup; preserves existing settings
 hamilton workbench --help
 hamilton --help
 ```
@@ -150,13 +158,14 @@ hamilton setup                 # install bundle/{templates,guidelines}/ → ~/.h
 ```bash
 bun install                    # install dependencies
 bun run build                  # compile TypeScript (tsc -p tsconfig.json)
-bun run test                   # run tests (bun --bun vitest run)
+bun run test                   # run Vitest on Bun
 bun run install-local          # build + symlink the CLI locally
 bun run purge                  # remove the CLI symlink and ~/.hamilton/
 ```
 
-**Do NOT use `bun test`** — use `bun run test` which uses the native runner (the fallback lacks `vi.mocked()`). See
-[AGENTS.md](AGENTS.md) for conventions and [CONTRIBUTING.md](CONTRIBUTING.md) for the docs-sync rules.
+**Do not use `bun test`** — it selects Bun's native test runner. Use `bun --bun vitest run` or
+`bun run test` instead. See [AGENTS.md](AGENTS.md) for conventions and
+[CONTRIBUTING.md](CONTRIBUTING.md) for the docs-sync rules.
 
 ## License
 

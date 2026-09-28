@@ -1,7 +1,8 @@
 {
-  "$schema": "./node_modules/@effect/language-service/schema.json",
   "compilerOptions": {
     "target": "ES2024",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "module": "Node16",
     "moduleResolution": "node16",
     "outDir": "dist",
@@ -14,11 +15,7 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "exactOptionalPropertyTypes": false,
-    "plugins": [{
-      "name": "@effect/language-service",
-      "ignoreEffectWarningsInTscExitCode": true
-    }],
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests"]

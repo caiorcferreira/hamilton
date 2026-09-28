@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import * as Path from "node:path";
 import {
   createIsolationGitAdapter,
@@ -5,7 +6,7 @@ import {
   type IsolationGitFailure,
   type IsolationGitValue,
 } from "./isolation-git.js";
-import { createRuntime, type IsolationRuntime } from "./runtime.js";
+import type { IsolationRuntime } from "./runtime.js";
 
 export interface CheckIsolationArguments {
   readonly mode: "check";
@@ -220,30 +221,22 @@ const verify = async (
   return output(args.mode, "success", `verified: ${root.value}\n`);
 };
 
-export const isolate = async (
-  args: IsolationArguments,
-  runtime: IsolationRuntime = createRuntime(),
-): Promise<IsolationResult> => {
-  const git = createIsolationGitAdapter(runtime);
-  if (args.mode === "check") return check(args, git, runtime);
-  if (args.mode === "create") return create(args, git, runtime);
-  return verify(args, git, runtime);
-};
+export const ISOLATION_RUNTIME = Symbol("ISOLATION_RUNTIME");
 
-export const checkIsolation = (
-  changeDir?: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "check", ...(changeDir === undefined ? {} : { changeDir }) }, runtime);
+@Injectable()
+export class IsolateService {
+  constructor(
+    @Inject(ISOLATION_RUNTIME) private readonly runtime: IsolationRuntime,
+  ) {}
 
-export const createIsolation = (
-  title: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "create", title }, runtime);
-
-export const verifyIsolation = (
-  title: string,
-  runtime?: IsolationRuntime,
-): Promise<IsolationResult> => isolate({ mode: "verify", title }, runtime);
+  async execute(args: IsolationArguments): Promise<IsolationResult> {
+    const runtime = this.runtime;
+    const git = createIsolationGitAdapter(runtime);
+    if (args.mode === "check") return check(args, git, runtime);
+    if (args.mode === "create") return create(args, git, runtime);
+    return verify(args, git, runtime);
+  }
+}
 
 export const renderIsolationResult = (
   isolationResult: IsolationResult,

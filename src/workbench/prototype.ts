@@ -1,3 +1,4 @@
+import { Inject, Injectable } from "@nestjs/common";
 import {
   createRuntime,
   type ProcessPort,
@@ -228,37 +229,25 @@ const verify = async (
   );
 };
 
-export const prototype = async (
-  args: PrototypeArguments,
-  runtime: PrototypeRuntime = createPrototypeRuntime(),
-): Promise<PrototypeResult> => {
-  const invalid = validate(args);
-  if (invalid !== undefined) return failure(args.mode, invalid);
-  if (args.mode === "verify") return verify(args, runtime);
-  const branch =
-    args.mode === "mapped"
-      ? `prototype/${args.mapName}/${args.ticketName}`
-      : `prototype/${args.slug}`;
-  return switchBranch(args.mode, branch, runtime);
-};
+export const PROTOTYPE_RUNTIME = Symbol("PROTOTYPE_RUNTIME");
 
-export const createPrototypeBranch = (
-  mapName: string,
-  ticketName: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> =>
-  prototype({ mode: "mapped", mapName, ticketName }, runtime);
+@Injectable()
+export class PrototypeService {
+  constructor(
+    @Inject(PROTOTYPE_RUNTIME) private readonly runtime: PrototypeRuntime,
+  ) {}
 
-export const createStandalonePrototypeBranch = (
-  slug: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> => prototype({ mode: "standalone", slug }, runtime);
-
-export const verifyPrototypeBranch = (
-  expectedBranch: string,
-  runtime?: PrototypeRuntime,
-): Promise<PrototypeResult> =>
-  prototype({ mode: "verify", expectedBranch }, runtime);
+  async execute(args: PrototypeArguments): Promise<PrototypeResult> {
+    const invalid = validate(args);
+    if (invalid !== undefined) return failure(args.mode, invalid);
+    if (args.mode === "verify") return verify(args, this.runtime);
+    const branch =
+      args.mode === "mapped"
+        ? `prototype/${args.mapName}/${args.ticketName}`
+        : `prototype/${args.slug}`;
+    return switchBranch(args.mode, branch, this.runtime);
+  }
+}
 
 export const renderPrototypeResult = (
   prototypeResult: PrototypeResult,
