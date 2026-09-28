@@ -463,7 +463,13 @@ it("opens the gate for a committed historical unbulleted task outcome", async ()
   expect(result.lastLine).toBe("gate: open");
 });
 
-it.each(["", "- Outcome: blocked", "- Outcome:", "Outcome: done extra"])(
+it.each([
+  "",
+  "- Outcome: blocked",
+  "- Outcome:",
+  "Outcome: done extra",
+  "Outcome:done",
+])(
   "closes the gate for a committed invalid task outcome field %s",
   async (taskOutcomeField) => {
     const repository = makeRepo();

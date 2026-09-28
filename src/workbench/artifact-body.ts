@@ -275,7 +275,7 @@ const recordFields = (
     if (match) {
       fields[match[1]?.trim() ?? ""] = match[2]?.trim() ?? "";
     } else if (allowLegacyTaskOutcome) {
-      const legacyOutcome = /^Outcome:[ \t]*(.*)$/.exec(line);
+      const legacyOutcome = /^Outcome:[ \t]+(.*)$/.exec(line);
       if (legacyOutcome) fields.Outcome = legacyOutcome[1]?.trim() ?? "";
     }
   }

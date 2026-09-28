@@ -103,7 +103,7 @@ tasks:
     progress: tasks/task-24/progress.md
   - id: 25
     title: Read legacy task outcome fields
-    status: pending
+    status: done
     progress: tasks/task-25/progress.md
 ---
 # Progress: Replace Effect-TS in the CLI with NestJS
