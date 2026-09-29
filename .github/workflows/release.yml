@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      publish_core:
+        description: Publish the current core package version to GitHub Packages
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -16,6 +23,8 @@ jobs:
       contents: read
     outputs:
       should_release: ${{ steps.version-check.outputs.should_release }}
+      should_publish_core: >-
+        ${{ steps.version-check.outputs.should_publish_core }}
       version: ${{ steps.read-version.outputs.version }}
     steps:
       - name: Checkout code
@@ -32,6 +41,12 @@ jobs:
       - name: Check if version should be released
         id: version-check
         run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "should_publish_core=$PUBLISH_CORE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           TAG="v$RELEASE_VERSION"
 
           # Most recent published release, empty if none exists yet.
@@ -46,6 +61,7 @@ jobs:
             printf 'Version %s is already released as %s.\n' \
               "$RELEASE_VERSION" "$TAG"
             echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "should_publish_core=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -65,8 +81,10 @@ jobs:
           fi
 
           echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "should_publish_core=true" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH_CORE: ${{ inputs.publish_core }}
           RELEASE_VERSION: ${{ steps.read-version.outputs.version }}
 
   verify:
@@ -276,6 +294,62 @@ jobs:
           name: core-package
           path: kepler-core-*.tgz
           retention-days: 1
+
+  publish-core:
+    name: Publish core package to GitHub Packages
+    needs:
+      - check-version
+      - verify
+      - package
+    if: >-
+      ${{
+        always() &&
+        needs.check-version.outputs.should_publish_core == 'true' &&
+        needs.verify.result == 'success' &&
+        (
+          needs.package.result == 'success' ||
+          (github.event_name == 'workflow_dispatch' && inputs.publish_core)
+        )
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.x
+          registry-url: https://npm.pkg.github.com
+          scope: '@vialactea-works'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build core package
+        run: bun run build:core
+
+      - name: Publish core package if missing
+        run: |
+          VERSION="$(node -p "require('./packages/core/package.json').version")"
+          PACKAGE_NAME="@vialactea-works/kepler-core"
+
+          if npm view "$PACKAGE_NAME@$VERSION" version --json \
+            >/dev/null 2>&1; then
+            printf '%s@%s is already published.\n' "$PACKAGE_NAME" "$VERSION"
+          else
+            npm publish ./packages/core --registry=https://npm.pkg.github.com
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     name: Publish release

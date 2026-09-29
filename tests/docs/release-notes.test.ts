@@ -6,6 +6,9 @@ const root = resolve(import.meta.dirname, "../..");
 const { version: packageVersion } = JSON.parse(
   readFileSync(resolve(root, "package.json"), "utf8"),
 );
+const corePackage = JSON.parse(
+  readFileSync(resolve(root, "packages/core/package.json"), "utf8"),
+);
 const packageVersions = [
   "packages/core/package.json",
   "packages/cli/package.json",
@@ -24,6 +27,8 @@ const verifyJob =
   releaseWorkflow.match(/\n  verify:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
 const packageJob =
   releaseWorkflow.match(/\n  package:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
+const publishCoreJob =
+  releaseWorkflow.match(/\n  publish-core:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
 
 describe("versioned release notes", () => {
   it("synchronizes the root, package, and CLI version metadata before release", () => {
@@ -47,7 +52,7 @@ describe("versioned release notes", () => {
     expect(releaseNotes).toContain("@vialactea-works/kepler-core");
     expect(releaseNotes).toContain(`kepler-core-${packageVersion}.tgz`);
     expect(releaseNotes).toContain("SHA256SUMS");
-    expect(releaseNotes).toMatch(/does not publish it to a package registry/i);
+    expect(releaseNotes).toMatch(/publishing it to GitHub Packages is a separate workflow step/i);
     expect(releaseNotes).toMatch(/standalone executable/i);
     expect(releaseNotes).toContain("kepler-bundle.tar.gz");
     expect(releaseNotes).toMatch(/curl -fsSL[^\n]*install\.sh[^\n]*\| bash/);
@@ -62,6 +67,23 @@ describe("versioned release notes", () => {
     expect(packageJob).toMatch(/Smoke test binary with packaged bundle[\s\S]*?scripts\/smoke-standalone\.sh/);
     expect(packageJob).toMatch(/sha256sum kepler-\*/);
     expect(releaseWorkflow).not.toMatch(/hamilton-(?:linux|darwin|bundle)/i);
+  });
+
+  it("publishes the core package privately to GitHub Packages", () => {
+    expect(corePackage.name).toBe("@vialactea-works/kepler-core");
+    expect(corePackage.private).not.toBe(true);
+    expect(corePackage.repository).toBe("https://github.com/vialactea-works/kepler.git");
+    expect(corePackage.publishConfig).toEqual({
+      registry: "https://npm.pkg.github.com",
+    });
+    expect(releaseWorkflow).toMatch(/workflow_dispatch:[\s\S]*?publish_core:/);
+    expect(publishCoreJob).toMatch(/packages:\s*write/);
+    expect(publishCoreJob).toMatch(/actions\/setup-node@[a-f0-9]{40}/);
+    expect(publishCoreJob).toContain("npm view");
+    expect(publishCoreJob).toContain("npm publish ./packages/core");
+    expect(publishCoreJob).toContain("NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
+    expect(publishCoreJob).toContain("inputs.publish_core");
+    expect(publishCoreJob).toContain("needs.package.result == 'success'");
   });
 
   it("publishes only the notes for the current package version", () => {
