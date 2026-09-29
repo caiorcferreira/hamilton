@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest"
 import { readSkill } from "./helpers.js"
 
 const writers = [
-  "hamilton-compose-spec",
-  "hamilton-wayfinder",
-  "hamilton-wayfinder-domain-modeling",
-  "hamilton-wayfinder-research",
-  "hamilton-wayfinder-prototype",
-  "hamilton-grilling",
+  "kepler-compose-spec",
+  "kepler-wayfinder",
+  "kepler-wayfinder-domain-modeling",
+  "kepler-wayfinder-research",
+  "kepler-wayfinder-prototype",
+  "kepler-grilling",
 ] as const
 
 const readWriters = () =>
@@ -32,77 +32,77 @@ describe("canonical and Wayfinder artifact lint contract", () => {
   it("maps each writer to its recognized and unrelated outputs", () => {
     const skills = readWriters()
 
-    expect(skills["hamilton-compose-spec"]).toContain(
-      ".hamilton/specs/<capability>.md",
+    expect(skills["kepler-compose-spec"]).toContain(
+      ".kepler/specs/<capability>.md",
     )
-    expect(skills["hamilton-compose-spec"]).toContain(
-      "hamilton workbench lint --file <spec-path>",
-    )
-
-    expect(skills["hamilton-wayfinder"]).toContain(
-      ".hamilton/maps/<effort>/map.md",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      ".hamilton/maps/<effort>/tickets/NN-slug.md",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      ".hamilton/maps/<effort>/route.md",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      ".hamilton/specs/glossary.md",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      "hamilton workbench lint --file <map-path>",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      "hamilton workbench lint --file <ticket-path>",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      "hamilton workbench lint --file <route-path>",
-    )
-    expect(skills["hamilton-wayfinder"]).toContain(
-      "hamilton workbench lint --file <spec-path>",
+    expect(skills["kepler-compose-spec"]).toContain(
+      "kepler workbench lint --file <spec-path>",
     )
 
-    expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
-      ".hamilton/specs/glossary.md",
+    expect(skills["kepler-wayfinder"]).toContain(
+      ".kepler/maps/<effort>/map.md",
     )
-    expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
-      ".hamilton/maps/<effort>/tickets/NN-slug.md",
+    expect(skills["kepler-wayfinder"]).toContain(
+      ".kepler/maps/<effort>/tickets/NN-slug.md",
     )
-    expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
-      "hamilton workbench lint --file <ticket-path>",
+    expect(skills["kepler-wayfinder"]).toContain(
+      ".kepler/maps/<effort>/route.md",
     )
-    expect(skills["hamilton-wayfinder-domain-modeling"]).toContain(
-      "hamilton workbench lint --file <spec-path>",
+    expect(skills["kepler-wayfinder"]).toContain(
+      ".kepler/specs/glossary.md",
+    )
+    expect(skills["kepler-wayfinder"]).toContain(
+      "kepler workbench lint --file <map-path>",
+    )
+    expect(skills["kepler-wayfinder"]).toContain(
+      "kepler workbench lint --file <ticket-path>",
+    )
+    expect(skills["kepler-wayfinder"]).toContain(
+      "kepler workbench lint --file <route-path>",
+    )
+    expect(skills["kepler-wayfinder"]).toContain(
+      "kepler workbench lint --file <spec-path>",
     )
 
-    expect(skills["hamilton-wayfinder-research"]).toContain(
-      ".hamilton/maps/<effort>/research/",
+    expect(skills["kepler-wayfinder-domain-modeling"]).toContain(
+      ".kepler/specs/glossary.md",
     )
-    expect(skills["hamilton-wayfinder-research"]).toContain(
-      "hamilton workbench lint --file <ticket-path>",
+    expect(skills["kepler-wayfinder-domain-modeling"]).toContain(
+      ".kepler/maps/<effort>/tickets/NN-slug.md",
     )
-    expect(skills["hamilton-wayfinder-research"]).toMatch(
+    expect(skills["kepler-wayfinder-domain-modeling"]).toContain(
+      "kepler workbench lint --file <ticket-path>",
+    )
+    expect(skills["kepler-wayfinder-domain-modeling"]).toContain(
+      "kepler workbench lint --file <spec-path>",
+    )
+
+    expect(skills["kepler-wayfinder-research"]).toContain(
+      ".kepler/maps/<effort>/research/",
+    )
+    expect(skills["kepler-wayfinder-research"]).toContain(
+      "kepler workbench lint --file <ticket-path>",
+    )
+    expect(skills["kepler-wayfinder-research"]).toMatch(
       /research notes.*(?:remain|are) outside lint scope|do not lint.*research notes/is,
     )
-    expect(skills["hamilton-wayfinder-research"]).toMatch(
+    expect(skills["kepler-wayfinder-research"]).toMatch(
       /only when.*ticket.*(?:mutated|edited)|if.*ticket.*(?:mutated|edited)/is,
     )
 
-    expect(skills["hamilton-wayfinder-prototype"]).toContain(
+    expect(skills["kepler-wayfinder-prototype"]).toContain(
       "prototype/<map>/<ticket>",
     )
-    expect(skills["hamilton-wayfinder-prototype"]).toContain(
-      "hamilton workbench lint --file <ticket-path>",
+    expect(skills["kepler-wayfinder-prototype"]).toContain(
+      "kepler workbench lint --file <ticket-path>",
     )
-    expect(skills["hamilton-wayfinder-prototype"]).toMatch(
+    expect(skills["kepler-wayfinder-prototype"]).toMatch(
       /throwaway.*(?:remain|are) outside lint scope|do not lint.*throwaway/is,
     )
 
-    expect(skills["hamilton-grilling"]).toContain("ticket's `## Answer`")
-    expect(skills["hamilton-grilling"]).toContain(
-      "hamilton workbench lint --file <ticket-path>",
+    expect(skills["kepler-grilling"]).toContain("ticket's `## Answer`")
+    expect(skills["kepler-grilling"]).toContain(
+      "kepler workbench lint --file <ticket-path>",
     )
   })
 
@@ -110,44 +110,44 @@ describe("canonical and Wayfinder artifact lint contract", () => {
     const skills = readWriters()
 
     expectOrdered(
-      skills["hamilton-compose-spec"],
+      skills["kepler-compose-spec"],
       "After writing or editing each canonical spec",
-      "hamilton workbench lint --file <spec-path>",
+      "kepler workbench lint --file <spec-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder"],
+      skills["kepler-wayfinder"],
       "After each write or edit of a recognized artifact",
-      "hamilton workbench lint --file <map-path>",
+      "kepler workbench lint --file <map-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder"],
-      "fold the working glossary's resolved terms into the canonical `.hamilton/specs/glossary.md`",
-      "hamilton workbench lint --file <spec-path>",
+      skills["kepler-wayfinder"],
+      "fold the working glossary's resolved terms into the canonical `.kepler/specs/glossary.md`",
+      "kepler workbench lint --file <spec-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder-domain-modeling"],
+      skills["kepler-wayfinder-domain-modeling"],
       "After each canonical glossary or ticket mutation",
-      "hamilton workbench lint --file <spec-path>",
+      "kepler workbench lint --file <spec-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder-domain-modeling"],
+      skills["kepler-wayfinder-domain-modeling"],
       "After each canonical glossary or ticket mutation",
-      "hamilton workbench lint --file <ticket-path>",
+      "kepler workbench lint --file <ticket-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder-research"],
+      skills["kepler-wayfinder-research"],
       "If the resolving ticket is edited",
-      "hamilton workbench lint --file <ticket-path>",
+      "kepler workbench lint --file <ticket-path>",
     )
     expectOrdered(
-      skills["hamilton-wayfinder-prototype"],
+      skills["kepler-wayfinder-prototype"],
       "If the resolving ticket is edited",
-      "hamilton workbench lint --file <ticket-path>",
+      "kepler workbench lint --file <ticket-path>",
     )
     expectOrdered(
-      skills["hamilton-grilling"],
+      skills["kepler-grilling"],
       "When the answer is written to a recognized ticket",
-      "hamilton workbench lint --file <ticket-path>",
+      "kepler workbench lint --file <ticket-path>",
     )
 
     for (const name of writers) {
@@ -161,9 +161,9 @@ describe("canonical and Wayfinder artifact lint contract", () => {
     const skills = readWriters()
 
     for (const name of [
-      "hamilton-compose-spec",
-      "hamilton-wayfinder",
-      "hamilton-wayfinder-domain-modeling",
+      "kepler-compose-spec",
+      "kepler-wayfinder",
+      "kepler-wayfinder-domain-modeling",
     ] as const) {
       expect(skills[name]).toMatch(
         /git config user\.name[\s\S]*git config user\.email/i,

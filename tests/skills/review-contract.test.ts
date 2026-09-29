@@ -2,18 +2,18 @@ import * as Fs from "node:fs"
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-const readReview = () => readSkill("hamilton-review")
+const readReview = () => readSkill("kepler-review")
 const readQualityRubric = () =>
   Fs.readFileSync(
-    new URL("../../skills/hamilton-review/references/code-quality.md", import.meta.url),
+    new URL("../../skills/kepler-review/references/code-quality.md", import.meta.url),
     "utf-8",
   )
 
-describe("hamilton-review contract", () => {
+describe("kepler-review contract", () => {
   it("declares the whole-branch pipeline gate", () => {
     const skill = readReview()
 
-    expect(skill).toMatch(/^---\nname: hamilton-review\n/)
+    expect(skill).toMatch(/^---\nname: kepler-review\n/)
     expect(skill).toMatch(/description:.*whole branch/i)
     expect(skill).toMatch(/pipeline.*step 5/is)
   })
@@ -87,7 +87,7 @@ describe("hamilton-review contract", () => {
     expect(inputs).toMatch(/supplied base.*equal.*actual merge base/is)
     expect(wrongScope).toMatch(/arbitrary ancestor.*task checkpoint/is)
     expect(wrongScope).toMatch(/stop\s+without recording a verdict/is)
-    expect(wrongScope).toContain("`hamilton-code-feedback`")
+    expect(wrongScope).toContain("`kepler-code-feedback`")
   })
 
   it("starts from the whole diff and always inspects broader repository impact", () => {
@@ -110,13 +110,13 @@ describe("hamilton-review contract", () => {
     expect(verification).toMatch(/narrowest focused (test|check)/i)
     expect(verification).toMatch(/does not.*full test suite|never.*full test suite/is)
     expect(verification).toMatch(/does not.*build|never.*build/is)
-    expect(verification).toMatch(/hamilton-finish-work.*mandatory\s+full\s+verification/is)
+    expect(verification).toMatch(/kepler-finish-work.*mandatory\s+full\s+verification/is)
   })
 
   it("instantiates the installed root template and records material freshness", () => {
     const artifact = readReview()
 
-    expect(artifact).toContain("~/.hamilton/templates/review.md")
+    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/review.md")
     expect(artifact).toMatch(/exact installed.*template/is)
     expect(artifact).toContain("<change-dir>/review.md")
     expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)
@@ -199,12 +199,12 @@ describe("hamilton-review contract", () => {
     )
   })
 
-  it("stops task-scoped input and redirects it to hamilton-code-feedback", () => {
+  it("stops task-scoped input and redirects it to kepler-code-feedback", () => {
     const wrongScope = section(readReview(), "## Wrong scope")
 
     expect(wrongScope).toMatch(/task-scoped.*stop/is)
     expect(wrongScope).toMatch(/without recording a verdict/i)
-    expect(wrongScope).toContain("`hamilton-code-feedback`")
+    expect(wrongScope).toContain("`kepler-code-feedback`")
   })
 
   it("routes final findings through re-plan or proposal revision", () => {
@@ -212,8 +212,8 @@ describe("hamilton-review contract", () => {
 
     expect(handoff).toMatch(/changes-requested.*complete finding set.*re-plan/is)
     expect(handoff).toMatch(/independently verifiable.*multiple.*remediation tasks/is)
-    expect(handoff).toMatch(/invalidates.*approved requirement or design.*hamilton-propose/is)
-    expect(handoff).toMatch(/Never send whole-branch findings directly to\s+`hamilton-code`/i)
+    expect(handoff).toMatch(/invalidates.*approved requirement or design.*kepler-propose/is)
+    expect(handoff).toMatch(/Never send whole-branch findings directly to\s+`kepler-code`/i)
   })
 
   it("ships a whole-branch integration and omission quality rubric", () => {

@@ -11,8 +11,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Finish History — completion history for a change.
-  Produced by: hamilton-finish-work (step 6).
-  Lives at: .hamilton/changes/<change>/finish.md
+  Produced by: kepler-finish-work (step 6).
+  Lives at: .kepler/changes/<change>/finish.md
   Created after the task and whole-branch gates pass.
   Delete this instruction block and every inline hint before finalizing.
 -->

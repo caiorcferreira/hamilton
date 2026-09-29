@@ -3,15 +3,15 @@ import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { RESULT_EXIT_SINK, RESULT_OUTPUT_SINK } from "../../src/cli/nest/result-reporter.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
-import { WorkbenchModule } from "../../src/cli/nest/workbench.module.js";
+import { RESULT_EXIT_SINK, RESULT_OUTPUT_SINK } from "../../packages/cli/src/cli/nest/result-reporter.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
+import { WorkbenchModule } from "../../packages/cli/src/cli/nest/workbench.module.js";
 import {
   IsolateService,
   type IsolationArguments,
   type IsolationResult,
-} from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/isolate.js";
 
 type Event =
   | { readonly type: "stdout" | "stderr"; readonly value: string }
@@ -36,7 +36,7 @@ async function runCli(
   isolationResult: IsolationResult,
 ) {
   const { IsolateCommand } = await import(
-    "../../src/cli/nest/isolate.command.js"
+    "../../packages/cli/src/cli/nest/isolate.command.js"
   );
   const calls: IsolationArguments[] = [];
   let stdout = "";
@@ -77,7 +77,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -85,7 +85,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     await CommandFactory.runApplication(application);
   } finally {
     exitCode = process.exitCode;
@@ -101,7 +101,7 @@ async function runCli(
 
 async function createHarness(isolationResult: IsolationResult) {
   const { IsolateCommand } = await import(
-    "../../src/cli/nest/isolate.command.js"
+    "../../packages/cli/src/cli/nest/isolate.command.js"
   );
   const calls: IsolationArguments[] = [];
   const events: Event[] = [];
@@ -148,7 +148,7 @@ describe("IsolateCommand", () => {
     try {
       process.argv = [
         originalArgv[0],
-        "hamilton",
+        "kepler",
         "workbench",
         "isolate",
         "--help",
@@ -164,7 +164,7 @@ describe("IsolateCommand", () => {
       }) as typeof process.stderr.write;
 
       application = await CommandFactory.createWithoutRunning(WorkbenchModule, {
-        cliName: "hamilton",
+        cliName: "kepler",
         errorHandler: (error) => {
           throw error;
         },
@@ -184,7 +184,7 @@ describe("IsolateCommand", () => {
     }
 
     expect(commandError).toBeDefined();
-    expect(stdout).toContain("Usage: hamilton workbench isolate [options] [title]");
+    expect(stdout).toContain("Usage: kepler workbench isolate [options] [title]");
     expect(stdout).toContain("--check");
     expect(stdout).toContain("--verify <title>");
     expect(stdout).toContain("--change-dir <directory>");
@@ -202,9 +202,9 @@ describe("IsolateCommand", () => {
           "isolate",
           "--check",
           "--change-dir",
-          ".hamilton",
+          ".kepler",
         ],
-        expected: { mode: "check", changeDir: ".hamilton" },
+        expected: { mode: "check", changeDir: ".kepler" },
       },
       {
         arguments: ["workbench", "isolate", "--verify", "new-worktree"],
@@ -231,10 +231,10 @@ describe("IsolateCommand", () => {
     );
 
     try {
-      await harness.command.run([], { check: true, changeDir: ".hamilton" });
+      await harness.command.run([], { check: true, changeDir: ".kepler" });
 
       expect(harness.calls).toEqual([
-        { mode: "check", changeDir: ".hamilton" },
+        { mode: "check", changeDir: ".kepler" },
       ]);
       expect(harness.events).toEqual([
         { type: "exitCode", value: 1 },
@@ -324,7 +324,7 @@ describe("IsolateCommand", () => {
       },
       {
         params: [],
-        options: { verify: "new-worktree", changeDir: ".hamilton" },
+        options: { verify: "new-worktree", changeDir: ".kepler" },
         message: "--verify cannot be combined with --change-dir or a title",
       },
       {
@@ -334,7 +334,7 @@ describe("IsolateCommand", () => {
       },
       {
         params: ["new-worktree"],
-        options: { changeDir: ".hamilton" },
+        options: { changeDir: ".kepler" },
         message: "--change-dir requires --check",
       },
     ];

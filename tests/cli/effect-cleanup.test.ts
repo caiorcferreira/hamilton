@@ -49,7 +49,6 @@ describe("Effect tooling cleanup", () => {
     expect(Object.keys(dependencies).filter((name) => name === "effect" || name.startsWith("@effect/"))).toEqual([]);
     expect(scripts).not.toHaveProperty("prepare");
     expect(Object.entries(scripts).filter(([name, command]) => /effect/i.test(name) || /effect/i.test(command))).toEqual([]);
-    expect(manifest.version).toBe("0.9.0");
   });
 
   it("removes Effect TypeScript schema and plugin while retaining Nest metadata", () => {
@@ -68,12 +67,19 @@ describe("Effect tooling cleanup", () => {
     expect(packageNames.filter((name) => name === "effect" || name.startsWith("@effect/"))).toEqual([]);
   });
 
-  it("keeps the package and CLI versions synchronized", () => {
+  it("keeps the root, core, and CLI package versions synchronized", () => {
     const source = readFileSync(resolve(root, "src/index.ts"), "utf8");
     const version = source.match(/^export const VERSION = "([^"]+)"$/m)?.[1];
-    const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+    const manifests = [
+      "package.json",
+      "packages/core/package.json",
+      "packages/cli/package.json",
+    ].map((file) => JSON.parse(readFileSync(resolve(root, file), "utf8")));
 
-    expect(version).toBe("0.9.0");
-    expect(manifest.version).toBe(version);
+    expect(manifests.map((manifest) => manifest.version)).toEqual([
+      version,
+      version,
+      version,
+    ]);
   });
 });

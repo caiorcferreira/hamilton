@@ -1,0 +1,379 @@
+---
+name: kepler-plan
+description: "Turn a change into plan.md — an ordered ledger of small, TDD-sized, independently verifiable implementation tasks. Use after propose/design, or directly from a change request when no formal spec is needed."
+---
+
+# Planning a change
+
+Turn a change — whether it already has a design and requirements, or is just a
+request — into `plan.md`: an ordered ledger of small, independently verifiable tasks that
+a coder (human or agent) implements one at a time.
+
+The **seven-stage core pipeline** is Kepler's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill that a person or an agent can run.
+This skill is **step 2**, the plan step. Wayfinder and `kepler-critique` are optional and
+remain outside the seven-step core count.
+
+`plan.md` is the required planning artifact and the handoff contract between planning and
+coding. Finalizing it also initializes the split execution ledger and task-local evidence
+files. This skill produces planning artifacts only. **It never writes production code.**
+
+## Inputs
+
+- A change directory at `.kepler/changes/<YYYY-MM-DD-title>/`. Create it if missing —
+  `plan.md` always lives inside one, even when the pipeline starts at this step.
+- Rich path: `design.md` and `requirements/` already exist — plan from them.
+- Minimal path: only a user request. Capture the why/what in the plan's Overview and proceed.
+- Project standards: `AGENTS.md`, for test/build commands, project structure, code style,
+  and boundaries. Read it — do not guess conventions.
+- The project's canonical specs (`.kepler/specs/`): the current, consolidated requirement
+  truth for each capability. Read the specs the change touches so the plan stays consistent
+  with established behavior and prior decisions — especially on the minimal path, where no
+  per-change `requirements/` exists and the specs are your only view of existing behavior.
+
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on
+the skill's own directory — they are co-located with this SKILL.md, **not** at
+`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`.
+
+- `references/code-quality.md` — the self-review rubric for plan quality.
+
+## Principles
+
+- **Plan-first, read-only.** Explore the code you will touch before writing the plan.
+  Understand existing patterns and how tests run. Make no edits in this step.
+- **TDD-sized tasks.** Each task is small enough to implement and verify in isolation —
+  about one Red → Green → Refactor loop. "Build authentication" is too big; "add a
+  registration endpoint that validates email format" is right.
+- **One task at a time.** The coder consumes a single task and nothing else, so each task
+  must be self-contained: its files, acceptance, and verification stand alone.
+- **Steps are executed verbatim.** The coder follows a task's Steps exactly and adds no
+  design of its own (it may be a weak model). Specify the complete Red → Green → Refactor
+  sequence, or a justified alternative Red when a conventional failing check is impossible.
+  The coder cannot invent missing steps or treat Green as completion.
+- **Reference, don't copy.** Point to `design.md` / `requirements/`; do not duplicate them.
+- **Honor the canonical specs.** Before decomposing, read the `.kepler/specs/` entries for
+  the capabilities the change touches. They record the conventions and decisions the project
+  has already committed to; a plan that quietly contradicts them regresses agreed behavior.
+  Follow them, or surface the conflict — do not plan around it silently.
+- **Plan for quality.** The coder executes verbatim and adds no design, so the plan carries
+  the quality — not the code step. Decompose so each task preserves the design's structure
+  and stays independently testable, and make any code snippet model the clean shape rather
+  than a shortcut the coder will copy. Judge the plan against `references/code-quality.md`
+  (read it from this skill's references directory), proportional to the change's size.
+- **Detail scales to risk.** Include code or exact commands only where they remove
+  ambiguity. Otherwise state intent and let the coder think — do not pre-write the diff.
+- **Write flowing prose.** In `plan.md` — overviews, task descriptions, acceptance
+  criteria, and every other narrative field — let paragraphs run as continuous lines. Do
+  not hard-wrap text at ~80 characters or any fixed width; insert a line break only at a
+  real boundary (between paragraphs, list items, or headings). Code blocks and commands
+  keep their own formatting; soft-wrapping prose is the reader's job, not yours.
+
+## TDD task contract
+
+Plan each ordinary behavior-changing task as a complete Red → Green → Refactor cycle before
+its final Verify command. A task may need several related checks or cycles, but split independent
+behaviors into separate tasks. Write the phase actions in each task's Steps so a coder who reads
+only that block can execute them in order:
+
+- **Red:** Write or update a failing behavioral check and run it before production edits. Name the
+  command and intended failure; an already-passing check or broken harness does not establish
+  Red. If a conventional failing behavioral check cannot be written, specify the
+  concrete technical reason before production edits and a repeatable alternative verification that
+  distinguishes the pre-change and post-change states. Run and record the alternative as Red
+  before production edits. Preference alone is not a valid exception.
+- **Green:** Make the smallest passing implementation and rerun the same check (or documented
+  alternative) until it passes for the intended reason. Green is not task completion.
+- **Refactor:** Specify behavior-preserving cleanup and rerun relevant tests after Green. If no
+  cleanup is needed, inspect for opportunities, record that decision, and still rerun the
+  relevant behavioral and regression checks; do not invent a cosmetic edit to satisfy the phase.
+
+After Refactor, run the task's Verify command and the full test/build commands from `AGENTS.md`
+unless those standards explicitly scope a per-task suite. Require exact commands and observed
+results for every phase in task-local progress, including the technical reason and observations
+for an exceptional Red. If a phase fails for the wrong reason, Verify fails, or feedback is
+`changes-requested`, record the correction and repeat Red → Green → Refactor with relevant
+verification within the same task. If the correction falls outside the task's Files or acceptance
+boundaries, block for re-plan rather than improvise.
+
+Do not invoke feedback in task Steps during implementation: `kepler-code` owns the task attempt
+and commit, and the driver dispatches `kepler-code-feedback` as the refactor-phase review
+afterward. A fresh durable `approved` pass is required before the next task or whole-branch
+review. `changes-requested` feedback returns the same task for a correction cycle with
+verification and another feedback pass. This handoff belongs to the driver, not the coder's Steps.
+
+## Process
+
+1. **Detect map-aware mode.** If the request points at a `.kepler/maps/<effort>/` folder
+   containing a `route.md`, enter map-aware mode: read `route.md` from the current working
+   tree, scan the `units` frontmatter list in order for the first whose `status` reads `pending`,
+   and derive the change title from that unit's `name`; if no unit is `pending`, stop and tell
+   the user every unit is already in-progress or shipped. Before entering the unit, verify
+   each of its `depends_on` units is `shipped` **and** its work is reachable from the base
+   branch; if a dependency is finished but unmerged, stop and ask the user — merge it, or
+   deliberately branch from its branch. Otherwise proceed on the ordinary path.
+2. **Ensure an isolated workspace — then confirm you are inside it.** Run
+   `kepler workbench isolate --check`; its last line is the verdict.
+   `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
+   in place. `isolated: no` means derive a kebab-case title from the change (its existing
+   directory name, the selected unit's name in map-aware mode, or the request on the minimal
+   path) and create one:
+
+   ```bash
+   kepler workbench isolate <title>   # last line: the new worktree's path
+   cd <that path>
+   kepler workbench isolate --verify <title>
+   ```
+
+   If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the Kepler CLI is not
+   installed (`kepler setup` has not run), do the same by hand: you are isolated if
+   `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
+   in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
+   `git worktree add .worktrees/<title> -b <title>` under the git-ignored `.worktrees/`
+   directory, `cd` in, and confirm `git rev-parse --show-toplevel` ends in `.worktrees/<title>`.
+
+   Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
+   shell and every file tool rooted in the original checkout. You must `cd` into the worktree
+   and then **verify the switch took effect** before doing anything else. **Do not proceed to
+   step 3 until `--verify` succeeds.** If you skip this check you will silently plan and write on
+   the default branch — the exact failure this step exists to prevent.
+
+   From here on, every path in this skill is relative to that worktree root: the change directory,
+   all code you explore, and `plan.md` are created **inside** `.worktrees/<title>/`, never in the
+   original checkout. When in doubt, use the absolute worktree path returned by
+   `git rev-parse --show-toplevel` as the base for file operations.
+
+   In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
+   copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
+   `status:` to `shipping` in `map.md`. After each route or map write, run
+   `kepler workbench lint --file <path>` for that file and resolve its findings before the next
+   mutation. Then commit the flips with the change scaffolding. The claim rides the branch, so it
+   ships with the work it marks.
+3. **Locate the change.** Find or create `.kepler/changes/<YYYY-MM-DD-title>/`.
+4. **Gather context.** When the change directory already holds artifacts — the rich path, or a
+   re-plan — open with `kepler workbench context <change-dir>` to see which
+   exist, how large they are, and where the tasks and reviews stand, then read in full only what
+   it says is there. (If the Kepler CLI is not installed, list the directory instead.) On the minimal
+   path, where the directory is new and empty, skip straight to the reading.
+   Read upstream artifacts if present (proposal, design, requirements),
+   the canonical specs (`.kepler/specs/`) for the capabilities the change touches, and the
+   project standards (commands, structure, style, boundaries). In map-aware mode, read
+   the synthesized route body as the primary current context: Destination, Path chosen,
+   Shipping rules, and the selected unit's body, including its destination contribution,
+   goal, observable completion outcome, and binding constraints. Treat the destination and
+   those binding constraints as committed context while leaving implementation decomposition
+   to this planning step. Builder latitude may be resolved here only when the choice remains
+   local and cannot alter the destination; if the route cannot be satisfied, return to
+   Wayfinder rather than designing around the contradiction. If a `route_unit` field is
+   present in frontmatter, preserve it as the route path plus unit number and use it to
+   follow the selected unit's `backed_by` tickets for optional drill-down only. Ticket
+   Answers must not replace or require reconstruction of the destination from the
+   synthesized route.
+   In map-aware mode, write the `route_unit` frontmatter field (route path + unit number) into
+   the plan yourself — it is the provenance link finish-work uses to flip the unit's status. The route metadata is machine-readable frontmatter; the specs carry the conventions
+   and decisions already committed for those capabilities — follow them so the plan stays
+   consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
+   your primary source of existing behavior; write a two-line why/what for the Overview.
+   If `plan.md` already exists, require the split layout: `<change-dir>/progress.md` must be a
+   root task table and every active row must link to its existing
+   `<change-dir>/tasks/task-N/progress.md`. Treat any other planned layout as
+   `legacy-unsupported` and stop at the between-changes migration boundary. Never parse,
+   migrate, reconstruct, or partially scaffold a planned legacy layout. A change without
+   `plan.md` is pre-plan, not legacy.
+5. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
+   and the test setup. Make no edits.
+6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark logical dependencies
+   without implying concurrent implementation: the driver uses one task lane and serial execution.
+   Prefer more small tasks over few large ones. Cut the seams along the design's boundaries so
+   each task lands one cohesive unit — a task you cannot describe without "and" is usually two.
+7. **Specify each task.** For every task capture: files (created / modified / deleted),
+   acceptance criteria (testable; cite the requirement scenario when one exists — and cover
+   the error/edge behavior, not just the happy path), Steps ordered Red → Green → Refactor
+   (or a technically justified alternative Red) followed by a Verify command with its expected
+   result, and a commit message. In Red, explicitly run the check and observe the intended failure before
+   production edits; in Green, rerun that check; in Refactor, rerun relevant tests after cleanup.
+   Include the correction rule from **TDD task contract** in each task block, since the coder reads
+   no sibling block or plan-wide instructions. Where a step includes a code snippet, make it
+   model the clean shape from `references/code-quality.md`; the coder copies it verbatim.
+8. **Confirm or auto-reflect.** If working with a person, present the task breakdown and
+   confirm it before finalizing. If running unattended, self-review against the checklist
+   below and record any assumptions inline in the plan.
+9. **Write `plan.md` and initialize execution progress.** Instantiate the installed
+   `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/plan.md`, `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/progress.md`, and
+   `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` templates as concrete cleaned artifacts: remove each
+   template's opening instruction block and every inline hint before writing it. For a new plan,
+   read the configured repository identity with `git config user.name` and `git config user.email`.
+   If either Git value is missing or an identity is unavailable, ask the user for it and stop;
+   do not invent or substitute an agent name, placeholder, or other identity. Populate `plan.md` frontmatter with
+   concrete `artifact`, `change`, `status`, `created`, `author`, `decision`, and `route_unit`
+   values, using `author: Name <email>` from both Git values and a valid lifecycle status. On a
+   re-plan, preserve the existing non-empty `author` value exactly instead of recomputing or
+   overwriting it.
+
+   Derive one ordered active-task list from the final plan and use that same ordered task list
+   for all three artifacts. Root `progress.md` frontmatter must contain concrete `artifact`, `change`, `status`,
+   `updated`, `decision`, and `tasks` values. Add one `tasks` metadata entry per active task in
+   plan order with its numeric `id`, exact unescaped `title`, `status: pending`, and
+   `progress: tasks/task-N/progress.md`. The root Markdown table must contain exactly one row per
+   active task from that same ordered list, with columns `Task`, `Status`, and `Progress`; the
+   only status vocabulary is `pending`, `in-progress`, `blocked`, and `done`. Render each
+   identity as `Task N: <escaped display title>`, initialize it to `pending`, and use the
+   exact link `[details](tasks/task-N/progress.md)`. Apply standard Markdown table escaping to
+   display titles, including escaping `|` and other delimiters; identity is not derived from the title.
+   Derive the numeric identity and lowercase `task-N` directory from `Task N`, never from the title.
+
+   Initialize each active `tasks/task-N/progress.md` from the cleaned task-progress template with
+   concrete `artifact`, `change`, numeric `task`, `status: pending`, `updated`, and `decision`
+   frontmatter, followed by the exact heading `# Task Progress: Task N — <title>` using the
+   unescaped title. Its creation portion must have matching change and task identities, no attempt
+   record (`## Attempt` or other execution-history record), and no template placeholder. Root progress
+   remains only the current task ledger: it contains no changed paths, commands, notes, attempts,
+   task feedback verdicts, whole-branch review summaries, or finish outcomes.
+
+   After the complete scaffold of `plan.md`, root `progress.md`, and every active task log is
+   written, run `kepler workbench lint --change-dir <change-dir>` at this valid mutation
+   boundary. Resolve every warning or error and rerun the scoped lint before handoff; do not
+   invent an attempt or otherwise mutate execution history to satisfy lint.
+
+## Task-sizing heuristics
+
+- Implementable and testable in isolation — about one Red → Green → Refactor loop.
+- Split independently changing behaviors, not the related checks needed to prove one behavior and its edge cases.
+- A task whose title contains "and" is often two tasks.
+
+## Re-plan mode
+
+When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
+re-enter this skill in re-plan mode. Require the split layout before making changes; a planned
+legacy layout is `legacy-unsupported`, so stop rather than migrating or reconstructing it. Read
+`plan.md` and the root `<change-dir>/progress.md` current-status table —
+`kepler workbench context <change-dir>` summarizes them in one call — and
+amend the plan without reading or rewriting sibling attempt histories.
+
+- Tasks the root ledger marks `done` are frozen: do not alter their task definition, title,
+  status row, identifier, link, directory, or task-local history.
+- Renumber nothing and never reuse an abandoned task id. Stable numeric task ids and
+  `tasks/task-N/` paths are the execution identity.
+- Preserve each surviving task's actual status in both the root frontmatter `tasks` metadata
+  entry and Markdown row, including frozen `done` tasks and existing non-done tasks. Keep their
+  exact numeric identity, title, link, directory, and append-only history.
+- Append each new active task with a new numeric id, add matching frontmatter metadata and root row
+  in amended plan order with status `pending`, and initialize its `tasks/task-N/progress.md` heading.
+  Give remediation tasks the same Red → Green → Refactor steps, exceptional Red rule, and feedback
+  handoff as ordinary tasks; an evidence-only task must observe a real pre-change defect, not
+  manufacture one.
+- A renamed non-done task updates its root Markdown table display title with correct Markdown
+  escaping, while the exact unescaped title is written to its assigned root frontmatter metadata
+  entry, active plan heading, and task-progress heading. Preserve its current status in both root
+  representations, numeric id, exact path and link, and every existing append-only `## Attempt N`
+  block; leave done tasks byte-for-byte unchanged. After the complete amendment, run
+  `kepler workbench lint --change-dir <change-dir>`.
+- Preserve an existing plan's `author` attribution exactly across re-plans; do not replace it
+  with current Git values, an agent name, or a placeholder. If a new plan needs attribution and
+  either `git config user.name` or `git config user.email` is unavailable, ask the user instead of
+  inventing an identity.
+- Mark an abandoned task with the canonical heading
+  `### Task N: <title> (abandoned — <reason>)`. Only a heading that ends with this complete
+  canonical form and supplies a nonempty reason is abandoned. Headings that use
+  `(abandoned - reason)`, `(abandoned — )`, or `(abandoned — reason) trailing` do not match;
+  retain them under ordinary active or malformed task handling. Remove an exactly abandoned
+  task's row from the active root table and retain its existing task directory and append-only
+  history. Do not delete them or reuse the numeric id.
+- Do not make a new task edit a sibling's task progress, feedback, checkpoint, root metadata
+  entry, or status row. Each task owns only its listed implementation files and its own execution
+  evidence. If correcting a frozen task requires editing its owned evidence, report the
+  ownership conflict and stop for
+  adjudication instead of planning a task that `kepler-code` cannot execute.
+- Preserve all other existing task directories and append-only evidence, and record the reason
+  for the amendment in the plan's Overview.
+
+Re-plan mode is the one sanctioned way `plan.md` changes after coding begins; every other
+skill treats the plan as read-only.
+
+## Self-review
+
+Before finishing, confirm:
+
+- You are inside the intended worktree, not the default branch: `git rev-parse --show-toplevel`
+  ends in `.worktrees/<title>` (or you were legitimately working in place per step 2), and
+  `plan.md` was written under that root.
+- Every task is independently verifiable, with a concrete Verify command.
+- Each task's Steps run Red before production edits, rerun the same check to Green, and verify
+  behavior after Refactor. Any alternative Red has a concrete technical reason and repeatable
+  pre-change/post-change check; none is a preference-based omission.
+- Each task includes the conditional correction cycle and its own task-local phase evidence; no
+  task Step invokes `kepler-code-feedback` or edits sibling evidence. The driver obtains fresh
+  approval before advancing.
+- Each task's Steps are explicit enough to follow with no further design.
+- Each Files list is complete (created / modified / deleted).
+- Each acceptance criterion ties to a requirement scenario where one exists.
+- Dependencies are correct and acyclic.
+- The task seams follow the design's boundaries; no task bundles unrelated changes, and each
+  lands a unit that can be tested in isolation (`references/code-quality.md`, proportional to
+  the change).
+- Any code snippet in a task models the clean shape — the coder copies it verbatim.
+- "Done when" requires all tasks `done`, tests and build passing, fresh committed `approved`
+  feedback for every task before advancement, and an approved whole-branch review.
+- Root progress has exactly one correctly ordered row per active task, uses only `pending`,
+  `in-progress`, `blocked`, and `done`, and every link resolves to an initialized task progress
+  file.
+- Display titles are Markdown-escaped, while numeric ids and `tasks/task-N/` paths remain stable.
+
+**Blocking.** For a non-trivial change — one that adds or restructures units, not a mechanical
+or single-file edit — do not finalize `plan.md` while a task carries an unresolved structural
+smell (bundles unrelated changes, cannot be tested in isolation, or embeds a snippet with a
+shortcut the coder will copy). Re-slice the tasks, or record a deliberate exception in the
+plan's **Quality notes** (Overview). The coder adds no design of its own, so a smell left in
+the plan ships to the code.
+
+## Output
+
+`.kepler/changes/<change>/plan.md`, `<change-dir>/progress.md`, and one initialized
+`<change-dir>/tasks/task-N/progress.md` per active task, following the installed plan, root
+progress, and task-progress templates. Re-plan reconciles those artifacts without rewriting
+done tasks or append-only attempt history.
+
+## Handoff
+
+Close by orienting the user, not by silently stopping.
+
+- **Disclose the workspace.** If step 2 created a worktree for this change, state its path
+  (`.worktrees/<title>`) and branch — `plan.md`, and all the code to come, live there, not in
+  the original checkout. If you were already isolated and worked in place, name that branch.
+- **Name the next step.** `plan.md` is the handoff contract; what follows is `kepler-code`
+  (one task at a time) or `kepler-orchestrate` (the whole plan in one session).
+- **Hand back the decision.** Working with a person, ask whether to proceed to implementation
+  rather than declaring you are "ready" — and never invoke the next skill yourself. Running
+  unattended, name the next step and return without asking; the driver owns the loop.
+
+## Process flow
+
+```dot
+digraph kepler_plan {
+    "Detect map-aware mode\n(select first pending unit)" [shape=box];
+    "Ensure isolated workspace\n(worktree if on default branch)" [shape=box];
+    "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)" [shape=box];
+    "Gather context\n(upstream artifacts + canonical specs + standards)" [shape=box];
+    "Explore code (read-only)" [shape=box];
+    "Decompose into TDD-sized tasks" [shape=box];
+    "Specify each task\n(files, acceptance, steps, verify, commit)" [shape=box];
+    "Interactive?" [shape=diamond];
+    "Confirm breakdown with user" [shape=box];
+    "Auto-reflect + record assumptions" [shape=box];
+    "Write plan.md + initialize task ledger + self-review" [shape=doublecircle];
+
+    "Detect map-aware mode\n(select first pending unit)" -> "Ensure isolated workspace\n(worktree if on default branch)";
+    "Ensure isolated workspace\n(worktree if on default branch)" -> "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)";
+    "Locate / create change dir\n(+ flip unit in-progress in map-aware mode)" -> "Gather context\n(upstream artifacts + canonical specs + standards)";
+    "Gather context\n(upstream artifacts + canonical specs + standards)" -> "Explore code (read-only)";
+    "Explore code (read-only)" -> "Decompose into TDD-sized tasks";
+    "Decompose into TDD-sized tasks" -> "Specify each task\n(files, acceptance, steps, verify, commit)";
+    "Specify each task\n(files, acceptance, steps, verify, commit)" -> "Interactive?";
+    "Interactive?" -> "Confirm breakdown with user" [label="yes"];
+    "Interactive?" -> "Auto-reflect + record assumptions" [label="no"];
+    "Confirm breakdown with user" -> "Write plan.md + initialize task ledger + self-review";
+    "Auto-reflect + record assumptions" -> "Write plan.md + initialize task ledger + self-review";
+}
+```

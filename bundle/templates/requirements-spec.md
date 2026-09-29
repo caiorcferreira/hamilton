@@ -9,7 +9,7 @@ decision: accepted | rejected | skipped
 
 <!--
   SRS (canonical) — the durable spec for one capability
-  Lives at: .hamilton/specs/<capability>.md
+  Lives at: .kepler/specs/<capability>.md
   The living source of truth for this capability. It always states CURRENT behavior.
 
   Written to READ LIKE DOCUMENTATION A HUMAN WROTE — plain prose and tables, at
@@ -18,8 +18,8 @@ decision: accepted | rejected | skipped
   change's requirements/<capability>.md deltas.
 
   Produced two ways:
-    - hamilton-finish-work folds a change's structured requirement deltas into here.
-    - hamilton-compose-spec authors it directly (reformat an old spec, or from code).
+    - kepler-finish-work folds a change's structured requirement deltas into here.
+    - kepler-compose-spec authors it directly (reformat an old spec, or from code).
   Both apply the altitude + skeleton rules in each skill's references/spec-altitude.md.
 
   The skeleton below is universal but right-sized: keep the sections a capability

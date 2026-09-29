@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-describe("hamilton-plan execution contract", () => {
-  const skill = readSkill("hamilton-plan")
+describe("kepler-plan execution contract", () => {
+  const skill = readSkill("kepler-plan")
 
   it("initializes the stable root ledger and task-local evidence paths", () => {
     const process = section(skill, "## Process")
@@ -31,7 +31,7 @@ describe("hamilton-plan execution contract", () => {
     expect(process).toMatch(/Name <email>/)
     expect(process).toMatch(/missing.*identity.*ask the user.*not invent/is)
     expect(process).toMatch(/preserv(?:e|es).*existing.*author/i)
-    expect(process).toMatch(/after.*complete.*scaffold.*hamilton workbench lint --change-dir <change-dir>/is)
+    expect(process).toMatch(/after.*complete.*scaffold.*kepler workbench lint --change-dir <change-dir>/is)
     expect(process).toMatch(/map-aware.*lint.*--file|--file.*map-aware.*lint/is)
   })
 
@@ -55,7 +55,7 @@ describe("hamilton-plan execution contract", () => {
 
   it("uses only the exact canonical abandonment suffix and preserves abandoned history", () => {
     const replan = section(skill, "## Re-plan mode")
-    const codeInputs = section(readSkill("hamilton-code"), "## Inputs")
+    const codeInputs = section(readSkill("kepler-code"), "## Inputs")
 
     for (const contract of [replan, codeInputs]) {
       expect(contract).toContain("`### Task N: <title> (abandoned — <reason>)`")
@@ -75,8 +75,8 @@ describe("hamilton-plan execution contract", () => {
   })
 })
 
-describe("hamilton-code execution contract", () => {
-  const skill = readSkill("hamilton-code")
+describe("kepler-code execution contract", () => {
+  const skill = readSkill("kepler-code")
 
   it("requires one exact active task id for referenced and inline inputs", () => {
     const inputs = section(skill, "## Inputs")
@@ -89,7 +89,7 @@ describe("hamilton-code execution contract", () => {
   it("loads the installed task-progress template and owns only assigned task evidence", () => {
     const process = section(skill, "## Process")
 
-    expect(skill).toContain("~/.hamilton/templates/task-progress.md")
+    expect(skill).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md")
     expect(skill).toMatch(/exact installed.*template/is)
     expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
     expect(skill).toMatch(/instruction block.*inline hint/is)

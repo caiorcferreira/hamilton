@@ -3,11 +3,11 @@ import * as Path from "node:path"
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-const skill = readSkill("hamilton-plan")
+const skill = readSkill("kepler-plan")
 const template = Fs.readFileSync(Path.resolve("bundle/templates/plan.md"), "utf-8")
 const contract = section(skill, "## TDD task contract")
 
-describe("hamilton-plan TDD handoff", () => {
+describe("kepler-plan TDD handoff", () => {
   it("plans distinct red, green, and behavior-preserving refactor steps before verification", () => {
     const phases = ["**Red:**", "**Green:**", "**Refactor:**"].map((phase) => contract.indexOf(phase))
     const taskSpecification = section(skill, "## Process")
@@ -34,7 +34,7 @@ describe("hamilton-plan TDD handoff", () => {
   })
 
   it("keeps feedback outside the task steps and gates advancement on approval", () => {
-    expect(contract).toMatch(/`hamilton-code-feedback`.*refactor-phase review/is)
+    expect(contract).toMatch(/`kepler-code-feedback`.*refactor-phase review/is)
     expect(contract).toMatch(/not.*(?:invoke|run).*feedback.*(?:Steps|implementation)/is)
     expect(contract).toMatch(/fresh.*approved.*(?:next task|whole-branch)/is)
     expect(contract).toMatch(/changes-requested.*same task.*correction.*verification/is)
@@ -66,9 +66,9 @@ describe("hamilton-plan TDD handoff", () => {
     expect(steps).toMatch(/Green.*smallest.*same.*pass/is)
     expect(steps).toMatch(/Refactor.*preserv.*test/is)
     expect(steps).toMatch(/changes-requested.*repeat.*Red.*Green.*Refactor.*verification/is)
-    expect(steps).not.toMatch(/(?:invoke|dispatch|run) `?hamilton-code-feedback`?/i)
+    expect(steps).not.toMatch(/(?:invoke|dispatch|run) `?kepler-code-feedback`?/i)
     expect(template).toMatch(/conventional failing.*technically impossible.*concrete reason.*alternative.*pre-change.*post-change/is)
-    expect(template).toMatch(/`hamilton-code-feedback`.*refactor-phase review/is)
+    expect(template).toMatch(/`kepler-code-feedback`.*refactor-phase review/is)
     expect(section(template, "## Done when")).toMatch(/fresh.*approved.*before.*whole-branch/is)
   })
 })

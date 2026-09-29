@@ -5,7 +5,7 @@ import * as Path from "node:path";
 import { spawnSync } from "node:child_process";
 import { VERSION } from "../../src/index.js";
 
-const entrypoint = Path.resolve("src/cli/main.ts");
+const entrypoint = Path.resolve("packages/cli/src/cli/main.ts");
 
 const runCli = (cwd: string, ...arguments_: string[]) => {
   const result = spawnSync(process.execPath, ["run", entrypoint, ...arguments_], {
@@ -38,7 +38,7 @@ describe("workbench CLI", () => {
 
   beforeEach(() => {
     temporaryDirectory = Fs.mkdtempSync(
-      Path.join(Os.tmpdir(), "hamilton-workbench-cli-"),
+      Path.join(Os.tmpdir(), "kepler-workbench-cli-"),
     );
     Fs.writeFileSync(
       Path.join(temporaryDirectory, "tsconfig.json"),
@@ -119,7 +119,7 @@ describe("workbench CLI", () => {
     git(temporaryDirectory, "config", "user.name", "Test");
     const changeDirectory = Path.join(
       temporaryDirectory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "sample",
     );
@@ -367,7 +367,7 @@ describe("workbench CLI", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("range:");
     expect(result.stdout.trimEnd()).toMatch(
-      /\/hamilton-diff-whole-change-[^\n]+\/package\.diff$/,
+      /\/kepler-diff-whole-change-[^\n]+\/package\.diff$/,
     );
   });
 
@@ -377,7 +377,7 @@ describe("workbench CLI", () => {
     git(temporaryDirectory, "config", "user.name", "Test");
     const changeDirectory = Path.join(
       temporaryDirectory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "sample",
     );
@@ -417,7 +417,7 @@ describe("workbench CLI", () => {
     const repositoryDirectory = Fs.realpathSync(temporaryDirectory);
     const changeDirectory = Path.join(
       repositoryDirectory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "sample",
     );
@@ -444,7 +444,7 @@ describe("workbench CLI", () => {
     git(repositoryDirectory, "switch", "-c", "feature");
 
     write(
-      ".hamilton/changes/sample/plan.md",
+      ".kepler/changes/sample/plan.md",
       lines(
         "---",
         "artifact: plan",
@@ -485,7 +485,7 @@ describe("workbench CLI", () => {
       ),
     );
     write(
-      ".hamilton/changes/sample/progress.md",
+      ".kepler/changes/sample/progress.md",
       lines(
         "---",
         "artifact: progress",
@@ -509,7 +509,7 @@ describe("workbench CLI", () => {
       ),
     );
     write(
-      ".hamilton/changes/sample/tasks/task-1/progress.md",
+      ".kepler/changes/sample/tasks/task-1/progress.md",
       lines(
         "---",
         "artifact: task-progress",
@@ -575,7 +575,7 @@ describe("workbench CLI", () => {
         ? [`base: ${base}`, `head: ${implementationHead}`, "verdict: approved"]
         : [];
       write(
-        ".hamilton/changes/sample/tasks/task-1/feedback.md",
+        ".kepler/changes/sample/tasks/task-1/feedback.md",
         lines(
           "---",
           "artifact: feedback",
@@ -595,11 +595,11 @@ describe("workbench CLI", () => {
       git(
         repositoryDirectory,
         "add",
-        ".hamilton/changes/sample/tasks/task-1/feedback.md",
+        ".kepler/changes/sample/tasks/task-1/feedback.md",
       );
       git(repositoryDirectory, "commit", "-qm", "legacy feedback evidence");
       write(
-        ".hamilton/changes/sample/review.md",
+        ".kepler/changes/sample/review.md",
         lines(
           "---",
           "artifact: review",
@@ -615,11 +615,11 @@ describe("workbench CLI", () => {
           body,
         ),
       );
-      git(repositoryDirectory, "add", ".hamilton/changes/sample/review.md");
+      git(repositoryDirectory, "add", ".kepler/changes/sample/review.md");
       git(repositoryDirectory, "commit", "-qm", "legacy review evidence");
     };
     write(
-      ".hamilton/changes/sample/tasks/task-1/feedback.md",
+      ".kepler/changes/sample/tasks/task-1/feedback.md",
       lines(
         "---",
         "artifact: feedback",
@@ -637,7 +637,7 @@ describe("workbench CLI", () => {
       ),
     );
     write(
-      ".hamilton/changes/sample/review.md",
+      ".kepler/changes/sample/review.md",
       lines(
         "---",
         "artifact: review",
@@ -656,10 +656,10 @@ describe("workbench CLI", () => {
     git(
       repositoryDirectory,
       "add",
-      ".hamilton/changes/sample/tasks/task-1/feedback.md",
+      ".kepler/changes/sample/tasks/task-1/feedback.md",
     );
     git(repositoryDirectory, "commit", "-qm", "feedback evidence");
-    git(repositoryDirectory, "add", ".hamilton/changes/sample/review.md");
+    git(repositoryDirectory, "add", ".kepler/changes/sample/review.md");
     git(repositoryDirectory, "commit", "-qm", "review evidence");
 
     const lintValid = runCli(

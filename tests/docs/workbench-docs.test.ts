@@ -34,20 +34,20 @@ const workbenchSubcommands = ["isolate", "diff", "precondition", "context", "pro
 
 describe("workbench documentation", () => {
   it("describes setup without installing helper scripts", () => {
-    expect(content["README.md"]).toMatch(/hamilton setup.*templates.*guidelines/s);
-    expect(content["README.md"]).toMatch(/hamilton workbench/);
-    expect(allDocumentation).not.toMatch(/~\/\.hamilton\/scripts\//);
+    expect(content["README.md"]).toMatch(/kepler setup.*templates.*guidelines/s);
+    expect(content["README.md"]).toMatch(/kepler workbench/);
+    expect(allDocumentation).not.toMatch(/~\/\.kepler\/scripts\//);
     expect(allDocumentation).not.toMatch(
-      /hamilton-(artifact-contracts|change-context|diff-package|isolate|precondition-check|prototype-branch)\.sh/,
+      /kepler-(artifact-contracts|change-context|diff-package|isolate|precondition-check|prototype-branch)\.sh/,
     );
   });
 
   it("names the supported workbench operations and lint scope", () => {
     for (const subcommand of workbenchSubcommands) {
-      expect(allDocumentation).toMatch(new RegExp(`hamilton workbench[^\\n]*${subcommand}`));
+      expect(allDocumentation).toMatch(new RegExp(`kepler workbench[^\\n]*${subcommand}`));
     }
-    expect(allDocumentation).toMatch(/hamilton workbench lint --file <file>/);
-    expect(allDocumentation).toMatch(/hamilton workbench lint --change-dir <dir>/);
+    expect(allDocumentation).toMatch(/kepler workbench lint --file <file>/);
+    expect(allDocumentation).toMatch(/kepler workbench lint --change-dir <dir>/);
     expect(allDocumentation).toMatch(/exactly one/);
     expect(allDocumentation).toMatch(/recurs/);
     expect(allDocumentation).toMatch(/skipp/);
@@ -55,11 +55,14 @@ describe("workbench documentation", () => {
     expect(allDocumentation).toMatch(/fail.?closed/);
   });
 
-  it("documents the between-changes migration", () => {
+  it("documents version and legacy-data migration without claiming a CLI purge command", () => {
     expect(allDocumentation).toMatch(/CLI and (?:the )?(?:agent-loaded )?skills.*together/i);
-    expect(allDocumentation).toMatch(/run `?hamilton setup`?/i);
+    expect(allDocumentation).toMatch(/run `?kepler setup`?/i);
     expect(allDocumentation).toMatch(/(?:stale helper files.*(?:not|no longer).*delet|(?:not|does not).*delet.*stale helper files)/i);
-    expect(allDocumentation).toMatch(/hamilton purge/);
+    expect(allDocumentation).toMatch(/legacy `~\/.hamilton\/`.*copy.*source.*unchanged/is);
+    expect(allDocumentation).toMatch(/\.hamilton\/.*\.kepler\/.*without merging/is);
+    expect(allDocumentation).toMatch(/bun run purge.*preserves.*global data/is);
+    expect(allDocumentation).not.toMatch(/kepler purge/);
   });
 
   it("documents artifact attribution and authoring-boundary lint in the SDD framework", () => {
@@ -68,8 +71,8 @@ describe("workbench documentation", () => {
     expect(framework).toMatch(/git config user\.name.*git config user\.email.*Name <email>/is);
     expect(framework).toMatch(/either.*configured value.*missing.*(?:ask|stop).*blocker.*(?:agent|username)/is);
     expect(framework).toMatch(/edit(?:ing)? an existing.*preserv(?:e|es).*recorded author/is);
-    expect(framework).toMatch(/hamilton workbench lint --change-dir <change-dir>/);
-    expect(framework).toMatch(/hamilton workbench lint --file <file>/);
+    expect(framework).toMatch(/kepler workbench lint --change-dir <change-dir>/);
+    expect(framework).toMatch(/kepler workbench lint --file <file>/);
     expect(framework).toMatch(/(?:after|post)[- ](?:the )?mutation.*(?:finding|warning|error).*before (?:handoff|commit)/is);
     expect(framework).toMatch(/unrelated.*(?:outside|not).*scope/is);
     expect(framework).toMatch(/pending task log.*(?:no|without).*attempt/is);

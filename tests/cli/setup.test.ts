@@ -3,9 +3,9 @@ import * as Fs from "node:fs";
 import * as Path from "node:path";
 import * as Os from "node:os";
 import * as Yaml from "yaml";
-import { SetupService } from "../../src/cli/setup.service.js";
-import { createSetupRuntime } from "../../src/cli/setup-runtime.js";
-import { buildSettingsYaml } from "../../src/cli/setup-settings.js";
+import { SetupService } from "../../packages/cli/src/cli/setup.service.js";
+import { createSetupRuntime } from "../../packages/cli/src/cli/setup-runtime.js";
+import { buildSettingsYaml } from "../../packages/cli/src/cli/setup-settings.js";
 
 const TEMPLATE_FILES = [
   "critique.md",
@@ -39,16 +39,16 @@ const runSetup = () => {
 
 describe("SetupService", () => {
   const bundleRoot = "/bundle";
-  const templates = "/home/.hamilton/templates";
-  const guidelines = "/home/.hamilton/guidelines";
-  const settings = "/home/.hamilton/settings.yaml";
+  const templates = "/home/.config/.vialactea-works/kepler/templates";
+  const guidelines = "/home/.config/.vialactea-works/kepler/guidelines";
+  const settings = "/home/.config/.vialactea-works/kepler/settings.yaml";
 
   function makePorts(existingSettings?: string) {
     const files = new Map<string, string>();
     if (existingSettings !== undefined) files.set(settings, existingSettings);
     const copies: Array<[string, string]> = [];
     const fileSystemHome = {
-      ensureHamiltonHome: () => {},
+      ensureKeplerHome: () => {},
       existsSync: (path: string) =>
         path === Path.join(bundleRoot, "templates") ||
         path === Path.join(bundleRoot, "guidelines") ||
@@ -93,7 +93,7 @@ describe("SetupService", () => {
 
   it("reports filesystem and bundle failures from supplied ports", () => {
     const filesystemFailure = makePorts();
-    filesystemFailure.fileSystemHome.ensureHamiltonHome = () => {
+    filesystemFailure.fileSystemHome.ensureKeplerHome = () => {
       throw new Error("permission denied");
     };
     expect(
@@ -102,7 +102,7 @@ describe("SetupService", () => {
           filesystemFailure.fileSystemHome,
           () => bundleRoot,
         ).setup(),
-    ).toThrow("Failed to create hamilton home directories");
+    ).toThrow("Failed to create Kepler home directories");
 
     const bundleFailure = makePorts();
     expect(
@@ -119,7 +119,7 @@ describe("SetupService filesystem integration", () => {
   const originalHome = process.env.HOME;
 
   beforeEach(() => {
-    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-init-"));
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-init-"));
     process.env.HOME = tmpHome;
   });
 
@@ -131,7 +131,7 @@ describe("SetupService filesystem integration", () => {
   it("creates required directories", () => {
     runSetup();
 
-    const home = Path.join(tmpHome, ".hamilton");
+    const home = Path.join(tmpHome, ".config/.vialactea-works/kepler");
     expect(Fs.existsSync(home)).toBe(true);
     expect(Fs.existsSync(Path.join(home, "templates"))).toBe(true);
     expect(Fs.existsSync(Path.join(home, "guidelines"))).toBe(true);
@@ -141,7 +141,7 @@ describe("SetupService filesystem integration", () => {
   it("copies artifact templates", () => {
     runSetup();
 
-    const templatesBase = Path.join(tmpHome, ".hamilton", "templates");
+    const templatesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates");
     for (const file of TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true);
     }
@@ -150,7 +150,7 @@ describe("SetupService filesystem integration", () => {
   it("copies wayfinder artifact templates", () => {
     runSetup();
 
-    const templatesBase = Path.join(tmpHome, ".hamilton", "templates");
+    const templatesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates");
     for (const file of WAYFINDER_TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true);
     }
@@ -178,7 +178,7 @@ describe("SetupService filesystem integration", () => {
   it("copies guideline manifests", () => {
     runSetup();
 
-    const guidelinesBase = Path.join(tmpHome, ".hamilton", "guidelines");
+    const guidelinesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "guidelines");
     expect(
       Fs.existsSync(Path.join(guidelinesBase, "general", "01-code-style.md")),
     ).toBe(true);
@@ -206,7 +206,7 @@ describe("SetupService filesystem integration", () => {
   });
 
   it("leaves an existing helper script directory unchanged", () => {
-    const scriptsBase = Path.join(tmpHome, ".hamilton", "scripts");
+    const scriptsBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts");
     Fs.mkdirSync(Path.join(scriptsBase, "nested"), { recursive: true });
     Fs.writeFileSync(Path.join(scriptsBase, "legacy.sh"), "legacy helper\n");
     Fs.writeFileSync(
@@ -233,14 +233,14 @@ describe("SetupService filesystem integration", () => {
     runSetup();
 
     expect(
-      Fs.existsSync(Path.join(tmpHome, ".hamilton", "templates", "plan.md")),
+      Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates", "plan.md")),
     ).toBe(true);
   });
 
   it("creates default settings.yaml on init", () => {
     runSetup();
 
-    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml");
+    const settingsPath = Path.join(tmpHome, ".config/.vialactea-works/kepler", "settings.yaml");
     expect(Fs.existsSync(settingsPath)).toBe(true);
 
     const content = Fs.readFileSync(settingsPath, "utf-8");
@@ -252,7 +252,7 @@ describe("SetupService filesystem integration", () => {
   it("does not overwrite existing settings.yaml on re-init", () => {
     runSetup();
 
-    const settingsPath = Path.join(tmpHome, ".hamilton", "settings.yaml");
+    const settingsPath = Path.join(tmpHome, ".config/.vialactea-works/kepler", "settings.yaml");
     Fs.writeFileSync(
       settingsPath,
       "extensions:\n  - name: rtk\n    enabled: false\n",
@@ -291,25 +291,25 @@ describe("bundle root resolution", () => {
   let tmpHome: string;
   let tmpBundleDir: string;
   const originalHome = process.env.HOME;
-  const originalBundleDir = process.env.HAMILTON_BUNDLE_DIR;
+  const originalBundleDir = process.env.KEPLER_BUNDLE_DIR;
 
   beforeEach(() => {
-    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-setup-"));
-    tmpBundleDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-bundle-"));
+    tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-setup-"));
+    tmpBundleDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-bundle-"));
     process.env.HOME = tmpHome;
   });
 
   afterEach(() => {
     process.env.HOME = originalHome;
-    delete process.env.HAMILTON_BUNDLE_DIR;
+    delete process.env.KEPLER_BUNDLE_DIR;
     if (originalBundleDir) {
-      process.env.HAMILTON_BUNDLE_DIR = originalBundleDir;
+      process.env.KEPLER_BUNDLE_DIR = originalBundleDir;
     }
     Fs.rmSync(tmpHome, { recursive: true, force: true });
     Fs.rmSync(tmpBundleDir, { recursive: true, force: true });
   });
 
-  it("uses HAMILTON_BUNDLE_DIR env var to locate bundle assets", () => {
+  it("uses KEPLER_BUNDLE_DIR env var to locate bundle assets", () => {
     const bundleTemplatesDir = Path.join(tmpBundleDir, "templates");
     Fs.mkdirSync(bundleTemplatesDir, { recursive: true });
     Fs.writeFileSync(
@@ -317,19 +317,19 @@ describe("bundle root resolution", () => {
       "# Plan Template",
     );
 
-    process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir;
+    process.env.KEPLER_BUNDLE_DIR = tmpBundleDir;
     runSetup();
 
     const copiedTemplate = Path.join(
       tmpHome,
-      ".hamilton",
+      ".config/.vialactea-works/kepler",
       "templates",
       "plan.md",
     );
     expect(Fs.existsSync(copiedTemplate)).toBe(true);
     const content = Fs.readFileSync(copiedTemplate, "utf-8");
     expect(content).toBe("# Plan Template");
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "scripts"))).toBe(
+    expect(Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts"))).toBe(
       false,
     );
   });
@@ -342,9 +342,9 @@ describe("bundle root resolution", () => {
       "# Plan Template",
     );
 
-    process.env.HAMILTON_BUNDLE_DIR = tmpBundleDir;
+    process.env.KEPLER_BUNDLE_DIR = tmpBundleDir;
     runSetup();
-    expect(Fs.existsSync(Path.join(tmpHome, ".hamilton", "scripts"))).toBe(
+    expect(Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts"))).toBe(
       false,
     );
   });

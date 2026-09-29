@@ -3,32 +3,32 @@ import { type INestApplicationContext } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { WorkbenchModule } from "../../src/cli/nest/workbench.module.js";
+import { WorkbenchModule } from "../../packages/cli/src/cli/nest/workbench.module.js";
 import {
   CONTEXT_RUNTIME,
   ContextService,
-} from "../../src/workbench/context.js";
+} from "../../packages/cli/src/workbench/context.js";
 import {
   DIFF_RUNTIME,
   DiffService,
   type DiffRuntime,
-} from "../../src/workbench/diff.js";
+} from "../../packages/cli/src/workbench/diff.js";
 import {
   ISOLATION_RUNTIME,
   IsolateService,
-} from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/isolate.js";
 import {
   LINT_DEPENDENCIES,
   LintService,
-} from "../../src/workbench/lint.js";
+} from "../../packages/cli/src/workbench/lint.js";
 import {
   PRECONDITION_RUNTIME,
   PreconditionService,
-} from "../../src/workbench/precondition.js";
+} from "../../packages/cli/src/workbench/precondition.js";
 import {
   PROTOTYPE_RUNTIME,
   PrototypeService,
-} from "../../src/workbench/prototype.js";
+} from "../../packages/cli/src/workbench/prototype.js";
 
 describe("WorkbenchModule", () => {
   it("resolves each use case and isolates a runtime override to its operation", async () => {

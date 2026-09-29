@@ -1,6 +1,6 @@
-# Hamilton — Agent Instructions
+# Kepler — Agent Instructions
 
-Template-setup CLI (TypeScript, Bun, NestJS with `nest-commander`).
+Bun-managed monorepo for the Kepler CLI and its reusable core package (TypeScript, NestJS with `nest-commander`).
 
 ## Essential Commands
 
@@ -10,32 +10,31 @@ bun run build
 bun --bun vitest run
 ```
 
-**Run tests with Vitest on Bun; do not use `bun test`.** Use `bun --bun vitest run` for the full suite or `bun --bun vitest run tests/cli/setup.test.ts` for one file. `bun run test` invokes the same Vitest command.
+**Run tests with Vitest on Bun; do not use `bun test`.** Run one test file with `bun --bun vitest run tests/cli/setup.test.ts`. `bun run test` invokes the complete Vitest suite.
 
-No separate lint or typecheck scripts — `bun run build` is the project's TypeScript gate.
+`bun run build` is the TypeScript build gate. To install locally, `bun run install-local` builds and symlinks `packages/cli/dist/cli/main.js` to `~/.local/bin/kepler`. `bun run purge` removes that symlink and `~/.kepler-dist/`; it preserves global Kepler data.
 
-To install the CLI locally after changes: `bun run install-local` (builds and symlinks `dist/cli/main.js` to `~/.local/bin/hamilton`). Remove the CLI symlink and `~/.hamilton/` with `bun run purge`.
+## Packages and Architecture
 
-## Architecture
+The workspace has exactly two packages:
 
-```
-src/cli/
-  main.ts             # Bun entrypoint; starts Nest with CommandFactory.run(AppModule)
-  app.module.ts       # root application module
-  nest/               # nest-commander root, setup, and workbench command runners and modules
-  setup.service.ts    # injectable setup use case
-  setup-runtime.ts    # typed setup runtime ports and production adapters
-src/workbench/
-  *.ts                # injectable operation services and pure workbench helpers
-  runtime.ts          # typed workbench runtime ports
-src/paths.ts           # ~/.hamilton path helpers and ensureHamiltonHome()
-src/index.ts           # canonical VERSION
-bundle/                # templates and guidelines installed into ~/.hamilton/
-skills/                # Hamilton skills, installed with `npx skills add`
-tests/                 # Vitest tests, organized by CLI, workbench, and docs
-```
+- `packages/core` — `@vialactea-works/kepler-core`: settings parsing, global/project paths, and safe legacy-data migration.
+- `packages/cli` — `@vialactea-works/kepler-cli`: the `kepler` executable, Nest commands, setup, and workbench operations.
 
-Nest commands use `@Command` / `@SubCommand` and `CommandRunner`. Command handlers delegate to `@Injectable()` services; Nest modules bind typed runtime ports to their production adapters and allow test overrides. Workbench operations remain independently testable through their services and ports.
+Other top-level project areas:
+
+- `bundle/` — templates and guidelines copied into Kepler's global data directory.
+- `skills/kepler-*/` — portable Kepler skills, installed separately by coding-agent skill managers.
+- `tests/` — CLI, workbench, docs, and skill contract tests; `packages/core/tests/` covers core behavior.
+- `docs/` — user-facing workflow, skill, and release documentation.
+
+The CLI entrypoint is `packages/cli/src/cli/main.ts`; Nest commands live in `packages/cli/src/cli/nest/`. Workbench services and helpers live in `packages/cli/src/workbench/`. Core exports are defined by `packages/core/src/index.ts`.
+
+## Data Paths and Compatibility
+
+Kepler's global home is `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`; project artifacts live under `.kepler/`. The old global `~/.hamilton/` and project `.hamilton/` paths remain read-only migration sources: Kepler copies legacy data only when the corresponding canonical path does not exist, keeps the source intact, and prefers an existing canonical path without merging or deleting legacy data. Do not manually remove a legacy source as part of migration.
+
+Bundle lookup can be overridden with `KEPLER_BUNDLE_DIR` in tests or development.
 
 ## Critical Conventions
 
@@ -44,22 +43,24 @@ Nest commands use `@Command` / `@SubCommand` and `CommandRunner`. Command handle
 - **Errors and results**: thrown custom errors extend native `Error`; workbench services return structured results with `stdout`, `stderr`, and `exitCode`.
 - **`bun.lock` is text** (not `bun.lockb`, which is ignored).
 - **Pin every dependency version** — no `~` or `^` in `package.json`.
-- **Every PR must bump the project version** — keep `package.json`'s `version` and `src/index.ts`'s `VERSION` synchronized.
-- **Shebang**: `#!/usr/bin/env bun` in `src/cli/main.ts`.
+- Keep the root `package.json`, both package versions, and `src/index.ts`'s `VERSION` synchronized for a release.
+- The installed CLI command is `kepler`; do not add a `hamilton` alias.
 - Release workflows compile a standalone Bun binary for each supported platform; keep the sidecar `bundle/` available for setup.
 
 ## Testing Patterns
 
 - `vitest.config.ts` sets `globals: false`; import `describe`, `it`, and `expect` from `vitest`.
-- Tests that touch `~/.hamilton/` set `process.env.HOME` to a temporary directory and restore it afterward.
-- Tests that exercise bundle lookup use a temporary bundle or set `HAMILTON_BUNDLE_DIR` to one.
+- Tests touching home-directory data use a temporary `HOME` and `XDG_CONFIG_HOME`, then restore them.
+- Test bundle lookup with a temporary bundle or `KEPLER_BUNDLE_DIR`.
 - Prefer real temporary filesystem and Git fixtures where useful; unit tests can inject fake runtime ports, and Nest provider wiring belongs in Nest testing-module coverage.
-- Run one test file with `bun --bun vitest run <path>`.
+- Run a focused test with `bun --bun vitest run <path>`.
 
 ## CLI Conventions
 
-- Root, setup, and workbench command classes live under `src/cli/nest/`; setup orchestration belongs in the injectable `SetupService`.
-- Workbench operations are injectable services under `src/workbench/`, one per operation. Inject only the operation's typed runtime ports; keep pure helpers independent of Nest.
+- Nest command classes under `packages/cli/src/cli/nest/` extend `CommandRunner` and use `@Command` or `@SubCommand`.
+- Setup orchestration belongs in `SetupService`.
+- Operation services use `@Injectable()` and inject only their typed runtime ports; keep pure helpers independent of Nest.
+- Workbench operations live under `packages/cli/src/workbench/`, one per operation.
 - Command handlers report structured output and exit codes through `ResultReporter`.
 
 ## TODO Conventions

@@ -9,7 +9,7 @@ import {
   type DiffFileSystemPort,
   type DiffGitPort,
   type DiffRuntime,
-} from "../../src/workbench/diff.js";
+} from "../../packages/cli/src/workbench/diff.js";
 import {
   cleanupRepos,
   commitAll,
@@ -357,7 +357,7 @@ describe("diff validation", () => {
 
   it("returns an environment error outside a repository", async () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"),
+      Path.join(Fs.realpathSync(Os.tmpdir()), "kepler-nogit-"),
     );
     try {
       const result = await executeDiff(

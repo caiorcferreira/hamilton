@@ -6,7 +6,10 @@ import * as Path from "node:path";
 import { VERSION } from "../../src/index.js";
 
 const projectRoot = Path.resolve(".");
-const entrypoint = Path.resolve(projectRoot, "src/cli/main.ts");
+const entrypoint = Path.resolve(projectRoot, "packages/cli/src/cli/main.ts");
+const cliPackage = JSON.parse(
+  Fs.readFileSync(Path.join(projectRoot, "packages/cli/package.json"), "utf8"),
+) as { bin: Record<string, string> };
 
 const runCli = (arguments_: string[], env: NodeJS.ProcessEnv = {}) =>
   spawnSync(process.execPath, ["run", entrypoint, ...arguments_], {
@@ -29,15 +32,25 @@ describe("main CLI", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe(
-      "Hamilton - Template setup CLI\n\nUse --help for available commands\n",
+      "Kepler - Template setup CLI\n\nUse --help for available commands\n",
     );
     expect(result.stderr).toBe("");
+  });
+
+  it("publishes only the Kepler executable and rejects the old command name", () => {
+    expect(cliPackage.bin).toEqual({ kepler: "./dist/cli/main.js" });
+
+    const result = runCli(["hamilton"]);
+
+    expectUsageFailure(result);
+    expect(result.stderr).toContain("unknown command 'hamilton'");
   });
 
   it("shows supported root commands without retired global flags", () => {
     const result = runCli(["--help"]);
 
     expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Usage: kepler");
     expect(result.stdout).toContain("setup");
     expect(result.stdout).toContain("workbench");
     expect(result.stdout).not.toContain("--completions");
@@ -56,7 +69,7 @@ describe("main CLI", () => {
 
   it("rejects unknown root commands and options before setup can run", () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Os.tmpdir(), "hamilton-main-cli-"),
+      Path.join(Os.tmpdir(), "kepler-main-cli-"),
     );
     const invalidHome = Path.join(directory, "home-file");
     Fs.writeFileSync(invalidHome, "not a directory");
@@ -81,7 +94,7 @@ describe("main CLI", () => {
 
   it("rejects retired Effect global flags before setup can run", () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Os.tmpdir(), "hamilton-main-cli-"),
+      Path.join(Os.tmpdir(), "kepler-main-cli-"),
     );
     const invalidHome = Path.join(directory, "home-file");
     Fs.writeFileSync(invalidHome, "not a directory");
@@ -107,7 +120,7 @@ describe("main CLI", () => {
 
   it("rejects surplus setup positionals before setup runs", () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Os.tmpdir(), "hamilton-main-cli-"),
+      Path.join(Os.tmpdir(), "kepler-main-cli-"),
     );
     const invalidHome = Path.join(directory, "home-file");
     Fs.writeFileSync(invalidHome, "not a directory");
@@ -125,7 +138,7 @@ describe("main CLI", () => {
 
   it("reports setup filesystem failures once with exit code 2", () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Os.tmpdir(), "hamilton-main-cli-"),
+      Path.join(Os.tmpdir(), "kepler-main-cli-"),
     );
     const invalidHome = Path.join(directory, "home-file");
     Fs.writeFileSync(invalidHome, "not a directory");

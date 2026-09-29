@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-const readFinishWork = () => readSkill("hamilton-finish-work")
+const readFinishWork = () => readSkill("kepler-finish-work")
 
-describe("hamilton-finish-work contract", () => {
+describe("kepler-finish-work contract", () => {
   it("consumes the exact split-pipeline evidence package", () => {
     const inputs = section(readFinishWork(), "## Inputs")
 
@@ -19,8 +19,8 @@ describe("hamilton-finish-work contract", () => {
   it("fails closed on every exact ledger, feedback, and review gate", () => {
     const preconditions = section(readFinishWork(), "## Preconditions")
 
-    expect(preconditions).toContain("hamilton workbench precondition")
-    expect(preconditions).not.toContain("~/.hamilton/scripts/")
+    expect(preconditions).toContain("kepler workbench precondition")
+    expect(preconditions).not.toContain("~/.kepler/scripts/")
     expect(preconditions).toContain("--change-dir <change-dir>")
     expect(preconditions).toContain("--test-cmd '<full test suite && build/typecheck>'")
     expect(preconditions).toMatch(/exact root task ledger/i)
@@ -37,7 +37,7 @@ describe("hamilton-finish-work contract", () => {
     const preconditions = section(readFinishWork(), "## Preconditions")
 
     expect(preconditions).toMatch(/`--whole-change-waived`.*explicit/is)
-    expect(preconditions).toContain("hamilton workbench precondition")
+    expect(preconditions).toContain("kepler workbench precondition")
     expect(preconditions).toMatch(/only.*material.*ancestry/is)
     expect(preconditions).toMatch(/does not waive.*ledger.*task feedback.*whole-branch.*validity.*verdict.*blocking/is)
   })
@@ -46,7 +46,7 @@ describe("hamilton-finish-work contract", () => {
     const skill = readFinishWork()
     const history = section(skill, "## Finish history")
 
-    expect(history).toContain("~/.hamilton/templates/finish.md")
+    expect(history).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md")
     expect(history).toMatch(/exact installed.*template/i)
     expect(history).toContain("<change-dir>/finish.md")
     expect(history).toMatch(/remove.*instruction block.*inline\s+hint/is)
@@ -93,11 +93,11 @@ describe("hamilton-finish-work contract", () => {
     const synchronization = section(skill, "## Specification synchronization")
     const boundary = section(skill, "## Post-gate mutation boundary")
 
-    expect(synchronization).toMatch(/canonical.*\.hamilton\/specs\/.*already approved.*artifacts/is)
+    expect(synchronization).toMatch(/canonical.*\.kepler\/specs\/.*already approved.*artifacts/is)
     expect(synchronization).toMatch(/missing or incorrect.*change requirement.*abort/is)
     expect(synchronization).toMatch(/artifact revision.*fresh whole-branch review/is)
     expect(synchronization).toMatch(/never.*(?:add|edit|rewrite).*requirements\//is)
-    expect(boundary).toMatch(/only.*canonical.*\.hamilton\/specs\/.*route.*map.*finish\.md/is)
+    expect(boundary).toMatch(/only.*canonical.*\.kepler\/specs\/.*route.*map.*finish\.md/is)
     expect(boundary).toMatch(/change requirement.*not finish-owned/is)
     expect(boundary).not.toMatch(/supporting delta/i)
     expect(skill).not.toMatch(/write the missing delta|first add .*delta/is)

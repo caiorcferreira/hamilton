@@ -2,24 +2,24 @@ import * as Fs from "node:fs"
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-const skill = readSkill("hamilton-orchestrate")
+const skill = readSkill("kepler-orchestrate")
 const referenceUrl = (name: string) =>
-  new URL(`../../skills/hamilton-orchestrate/references/${name}`, import.meta.url)
+  new URL(`../../skills/kepler-orchestrate/references/${name}`, import.meta.url)
 const readReference = (name: string): string => {
   const path = referenceUrl(name)
   return Fs.existsSync(path) ? Fs.readFileSync(path, "utf-8") : ""
 }
 const singleLine = (content: string): string => content.replace(/\s+/g, " ")
 
-describe("hamilton-orchestrate task resume contract", () => {
+describe("kepler-orchestrate task resume contract", () => {
   const matrix = singleLine(section(skill, "## Task resume matrix"))
 
   it("dispatches code for a pending task", () => {
-    expect(matrix).toMatch(/\| `pending` \| any \| Dispatch `hamilton-code`/)
+    expect(matrix).toMatch(/\| `pending` \| any \| Dispatch `kepler-code`/)
   })
 
   it("dispatches code for a blocked task", () => {
-    expect(matrix).toMatch(/\| `blocked` \| any \| Dispatch `hamilton-code`/)
+    expect(matrix).toMatch(/\| `blocked` \| any \| Dispatch `kepler-code`/)
   })
 
   it("inspects an interrupted in-progress task before dispatch", () => {
@@ -30,19 +30,19 @@ describe("hamilton-orchestrate task resume contract", () => {
 
   it("dispatches code feedback when feedback is absent", () => {
     expect(matrix).toMatch(
-      /\| `done` \| absent \| Dispatch `hamilton-code-feedback`/,
+      /\| `done` \| absent \| Dispatch `kepler-code-feedback`/,
     )
   })
 
   it("dispatches code feedback when feedback is stale", () => {
     expect(matrix).toMatch(
-      /\| `done` \| stale or malformed \| Dispatch `hamilton-code-feedback`/,
+      /\| `done` \| stale or malformed \| Dispatch `kepler-code-feedback`/,
     )
   })
 
   it("returns ordinary fresh changes-requested feedback to code", () => {
     expect(matrix).toMatch(
-      /\| `done` \| fresh `changes-requested` with no canonical unresolved `cannot verify from diff` Blocking item \| Dispatch `hamilton-code` with `tasks\/task-N\/feedback\.md`/,
+      /\| `done` \| fresh `changes-requested` with no canonical unresolved `cannot verify from diff` Blocking item \| Dispatch `kepler-code` with `tasks\/task-N\/feedback\.md`/,
     )
   })
 
@@ -60,15 +60,15 @@ describe("hamilton-orchestrate task resume contract", () => {
 
   it("routes worktree-only and mixed-commit approvals back to feedback", () => {
     expect(matrix).toMatch(
-      /\| `done` \| feedback untracked or changed from `HEAD` \| Dispatch `hamilton-code-feedback`/,
+      /\| `done` \| feedback untracked or changed from `HEAD` \| Dispatch `kepler-code-feedback`/,
     )
     expect(matrix).toMatch(
-      /\| `done` \| latest feedback-touching commit is mixed \| Dispatch `hamilton-code-feedback`/,
+      /\| `done` \| latest feedback-touching commit is mixed \| Dispatch `kepler-code-feedback`/,
     )
   })
 })
 
-describe("hamilton-orchestrate TDD refactor handoff contract", () => {
+describe("kepler-orchestrate TDD refactor handoff contract", () => {
   const handoff = singleLine(section(skill, "## TDD refactor handoff"))
   const process = singleLine(section(skill, "## Process"))
   const implementer = singleLine(readReference("implementer-prompt.md"))
@@ -76,7 +76,7 @@ describe("hamilton-orchestrate TDD refactor handoff contract", () => {
 
   it("names code feedback as the refactor-phase gate after green implementation", () => {
     expect(handoff).toMatch(
-      /green implementation.*not an advancement point.*existing `hamilton-code-feedback` dispatch.*refactor-phase review/is,
+      /green implementation.*not an advancement point.*existing `kepler-code-feedback` dispatch.*refactor-phase review/is,
     )
   })
 
@@ -99,7 +99,7 @@ describe("hamilton-orchestrate TDD refactor handoff contract", () => {
 
   it("routes requested refactors through correction verification and fresh feedback", () => {
     expect(handoff).toMatch(
-      /changes-requested.*same Task N.*hamilton-code.*relevant verification.*fresh.*hamilton-code-feedback/is,
+      /changes-requested.*same Task N.*kepler-code.*relevant verification.*fresh.*kepler-code-feedback/is,
     )
     expect(process).toMatch(
       /refactor-phase review.*changes-requested.*same Task N.*relevant verification/is,
@@ -115,15 +115,15 @@ describe("hamilton-orchestrate TDD refactor handoff contract", () => {
   })
 })
 
-describe("hamilton-orchestrate whole-branch resume contract", () => {
+describe("kepler-orchestrate whole-branch resume contract", () => {
   const matrix = singleLine(section(skill, "## Whole-branch resume matrix"))
 
   it("dispatches whole-branch review when review is absent", () => {
-    expect(matrix).toMatch(/\| absent \| Dispatch `hamilton-review`/)
+    expect(matrix).toMatch(/\| absent \| Dispatch `kepler-review`/)
   })
 
   it("dispatches whole-branch review when review is malformed or stale", () => {
-    expect(matrix).toMatch(/\| stale or malformed \| Dispatch `hamilton-review`/)
+    expect(matrix).toMatch(/\| stale or malformed \| Dispatch `kepler-review`/)
   })
 
   it("routes fresh requested changes through classification", () => {
@@ -134,12 +134,12 @@ describe("hamilton-orchestrate whole-branch resume contract", () => {
 
   it("hands fresh approval to finish-work", () => {
     expect(matrix).toMatch(
-      /\| fresh `approved` with no blocking findings \| Hand off to `hamilton-finish-work`/,
+      /\| fresh `approved` with no blocking findings \| Hand off to `kepler-finish-work`/,
     )
   })
 })
 
-describe("hamilton-orchestrate checkpoint and evidence contract", () => {
+describe("kepler-orchestrate checkpoint and evidence contract", () => {
   const process = singleLine(section(skill, "## Process"))
   const checkpointRules = singleLine(
     section(skill, "## Checkpoint establishment and recovery"),
@@ -149,9 +149,9 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
 
   it("orders the stable checkpoint, code, feedback, and next task", () => {
     const checkpoint = process.indexOf("Resolve and validate the task checkpoint")
-    const code = process.indexOf("Dispatch `hamilton-code`")
+    const code = process.indexOf("Dispatch `kepler-code`")
     const packageDiff = process.indexOf("Package the task diff")
-    const feedback = process.indexOf("Dispatch `hamilton-code-feedback`")
+    const feedback = process.indexOf("Dispatch `kepler-code-feedback`")
     const commit = process.indexOf("Confirm the feedback artifact-only commit")
     const advance = process.indexOf("Select the next active task")
 
@@ -166,7 +166,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   it("creates a task-local base only before a genuine first attempt", () => {
     expect(skill).toContain("<change-dir>/tasks/task-N/.base")
     expect(process).toContain(
-      "hamilton workbench diff --record --task N --change-dir <change-dir>",
+      "kepler workbench diff --record --task N --change-dir <change-dir>",
     )
     expect(checkpointRules).toMatch(
       /only when.*root row is `pending`.*task log has no `## Attempt`.*feedback.*absent.*no task-owned implementation changes/is,
@@ -175,7 +175,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(process).not.toMatch(
       /before any first attempt, retry, or correction dispatch.*--record/is,
     )
-    expect(process).not.toContain("~/.hamilton/scripts/")
+    expect(process).not.toContain("~/.kepler/scripts/")
   })
 
   it("reconstructs or stops instead of rebasing historical work", () => {
@@ -238,7 +238,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
     expect(approval).toMatch(
       /physical last pass.*valid.*`approved`.*no blocking findings.*fresh/is,
     )
-    expect(approval).toMatch(/any failed condition.*dispatch `hamilton-code-feedback`/is)
+    expect(approval).toMatch(/any failed condition.*dispatch `kepler-code-feedback`/is)
   })
 
   it("rechecks durable approval at every advancement boundary", () => {
@@ -256,7 +256,7 @@ describe("hamilton-orchestrate checkpoint and evidence contract", () => {
   })
 })
 
-describe("hamilton-orchestrate prompt scopes", () => {
+describe("kepler-orchestrate prompt scopes", () => {
   const codeFeedback = readReference("code-feedback-prompt.md")
   const wholeBranch = readReference("whole-branch-review-prompt.md")
 
@@ -270,7 +270,7 @@ describe("hamilton-orchestrate prompt scopes", () => {
   })
 
   it("binds task feedback to one task range and destination", () => {
-    expect(codeFeedback).toContain("hamilton-code-feedback")
+    expect(codeFeedback).toContain("kepler-code-feedback")
     expect(codeFeedback).toContain("Task [N]")
     expect(codeFeedback).toContain("Base: [BASE_SHA]")
     expect(codeFeedback).toContain("Head: [HEAD_SHA]")
@@ -303,12 +303,12 @@ describe("hamilton-orchestrate prompt scopes", () => {
     const process = singleLine(section(skill, "## Process"))
 
     expect(process).toMatch(
-      /confirmed code gap.*dispatch `hamilton-code`.*feedback.*located gap/is,
+      /confirmed code gap.*dispatch `kepler-code`.*feedback.*located gap/is,
     )
   })
 
   it("binds whole-branch review to the complete branch and root destination", () => {
-    expect(wholeBranch).toContain("hamilton-review")
+    expect(wholeBranch).toContain("kepler-review")
     expect(wholeBranch).toContain("Base: [MERGE_BASE_SHA]")
     expect(wholeBranch).toContain("Head: [HEAD_SHA]")
     expect(wholeBranch).toMatch(/complete branch diff/i)
@@ -344,19 +344,19 @@ describe("hamilton-orchestrate prompt scopes", () => {
   })
 })
 
-describe("hamilton-orchestrate whole-branch findings", () => {
+describe("kepler-orchestrate whole-branch findings", () => {
   const findings = singleLine(section(skill, "## Whole-branch findings"))
 
   it("re-plans implementation findings as numbered remediation tasks", () => {
-    expect(findings).toMatch(/complete finding set.*`hamilton-plan` in re-plan mode/is)
+    expect(findings).toMatch(/complete finding set.*`kepler-plan` in re-plan mode/is)
     expect(findings).toMatch(/one or more.*numbered remediation tasks/is)
-    expect(findings).toMatch(/each.*ordinary `hamilton-code`.*`hamilton-code-feedback` loop/is)
+    expect(findings).toMatch(/each.*ordinary `kepler-code`.*`kepler-code-feedback` loop/is)
     expect(findings).toMatch(/repeat.*whole-branch review/is)
   })
 
   it("stops upstream when findings invalidate approved artifacts", () => {
     expect(findings).toMatch(
-      /requires changing an approved requirement or design decision.*stop.*`hamilton-propose`/is,
+      /requires changing an approved requirement or design decision.*stop.*`kepler-propose`/is,
     )
   })
 

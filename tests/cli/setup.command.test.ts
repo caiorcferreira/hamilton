@@ -3,18 +3,18 @@ import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
 import {
   RESULT_EXIT_SINK,
   RESULT_OUTPUT_SINK,
   ResultReporter,
-} from "../../src/cli/nest/result-reporter.js";
-import { SetupService } from "../../src/cli/setup.service.js";
+} from "../../packages/cli/src/cli/nest/result-reporter.js";
+import { SetupService } from "../../packages/cli/src/cli/setup.service.js";
 import {
   SETUP_BUNDLE_LOCATOR,
   SETUP_FILE_SYSTEM_HOME,
   type SetupFileSystemHome,
-} from "../../src/cli/setup-runtime.js";
+} from "../../packages/cli/src/cli/setup-runtime.js";
 
 type Event =
   | { readonly type: "stdout" | "stderr"; readonly value: string }
@@ -24,16 +24,16 @@ function makeFileSystem(
   overrides: Partial<SetupFileSystemHome> = {},
 ): SetupFileSystemHome {
   return {
-    ensureHamiltonHome: () => {},
+    ensureKeplerHome: () => {},
     existsSync: (path) =>
       path === "/bundle/templates" || path === "/bundle/guidelines",
     copyDirectory: () => {},
     readdirRecursive: () => ["plan.md", "nested/requirements.md"],
     isFile: () => true,
     writeFileSync: () => {},
-    guidelinesDir: () => "/hamilton/guidelines",
-    settingsPath: () => "/hamilton/settings.yaml",
-    templatesDir: () => "/hamilton/templates",
+    guidelinesDir: () => "/kepler/guidelines",
+    settingsPath: () => "/kepler/settings.yaml",
+    templatesDir: () => "/kepler/templates",
     ...overrides,
   };
 }
@@ -43,8 +43,8 @@ async function createSetupHarness(options?: {
   bundleLocator?: () => string;
 }) {
   const [{ SetupCommand }, { SetupModule }] = await Promise.all([
-    import("../../src/cli/nest/setup.command.js"),
-    import("../../src/cli/nest/setup.module.js"),
+    import("../../packages/cli/src/cli/nest/setup.command.js"),
+    import("../../packages/cli/src/cli/nest/setup.module.js"),
   ]);
   const events: Event[] = [];
   const module = await Test.createTestingModule({
@@ -89,7 +89,7 @@ describe("SetupCommand", () => {
         {
           type: "stdout",
           value:
-            "Hamilton set up successfully.\nInstalled 2 templates.\n  nested/requirements.md\n  plan.md\nInstalled guidelines.\n",
+            "Kepler set up successfully.\nInstalled 2 templates.\n  nested/requirements.md\n  plan.md\nInstalled guidelines.\n",
         },
         { type: "stderr", value: "" },
       ]);
@@ -101,7 +101,7 @@ describe("SetupCommand", () => {
   it("reports a filesystem failure once with exit code 2", async () => {
     const harness = await createSetupHarness({
       fileSystem: makeFileSystem({
-        ensureHamiltonHome: () => {
+        ensureKeplerHome: () => {
           throw new Error("permission denied");
         },
       }),
@@ -116,7 +116,7 @@ describe("SetupCommand", () => {
         {
           type: "stderr",
           value:
-            "Setup failed: Failed to create hamilton home directories: Error: permission denied\n",
+            "Setup failed: Failed to create Kepler home directories: Error: permission denied\n",
         },
       ]);
     } finally {
@@ -146,7 +146,7 @@ describe("SetupCommand", () => {
 
   it("accepts --force through nest-commander", async () => {
     const { SetupCommand } = await import(
-      "../../src/cli/nest/setup.command.js"
+      "../../packages/cli/src/cli/nest/setup.command.js"
     );
     const originalArgv = process.argv;
     const originalExitCode = process.exitCode;
@@ -195,7 +195,7 @@ describe("SetupCommand", () => {
       expect(setupCalls).toBe(1);
       expect(process.exitCode).toBe(0);
       expect(stdout).toBe(
-        "Hamilton set up successfully.\nInstalled 0 templates.\nInstalled guidelines.\n",
+        "Kepler set up successfully.\nInstalled 0 templates.\nInstalled guidelines.\n",
       );
       expect(stderr).toBe("");
     } finally {

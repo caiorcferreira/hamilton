@@ -2,29 +2,29 @@ import "reflect-metadata";
 import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { DiffCommand } from "../../src/cli/nest/diff.command.js";
-import { IsolateCommand } from "../../src/cli/nest/isolate.command.js";
-import { LintCommand } from "../../src/cli/nest/lint.command.js";
-import { PreconditionCommand } from "../../src/cli/nest/precondition.command.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
+import { DiffCommand } from "../../packages/cli/src/cli/nest/diff.command.js";
+import { IsolateCommand } from "../../packages/cli/src/cli/nest/isolate.command.js";
+import { LintCommand } from "../../packages/cli/src/cli/nest/lint.command.js";
+import { PreconditionCommand } from "../../packages/cli/src/cli/nest/precondition.command.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
 import {
   DiffService,
   type DiffArguments,
-} from "../../src/workbench/diff.js";
+} from "../../packages/cli/src/workbench/diff.js";
 import {
   IsolateService,
   type IsolationArguments,
-} from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/isolate.js";
 import {
   LintService,
   type LintResult,
   type LintScope,
-} from "../../src/workbench/lint.js";
+} from "../../packages/cli/src/workbench/lint.js";
 import {
   PreconditionService,
   type PreconditionArguments,
-} from "../../src/workbench/precondition.js";
+} from "../../packages/cli/src/workbench/precondition.js";
 
 const result = (overrides: Partial<LintResult> = {}): LintResult => ({
   _tag: "LintResult",
@@ -105,7 +105,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -113,7 +113,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     try {
       await CommandFactory.runApplication(application);
     } catch (error) {

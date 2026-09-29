@@ -16,8 +16,8 @@ units:
 
 <!--
   Route — the compiled outcome of a cleared Wayfinder map.
-  Produced by: hamilton-wayfinder
-  Lives at: .hamilton/maps/<effort>/route.md
+  Produced by: kepler-wayfinder
+  Lives at: .kepler/maps/<effort>/route.md
 
   The body explains the destination and the causal path chosen. Tickets hold
   detailed evidence, rejected alternatives, and decision history.

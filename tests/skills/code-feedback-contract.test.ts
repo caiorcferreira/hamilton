@@ -2,18 +2,18 @@ import * as Fs from "node:fs"
 import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
-const readCodeFeedback = () => readSkill("hamilton-code-feedback")
+const readCodeFeedback = () => readSkill("kepler-code-feedback")
 const readQualityRubric = () =>
   Fs.readFileSync(
-    new URL("../../skills/hamilton-code-feedback/references/code-quality.md", import.meta.url),
+    new URL("../../skills/kepler-code-feedback/references/code-quality.md", import.meta.url),
     "utf-8",
   )
 
-describe("hamilton-code-feedback contract", () => {
+describe("kepler-code-feedback contract", () => {
   it("declares the task-scoped skill frontmatter", () => {
     const skill = readCodeFeedback()
 
-    expect(skill).toMatch(/^---\nname: hamilton-code-feedback\n/)
+    expect(skill).toMatch(/^---\nname: kepler-code-feedback\n/)
     expect(skill).toMatch(/description:.*exactly one Task N/i)
     expect(skill).toMatch(/pipeline.*step 4/is)
   })
@@ -88,7 +88,7 @@ describe("hamilton-code-feedback contract", () => {
   it("instantiates the installed template and appends task-owned feedback", () => {
     const artifact = readCodeFeedback()
 
-    expect(artifact).toContain("~/.hamilton/templates/feedback.md")
+    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/feedback.md")
     expect(artifact).toMatch(/exact installed.*template/i)
     expect(artifact).toContain("<change-dir>/tasks/task-N/feedback.md")
     expect(artifact).toMatch(/task directory segment is lowercase\s+`task-N`/)
@@ -166,12 +166,12 @@ describe("hamilton-code-feedback contract", () => {
     )
   })
 
-  it("stops whole-branch input and redirects it to hamilton-review", () => {
+  it("stops whole-branch input and redirects it to kepler-review", () => {
     const wrongScope = section(readCodeFeedback(), "## Wrong scope")
 
     expect(wrongScope).toMatch(/whole-branch.*stop/is)
     expect(wrongScope).toMatch(/without recording a verdict/i)
-    expect(wrongScope).toContain("`hamilton-review`")
+    expect(wrongScope).toContain("`kepler-review`")
   })
 
   it("ships its own rubric without depending on a sibling skill", () => {
@@ -179,7 +179,7 @@ describe("hamilton-code-feedback contract", () => {
     const rubric = readQualityRubric()
 
     expect(skill).toContain("references/code-quality.md")
-    expect(skill).not.toMatch(/skills\/hamilton-review|\.\.\/hamilton-review/)
+    expect(skill).not.toMatch(/skills\/kepler-review|\.\.\/kepler-review/)
     expect(rubric).toContain("# Task diff code-quality rubric")
     expect(rubric).toContain("## Principles")
     expect(rubric).toMatch(/diff-scoped/i)

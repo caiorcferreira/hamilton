@@ -9,8 +9,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Code Feedback — review history for one plan task.
-  Produced by: hamilton-code-feedback (step 4).
-  Lives at: .hamilton/changes/<change>/tasks/task-N/feedback.md
+  Produced by: kepler-code-feedback (step 4).
+  Lives at: .kepler/changes/<change>/tasks/task-N/feedback.md
   Whole-branch review belongs in review.md.
   Delete this instruction block and every inline hint before finalizing.
 

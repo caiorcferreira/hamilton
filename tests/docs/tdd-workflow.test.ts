@@ -12,8 +12,8 @@ describe("TDD workflow documentation", () => {
   it.each(documents)("documents the TDD task loop independently in %s", (document) => {
     const value = content[document];
 
-    expect(value).toMatch(/`?hamilton-code`?\s+follows a red\s*(?:→|->)\s*green\s*(?:→|->)\s*refactor cycle/i);
-    expect(value).toMatch(/refactor phase.*hamilton-code-feedback.*gate/is);
+    expect(value).toMatch(/`?kepler-code`?\s+follows a red\s*(?:→|->)\s*green\s*(?:→|->)\s*refactor cycle/i);
+    expect(value).toMatch(/refactor phase.*kepler-code-feedback.*gate/is);
     expect(value).toMatch(/green alone does not complete a task/i);
   });
 

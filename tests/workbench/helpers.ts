@@ -43,7 +43,7 @@ const created: string[] = [];
 
 export function makeRepo(options?: { defaultBranch?: string }): string {
   const directory = Fs.mkdtempSync(
-    Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-workbench-"),
+    Path.join(Fs.realpathSync(Os.tmpdir()), "kepler-workbench-"),
   );
   created.push(directory);
   git(directory, "init", "-q", "-b", options?.defaultBranch ?? "main");
@@ -89,7 +89,7 @@ export function commitPaths(
 }
 
 export function makeChangeDir(repository: string, slug: string): string {
-  const directory = Path.join(repository, ".hamilton", "changes", slug);
+  const directory = Path.join(repository, ".kepler", "changes", slug);
   Fs.mkdirSync(directory, { recursive: true });
   return directory;
 }

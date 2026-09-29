@@ -20,11 +20,11 @@ function readFrontmatter(template: string): string {
 describe("split execution artifact templates", () => {
   it("gives every lifecycle producer disposable authoring instructions", () => {
     const lifecycleTemplates = [
-      ["progress.md", "hamilton-plan", ".hamilton/changes/<change>/progress.md"],
-      ["task-progress.md", "hamilton-plan", ".hamilton/changes/<change>/tasks/task-N/progress.md"],
-      ["feedback.md", "hamilton-code-feedback", ".hamilton/changes/<change>/tasks/task-N/feedback.md"],
-      ["review.md", "hamilton-review", ".hamilton/changes/<change>/review.md"],
-      ["finish.md", "hamilton-finish-work", ".hamilton/changes/<change>/finish.md"],
+      ["progress.md", "kepler-plan", ".kepler/changes/<change>/progress.md"],
+      ["task-progress.md", "kepler-plan", ".kepler/changes/<change>/tasks/task-N/progress.md"],
+      ["feedback.md", "kepler-code-feedback", ".kepler/changes/<change>/tasks/task-N/feedback.md"],
+      ["review.md", "kepler-review", ".kepler/changes/<change>/review.md"],
+      ["finish.md", "kepler-finish-work", ".kepler/changes/<change>/finish.md"],
     ]
 
     for (const [name, producer, instancePath] of lifecycleTemplates) {
@@ -184,7 +184,7 @@ describe("split execution artifact templates", () => {
   })
 
   it("keeps bundled templates as the only repository template source", () => {
-    const trackedMirror = execFileSync("git", ["ls-files", ".hamilton/templates/**"], {
+    const trackedMirror = execFileSync("git", ["ls-files", ".kepler/templates/**"], {
       cwd: repositoryDir,
       encoding: "utf-8",
     })

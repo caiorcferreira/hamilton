@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Installs the Hamilton CLI from published release binaries and bootstraps ~/.hamilton/.
+# Installs the Kepler CLI from published release binaries and bootstraps Kepler's global data directory.
 #
 # Run it remotely:
-#   curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/vialactea-works/kepler/main/install.sh | bash
 #
 # Environment variables:
-#   HAMILTON_VERSION    specific version tag to install (default: latest)
-#   HAMILTON_REPO_SLUG  GitHub repo slug (default: caiorcferreira/hamilton)
+#   KEPLER_VERSION    specific version tag to install (default: latest)
+#   KEPLER_REPO_SLUG  GitHub repo slug (default: vialactea-works/kepler)
 
 set -euo pipefail
 
-HAMILTON_REPO_SLUG="${HAMILTON_REPO_SLUG:-caiorcferreira/hamilton}"
+KEPLER_REPO_SLUG="${KEPLER_REPO_SLUG:-vialactea-works/kepler}"
 
 detect_platform() {
   local os_name
@@ -53,10 +53,10 @@ detect_platform() {
 }
 
 resolve_version() {
-  if [ -n "${HAMILTON_VERSION:-}" ]; then
-    echo "$HAMILTON_VERSION"
+  if [ -n "${KEPLER_VERSION:-}" ]; then
+    echo "$KEPLER_VERSION"
   else
-    curl -fsSL "https://api.github.com/repos/$HAMILTON_REPO_SLUG/releases/latest" | \
+    curl -fsSL "https://api.github.com/repos/$KEPLER_REPO_SLUG/releases/latest" | \
       grep -o '"tag_name": "[^"]*"' | \
       head -1 | \
       cut -d'"' -f4
@@ -79,18 +79,18 @@ verify_checksums() {
   fi
 }
 
-install_hamilton() {
+install_kepler() {
   local platform="$1"
   local version="$2"
   local work_dir="$3"
 
-  local binary_name="hamilton-$platform"
-  local bundle_name="hamilton-bundle.tar.gz"
+  local binary_name="kepler-$platform"
+  local bundle_name="kepler-bundle.tar.gz"
   local checksums_file="SHA256SUMS"
-  local download_url_base="https://github.com/$HAMILTON_REPO_SLUG/releases/download/$version"
+  local download_url_base="https://github.com/$KEPLER_REPO_SLUG/releases/download/$version"
 
   echo "==> Detected platform: $platform"
-  echo "==> Installing Hamilton $version"
+  echo "==> Installing Kepler $version"
 
   mkdir -p "$work_dir"
   cd "$work_dir"
@@ -106,20 +106,20 @@ install_hamilton() {
   verify_checksums "$work_dir"
 
   echo "==> Installing binary"
-  mkdir -p ~/.hamilton-dist/bin
-  mv "$binary_name" ~/.hamilton-dist/bin/hamilton
-  chmod +x ~/.hamilton-dist/bin/hamilton
+  mkdir -p ~/.kepler-dist/bin
+  mv "$binary_name" ~/.kepler-dist/bin/kepler
+  chmod +x ~/.kepler-dist/bin/kepler
 
   echo "==> Creating symlink"
   mkdir -p ~/.local/bin
-  ln -sf ~/.hamilton-dist/bin/hamilton ~/.local/bin/hamilton
+  ln -sf ~/.kepler-dist/bin/kepler ~/.local/bin/kepler
 
   echo "==> Extracting bundle"
-  mkdir -p ~/.hamilton-dist
-  tar xzf "$bundle_name" -C ~/.hamilton-dist
+  mkdir -p ~/.kepler-dist
+  tar xzf "$bundle_name" -C ~/.kepler-dist
 
   # Leave the work dir before deleting it, otherwise the shell (and any
-  # command run afterwards, like `hamilton setup`) is left with a deleted
+  # command run afterwards, like `kepler setup`) is left with a deleted
   # working directory.
   cd "$HOME"
 
@@ -136,17 +136,17 @@ main() {
   version="$(resolve_version)"
   work_dir="$(mktemp -d)"
 
-  install_hamilton "$platform" "$version" "$work_dir"
+  install_kepler "$platform" "$version" "$work_dir"
 
-  echo "==> Running hamilton setup"
-  ~/.local/bin/hamilton setup
+  echo "==> Running kepler setup"
+  ~/.local/bin/kepler setup
 
   if [ "$(uname -s)" = "Darwin" ]; then
     cat << 'EOF'
 
 Note: On first run, macOS may show an "unidentified developer" warning.
 To bypass Gatekeeper, run:
-  xattr -d com.apple.quarantine ~/.hamilton-dist/bin/hamilton
+  xattr -d com.apple.quarantine ~/.kepler-dist/bin/kepler
 
 EOF
   fi

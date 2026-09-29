@@ -8,8 +8,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Whole-branch Review — verdict for a complete change branch.
-  Produced by: hamilton-review (step 5).
-  Lives at: .hamilton/changes/<change>/review.md
+  Produced by: kepler-review (step 5).
+  Lives at: .kepler/changes/<change>/review.md
   Task-scoped feedback belongs in tasks/task-N/feedback.md.
   Delete this instruction block and every inline hint before finalizing.
 

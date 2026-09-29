@@ -1,0 +1,28 @@
+{
+  "name": "@vialactea-works/kepler-core",
+  "version": "0.10.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "bun run build",
+    "test": "bun --bun vitest run --root ../.. --config vitest.config.ts packages/core/tests",
+    "test:package": "bash scripts/pack-smoke.sh"
+  },
+  "dependencies": {
+    "yaml": "2.4.5"
+  }
+}

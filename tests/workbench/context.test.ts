@@ -7,7 +7,7 @@ import {
   renderContextResult,
   type ContextArguments,
   type ContextRuntime,
-} from "../../src/workbench/context.js";
+} from "../../packages/cli/src/workbench/context.js";
 import {
   cleanupRepos,
   commitAll,
@@ -20,7 +20,7 @@ import {
 
 const proposal = `# Proposal: Add auth
 
-| Route unit | .hamilton/maps/auth/route.md — unit 2 |
+| Route unit | .kepler/maps/auth/route.md — unit 2 |
 `;
 const plan = `# Plan: add auth
 
@@ -174,7 +174,7 @@ describe("change context", () => {
     expect(first.stdout).toBe(second.stdout);
     expect(first.stdout).toContain("format: split");
     expect(first.stdout).toContain(
-      "route-unit: .hamilton/maps/auth/route.md — unit 2",
+      "route-unit: .kepler/maps/auth/route.md — unit 2",
     );
     expect(first.stdout).toMatch(/proposal\.md\s+present/);
     expect(first.stdout).toContain("requirements/  present  auth");
@@ -297,9 +297,42 @@ decision: accepted
     expect(result.changes).toHaveLength(2);
   });
 
+  it("migrates legacy project changes before all-scope discovery", async () => {
+    const repository = makeRepo();
+    const legacyChange = Path.join(
+      repository,
+      ".hamilton",
+      "changes",
+      "legacy-change",
+    );
+    write(legacyChange, "proposal.md", proposal);
+
+    const result = await runContext(
+      { all: true },
+      createContextRuntime({ cwd: () => repository }),
+    );
+    const canonicalProposal = Path.join(
+      repository,
+      ".kepler",
+      "changes",
+      "legacy-change",
+      "proposal.md",
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("legacy-change");
+    expect(Fs.readFileSync(canonicalProposal, "utf8")).toBe(proposal);
+    expect(
+      Fs.readFileSync(
+        Path.join(legacyChange, "proposal.md"),
+        "utf8",
+      ),
+    ).toBe(proposal);
+  });
+
   it("returns an environment error for unreadable all-scope discovery", async () => {
     const repository = makeRepo();
-    Fs.mkdirSync(Path.join(repository, ".hamilton", "changes"), {
+    Fs.mkdirSync(Path.join(repository, ".kepler", "changes"), {
       recursive: true,
     });
     const runtime = createContextRuntime({ cwd: () => repository });
@@ -327,7 +360,7 @@ decision: accepted
   it("returns an environment error when all-scope directory discovery fails", async () => {
     const repository = makeRepo();
     const runtime = createContextRuntime({ cwd: () => repository });
-    const changesDir = Path.join(repository, ".hamilton", "changes");
+    const changesDir = Path.join(repository, ".kepler", "changes");
     const result = await runContext(
       { all: true },
       createContextRuntime({
@@ -455,10 +488,10 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/multi-pass/tasks/task-1/feedback.md",
+      ".kepler/changes/multi-pass/tasks/task-1/feedback.md",
     );
     write(directory, "review.md", reviewEvidence("multi-pass", "add auth", passes));
-    commitPaths(repository, "review", ".hamilton/changes/multi-pass/review.md");
+    commitPaths(repository, "review", ".kepler/changes/multi-pass/review.md");
 
     const result = await runContext({ changeDir: directory });
 
@@ -492,7 +525,7 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/requested-approved/tasks/task-1/feedback.md",
+      ".kepler/changes/requested-approved/tasks/task-1/feedback.md",
     );
     write(
       directory,
@@ -502,7 +535,7 @@ decision: accepted
     commitPaths(
       repository,
       "review",
-      ".hamilton/changes/requested-approved/review.md",
+      ".kepler/changes/requested-approved/review.md",
     );
 
     const result = await runContext({ changeDir: directory });
@@ -535,7 +568,7 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/legacy-global-history/tasks/task-1/feedback.md",
+      ".kepler/changes/legacy-global-history/tasks/task-1/feedback.md",
     );
     write(
       directory,
@@ -545,7 +578,7 @@ decision: accepted
     commitPaths(
       repository,
       "review",
-      ".hamilton/changes/legacy-global-history/review.md",
+      ".kepler/changes/legacy-global-history/review.md",
     );
 
     const result = await runContext({ changeDir: directory });
@@ -575,7 +608,7 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/migrated-history/tasks/task-1/feedback.md",
+      ".kepler/changes/migrated-history/tasks/task-1/feedback.md",
     );
     write(
       directory,
@@ -585,7 +618,7 @@ decision: accepted
     commitPaths(
       repository,
       "review",
-      ".hamilton/changes/migrated-history/review.md",
+      ".kepler/changes/migrated-history/review.md",
     );
 
     const result = await runContext({ changeDir: directory });
@@ -617,7 +650,7 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/malformed-physical-last/tasks/task-1/feedback.md",
+      ".kepler/changes/malformed-physical-last/tasks/task-1/feedback.md",
     );
 
     const result = await runContext({ changeDir: directory });
@@ -642,14 +675,14 @@ decision: accepted
     commitPaths(
       repository,
       "feedback",
-      ".hamilton/changes/one-pass/tasks/task-1/feedback.md",
+      ".kepler/changes/one-pass/tasks/task-1/feedback.md",
     );
     write(
       directory,
       "review.md",
       reviewEvidence("one-pass", "add auth", passes, global),
     );
-    commitPaths(repository, "review", ".hamilton/changes/one-pass/review.md");
+    commitPaths(repository, "review", ".kepler/changes/one-pass/review.md");
 
     const result = await runContext({ changeDir: directory });
 
@@ -765,7 +798,7 @@ Verdict: approved
     commitPaths(
       repository,
       "review",
-      ".hamilton/changes/uncommitted-review/review.md",
+      ".kepler/changes/uncommitted-review/review.md",
     );
 
     write(directory, "review.md", `${review}\n`);
@@ -777,7 +810,7 @@ Verdict: approved
       repository,
       "add",
       "--",
-      ".hamilton/changes/uncommitted-review/review.md",
+      ".kepler/changes/uncommitted-review/review.md",
     );
     const staged = await runContext({ changeDir: directory });
     expect(staged.stdout).toContain("whole change: approved (uncommitted)");
@@ -798,7 +831,7 @@ Verdict: approved
     commitPaths(
       repository,
       "review",
-      ".hamilton/changes/regex-review/review.md",
+      ".kepler/changes/regex-review/review.md",
     );
 
     const result = await runContext({ changeDir: directory });

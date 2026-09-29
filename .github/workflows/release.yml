@@ -6,38 +6,45 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   check-version:
     name: Check if version changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       should_release: ${{ steps.version-check.outputs.should_release }}
       version: ${{ steps.read-version.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
 
       - name: Read package.json version
         id: read-version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if version should be released
         id: version-check
         run: |
-          VERSION="${{ steps.read-version.outputs.version }}"
-          TAG="v$VERSION"
+          TAG="v$RELEASE_VERSION"
 
           # Most recent published release, empty if none exists yet.
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
+          LATEST_RELEASE=$(gh release list \
+            --limit 1 \
+            --json tagName \
+            --jq '.[0].tagName' || echo "")
 
           # No version change: package.json matches the latest published
           # release. Skip cleanly — no tag, no build, no publish.
           if [ "$TAG" = "$LATEST_RELEASE" ]; then
-            echo "Version $VERSION already released as $TAG; nothing to do."
+            printf 'Version %s is already released as %s.\n' \
+              "$RELEASE_VERSION" "$TAG"
             echo "should_release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -48,9 +55,11 @@ jobs:
           # recovery hint rather than pushing it again later (which errors
           # cryptically) or reusing it (which would leave the tag pointing at
           # a different commit than the artifacts built by this run).
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "Error: tag $TAG already exists on the remote but has no matching release." >&2
-            echo "An earlier release run likely failed after creating the tag." >&2
+          if git ls-remote --exit-code --tags origin \
+            "refs/tags/$TAG" >/dev/null 2>&1; then
+            printf 'Error: tag %s already exists on the remote but ' "$TAG" >&2
+            printf 'has no matching release.\n' >&2
+            echo "An earlier release run failed after creating the tag." >&2
             echo "Delete the tag and re-run:  git push origin --delete $TAG" >&2
             exit 1
           fi
@@ -58,42 +67,83 @@ jobs:
           echo "should_release=true" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.read-version.outputs.version }}
+
+  verify:
+    name: Verify workspace
+    needs: check-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check synchronized package versions
+        run: bun run check:version
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Run test suite
+        run: bun run test
+
+      - name: Test packed core package
+        run: bun run test:package
+
+      - name: Test local installer
+        run: bash scripts/smoke-installer.sh
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck install.sh scripts/smoke-standalone.sh \
+            scripts/smoke-installer.sh
 
   tag:
     name: Create version tag
-    needs: check-version
+    needs:
+      - check-version
+      - verify
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
 
       - name: Create and push tag
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
-          TAG="v$VERSION"
-
+          TAG="v$RELEASE_VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git tag "$TAG"
-          git push origin "$TAG"
-
-  lint:
-    name: Lint install script
-    needs: tag
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run shellcheck
-        run: shellcheck install.sh
+          COMMIT_SHA="$(git rev-parse "$TAG")"
+          gh api "repos/$GH_REPO/git/refs" \
+            --method POST \
+            -f "ref=refs/tags/$TAG" \
+            -f "sha=$COMMIT_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ needs.check-version.outputs.version }}
 
   build:
     name: Build CLI binaries
-    needs: lint
+    needs: tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -107,10 +157,12 @@ jobs:
             arch: arm64
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -124,32 +176,43 @@ jobs:
             --external @nestjs/platform-express \
             --external @nestjs/microservices \
             --external @nestjs/websockets \
-            src/cli/main.ts \
-            --outfile hamilton-${{ matrix.os }}-${{ matrix.arch }}
+            packages/cli/src/cli/main.ts \
+            --outfile kepler-${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Test binary (linux-x64 only)
         if: matrix.os == 'linux' && matrix.arch == 'x64'
         run: |
-          chmod +x ./hamilton-linux-x64
-          bash scripts/smoke-standalone.sh ./hamilton-linux-x64
+          chmod +x ./kepler-linux-x64
+          bash scripts/smoke-standalone.sh ./kepler-linux-x64
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: hamilton-${{ matrix.os }}-${{ matrix.arch }}
-          path: hamilton-${{ matrix.os }}-${{ matrix.arch }}
+          name: kepler-${{ matrix.os }}-${{ matrix.arch }}
+          path: kepler-${{ matrix.os }}-${{ matrix.arch }}
           retention-days: 1
 
   package:
     name: Package artifacts
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Download all binary artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: artifacts
 
@@ -162,25 +225,53 @@ jobs:
           ls -la
 
       - name: Create bundle archive
-        run: tar czf hamilton-bundle.tar.gz bundle/
+        run: tar czf kepler-bundle.tar.gz bundle/
+
+      - name: Pack the core package
+        run: |
+          PACKAGE_VERSION="$(
+            node -p "require('./packages/core/package.json').version"
+          )"
+          PACKAGE_ARCHIVE="kepler-core-${PACKAGE_VERSION}.tgz"
+          (
+            cd packages/core
+            bun pm pack --filename "$GITHUB_WORKSPACE/$PACKAGE_ARCHIVE" --quiet
+          )
+          printf 'Created %s\n' "$PACKAGE_ARCHIVE"
+
+      - name: Smoke test binary with packaged bundle
+        run: |
+          BUNDLE_STAGE="$(mktemp -d)"
+          trap 'rm -rf "$BUNDLE_STAGE"' EXIT
+          tar xzf kepler-bundle.tar.gz -C "$BUNDLE_STAGE"
+          chmod +x ./kepler-linux-x64
+          bash scripts/smoke-standalone.sh \
+            ./kepler-linux-x64 "$BUNDLE_STAGE/bundle"
 
       - name: Generate checksums
         run: |
-          sha256sum hamilton-* hamilton-bundle.tar.gz > SHA256SUMS
+          sha256sum kepler-* > SHA256SUMS
           cat SHA256SUMS
 
       - name: Upload checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: checksums
           path: SHA256SUMS
           retention-days: 1
 
       - name: Upload bundle archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: bundle
-          path: hamilton-bundle.tar.gz
+          path: kepler-bundle.tar.gz
+          retention-days: 1
+
+      - name: Upload core package tarball
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: core-package
+          path: kepler-core-*.tgz
           retention-days: 1
 
   publish:
@@ -190,18 +281,23 @@ jobs:
       - package
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
     steps:
       - name: Checkout release notes
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: release-assets
           # Flatten every artifact into release-assets/ instead of one
           # subdirectory per artifact. Without this, each binary lands in a
-          # directory sharing its own name (release-assets/hamilton-darwin-arm64/
-          # hamilton-darwin-arm64), which broke the old manual flatten.
+          # directory sharing its own name, which broke the old manual
+          # flatten.
           merge-multiple: true
 
       - name: List release assets
@@ -209,7 +305,7 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
+          VERSION="$RELEASE_VERSION"
           NOTES_FILE="docs/releases/${VERSION}.md"
           if [ ! -f "$NOTES_FILE" ]; then
             echo "Release notes file not found: $NOTES_FILE." >&2
@@ -224,3 +320,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ needs.check-version.outputs.version }}

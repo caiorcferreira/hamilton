@@ -3,7 +3,7 @@ import {
   createArtifactReader,
   type ArtifactFileSystem,
   type ArtifactReadResult,
-} from "../../src/workbench/artifact-reader.js";
+} from "../../packages/cli/src/workbench/artifact-reader.js";
 
 const readFrom = (contents: string): ArtifactFileSystem => ({
   readFile: () => contents,

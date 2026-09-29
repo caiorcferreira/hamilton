@@ -12,8 +12,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Decision ticket — one question whose resolution is a decision.
-  Produced by: hamilton-wayfinder
-  Lives at: .hamilton/maps/<effort>/tickets/NN-slug.md
+  Produced by: kepler-wayfinder
+  Lives at: .kepler/maps/<effort>/tickets/NN-slug.md
   Sized to a single agent session; the answer is appended and the status
   flipped to resolved when the ticket closes.
   Delete this comment block and every inline hint comment before finalizing.

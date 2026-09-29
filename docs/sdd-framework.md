@@ -1,10 +1,10 @@
 # Spec-Driven Development Framework
 
-> **Hamilton is in ALPHA.** This document is the design of Hamilton's **Assisted mode** — the
+> **Kepler is in ALPHA.** This document is the design of Kepler's **Assisted mode** — the
 > working core (see [modes](./modes.md)). For a task-focused map of the skills and how
 > to run them, see the [Skills reference](./skills.md); this page is the *why* behind them.
 
-Hamilton's spec-driven development (SDD) framework carries a change from idea to merge
+Kepler's spec-driven development (SDD) framework carries a change from idea to merge
 through a fixed sequence of steps, each captured as a **skill** and backed by durable
 **artifacts**. The same skills are used by a person working in an editor or by a coding agent —
 a person authors the spec and hands execution to the agent.
@@ -24,11 +24,11 @@ change commits to are folded back into a living per-project spec. Over time the 
 This is how historical decisions are preserved without letting the current picture rot.
 
 **Skills are portable knowledge; the harness is only a binding.** A skill encodes *how* to
-plan, code, or review well, once. It never assumes Hamilton mechanics, so the identical skill
+plan, code, or review well, once. It never assumes Kepler mechanics, so the identical skill
 guides a human in any editor and a coding agent. Whatever is
-Hamilton-specific — how an agent reports output, how context templates are rendered — lives
+Kepler-specific — how an agent reports output, how context templates are rendered — lives
 in a thin agent wrapper around the skill, not in the skill itself. The artifacts under a
-project's `.hamilton/` directory are the contract between authoring and execution.
+project's `.kepler/` directory are the contract between authoring and execution.
 
 ## Principles
 
@@ -36,7 +36,7 @@ project's `.hamilton/` directory are the contract between authoring and executio
 It names no tool, defines the terms it uses, and depends on no runtime internals — only on
 the project's standards file (`AGENTS.md`) and the shared artifacts.
 
-**Agents are thin wrappers.** A Hamilton agent that runs a step loads the skill and adds only
+**Agents are thin wrappers.** A Kepler agent that runs a step loads the skill and adds only
 the harness binding (output reporting, context, schemas). The skill is never duplicated into
 the agent's instructions.
 
@@ -47,7 +47,7 @@ uses richer upstream artifacts when present and otherwise works from the raw req
 
 **The orchestrator owns the loops.** Steps are linear on paper, but task feedback sends one task
 back to code and whole-branch findings send the change back to planning. The person or workflow
-driving the pipeline runs those loops; each skill does one job and returns. This mirrors Hamilton's
+driving the pipeline runs those loops; each skill does one job and returns. This mirrors Kepler's
 existing retry-and-verify machinery.
 
 **Changes accumulate into living specs.** A change proposes requirement *deltas*
@@ -71,7 +71,7 @@ agent reflecting, deciding, and recording the reasoning.
 The framework is a synthesis, not an invention.
 
 - **OpenSpec** — the capability-centric model: a durable spec of requirements, changed
-  through deltas that are folded back in at the end. Hamilton keeps this, triggered by the
+  through deltas that are folded back in at the end. Kepler keeps this, triggered by the
   finish step rather than a separate sync command.
 - **Superpowers** — the collaborative `brainstorming` skill (one question at a time, propose
   alternatives, gate on approval) shapes the propose step; `writing-plans` and
@@ -89,7 +89,7 @@ The framework is a synthesis, not an invention.
 
 Seven core skills define the fixed order. Step 0 runs once per project, step 1 is optional per
 change, and steps 2–6 form the per-change sequence. Wayfinder is an optional pre-change planning
-stage, and `hamilton-critique` is an optional design-phase gate; neither is counted in this core
+stage, and `kepler-critique` is an optional design-phase gate; neither is counted in this core
 sequence. Wayfinder clears fog by compiling a route: a stable destination-and-path handoff with
 Point of departure, Destination, Path chosen, Shipping rules, and Units. Its frontmatter owns
 mutable route and unit lifecycle metadata. Propose and plan turn units into implementation
@@ -97,13 +97,13 @@ artifacts; code and finish-work build and ship them.
 
 | Step | Skill | Role |
 | ------ | ------- | ------ |
-| 0 | `hamilton-init` | Set up the project: write `AGENTS.md`, scaffold `.hamilton/` |
-| 1 | `hamilton-propose` | Idea → proposal (why), requirements (what), design (how) |
-| 2 | `hamilton-plan` | Design → `plan.md`: small, TDD-sized, independently verifiable tasks |
-| 3 | `hamilton-code` | Implement one task, then enter its `code` ↔ `code-feedback` loop |
-| 4 | `hamilton-code-feedback` | Judge that task's stable diff; approve it or loop back to `code` |
-| 5 | `hamilton-review` | Run the single whole-branch gate after every task loop passes |
-| 6 | `hamilton-finish-work` | Gate, sync specs, record intent, finish via merge / PR / no-op, verify, record outcome |
+| 0 | `kepler-init` | Set up the project: write `AGENTS.md`, scaffold `.kepler/` |
+| 1 | `kepler-propose` | Idea → proposal (why), requirements (what), design (how) |
+| 2 | `kepler-plan` | Design → `plan.md`: small, TDD-sized, independently verifiable tasks |
+| 3 | `kepler-code` | Implement one task, then enter its `code` ↔ `code-feedback` loop |
+| 4 | `kepler-code-feedback` | Judge that task's stable diff; approve it or loop back to `code` |
+| 5 | `kepler-review` | Run the single whole-branch gate after every task loop passes |
+| 6 | `kepler-finish-work` | Gate, sync specs, record intent, finish via merge / PR / no-op, verify, record outcome |
 
 ```
 init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-feedback ) ──▶ review ──▶ finish-work
@@ -111,29 +111,29 @@ init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-fee
                                      repeat per task              once per change
 ```
 
-**hamilton-init** explores the project read-only and writes `AGENTS.md` across the six
+**kepler-init** explores the project read-only and writes `AGENTS.md` across the six
 standing areas — the project's standards that every later step reads. It scaffolds
-`.hamilton/specs/` and `.hamilton/changes/`. It is idempotent and never clobbers an existing
+`.kepler/specs/` and `.kepler/changes/`. It is idempotent and never clobbers an existing
 `AGENTS.md`.
 
-**hamilton-propose** is the optional front door. Through dialogue — clarifying questions one
+**kepler-propose** is the optional front door. Through dialogue — clarifying questions one
 at a time, then two or three alternative approaches with trade-offs — it produces the
 proposal, the per-capability requirements, and the design, and gates on approval before any
 implementation. A change that does not warrant this depth skips it.
 
-**hamilton-plan** produces the required declarative `plan.md` handoff contract. It explores the code
+**kepler-plan** produces the required declarative `plan.md` handoff contract. It explores the code
 read-only, then decomposes the work into TDD-sized tasks, each with its files, acceptance criteria,
 ordered steps, a verify command, and a commit message. It also initializes root `progress.md` as the
 current task ledger and one `tasks/task-N/progress.md` history for each task. Because the coder
 follows task steps verbatim, all sequencing happens here.
 
-**hamilton-code** implements exactly one task — identified either by reference (`plan.md` +
+**kepler-code** implements exactly one task — identified either by reference (`plan.md` +
 task id) or as an inline task block — following its steps as written. It never redesigns,
 never touches sibling tasks, runs a code-quality self-review, and commits. It transitions only its
 assigned row in root `progress.md` and appends detailed attempt evidence only to
 `tasks/task-N/progress.md`. It never edits `plan.md`.
 
-**hamilton-code-feedback** is the per-task tactical gate. It reviews one stable task diff from the
+**kepler-code-feedback** is the per-task tactical gate. It reviews one stable task diff from the
 task's unchanged checkpoint through the implementation Head, checks the task's acceptance and
 latest attempt evidence, and appends an artifact-only verdict to `tasks/task-N/feedback.md`. Its
 reviewed Head must contain the latest task-progress commit. The history is one append-only owning
@@ -147,7 +147,7 @@ distinct from the authoritative latest evidenced record. `Base` and `Head` conta
 identifiers; `Verdict` contains an allowed verdict enum value (`approved` or `changes-requested`).
 Requested changes return that same task to code; approval advances the driver.
 
-**hamilton-review** is the whole-branch merge gate. After all tasks have fresh approved feedback,
+**kepler-review** is the whole-branch merge gate. After all tasks have fresh approved feedback,
 it starts from the complete branch diff and inspects broader affected consumers, cross-task
 composition, omissions, and repository assumptions. It appends passes to the single owning
 `<change>/review.md` history; only fully evidenced feedback and review passes carry their own
@@ -164,7 +164,7 @@ malformed transitions or latest evidence fail closed. The reviewed Head must
 contain the latest material change commit. Implementation findings return to planning as
 remediation tasks rather than directly to code.
 
-**hamilton-finish-work** closes the change. It checks the completion gate (clean tree, full tests
+**kepler-finish-work** closes the change. It checks the completion gate (clean tree, full tests
 and build, exact task ledger complete, every task's fresh feedback approved, and fresh whole-branch
 review approved), folds the change's requirement deltas into the canonical specs, and finishes via
 local merge, a pull request, or no-op. It persists paired intent and observed outcome records in
@@ -174,7 +174,7 @@ canonical spec is human-readable documentation — a light universal skeleton (O
 / Behavior + Examples / Invariants / Decisions) written at altitude — so finish-work rewrites each
 delta into the section it belongs to rather than copying requirement blocks by name.
 
-**hamilton-compose-spec** sits outside the per-change pipeline. It authors canonical specs
+**kepler-compose-spec** sits outside the per-change pipeline. It authors canonical specs
 directly, in two modes: *reformat* an existing spec into the current skeleton, or write specs
 *from the application code*. It is the front door for canonical specs — every pipeline path
 produces a spec only as a by-product of finishing a change — and the tool a project uses to
@@ -183,13 +183,13 @@ bootstrap specs on adoption or migrate an older spec format.
 ## Artifacts and layout
 
 **Templates are global.** The canonical set lives in the repository's `bundle/templates/` and
-is copied to `~/.hamilton/templates/` by the `hamilton setup` command. Every step reads the
+is copied to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by the `kepler setup` command. Every step reads the
 installed copy, so there is one definition of each artifact's shape.
 
-**Artifacts are per-project**, under the project's `.hamilton/` directory:
+**Artifacts are per-project**, under the project's `.kepler/` directory:
 
 ```
-.hamilton/
+.kepler/
   specs/                              # canonical capability truth (living)
     <capability>.md                   # no delta markers — current behavior
   changes/
@@ -252,69 +252,70 @@ user or stops with a blocker; it never substitutes an agent name, operating-syst
 unresolved template placeholder. When editing an existing artifact, the skill preserves that
 artifact's recorded author rather than replacing the original attribution.
 
-Every skill that creates or edits a workbench-recognized Hamilton artifact runs the scoped workbench
+Every skill that creates or edits a workbench-recognized Kepler artifact runs the scoped workbench
 lint command after the mutation. For a coordinated change tree, validate the complete tree with:
 
 ```bash
-hamilton workbench lint --change-dir <change-dir>
+kepler workbench lint --change-dir <change-dir>
 ```
 
 For one recognized artifact, validate only that file with:
 
 ```bash
-hamilton workbench lint --file <file>
+kepler workbench lint --file <file>
 ```
 
 After the mutation, inspect every lint finding and resolve it before handoff or commit. The explicit selector
-keeps unrelated outputs outside Hamilton artifact scope; research notes and prototype files are not
-linted as Hamilton artifacts. A newly initialized pending task log is valid with its task identity
+keeps unrelated outputs outside Kepler artifact scope; research notes and prototype files are not
+linted as Kepler artifacts. A newly initialized pending task log is valid with its task identity
 and heading but no attempt record, so it does not need a fabricated attempt to pass lint. Lint is an
 artifact-shape and lifecycle check, not a substitute for semantic gates, tests, or review.
 
 ## Upgrading to the split workflow
 
 Treat this artifact split as a clean break between changes. Finish every active old-format change
-with the Hamilton generation that created it. Only then, between changes:
+with the Kepler generation that created it. Only then, between changes:
 
-1. Update the Hamilton CLI and the skills loaded by your agent together from the same release or
+1. Update the Kepler CLI and the skills loaded by your agent together from the same release or
    checkout.
-2. Run `hamilton setup` even when the release installer already ran it. This installs that
-   generation's templates and guidelines into `~/.hamilton/`.
+2. Run `kepler setup` even when the release installer already ran it. This installs that
+   generation's templates and guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`.
 3. Verify the supported CLI surface against the installed generation:
 
    ```bash
-   test -f ~/.hamilton/templates/task-progress.md
-   test -f ~/.hamilton/templates/feedback.md
-   test -f ~/.hamilton/templates/review.md
-   test -f ~/.hamilton/templates/finish.md
-   hamilton workbench --help
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/feedback.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/review.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md
+   kepler workbench --help
    ```
 
    Reload the coding-agent session and confirm it exposes the matching skill generation. A missing
    template, failed workbench check, or older skill definition means the generation is not installed;
    stop before planning.
-4. Start the next change with the verified generation.
+4. `kepler setup` copies legacy `~/.hamilton/` global data to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`. Before scaffolding an existing project that has `.hamilton/` but no `.kepler/`, run `kepler workbench context --all` from the project root to copy project data. Both copies leave their sources unchanged. A `no .kepler/changes/` result with exit code `1` means the project has no changes to list. If both paths exist, Kepler uses the Kepler path without merging or modifying legacy data.
+5. Start the next change with the verified generation.
 
 New work uses the seven-stage pipeline, skipping only the optional propose stage when appropriate,
 with root `progress.md` only as the task index and ledger, `tasks/task-N/progress.md` and
 `tasks/task-N/feedback.md` for task histories, root `review.md` for the whole-branch gate, and root
-`finish.md` for finish history. Replace task-scoped `hamilton-review` invocations with
-`hamilton-code-feedback`.
+`finish.md` for finish history. Replace task-scoped `kepler-review` invocations with
+`kepler-code-feedback`.
 
-Setup does not delete stale helper files left by an older generation. Use `hamilton purge` for
-explicit cleanup when desired. Do not replace only the CLI or only the skills while a change is
-active.
+Setup does not delete stale helper files left by an older generation. `bun run purge` removes the
+local CLI symlink and `~/.kepler-dist/`, but preserves Kepler's global data. Do not replace only the
+CLI or only the skills while a change is active.
 
 ## Control flow
 
 The pipeline reads as a line but runs a per-task loop followed by one change-level gate.
 
-**The code–feedback loop** is driver-owned. `hamilton-code` implements one task against its stable
-checkpoint and `hamilton-code-feedback` judges that task's complete diff. A fresh
+**The code–feedback loop** is driver-owned. `kepler-code` implements one task against its stable
+checkpoint and `kepler-code-feedback` judges that task's complete diff. A fresh
 `changes-requested` pass re-invokes code for the same task; a fresh approval advances to the next
 task. The feedback parser and every downstream consumer use the physically latest parsed pass;
 malformed latest evidence cannot revive an earlier approval. The skills do not call each other — a
-person or `hamilton-orchestrate` owns the loop.
+person or `kepler-orchestrate` owns the loop.
 
 The installed `plan.md` template makes that handoff explicit: each task runs Red before production
 edits, reruns the same check to Green, and verifies behavior after Refactor before its final Verify
@@ -322,18 +323,18 @@ command. If a failing check is technically impossible, the task gives a reason a
 pre-change/post-change observation. Its Steps allow same-task corrections but never dispatch
 feedback; the driver obtains fresh approval before advancing.
 
-For each task, `hamilton-code` follows a red → green → refactor cycle: establish a failing test in red,
+For each task, `kepler-code` follows a red → green → refactor cycle: establish a failing test in red,
 make it pass in green, then refactor while keeping the test green. The refactor phase uses
-`hamilton-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result
+`kepler-code-feedback` as its gate; green alone does not complete a task. A `changes-requested` result
 returns the same task to a fresh correction cycle, with verification before advancement. When a task has
 no conventional failing test, it must record the justification and use repeatable alternative verification.
 
 **The whole-branch review gate** begins only after every task is `done` with fresh approved
-feedback. `hamilton-review` inspects the complete branch plus broader affected consumers and
-composition. Implementation findings return to `hamilton-plan` in re-plan mode, become numbered
+feedback. `kepler-review` inspects the complete branch plus broader affected consumers and
+composition. Implementation findings return to `kepler-plan` in re-plan mode, become numbered
 remediation tasks, and traverse the ordinary code↔code-feedback loop before one new whole review.
 
-**The finish gate** is where quality accumulates into a go/no-go. `hamilton-finish-work` refuses to
+**The finish gate** is where quality accumulates into a go/no-go. `kepler-finish-work` refuses to
 complete unless the tree is clean, full tests and build pass, every task and task-history outcome is
 done, every task feedback pass is fresh and approved, and the whole-branch review is fresh and
 approved. Only then does it sync specs, record finish intent, execute the selected strategy, verify
@@ -348,25 +349,25 @@ by the agent deciding and recording the reasoning.
 
 Four locations hold the framework:
 
-- `bundle/templates/` — the canonical artifact templates, shipped with Hamilton and installed
-  to `~/.hamilton/templates/` by `hamilton setup`.
-- `src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
-- `skills/hamilton-*/` — the seven core pipeline skills and their optional companion skills, each a
+- `bundle/templates/` — the canonical artifact templates, shipped with Kepler and installed
+  to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by `kepler setup`.
+- `packages/cli/src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
+- `skills/kepler-*/` — the seven core pipeline skills and their optional companion skills, each a
   self-contained `SKILL.md`.
-- a project's `.hamilton/` — the per-project specs and change artifacts, created by
-  `hamilton-init`.
+- a project's `.kepler/` — the per-project specs and change artifacts, created by
+  `kepler-init`.
 
-A typical run: a person invokes `hamilton-propose` in their editor to shape the change with
-Hamilton's help, reviews and approves the artifacts, then hands off — the agent runs
-`hamilton-plan`, loops `hamilton-code` and `hamilton-code-feedback` over the tasks, runs one
-`hamilton-review` over the whole branch, and calls `hamilton-finish-work`. Each step loads the
+A typical run: a person invokes `kepler-propose` in their editor to shape the change with
+Kepler's help, reviews and approves the artifacts, then hands off — the agent runs
+`kepler-plan`, loops `kepler-code` and `kepler-code-feedback` over the tasks, runs one
+`kepler-review` over the whole branch, and calls `kepler-finish-work`. Each step loads the
 matching skill from `~/.claude/skills/` (or wherever
 your agent reads `SKILL.md` files) and follows it against the artifacts.
 
 ## Status
 
-The seven core pipeline skills, the `hamilton-orchestrate` driver, and the distributed workbench
-are the maintained workflow in this repository. `hamilton setup` installs the versioned templates
-and guidelines under `~/.hamilton/`; users install the portable skills separately for their coding
+The seven core pipeline skills, the `kepler-orchestrate` driver, and the distributed workbench
+are the maintained workflow in this repository. `kepler setup` installs the versioned templates
+and guidelines under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`; users install the portable skills separately for their coding
 agent. The test suite covers the setup CLI, workbench operations, artifact templates, and skill
 contracts.

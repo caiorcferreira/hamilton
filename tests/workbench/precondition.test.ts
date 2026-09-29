@@ -6,7 +6,7 @@ import {
   PreconditionService,
   type PreconditionArguments,
   type PreconditionRuntime,
-} from "../../src/workbench/precondition.js";
+} from "../../packages/cli/src/workbench/precondition.js";
 import {
   cleanupRepos,
   commitAll,
@@ -25,7 +25,7 @@ const runPrecondition = (
 ) => new PreconditionService(runtime).execute(args);
 
 const evidencePath = (slug: string, file: string): string =>
-  `.hamilton/changes/${slug}/${file}`;
+  `.kepler/changes/${slug}/${file}`;
 
 type ReviewFixtureMode =
   | "compatibility"

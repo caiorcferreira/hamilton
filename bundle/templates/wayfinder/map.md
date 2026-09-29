@@ -10,8 +10,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Map — the shared chart for one wayfinding effort.
-  Produced by: hamilton-wayfinder
-  Lives at: .hamilton/maps/<effort>/map.md
+  Produced by: kepler-wayfinder
+  Lives at: .kepler/maps/<effort>/map.md
   The map is an INDEX, not a store — it gists each closed ticket and links it,
   never restating the decision the ticket holds. Note that the frontmatter
   below becomes the first line of the file once this block is deleted.

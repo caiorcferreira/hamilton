@@ -6,6 +6,12 @@ const root = resolve(import.meta.dirname, "../..");
 const { version: packageVersion } = JSON.parse(
   readFileSync(resolve(root, "package.json"), "utf8"),
 );
+const packageVersions = [
+  "packages/core/package.json",
+  "packages/cli/package.json",
+].map((file) => JSON.parse(readFileSync(resolve(root, file), "utf8")).version);
+const sourceVersion = readFileSync(resolve(root, "src/index.ts"), "utf8")
+  .match(/^export const VERSION = "([^\"]+)"$/m)?.[1];
 const releaseNotesFile = `docs/releases/${packageVersion}.md`;
 const releaseNotesPath = resolve(root, releaseNotesFile);
 const releaseWorkflow = readFileSync(
@@ -14,31 +20,55 @@ const releaseWorkflow = readFileSync(
 );
 const publishJob =
   releaseWorkflow.match(/\n  publish:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
+const verifyJob =
+  releaseWorkflow.match(/\n  verify:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
+const packageJob =
+  releaseWorkflow.match(/\n  package:\n([\s\S]*?)(?=\n  [\w-]+:\n|$)/)?.[1] ?? "";
 
 describe("versioned release notes", () => {
-  it("documents the version's CLI breaking changes and install path", () => {
+  it("synchronizes the root, package, and CLI version metadata before release", () => {
+    expect(packageVersions).toEqual([packageVersion, packageVersion]);
+    expect(sourceVersion).toBe(packageVersion);
+    expect(verifyJob).toContain("bun run check:version");
+    expect(verifyJob).toContain("bash scripts/smoke-installer.sh");
+  });
+
+  it("documents the first Kepler package and release format", () => {
     expect(existsSync(releaseNotesPath)).toBe(true);
     const releaseNotes = readFileSync(releaseNotesPath, "utf8");
 
-    expect(releaseNotes).toMatch(/--completions/);
-    expect(releaseNotes).toMatch(/--log-level/);
-    expect(releaseNotes).toMatch(/--wizard/);
-    expect(releaseNotes).toMatch(/flags?[^\n]*removed/i);
-    expect(releaseNotes).toMatch(
-      /rejected as a usage error with exit code `?2`?/i,
-    );
-    expect(releaseNotes).toMatch(
-      /setup`? failure[^\n]*exit(?:s|ed)? (?:with )?(?:status|code) `?2`?[^\n]*(?:rather than|instead of) `?0`?/i,
-    );
-    expect(releaseNotes).toMatch(/standalone Bun executable/i);
-    expect(releaseNotes).toMatch(/sidecar `?bundle\/?`?/i);
+    expect(releaseNotes).toContain(`# Kepler ${packageVersion}`);
+    expect(releaseNotes).toMatch(/first release[^\n]*two-package workspace/i);
+    expect(releaseNotes).toMatch(/old `hamilton` command[^\n]*not provided as an alias/i);
+    expect(releaseNotes).toMatch(/global data now lives/i);
+    expect(releaseNotes).toMatch(/legacy `~\/.hamilton\/`[^\n]*source unchanged/i);
+    expect(releaseNotes).toMatch(/legacy `\.hamilton\/`[^\n]*without merging/i);
+    expect(releaseNotes).toContain("@vialactea-works/kepler-cli");
+    expect(releaseNotes).toContain("@vialactea-works/kepler-core");
+    expect(releaseNotes).toContain(`kepler-core-${packageVersion}.tgz`);
+    expect(releaseNotes).toContain("SHA256SUMS");
+    expect(releaseNotes).toMatch(/does not publish it to a package registry/i);
+    expect(releaseNotes).toMatch(/standalone executable/i);
+    expect(releaseNotes).toContain("kepler-bundle.tar.gz");
     expect(releaseNotes).toMatch(/curl -fsSL[^\n]*install\.sh[^\n]*\| bash/);
   });
 
+  it("packages Kepler-named binaries, bundle, and a core tarball", () => {
+    expect(releaseWorkflow).toContain("packages/cli/src/cli/main.ts");
+    expect(releaseWorkflow).toContain("kepler-${{ matrix.os }}-${{ matrix.arch }}");
+    expect(releaseWorkflow).toContain("kepler-bundle.tar.gz");
+    expect(packageJob).toMatch(/bun pm pack --filename/);
+    expect(packageJob).toMatch(/kepler-core-\$\{PACKAGE_VERSION\}\.tgz/);
+    expect(packageJob).toMatch(/Smoke test binary with packaged bundle[\s\S]*?scripts\/smoke-standalone\.sh/);
+    expect(packageJob).toMatch(/sha256sum kepler-\*/);
+    expect(releaseWorkflow).not.toMatch(/hamilton-(?:linux|darwin|bundle)/i);
+  });
+
   it("publishes only the notes for the current package version", () => {
-    expect(publishJob).toMatch(/uses:\s*actions\/checkout@v4/);
+    expect(publishJob).toMatch(/uses:\s*actions\/checkout@[a-f0-9]{40}/);
+    expect(publishJob).toMatch(/VERSION="\$RELEASE_VERSION"/);
     expect(publishJob).toMatch(
-      /VERSION="\$\{\{\s*needs\.check-version\.outputs\.version\s*\}\}"/,
+      /RELEASE_VERSION:\s*\$\{\{\s*needs\.check-version\.outputs\.version\s*\}\}/,
     );
     expect(publishJob).toMatch(
       /NOTES_FILE="docs\/releases\/\$\{VERSION\}\.md"/,

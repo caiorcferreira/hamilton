@@ -2,17 +2,17 @@ import "reflect-metadata";
 import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { DiffCommand } from "../../src/cli/nest/diff.command.js";
-import { IsolateCommand } from "../../src/cli/nest/isolate.command.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
+import { DiffCommand } from "../../packages/cli/src/cli/nest/diff.command.js";
+import { IsolateCommand } from "../../packages/cli/src/cli/nest/isolate.command.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
 import {
   PreconditionService,
   type PreconditionArguments,
   type PreconditionResult,
-} from "../../src/workbench/precondition.js";
-import { DiffService } from "../../src/workbench/diff.js";
-import { IsolateService } from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/precondition.js";
+import { DiffService } from "../../packages/cli/src/workbench/diff.js";
+import { IsolateService } from "../../packages/cli/src/workbench/isolate.js";
 
 const result = (
   overrides: Partial<PreconditionResult> = {},
@@ -32,7 +32,7 @@ async function runCli(
   preconditionResult: PreconditionResult = result(),
 ) {
   const { PreconditionCommand } = await import(
-    "../../src/cli/nest/precondition.command.js"
+    "../../packages/cli/src/cli/nest/precondition.command.js"
   );
   const calls: PreconditionArguments[] = [];
   let stdout = "";
@@ -83,7 +83,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -91,7 +91,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     await CommandFactory.runApplication(application);
   } finally {
     exitCode = process.exitCode;
@@ -111,7 +111,7 @@ describe("PreconditionCommand", () => {
       "workbench",
       "precondition",
       "--change-dir",
-      ".hamilton/change",
+      ".kepler/change",
       "--test-cmd",
       "bun --bun vitest run",
       "--whole-change-waived",
@@ -119,7 +119,7 @@ describe("PreconditionCommand", () => {
 
     expect(harness.calls).toEqual([
       {
-        changeDir: ".hamilton/change",
+        changeDir: ".kepler/change",
         testCommand: "bun --bun vitest run",
         wholeChangeWaived: true,
       },
@@ -135,7 +135,7 @@ describe("PreconditionCommand", () => {
         "workbench",
         "precondition",
         "--change-dir",
-        ".hamilton/change",
+        ".kepler/change",
         "--test-cmd",
         "bun --bun vitest run",
       ],
@@ -151,7 +151,7 @@ describe("PreconditionCommand", () => {
 
     expect(harness.calls).toEqual([
       {
-        changeDir: ".hamilton/change",
+        changeDir: ".kepler/change",
         testCommand: "bun --bun vitest run",
         wholeChangeWaived: false,
       },
@@ -177,7 +177,7 @@ describe("PreconditionCommand", () => {
           "workbench",
           "precondition",
           "--change-dir",
-          ".hamilton/change",
+          ".kepler/change",
         ],
         message: "Expected to find option: '--test-cmd'\n",
       },

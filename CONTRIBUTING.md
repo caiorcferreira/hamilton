@@ -1,8 +1,8 @@
-# Contributing to Hamilton
+# Contributing to Kepler
 
 ## Documentation Conventions
 
-When making changes to Hamilton's own codebase, keep the documentation in `docs/`
+When making changes to Kepler's own codebase, keep the documentation in `docs/`
 synchronized. Every code change that affects user-facing behavior, APIs, configuration,
 or CLI commands must include corresponding documentation updates.
 
@@ -12,11 +12,11 @@ or CLI commands must include corresponding documentation updates.
 | ------------------ | --------------- |
 | New/changed CLI command, flag, or argument | `docs/skills.md` (setup reference) |
 | New/changed artifact template in `bundle/templates/` | `docs/sdd-framework.md` |
-| New/changed Assisted-mode skill in `skills/hamilton-*/` | `docs/skills.md` |
+| New/changed Assisted-mode skill in `skills/kepler-*/` | `docs/skills.md` |
 | New/changed wayfinder artifact template in `bundle/templates/wayfinder/` | `docs/skills.md` |
-| New/changed map artifacts in `.hamilton/maps/` | `docs/skills.md` |
+| New/changed map artifacts in `.kepler/maps/` | `docs/skills.md` |
 | New/changed guideline in `bundle/guidelines/` | `docs/tutorials/custom-guidelines.md` |
-| Changes to what `hamilton setup` installs | `docs/modes.md` or `README.md` |
+| Changes to what `kepler setup` installs | `docs/modes.md` or `README.md` |
 
 ### Rules
 
@@ -28,7 +28,7 @@ or CLI commands must include corresponding documentation updates.
 
 ## Licensing and attribution
 
-Hamilton is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file as the sole carrier of upstream attribution. The `SKILL.md` body carries no provenance or attribution text at all — it is a context cost paid on every skill load.
+Kepler is licensed under the Apache License 2.0. When a skill directory is forked from another project, the skill directory — not the repo — is what users install. This means the upstream licence notice must travel inside the skill directory itself. Every forked skill directory therefore ships a sibling `NOTICE` file as the sole carrier of upstream attribution. The `SKILL.md` body carries no provenance or attribution text at all — it is a context cost paid on every skill load.
 
 The licence text must appear in the sibling `NOTICE` rather than in `references/`, which in this repo is content the agent reads into context on every invocation.
 
@@ -69,7 +69,7 @@ Original work:
 
 ## Map mechanics
 
-This section is the file-native frontmatter contract for map artifacts under `.hamilton/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/hamilton-wayfinder/SKILL.md`, and no other content in this file needs to change.
+This section is the file-native frontmatter contract for map artifacts under `.kepler/maps/`. It is the swappable surface a future tracker backend replaces: the backend swaps this section together with the `## Map mechanics` section in `skills/kepler-wayfinder/SKILL.md`, and no other content in this file needs to change.
 
 | Frontmatter field | Valid values |
 | ------------------- | -------------- |

@@ -7,12 +7,12 @@ import {
   renderIsolationResult,
   type IsolationArguments,
   type IsolationResult,
-} from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/isolate.js";
 import {
   createRuntime,
   type IsolationRuntime,
   type ProcessPort,
-} from "../../src/workbench/runtime.js";
+} from "../../packages/cli/src/workbench/runtime.js";
 import {
   git,
   makeChangeDir,
@@ -239,7 +239,7 @@ describe("isolation check", () => {
   });
 
   it("errors outside a git repository", async () => {
-    const directory = Fs.mkdtempSync(Path.join(Os.tmpdir(), "hamilton-nogit-"));
+    const directory = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-nogit-"));
     try {
       inDirectory(directory);
       const result = await runIsolation({ mode: "check" });

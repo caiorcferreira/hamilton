@@ -1,33 +1,32 @@
-# Hamilton
+# Kepler
 
-> *"How do you write like you're running out of time?"* — *Hamilton*
-
-Hamilton is a coding toolbox focused on producing high-quality code and architecture. It brings
+Kepler is a coding toolbox focused on producing high-quality code and architecture. It brings
 structure to AI-assisted coding — carrying a change from idea to merge through disciplined,
 spec-driven steps that any coding agent can follow.
 
-Hamilton is now a **simple CLI that sets up the Assisted workflow**: `hamilton setup` installs the
-spec-driven-development artifact templates and coding guidelines into `~/.hamilton/`, while
-`hamilton workbench` provides the supported workflow-mechanics surface used by the skills. The
+Kepler is now a **simple CLI that sets up the Assisted workflow**: `kepler setup` installs the
+spec-driven-development artifact templates and coding guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`, while
+`kepler workbench` provides the supported workflow-mechanics surface used by the skills. The
 Autonomous workflow engine and Ambient memory layer were removed in 0.3.0; the last full-feature
 state is preserved on the `archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vialactea-works/kepler/main/install.sh | bash
 
-npx skills add https://github.com/caiorcferreira/hamilton
+npx skills add https://github.com/vialactea-works/kepler
 ```
 
 The first command installs the platform-specific standalone Bun executable and its sidecar bundle,
-then sets up artifacts in `~/.hamilton`. The second installs the skills in your preferred coding
-agent.
+then sets up artifacts in `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler`. The second installs the skills in your preferred coding agent.
+
+Kepler stores global files under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` and project artifacts under `.kepler/`. When only legacy `~/.hamilton/` or project `.hamilton/` data exists, Kepler copies it to the corresponding Kepler path and leaves the original unchanged. If both paths exist, Kepler uses the new path without merging, overwriting, or deleting legacy data.
 
 **Environment variables** (optional):
-- `HAMILTON_VERSION` — install a specific release version (default: latest)
-- `HAMILTON_REPO_SLUG` — GitHub repo slug to download from (default: `caiorcferreira/hamilton`)
-- `HAMILTON_BUNDLE_DIR` — override where `hamilton setup` reads `bundle/` from (for development)
+- `KEPLER_VERSION` — install a specific release version (default: latest)
+- `KEPLER_REPO_SLUG` — GitHub repo slug to download from (default: `vialactea-works/kepler`)
+- `KEPLER_BUNDLE_DIR` — override where `kepler setup` reads `bundle/` from (for development)
 
 See the **[Skills reference](docs/skills.md)** for what each skill does, its inputs, and its outputs,
 and the **[SDD framework](docs/sdd-framework.md)** for the design rationale.
@@ -41,25 +40,25 @@ A setup failure exits with status `2` instead of `0`.
 
 ## What the CLI does
 
-`hamilton setup` bootstraps `~/.hamilton/`:
+`kepler setup` bootstraps `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`:
 
 ```
-~/.hamilton/
+${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/
   templates/     # SDD artifact templates (plan.md, design.md, proposal.md, ...)
   guidelines/    # coding guidelines (general, golang, typescript)
   settings.yaml  # default settings
 ```
 
-The distributed `hamilton workbench` command is the supported surface for workflow mechanics. Its
-operations are `hamilton workbench isolate`, `hamilton workbench diff`,
-`hamilton workbench precondition`, `hamilton workbench context`, and
-`hamilton workbench prototype`. Artifact validation uses `hamilton workbench lint`.
+The distributed `kepler workbench` command is the supported surface for workflow mechanics. Its
+operations are `kepler workbench isolate`, `kepler workbench diff`,
+`kepler workbench precondition`, `kepler workbench context`, and
+`kepler workbench prototype`. Artifact validation uses `kepler workbench lint`.
 
 ```bash
-hamilton setup          # bootstrap ~/.hamilton/ (preserves existing settings)
-hamilton setup --force  # rerun setup; preserves existing settings
-hamilton workbench --help
-hamilton --help
+kepler setup          # bootstrap ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/ (preserves existing settings)
+kepler setup --force  # rerun setup; preserves existing settings
+kepler workbench --help
+kepler --help
 ```
 
 ## Assisted skills — start here
@@ -74,9 +73,9 @@ init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-fee
 ```
 
 Each step is a self-contained `SKILL.md` that names no engine internals. It depends on the project's
-standards (`AGENTS.md`), the artifact templates and coding guidelines Hamilton installs under
-`~/.hamilton/` with `hamilton setup`, the distributed `hamilton workbench` command, and the
-per-change artifacts under the project's own `.hamilton/` directory. The same skill guides a person
+standards (`AGENTS.md`), the artifact templates and coding guidelines Kepler installs under
+`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` with `kepler setup`, the distributed `kepler workbench` command, and the
+per-change artifacts under the project's own `.kepler/` directory. The same skill guides a person
 in an editor or an agent like Claude Code. The heavyweight front door (`propose`) is optional; a
 tactical change starts at `plan`.
 
@@ -86,10 +85,10 @@ around those operations.
 
 ### Artifacts
 
-The skills produce durable, per-project artifacts under `.hamilton/`:
+The skills produce durable, per-project artifacts under `.kepler/`:
 
 ```
-.hamilton/
+.kepler/
   specs/                              # canonical capability truth (living)
     <capability>.md
   changes/
@@ -110,17 +109,17 @@ The skills produce durable, per-project artifacts under `.hamilton/`:
 Changes are ephemeral; specs are durable. When a change finishes, its requirement deltas fold into
 `specs/`, the project's always-current requirements truth.
 
-When upgrading this workflow, first finish any active change with the Hamilton generation that
-created it. Between changes, update the CLI and the agent-loaded skills together from one Hamilton
-generation, run `hamilton setup`, verify `hamilton workbench --help`, and then start the next change.
-Setup does not delete stale helper files from an older generation; run `hamilton purge` for explicit
-cleanup when desired. See the **[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
+When upgrading this workflow, first finish any active change with the Kepler generation that
+created it. Between changes, update the CLI and the agent-loaded skills together from one Kepler
+generation, run `kepler setup`, verify `kepler workbench --help`, and then start the next change.
+Setup does not delete stale helper files from an older generation. `bun run purge` removes the local
+CLI symlink and `~/.kepler-dist/`, but preserves Kepler's global data. See the **[between-changes migration guidance](docs/sdd-framework.md#upgrading-to-the-split-workflow)**
 for the exact procedure. Never replace one part of the installed generation while a change is active.
 
 ## Requirements
 
 - **A coding agent that loads `SKILL.md` files** (e.g. Claude Code).
-- **An existing git repo** — Hamilton operates on an existing repository (no greenfield support yet).
+- **An existing git repo** — Kepler operates on an existing repository (no greenfield support yet).
 
 ## Development
 
@@ -130,27 +129,27 @@ for the exact procedure. Never replace one part of the installed generation whil
 # 1. Install the CLI
 
 # For end users, use the install.sh script:
-curl -fsSL https://raw.githubusercontent.com/caiorcferreira/hamilton/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vialactea-works/kepler/main/install.sh | bash
 
 # For contributors building from source:
 bun install
 bun run build                  # compile TypeScript
 bun run install-local          # symlink to ~/.local/bin/
-hamilton setup                 # install bundle/{templates,guidelines}/ → ~/.hamilton/
+kepler setup                 # install bundle/{templates,guidelines}/ → ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/
 
 # 2. Make the pipeline skills available to your coding agent.
-#    The skills live in skills/hamilton-*/ — copy or symlink them into a
+#    The skills live in skills/kepler-*/ — copy or symlink them into a
 #    skills directory your agent loads (e.g. ~/.claude/skills/), or point
 #    the agent at the SKILL.md paths.
 
 # 3. In your project, run the skills through your agent, in order:
-#    hamilton-init         → scaffold .hamilton/ and write AGENTS.md (once)
-#    hamilton-propose      → proposal + requirements + design (optional)
-#    hamilton-plan         → plan.md + root task ledger + task progress files
-#    hamilton-code         → implement one task and record its attempt
-#    hamilton-code-feedback → review that task; loop with code until approved
-#    hamilton-review       → inspect the whole branch once after all tasks
-#    hamilton-finish-work  → gate, sync specs, record intent, merge / PR / no-op, verify, record outcome
+#    kepler-init         → scaffold .kepler/ and write AGENTS.md (once)
+#    kepler-propose      → proposal + requirements + design (optional)
+#    kepler-plan         → plan.md + root task ledger + task progress files
+#    kepler-code         → implement one task and record its attempt
+#    kepler-code-feedback → review that task; loop with code until approved
+#    kepler-review       → inspect the whole branch once after all tasks
+#    kepler-finish-work  → gate, sync specs, record intent, merge / PR / no-op, verify, record outcome
 ```
 
 **Build and test commands** (for contributors):
@@ -160,7 +159,7 @@ bun install                    # install dependencies
 bun run build                  # compile TypeScript (tsc -p tsconfig.json)
 bun run test                   # run Vitest on Bun
 bun run install-local          # build + symlink the CLI locally
-bun run purge                  # remove the CLI symlink and ~/.hamilton/
+bun run purge                  # remove the CLI symlink and ~/.kepler-dist/; preserves Kepler data
 ```
 
 **Do not use `bun test`** — it selects Bun's native test runner. Use `bun --bun vitest run` or
@@ -169,4 +168,4 @@ bun run purge                  # remove the CLI symlink and ~/.hamilton/
 
 ## License
 
-Hamilton is licensed under the [Apache License 2.0](LICENSE). Some skills in this repository are adapted from other projects; their original licences are reproduced in [NOTICE](NOTICE) and in a `NOTICE` file beside each forked skill directory.
+Kepler is licensed under the [Apache License 2.0](LICENSE). Some skills in this repository are adapted from other projects; their original licences are reproduced in [NOTICE](NOTICE) and in a `NOTICE` file beside each forked skill directory.

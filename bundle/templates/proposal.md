@@ -5,12 +5,12 @@ status: draft | approved | implemented
 decision: accepted | rejected | skipped
 author: <Name <email>>
 created: <YYYY-MM-DD>
-route_unit: <.hamilton/maps/<effort>/route.md — unit N, or null>
+route_unit: <.kepler/maps/<effort>/route.md — unit N, or null>
 ---
 
 <!--
   PRD — Proposal / "Why"
-  Produced by: hamilton-propose (step 1)
+  Produced by: kepler-propose (step 1)
   Owns the WHY and the product-level WHAT. Target length: 1–2 pages.
   OPTIONAL artifact — skip for small changes and start at plan.md.
   Delete this comment block and every inline <!-- ... --> hint before finalizing.

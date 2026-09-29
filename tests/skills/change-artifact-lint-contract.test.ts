@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest"
 import { readSkill, section } from "./helpers.js"
 
 const changeScopedWriters = [
-  "hamilton-propose",
-  "hamilton-code",
-  "hamilton-code-feedback",
-  "hamilton-critique",
-  "hamilton-review",
-  "hamilton-finish-work",
+  "kepler-propose",
+  "kepler-code",
+  "kepler-code-feedback",
+  "kepler-critique",
+  "kepler-review",
+  "kepler-finish-work",
 ] as const
 
 const readWriters = () =>
@@ -32,7 +32,7 @@ describe("change-scoped artifact lint contract", () => {
     const skills = readWriters()
 
     for (const name of changeScopedWriters) {
-      expect(skills[name]).toContain("hamilton workbench lint")
+      expect(skills[name]).toContain("kepler workbench lint")
       expect(skills[name]).toMatch(/nonzero.*lint|lint.*nonzero/is)
     }
   })
@@ -41,34 +41,34 @@ describe("change-scoped artifact lint contract", () => {
     const skills = readWriters()
 
     for (const name of [
-      "hamilton-propose",
-      "hamilton-code",
+      "kepler-propose",
+      "kepler-code",
     ] as const) {
       expect(skills[name]).toContain(
-        "hamilton workbench lint --change-dir <change-dir>",
+        "kepler workbench lint --change-dir <change-dir>",
       )
     }
 
-    expect(skills["hamilton-critique"]).toContain(
-      "hamilton workbench lint --file <change-dir>/critique.md",
+    expect(skills["kepler-critique"]).toContain(
+      "kepler workbench lint --file <change-dir>/critique.md",
     )
-    expect(skills["hamilton-code-feedback"]).toContain(
-      "hamilton workbench lint --file <change-dir>/tasks/task-N/feedback.md",
+    expect(skills["kepler-code-feedback"]).toContain(
+      "kepler workbench lint --file <change-dir>/tasks/task-N/feedback.md",
     )
-    expect(skills["hamilton-review"]).toContain(
-      "hamilton workbench lint --file <change-dir>/review.md",
+    expect(skills["kepler-review"]).toContain(
+      "kepler workbench lint --file <change-dir>/review.md",
     )
-    expect(skills["hamilton-finish-work"]).toContain(
-      "hamilton workbench lint --file <file>",
+    expect(skills["kepler-finish-work"]).toContain(
+      "kepler workbench lint --file <file>",
     )
-    expect(skills["hamilton-finish-work"]).toContain(
-      "hamilton workbench lint --file <change-dir>/finish.md",
+    expect(skills["kepler-finish-work"]).toContain(
+      "kepler workbench lint --file <change-dir>/finish.md",
     )
-    expect(skills["hamilton-propose"]).toContain(
-      "hamilton workbench lint --file <path>",
+    expect(skills["kepler-propose"]).toContain(
+      "kepler workbench lint --file <path>",
     )
-    expect(skills["hamilton-finish-work"]).toContain(
-      "hamilton workbench lint --file <path>",
+    expect(skills["kepler-finish-work"]).toContain(
+      "kepler workbench lint --file <path>",
     )
   })
 
@@ -76,79 +76,79 @@ describe("change-scoped artifact lint contract", () => {
     const skills = readWriters()
 
     expectOrdered(
-      section(skills["hamilton-propose"], "## Process"),
+      section(skills["kepler-propose"], "## Process"),
       "After every proposal artifact mutation",
-      "hamilton workbench lint --change-dir <change-dir>",
+      "kepler workbench lint --change-dir <change-dir>",
     )
     expectOrdered(
-      section(skills["hamilton-code"], "## Process"),
+      section(skills["kepler-code"], "## Process"),
       "root-row transition",
-      "hamilton workbench lint --change-dir <change-dir>",
+      "kepler workbench lint --change-dir <change-dir>",
     )
     expectOrdered(
-      section(skills["hamilton-code-feedback"], "## Record and commit"),
+      section(skills["kepler-code-feedback"], "## Record and commit"),
       "After appending the complete pass",
-      "hamilton workbench lint --file <change-dir>/tasks/task-N/feedback.md",
+      "kepler workbench lint --file <change-dir>/tasks/task-N/feedback.md",
     )
     expectOrdered(
-      section(skills["hamilton-critique"], "## Process"),
+      section(skills["kepler-critique"], "## Process"),
       "write the report",
-      "hamilton workbench lint --file <change-dir>/critique.md",
+      "kepler workbench lint --file <change-dir>/critique.md",
     )
     expectOrdered(
-      section(skills["hamilton-review"], "## Record and commit"),
+      section(skills["kepler-review"], "## Record and commit"),
       "After appending the complete pass",
-      "hamilton workbench lint --file <change-dir>/review.md",
+      "kepler workbench lint --file <change-dir>/review.md",
     )
     expectOrdered(
-      section(skills["hamilton-finish-work"], "## Process"),
+      section(skills["kepler-finish-work"], "## Process"),
       "Append the template-defined `Attempt N`",
-      "hamilton workbench lint --file <change-dir>/finish.md",
+      "kepler workbench lint --file <change-dir>/finish.md",
     )
-    const proposeProcess = section(skills["hamilton-propose"], "## Process")
-    const codeProcess = section(skills["hamilton-code"], "## Process")
+    const proposeProcess = section(skills["kepler-propose"], "## Process")
+    const codeProcess = section(skills["kepler-code"], "## Process")
     const feedbackRecording = section(
-      skills["hamilton-code-feedback"],
+      skills["kepler-code-feedback"],
       "## Record and commit",
     )
-    const critiqueProcess = section(skills["hamilton-critique"], "## Process")
-    const reviewRecording = section(skills["hamilton-review"], "## Record and commit")
-    const finishProcess = section(skills["hamilton-finish-work"], "## Process")
+    const critiqueProcess = section(skills["kepler-critique"], "## Process")
+    const reviewRecording = section(skills["kepler-review"], "## Record and commit")
+    const finishProcess = section(skills["kepler-finish-work"], "## Process")
 
     expectOrdered(
       proposeProcess,
-      "hamilton workbench lint --change-dir <change-dir>",
+      "kepler workbench lint --change-dir <change-dir>",
       "the next mutation or handoff",
     )
     expectOrdered(
       codeProcess,
-      "hamilton workbench lint --change-dir <change-dir>",
+      "kepler workbench lint --change-dir <change-dir>",
       "without committing or claiming compliance",
     )
     expectOrdered(
       feedbackRecording,
-      "hamilton workbench lint --file <change-dir>/tasks/task-N/feedback.md",
+      "kepler workbench lint --file <change-dir>/tasks/task-N/feedback.md",
       "before staging or",
     )
     expectOrdered(
       critiqueProcess,
-      "hamilton workbench lint --file <change-dir>/critique.md",
+      "kepler workbench lint --file <change-dir>/critique.md",
       "before printing it or handing it off",
     )
     expectOrdered(
       reviewRecording,
-      "hamilton workbench lint --file <change-dir>/review.md",
+      "kepler workbench lint --file <change-dir>/review.md",
       "before staging or",
     )
     expectOrdered(
       finishProcess,
-      "hamilton workbench lint --file <change-dir>/finish.md",
+      "kepler workbench lint --file <change-dir>/finish.md",
       "Commit that attempt alone",
     )
   })
 
   it("attributes each new proposed artifact to the effective Git identity", () => {
-    const propose = section(readWriters()["hamilton-propose"], "## Process")
+    const propose = section(readWriters()["kepler-propose"], "## Process")
     const creationGuidance = propose.match(
       /For every\s+new author-bearing output[\s\S]*?before writing;[\s\S]*?never use an agent name,[\s\S]*?operating-system username,[\s\S]*?unresolved template placeholder\./i,
     )?.[0]
@@ -168,7 +168,7 @@ describe("change-scoped artifact lint contract", () => {
   })
 
   it("stops every proposed output when either Git identity value is unavailable", () => {
-    const propose = section(readWriters()["hamilton-propose"], "## Process")
+    const propose = section(readWriters()["kepler-propose"], "## Process")
 
     expect(propose).toMatch(
       /If either configured Git value is unavailable[\s\S]*ask the user or\s+stop with a blocker before writing/i,
@@ -194,7 +194,7 @@ describe("change-scoped artifact lint contract", () => {
   })
 
   it("preserves each existing proposed artifact author on revisions", () => {
-    const propose = section(readWriters()["hamilton-propose"], "## Process")
+    const propose = section(readWriters()["kepler-propose"], "## Process")
     const revisionGuidance = propose.match(
       /On (?:a\s+)?revisions?[\s\S]*?unless explicitly directed otherwise\./i,
     )?.[0]
@@ -213,23 +213,23 @@ describe("change-scoped artifact lint contract", () => {
   it("preserves semantic and authorship gates around lint", () => {
     const skills = readWriters()
 
-    expect(skills["hamilton-propose"]).toMatch(
+    expect(skills["kepler-propose"]).toMatch(
       /git config user\.name[\s\S]*git config user\.email/i,
     )
-    expect(skills["hamilton-propose"]).toMatch(
+    expect(skills["kepler-propose"]).toMatch(
       /On a revision[\s\S]*preserve.*existing.*author attribution/i,
     )
-    expect(skills["hamilton-finish-work"]).toMatch(
+    expect(skills["kepler-finish-work"]).toMatch(
       /git config user\.name[\s\S]*git config user\.email/i,
     )
-    expect(skills["hamilton-finish-work"]).toMatch(
+    expect(skills["kepler-finish-work"]).toMatch(
       /existing canonical spec[\s\S]*preserve.*author metadata exactly/i,
     )
-    expect(skills["hamilton-code-feedback"]).toMatch(
+    expect(skills["kepler-code-feedback"]).toMatch(
       /lint.*before stag(?:e|ing).*commit/is,
     )
-    expect(skills["hamilton-review"]).toMatch(/lint.*before stag(?:e|ing).*commit/is)
-    expect(skills["hamilton-finish-work"]).toMatch(
+    expect(skills["kepler-review"]).toMatch(/lint.*before stag(?:e|ing).*commit/is)
+    expect(skills["kepler-finish-work"]).toMatch(
       /lint.*does not replace.*(?:freshness|ancestry|completion|semantic)/is,
     )
   })

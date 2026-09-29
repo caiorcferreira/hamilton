@@ -9,8 +9,8 @@ decision: accepted | rejected | skipped
 
 <!--
   Task Progress — execution history for one plan task.
-  Produced by: hamilton-plan (step 2); updated by hamilton-code (step 3).
-  Lives at: .hamilton/changes/<change>/tasks/task-N/progress.md
+  Produced by: kepler-plan (step 2); updated by kepler-code (step 3).
+  Lives at: .kepler/changes/<change>/tasks/task-N/progress.md
   The root progress.md remains the task status index.
   Delete this instruction block and every inline hint before finalizing.
 -->

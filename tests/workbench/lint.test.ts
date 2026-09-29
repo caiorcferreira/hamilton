@@ -8,13 +8,13 @@ import {
   type LintDependencies,
   type LintResult,
   type LintScope,
-} from "../../src/workbench/lint.js";
-import { validateArtifact as validateArtifactContract } from "../../src/workbench/artifact-contracts.js";
+} from "../../packages/cli/src/workbench/lint.js";
+import { validateArtifact as validateArtifactContract } from "../../packages/cli/src/workbench/artifact-contracts.js";
 
 const temporaryDirectories: string[] = [];
 
 const temporaryDirectory = async () => {
-  const directory = await Fs.mkdtemp(Path.join(Os.tmpdir(), "hamilton-lint-"));
+  const directory = await Fs.mkdtemp(Path.join(Os.tmpdir(), "kepler-lint-"));
   temporaryDirectories.push(directory);
   return directory;
 };
@@ -135,14 +135,14 @@ const writeReviewArtifact = async (
     kind === "feedback"
       ? Path.join(
           directory,
-          ".hamilton",
+          ".kepler",
           "changes",
           "demo",
           "tasks",
           "task-1",
           "feedback.md",
         )
-      : Path.join(directory, ".hamilton", "changes", "demo", "review.md");
+      : Path.join(directory, ".kepler", "changes", "demo", "review.md");
   const source = reviewSource(kind, body, globals);
   await Fs.mkdir(Path.dirname(file), { recursive: true });
   await Fs.writeFile(file, source);
@@ -634,7 +634,7 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const file = Path.join(
       directory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "demo",
       "proposal.md",
@@ -771,7 +771,7 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const changeDirectory = Path.join(
       directory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "demo",
     );
@@ -959,7 +959,7 @@ describe("scoped artifact lint", () => {
       const directory = await temporaryDirectory();
       const changeDirectory = Path.join(
         directory,
-        ".hamilton",
+        ".kepler",
         "changes",
         "demo",
       );
@@ -979,7 +979,7 @@ describe("scoped artifact lint", () => {
     const directory = await temporaryDirectory();
     const taskFile = Path.join(
       directory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "demo",
       "tasks",
@@ -1007,7 +1007,7 @@ decision: accepted
 
     const finishFile = Path.join(
       directory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "demo",
       "finish.md",
@@ -1078,7 +1078,7 @@ decision: accepted
     const directory = await temporaryDirectory();
     const file = Path.join(
       directory,
-      ".hamilton",
+      ".kepler",
       "changes",
       "demo",
       "finish.md",

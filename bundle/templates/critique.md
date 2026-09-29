@@ -9,8 +9,8 @@ scope: <artifacts and evidence reviewed>
 
 <!--
   Critique — the design-phase review artifact for a change.
-  Lives at: .hamilton/changes/<change>/critique.md
-  Written by the hamilton-critique skill: a verdict plus a numbered, located findings list
+  Lives at: .kepler/changes/<change>/critique.md
+  Written by the kepler-critique skill: a verdict plus a numbered, located findings list
   over the propose artifacts (proposal.md, requirements/, design.md). Findings are one
   continuous list, ordered most-severe first, so a reply can pick an item by its number.
   Delete this comment block before finalizing.

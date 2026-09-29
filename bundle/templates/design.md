@@ -10,7 +10,7 @@ route_unit: null
 
 <!--
   SDD — Design / "How"   (IEEE 1016-inspired, right-sized)
-  Produced by: hamilton-propose (step 1 of the seven-stage pipeline).
+  Produced by: kepler-propose (step 1 of the seven-stage pipeline).
   Owns HOW the change is built. References proposal.md for why, requirements/ for what.
   Focus on architecture and the decisions behind it — NOT line-by-line code
   (that belongs in plan.md).
@@ -85,9 +85,9 @@ route_unit: null
 ## Testing Strategy
 
 <!-- What will prove this works: unit vs integration boundaries, the key cases to
-     cover, and how verification runs. Name the tactical gates, `hamilton-code` and
-     `hamilton-code-feedback`, and the final gates, `hamilton-review` and
-     `hamilton-finish-work`. -->
+     cover, and how verification runs. Name the tactical gates, `kepler-code` and
+     `kepler-code-feedback`, and the final gates, `kepler-review` and
+     `kepler-finish-work`. -->
 
 ## Constraints & Boundaries
 

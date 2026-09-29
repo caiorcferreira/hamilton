@@ -6,16 +6,16 @@ const pipelineSequence =
   /init\s+→\s+propose\s+→\s+plan\s+→\s+code\s+→\s+code-feedback\s+→\s+review\s+→\s+finish-work/
 
 const coreSkills = [
-  ["hamilton-init", 0, /standing project standards/i],
-  ["hamilton-propose", 1, /proposal.*requirements.*design/is],
-  ["hamilton-plan", 2, /ordered ledger.*tasks/is],
-  ["hamilton-code", 3, /one active plan task/i],
-  ["hamilton-code-feedback", 4, /one implemented plan task.*stable diff/is],
-  ["hamilton-review", 5, /complete branch.*final inspection/is],
-  ["hamilton-finish-work", 6, /canonical specifications.*finish/is],
+  ["kepler-init", 0, /standing project standards/i],
+  ["kepler-propose", 1, /proposal.*requirements.*design/is],
+  ["kepler-plan", 2, /ordered ledger.*tasks/is],
+  ["kepler-code", 3, /one active plan task/i],
+  ["kepler-code-feedback", 4, /one implemented plan task.*stable diff/is],
+  ["kepler-review", 5, /complete branch.*final inspection/is],
+  ["kepler-finish-work", 6, /canonical specifications.*finish/is],
 ] as const
 
-const liveSkills = [...coreSkills.map(([name]) => name), "hamilton-critique", "hamilton-orchestrate"]
+const liveSkills = [...coreSkills.map(([name]) => name), "kepler-critique", "kepler-orchestrate"]
 
 describe("seven-step pipeline identity", () => {
   it.each(coreSkills)("identifies %s as core step %i with its distinct role", (name, step, role) => {
@@ -27,27 +27,27 @@ describe("seven-step pipeline identity", () => {
   })
 
   it("keeps critique optional, outside the core count, and distinct from whole-branch review", () => {
-    const critique = readSkill("hamilton-critique")
+    const critique = readSkill("kepler-critique")
 
     expect(critique).toMatch(pipelineSequence)
     expect(critique).toMatch(/optional.*outside the (?:seven-step )?core (?:pipeline|count)/is)
     expect(critique).toMatch(/proposal.*requirements.*design/is)
-    expect(critique).toMatch(/hamilton-review.*whole-branch/is)
+    expect(critique).toMatch(/kepler-review.*whole-branch/is)
   })
 
   it("treats the single critique decision as its terminal disposition", () => {
-    const critique = readSkill("hamilton-critique")
-    const handoff = section(readSkill("hamilton-critique"), "## Handoff")
+    const critique = readSkill("kepler-critique")
+    const handoff = section(readSkill("kepler-critique"), "## Handoff")
 
     expect(critique).toMatch(/single `decision` field.*critique is settled/is)
     expect(critique).toMatch(/`accepted`.*needs no remediation.*`applied`.*accepts and applies.*`rejected`.*dismisses/is)
     expect(critique).toMatch(/never add a second resolution\s+field/i)
     expect(handoff).toMatch(/changes-requested.*`decision: applied`.*cleared/is)
     expect(handoff).toMatch(/`decision: rejected`.*settled.*findings are not worked/is)
-    expect(handoff).toMatch(/never rerun.*`hamilton-critique`/is)
-    expect(handoff).toMatch(/no `plan\.md`.*`hamilton-plan`/is)
-    expect(handoff).toMatch(/existing plan.*`hamilton-code`.*`hamilton-orchestrate`/is)
-    expect(handoff).toMatch(/invalidate an existing plan.*`hamilton-plan` in re-plan mode/is)
+    expect(handoff).toMatch(/never rerun.*`kepler-critique`/is)
+    expect(handoff).toMatch(/no `plan\.md`.*`kepler-plan`/is)
+    expect(handoff).toMatch(/existing plan.*`kepler-code`.*`kepler-orchestrate`/is)
+    expect(handoff).toMatch(/invalidate an existing plan.*`kepler-plan` in re-plan mode/is)
   })
 
   it("keeps Wayfinder outside the core count", () => {
@@ -57,31 +57,31 @@ describe("seven-step pipeline identity", () => {
   })
 
   it("uses the split task and whole-branch handoffs", () => {
-    expect(readSkill("hamilton-init")).toMatch(/ready for `hamilton-propose`.*`hamilton-plan`/s)
-    expect(section(readSkill("hamilton-propose"), "## Handoff")).toContain("`hamilton-plan`")
-    expect(readSkill("hamilton-propose")).toMatch(/frontmatter.*`route_unit`/is)
-    expect(section(readSkill("hamilton-plan"), "## Handoff")).toMatch(/`hamilton-code`.*`hamilton-orchestrate`/s)
-    expect(section(readSkill("hamilton-code"), "## Handoff")).toMatch(/done commit.*`hamilton-code-feedback`/s)
-    expect(section(readSkill("hamilton-code-feedback"), "## Output and handoff")).toMatch(/next task.*`hamilton-code`.*whole-branch.*`hamilton-review`/s)
-    expect(section(readSkill("hamilton-review"), "## Output and handoff")).toMatch(/approved.*`hamilton-finish-work`/s)
-    expect(readSkill("hamilton-finish-work")).toMatch(/step 6.*last/is)
-    expect(readSkill("hamilton-finish-work")).toMatch(/frontmatter.*`decision`/is)
+    expect(readSkill("kepler-init")).toMatch(/ready for `kepler-propose`.*`kepler-plan`/s)
+    expect(section(readSkill("kepler-propose"), "## Handoff")).toContain("`kepler-plan`")
+    expect(readSkill("kepler-propose")).toMatch(/frontmatter.*`route_unit`/is)
+    expect(section(readSkill("kepler-plan"), "## Handoff")).toMatch(/`kepler-code`.*`kepler-orchestrate`/s)
+    expect(section(readSkill("kepler-code"), "## Handoff")).toMatch(/done commit.*`kepler-code-feedback`/s)
+    expect(section(readSkill("kepler-code-feedback"), "## Output and handoff")).toMatch(/next task.*`kepler-code`.*whole-branch.*`kepler-review`/s)
+    expect(section(readSkill("kepler-review"), "## Output and handoff")).toMatch(/approved.*`kepler-finish-work`/s)
+    expect(readSkill("kepler-finish-work")).toMatch(/step 6.*last/is)
+    expect(readSkill("kepler-finish-work")).toMatch(/frontmatter.*`decision`/is)
   })
 
   it("describes orchestration as the code-feedback loop followed by final review and finish", () => {
-    const orchestrate = readSkill("hamilton-orchestrate")
+    const orchestrate = readSkill("kepler-orchestrate")
 
     expect(orchestrate).toMatch(pipelineSequence)
-    expect(orchestrate).toMatch(/`hamilton-code`.*↔.*`hamilton-code-feedback`.*`hamilton-review`.*`hamilton-finish-work`/s)
+    expect(orchestrate).toMatch(/`kepler-code`.*↔.*`kepler-code-feedback`.*`kepler-review`.*`kepler-finish-work`/s)
     expect(orchestrate).toMatch(/Wayfinder.*critique.*optional.*outside\s+the\s+(?:seven-step\s+)?core\s+count/is)
   })
 
-  it("does not advertise hamilton-review as a task-scoped gate", () => {
+  it("does not advertise kepler-review as a task-scoped gate", () => {
     for (const name of liveSkills) {
       const skill = readSkill(name)
 
-      expect(skill).not.toMatch(/hamilton-review pass on (?:this|each|one) task/i)
-      expect(skill).not.toMatch(/task-scoped `hamilton-review`/i)
+      expect(skill).not.toMatch(/kepler-review pass on (?:this|each|one) task/i)
+      expect(skill).not.toMatch(/task-scoped `kepler-review`/i)
     }
   })
 
@@ -89,7 +89,7 @@ describe("seven-step pipeline identity", () => {
     const design = Fs.readFileSync(new URL("../../bundle/templates/design.md", import.meta.url), "utf-8")
     const testing = section(design, "## Testing Strategy")
 
-    expect(testing).toMatch(/tactical.*`hamilton-code`.*`hamilton-code-feedback`/s)
-    expect(testing).toMatch(/final.*`hamilton-review`.*`hamilton-finish-work`/s)
+    expect(testing).toMatch(/tactical.*`kepler-code`.*`kepler-code-feedback`/s)
+    expect(testing).toMatch(/final.*`kepler-review`.*`kepler-finish-work`/s)
   })
 })

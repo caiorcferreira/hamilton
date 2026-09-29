@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseReviewPasses } from "../../src/workbench/review-passes.js";
-import type { RecognizedArtifact } from "../../src/workbench/artifact-reader.js";
+import { parseReviewPasses } from "../../packages/cli/src/workbench/review-passes.js";
+import type { RecognizedArtifact } from "../../packages/cli/src/workbench/artifact-reader.js";
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
 const head = "fedcba9876543210fedcba9876543210fedcba98";
@@ -10,8 +10,8 @@ const recognized = (
   body: string,
   sourcePath =
     metadata.artifact === "feedback"
-      ? ".hamilton/changes/demo/tasks/task-2/feedback.md"
-      : ".hamilton/changes/demo/review.md",
+      ? ".kepler/changes/demo/tasks/task-2/feedback.md"
+      : ".kepler/changes/demo/review.md",
 ): RecognizedArtifact => ({
   _tag: "recognized",
   sourcePath,
@@ -140,7 +140,7 @@ ${pass(1, "2026-09-12", "approved", "- None.")}`,
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
         code: "non-monotonic-record",
-        sourcePath: ".hamilton/changes/demo/tasks/task-2/feedback.md",
+        sourcePath: ".kepler/changes/demo/tasks/task-2/feedback.md",
         location: { line: 21 },
       }),
     );

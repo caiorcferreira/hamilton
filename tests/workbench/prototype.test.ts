@@ -8,7 +8,7 @@ import {
   type PrototypeArguments,
   type PrototypeGitPort,
   type PrototypeRuntime,
-} from "../../src/workbench/prototype.js";
+} from "../../packages/cli/src/workbench/prototype.js";
 import { cleanupRepos, git, makeRepo, runCommand, write } from "./helpers.js";
 
 const originalDirectory = process.cwd();
@@ -189,7 +189,7 @@ describe("prototype usage and environment errors", () => {
 
   it("exits 2 outside a git repository", async () => {
     const directory = Fs.mkdtempSync(
-      Path.join(Fs.realpathSync(Os.tmpdir()), "hamilton-nogit-"),
+      Path.join(Fs.realpathSync(Os.tmpdir()), "kepler-nogit-"),
     );
     try {
       inDirectory(directory);

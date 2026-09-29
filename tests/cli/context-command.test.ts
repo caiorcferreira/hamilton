@@ -2,19 +2,19 @@ import "reflect-metadata";
 import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { DiffCommand } from "../../src/cli/nest/diff.command.js";
-import { IsolateCommand } from "../../src/cli/nest/isolate.command.js";
-import { PreconditionCommand } from "../../src/cli/nest/precondition.command.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
+import { DiffCommand } from "../../packages/cli/src/cli/nest/diff.command.js";
+import { IsolateCommand } from "../../packages/cli/src/cli/nest/isolate.command.js";
+import { PreconditionCommand } from "../../packages/cli/src/cli/nest/precondition.command.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
 import {
   ContextService,
   type ContextArguments,
   type ContextResult,
-} from "../../src/workbench/context.js";
-import { DiffService } from "../../src/workbench/diff.js";
-import { IsolateService } from "../../src/workbench/isolate.js";
-import { PreconditionService } from "../../src/workbench/precondition.js";
+} from "../../packages/cli/src/workbench/context.js";
+import { DiffService } from "../../packages/cli/src/workbench/diff.js";
+import { IsolateService } from "../../packages/cli/src/workbench/isolate.js";
+import { PreconditionService } from "../../packages/cli/src/workbench/precondition.js";
 
 const result = (
   overrides: Partial<ContextResult> = {},
@@ -36,7 +36,7 @@ async function runCli(
   contextResult: ContextResult = result(),
 ) {
   const { ContextCommand } = await import(
-    "../../src/cli/nest/context.command.js"
+    "../../packages/cli/src/cli/nest/context.command.js"
   );
   const calls: ContextArguments[] = [];
   let stdout = "";
@@ -104,7 +104,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -112,7 +112,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     await CommandFactory.runApplication(application);
   } finally {
     exitCode = process.exitCode;
@@ -137,12 +137,12 @@ describe("ContextCommand", () => {
       lastLine: "tasks: 0/3",
     });
     const harness = await runCli(
-      ["workbench", "context", ".hamilton/change"],
+      ["workbench", "context", ".kepler/change"],
       serviceResult,
     );
 
     expect(harness.calls).toEqual([
-      { all: false, changeDir: ".hamilton/change" },
+      { all: false, changeDir: ".kepler/change" },
     ]);
     expect(harness.exitCode).toBe(1);
     expect(harness.stdout).toBe(
@@ -179,7 +179,7 @@ describe("ContextCommand", () => {
       "workbench",
       "context",
       "--all",
-      ".hamilton/change",
+      ".kepler/change",
     ]);
 
     expect(harness.calls).toEqual([]);

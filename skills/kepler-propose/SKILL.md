@@ -1,0 +1,255 @@
+---
+name: kepler-propose
+description: "Turn an idea into a change's proposal, requirements, and design through collaborative dialogue — proposal.md (why), requirements/ (what), design.md (how). The heavyweight front door; tactical changes skip it and start at kepler-plan."
+---
+
+# Proposing a change
+
+Turn an idea into a well-formed change by writing its proposal (why), requirements (what),
+and design (how) — refined with the user through dialogue before any implementation begins.
+
+The **seven-stage core pipeline** is Kepler's fixed spec-driven sequence: init → propose → plan → code →
+code-feedback → review → finish-work. Each step is a skill a person or an agent can run. This
+skill is **step 1** — the optional heavyweight front door that produces the PRD, the SRS, and
+the SDD. A change that does not warrant that depth skips this step and starts at
+`kepler-plan`. Wayfinder and `kepler-critique` are optional and remain outside the
+seven-step core count.
+
+**Gate.** Do not move to implementation — no `kepler-plan`, no code — until the artifacts
+are approved and the design clears the `references/code-quality.md` self-review: for a
+non-trivial change, an unresolved structural smell blocks the gate (see step 10).
+
+## What it produces
+
+In `.kepler/changes/<YYYY-MM-DD-title>/`, using the templates at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`:
+
+- `proposal.md` — the PRD: why, what changes, and the capabilities affected.
+- `requirements/<capability>.md` — the SRS (delta form) for each capability.
+- `design.md` — the SDD: how it will be built.
+
+## Inputs
+
+- A change idea or request. If none is given, ask what to build.
+- The project's canonical specs (`.kepler/specs/`) — the current requirement truth for each
+  capability. Read them to tell new capabilities from modified ones, and to keep the proposal
+  and requirements consistent with the conventions and decisions already committed.
+- The project's glossary (`.kepler/specs/glossary.md`), when present — the committed
+  ubiquitous language; use its terms in every artifact.
+- Project standards (`AGENTS.md`).
+
+## References
+
+This skill ships with a `references/` folder. Read reference files using the Read tool on
+the skill's own directory — they are co-located with this SKILL.md, **not** at
+`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`.
+
+- `references/code-quality.md` — the self-review rubric for design quality.
+
+## Principles
+
+- **Collaborate.** Refine through dialogue — confirm each section before moving on.
+- **High-level first.** Start from the user's goal; draft, then elaborate together.
+- **YAGNI.** Cut unnecessary scope from every artifact.
+- **Explore alternatives.** Offer 2–3 approaches with trade-offs and a recommendation
+  before settling on a design.
+- **Design for quality.** Code quality is decided here, not at review. The decomposition,
+  boundaries, and dependencies the design commits to are inherited by every line the coder
+  later writes — and a defect caught at review means refactoring code that already exists.
+  Judge the design against `references/code-quality.md` (read it from this skill's
+  references directory), proportional to the change's size.
+- **Right-size.** Scale each artifact to the change; a few sentences is fine when the
+  change is simple.
+- **Write flowing prose.** In every artifact you produce (`proposal.md`, `requirements/`,
+  `design.md`), let paragraphs run as continuous lines — do not hard-wrap text at ~80
+  characters or any fixed width. Insert a line break only at a real boundary: between
+  paragraphs, list items, or headings. Soft-wrapping is the reader's job, not yours.
+
+## Process
+
+1. **Goal discovery.** Derive a kebab-case title from the request — unless the request points
+   at a `.kepler/maps/<effort>/` folder containing a `route.md`, in which case enter
+   map-aware mode: read `route.md` from the current working tree (step 2's worktree, if it
+   creates one, is based off the current branch, so its copy matches what this step read),
+   scan the `units` frontmatter list in order for the first whose `status` reads `pending`, and
+   derive the title from that unit's `name`; if no unit is
+   `pending`, stop and tell the user that every unit is already in-progress or shipped.
+   Before entering the unit, verify each of its `depends_on` units is `shipped` **and** its
+   work is reachable from the base branch; if a dependency is finished but unmerged, stop and
+   ask the user — merge it, or deliberately branch from its branch.
+2. **Ensure an isolated workspace — then confirm you are inside it.** Run
+   `kepler workbench isolate --check`; its last line is the verdict.
+   `isolated: yes` — a linked worktree, or a branch that is not the repo's default — means work
+   in place. `isolated: no` means create one:
+
+   ```bash
+   kepler workbench isolate <title>   # last line: the new worktree's path
+   cd <that path>
+   kepler workbench isolate --verify <title>
+   ```
+
+   If create mode reports that `.worktrees/<title>` or branch `<title>` already exists, stop and
+   ask — resume it, or pick a suffixed name; never silently reuse it. If the Kepler CLI is not
+   installed (`kepler setup` has not run), do the same by hand: you are isolated if
+   `git rev-parse --git-dir` differs from `--git-common-dir` (a linked worktree, and you are not
+   in a submodule) or `git rev-parse --abbrev-ref HEAD` is not the default branch; otherwise
+   `git worktree add .worktrees/<title> -b <title>` under the git-ignored `.worktrees/`
+   directory, `cd` in, and confirm `git rev-parse --show-toplevel` ends in `.worktrees/<title>`.
+
+   Creating the worktree does **not** move you into it — a fresh `git worktree add` leaves your
+   shell and every file tool rooted in the original checkout. You must `cd` into the worktree and
+   then **verify the switch took effect** before creating any files. **Do not proceed to step 3
+   until `--verify` succeeds.** If you skip this check you will silently write every artifact on
+   the default branch — the exact failure this step exists to prevent. From here on, the change
+   directory and every artifact are created **inside** `.worktrees/<title>/`, never in the
+   original checkout.
+
+   In map-aware mode, now flip the selected unit's frontmatter `status` to `in-progress` in the worktree's
+   copy of `route.md` — and, if no other unit is `in-progress` or `shipped`, flip the map's
+   `status:` to `shipping` in `map.md`. After each route or map write, run
+   `kepler workbench lint --file <path>` and resolve every finding before the next mutation.
+   Then commit the flips with the change scaffolding (step 3). The claim rides the branch, so it
+   ships with the work it marks.
+3. **Set up the change.** Create `.kepler/changes/<YYYY-MM-DD-title>/`.
+4. **Explore context (read-only).** Project structure, docs, recent commits, and the canonical
+   specs (`.kepler/specs/`). Read the specs before drafting: they hold the conventions and
+   prior decisions the change inherits, so a MODIFIED capability builds on the behavior its
+   canonical spec already documents (human-readable prose — Overview / Contract / Behavior /
+   Invariants / Decisions) rather than contradicting it. When step 1 entered map-aware mode,
+   read the route body as the primary current context: Point of departure, Destination,
+   Path chosen, Shipping rules, and Units. Enter the selected unit's destination contribution,
+   goal, observable completion outcome, and binding constraints into that context before any
+   optional ticket drill-down. Navigate the selected unit's `backed_by` links only when deeper
+   reasoning or rejected alternatives need their evidence; they are not a substitute for the
+   synthesized route body. If the selected unit has no `backed_by` entry, proceed from the
+   route body alone.
+   If the request spans several independent subsystems, stop and help decompose it first —
+   one change per spec.
+5. **Ask clarifying questions.** Draw out purpose, constraints, and success criteria from
+   the requester (a person, or the calling agent). Attended, invoke `kepler-grilling`
+   with those questions as content and "intent is clear" as the exit condition.
+   Unattended, record a reasonable choice as an assumption.
+6. **Write the proposal (why).** Draft `proposal.md`: problem, goals/non-goals, what
+   changes, and the Capabilities list (new vs modified — check `.kepler/specs/` for
+   existing names). The Capabilities list is the contract into the requirements. In
+   map-aware mode, fill the frontmatter's `route_unit` field with the route path and unit
+   number — it is the provenance link every downstream step follows back to the map. For every
+   new author-bearing output — `proposal.md`, each `requirements/<capability>.md`, and
+   `design.md` — read the effective repository Git identity immediately before creation with
+   `git config user.name` and `git config user.email`; write `author: Name <email>` using both
+   configured values, including when a requirements or design artifact is created even when
+   `proposal.md` already exists. If either configured Git value is unavailable, ask the user or
+   stop with a blocker before writing; never use an agent name, operating-system username, or
+   unresolved template placeholder. On a revision of `proposal.md`,
+   `requirements/<capability>.md`, or `design.md`, preserve each existing author attribution and
+   each recorded author exactly unless explicitly directed otherwise.
+   Populate the proposal frontmatter fields `change`, `status`, `author`, and `created`; do not
+   recreate them as a Markdown metadata table. After every proposal artifact mutation, run
+   `kepler workbench lint --change-dir <change-dir>` and resolve every warning or error before
+   the next mutation or handoff.
+
+   **Right-size the capabilities — coarse, durable domains, not per-aspect shards.** Each
+   capability becomes one `requirements/<capability>.md` and, downstream, one spec file, so
+   over-splitting here multiplies files through the whole pipeline. A capability is a
+   coherent area of behavior a reader would recognize as a top-level concern of the system —
+   not a mechanism, a config surface, an integration point, a single module, or a wiring/
+   startup step. Aim for the fewest capabilities that cover the change without overlap. You
+   have over-split when names are adjective+noun sub-aspects of one domain
+   (`structured-logging`, `distributed-tracing` are both just logging/tracing), name a single
+   file or bootstrap step (`server-startup`), or describe a detail shared by two others
+   (`trace-log-correlation` folds into logging + tracing). Prefer the durable domain noun and
+   let its requirement cover the aspects.
+
+   | Over-split (bad) | Right-sized (good) |
+   | ------------------ | -------------------- |
+   | `application-metrics.md`, `distributed-tracing.md`, `structured-logging.md`, `trace-log-correlation.md`, `http-clients.md`, `aws-config.md`, `server-startup.md` | `metrics.md`, `tracing.md`, `logging.md`, `http-client.md`, `aws.md` |
+   | `login-endpoint.md`, `password-reset.md`, `jwt-refresh.md`, `oauth-google.md`, `oauth-github.md`, `role-check-middleware.md` | `authentication.md`, `authorization.md` |
+   | `stripe-integration.md`, `payment-webhooks.md`, `refund-processing.md`, `invoice-generation.md`, `dunning-emails.md` | `payments.md`, `billing.md` |
+
+7. **Write the requirements (what).** For each capability named in the proposal, write
+   `requirements/<capability>.md` in delta form (ADDED / MODIFIED / REMOVED / RENAMED), with
+   normative SHALL statements and WHEN/THEN scenarios. These change-side deltas keep the
+   structured form regardless of how the canonical spec reads. For MODIFIED, there is no
+   requirement block to copy — the canonical spec is prose; instead read the behavior its
+   relevant section documents, then write a MODIFIED requirement that names the behavior it
+   changes clearly enough for finish-work to locate the spec section, and states the *whole* new
+   behavior (not just the diff). After every requirements artifact mutation, run
+   `kepler workbench lint --change-dir <change-dir>` and resolve every warning or error before
+   the next mutation or handoff.
+8. **Propose 2–3 approaches.** Before designing, lay out two or three ways to build it
+   with their trade-offs and a recommendation. Attended, invoke `kepler-grilling` with
+   the approaches as content and "an approach is chosen" as the exit condition.
+   Unattended, pick the recommended approach and record the reasoning.
+9. **Write the design (how).** From the chosen approach, write `design.md`: context,
+   decisions (with the alternatives considered), architecture, testing strategy, risks, and
+   any change-specific boundaries. As you shape the architecture and components, apply
+   `references/code-quality.md` (read from this skill's references directory) — cohesive
+   units with one reason to change, narrow boundaries, inverted dependencies with named
+   testable seams — sized to the change, not gold-plated. Capture the outcome in the
+   design's **Quality Lens** subsection (one line for a trivial change). After the design
+   artifact mutation, run `kepler workbench lint --change-dir <change-dir>` and resolve every
+   warning or error before self-review or handoff.
+10. **Self-review each artifact.** First confirm the workspace: `git rev-parse --show-toplevel`
+    ends in `.worktrees/<title>` (or you were legitimately working in place per step 2) and every
+    artifact was written under that root, not the default checkout. Then scan for placeholders,
+    contradictions, scope creep, and ambiguity; fix in place. Then run `design.md` against
+    `references/code-quality.md`.
+    **Blocking:** for a non-trivial change — one that adds or restructures units, not a
+    mechanical or single-file edit — an unresolved structural smell (a unit with more than one
+    reason to change, a leaked boundary, a hard-wired dependency with no testable seam) is a
+    gate failure. Fix the structure, or, if you are deliberately accepting it, record it in
+    the design's **Quality Lens** subsection (and cross-list under Risks / Trade-offs). Do
+    not pass the gate with a silent smell — a weak coder cannot recover quality the design
+    did not encode. After every in-place correction of a recognized artifact, rerun
+    `kepler workbench lint --change-dir <change-dir>`; a nonzero lint result is a failed gate,
+    not a bypass.
+11. **Get approval.** Present the artifacts for review. Attended, invoke
+    `kepler-grilling` with the revision feedback as content and "artifacts approved"
+    as the exit condition. Unattended, record open questions. Do not pass the gate
+    until approved.
+
+## Output
+
+`proposal.md`, `requirements/<capability>.md`, and `design.md` in the change directory —
+reviewed and approved, ready for `kepler-plan`.
+
+## Handoff
+
+- **Disclose the workspace.** If step 2 created a worktree for this change, state its path
+  (`.worktrees/<title>`) and branch — the artifacts, and all the work to come, live there, not
+  in the original checkout. If you worked in place, name that branch.
+- **Name the next step.** With the artifacts approved (step 11), what follows is `kepler-plan`.
+- **Hand back the decision.** The step-11 gate already requires approval before proceeding:
+  ask whether to move on to `kepler-plan` rather than declaring readiness, and never invoke
+  it yourself. Running unattended, record open questions, name the next step, and return.
+
+## Process flow
+
+```dot
+digraph kepler_propose {
+    "Goal discovery\n(title + map-aware route read)" [shape=box];
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" [shape=box];
+    "Set up change dir" [shape=box];
+    "Explore context (read-only)" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Proposal — why\n(problem, goals, capabilities)" [shape=box];
+    "Requirements — what\n(SRS delta per capability)" [shape=box];
+    "Propose 2–3 approaches\n(trade-offs + recommendation)" [shape=box];
+    "Design — how\n(chosen approach -> design.md)" [shape=box];
+    "Self-review each artifact" [shape=box];
+    "Approved?" [shape=diamond];
+    "Ready for kepler-plan" [shape=doublecircle];
+
+    "Goal discovery\n(title + map-aware route read)" -> "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)";
+    "Ensure isolated workspace\n(worktree; map-aware: flip unit in-progress)" -> "Set up change dir";
+    "Set up change dir" -> "Explore context (read-only)";
+    "Explore context (read-only)" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Proposal — why\n(problem, goals, capabilities)";
+    "Proposal — why\n(problem, goals, capabilities)" -> "Requirements — what\n(SRS delta per capability)";
+    "Requirements — what\n(SRS delta per capability)" -> "Propose 2–3 approaches\n(trade-offs + recommendation)";
+    "Propose 2–3 approaches\n(trade-offs + recommendation)" -> "Design — how\n(chosen approach -> design.md)";
+    "Design — how\n(chosen approach -> design.md)" -> "Self-review each artifact";
+    "Self-review each artifact" -> "Approved?";
+    "Approved?" -> "Ask clarifying questions" [label="changes requested"];
+    "Approved?" -> "Ready for kepler-plan" [label="approved"];
+}
+```

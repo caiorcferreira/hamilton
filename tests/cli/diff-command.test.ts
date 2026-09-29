@@ -2,15 +2,15 @@ import "reflect-metadata";
 import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { IsolateCommand } from "../../src/cli/nest/isolate.command.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
+import { IsolateCommand } from "../../packages/cli/src/cli/nest/isolate.command.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
 import {
   DiffService,
   type DiffArguments,
   type DiffResult,
-} from "../../src/workbench/diff.js";
-import { IsolateService } from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/diff.js";
+import { IsolateService } from "../../packages/cli/src/workbench/isolate.js";
 
 const serviceResult = (operation: DiffArguments["mode"]): DiffResult => ({
   _tag: "DiffResult",
@@ -27,7 +27,7 @@ async function runCli(
   arguments_: string[],
   resultOverrides: Partial<DiffResult> = {},
 ) {
-  const { DiffCommand } = await import("../../src/cli/nest/diff.command.js");
+  const { DiffCommand } = await import("../../packages/cli/src/cli/nest/diff.command.js");
   const calls: DiffArguments[] = [];
   let checkpointCreated = false;
   let stdout = "";
@@ -78,7 +78,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -86,7 +86,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     await CommandFactory.runApplication(application);
   } finally {
     exitCode = process.exitCode;
@@ -114,12 +114,12 @@ describe("DiffCommand", () => {
           "--task",
           "13",
           "--change-dir",
-          ".hamilton/change",
+          ".kepler/change",
         ],
         expected: {
           mode: "record",
           task: "13",
-          changeDir: ".hamilton/change",
+          changeDir: ".kepler/change",
         },
       },
       {
@@ -129,14 +129,14 @@ describe("DiffCommand", () => {
           "--base",
           "abc123",
           "--change-dir",
-          ".hamilton/change",
+          ".kepler/change",
           "--out",
           "review.diff",
         ],
         expected: {
           mode: "base",
           base: "abc123",
-          changeDir: ".hamilton/change",
+          changeDir: ".kepler/change",
           out: "review.diff",
         },
       },
@@ -147,14 +147,14 @@ describe("DiffCommand", () => {
           "--task",
           "13",
           "--change-dir",
-          ".hamilton/change",
+          ".kepler/change",
           "--out",
           "task.diff",
         ],
         expected: {
           mode: "task",
           task: "13",
-          changeDir: ".hamilton/change",
+          changeDir: ".kepler/change",
           out: "task.diff",
         },
       },
@@ -220,7 +220,7 @@ describe("DiffCommand", () => {
           "--record requires --task and cannot be combined with --base, --whole-change, or --out",
       },
       {
-        arguments: ["workbench", "diff", "--whole-change", "--change-dir", ".hamilton/change"],
+        arguments: ["workbench", "diff", "--whole-change", "--change-dir", ".kepler/change"],
         message:
           "--whole-change cannot be combined with --base, --change-dir, or --task",
       },

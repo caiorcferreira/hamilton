@@ -4,12 +4,12 @@ import {
   requiredFields,
   supportedArtifacts,
   validateArtifactMetadataSchema,
-} from "../../src/workbench/artifact-contracts.js";
-import type { RecognizedArtifact } from "../../src/workbench/artifact-reader.js";
+} from "../../packages/cli/src/workbench/artifact-contracts.js";
+import type { RecognizedArtifact } from "../../packages/cli/src/workbench/artifact-reader.js";
 
 const recognized = (metadata: Record<string, unknown>): RecognizedArtifact => ({
   _tag: "recognized",
-  sourcePath: ".hamilton/changes/demo/progress.md",
+  sourcePath: ".kepler/changes/demo/progress.md",
   metadata,
   body: "",
   locations: {

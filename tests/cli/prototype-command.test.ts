@@ -2,28 +2,28 @@ import "reflect-metadata";
 import type { DynamicModule, INestApplicationContext } from "@nestjs/common";
 import { CommandFactory } from "nest-commander";
 import { describe, expect, it } from "vitest";
-import { ContextCommand } from "../../src/cli/nest/context.command.js";
-import { DiffCommand } from "../../src/cli/nest/diff.command.js";
-import { IsolateCommand } from "../../src/cli/nest/isolate.command.js";
-import { PreconditionCommand } from "../../src/cli/nest/precondition.command.js";
-import { PrototypeCommand } from "../../src/cli/nest/prototype.command.js";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
-import { WorkbenchCommand } from "../../src/cli/nest/workbench.command.js";
+import { ContextCommand } from "../../packages/cli/src/cli/nest/context.command.js";
+import { DiffCommand } from "../../packages/cli/src/cli/nest/diff.command.js";
+import { IsolateCommand } from "../../packages/cli/src/cli/nest/isolate.command.js";
+import { PreconditionCommand } from "../../packages/cli/src/cli/nest/precondition.command.js";
+import { PrototypeCommand } from "../../packages/cli/src/cli/nest/prototype.command.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
+import { WorkbenchCommand } from "../../packages/cli/src/cli/nest/workbench.command.js";
 import {
   ContextService,
   type ContextArguments,
-} from "../../src/workbench/context.js";
-import { DiffService, type DiffArguments } from "../../src/workbench/diff.js";
-import { IsolateService, type IsolationArguments } from "../../src/workbench/isolate.js";
+} from "../../packages/cli/src/workbench/context.js";
+import { DiffService, type DiffArguments } from "../../packages/cli/src/workbench/diff.js";
+import { IsolateService, type IsolationArguments } from "../../packages/cli/src/workbench/isolate.js";
 import {
   PreconditionService,
   type PreconditionArguments,
-} from "../../src/workbench/precondition.js";
+} from "../../packages/cli/src/workbench/precondition.js";
 import {
   PrototypeService,
   type PrototypeArguments,
   type PrototypeResult,
-} from "../../src/workbench/prototype.js";
+} from "../../packages/cli/src/workbench/prototype.js";
 
 const result = (
   overrides: Partial<PrototypeResult> = {},
@@ -119,7 +119,7 @@ async function runCli(
       return true;
     }) as typeof process.stderr.write;
     application = await CommandFactory.createWithoutRunning(rootModule, {
-      cliName: "hamilton",
+      cliName: "kepler",
       errorHandler: (error) => {
         throw error;
       },
@@ -127,7 +127,7 @@ async function runCli(
         throw error;
       },
     });
-    process.argv = [originalArgv[0], "hamilton", ...arguments_];
+    process.argv = [originalArgv[0], "kepler", ...arguments_];
     try {
       await CommandFactory.runApplication(application);
     } catch (error) {
@@ -150,7 +150,7 @@ describe("PrototypeCommand", () => {
     const harness = await runCli(["workbench", "prototype", "--help"]);
 
     expect(harness.stdout).toContain(
-      "Usage: hamilton workbench prototype [options] [map-name] [ticket-name]",
+      "Usage: kepler workbench prototype [options] [map-name] [ticket-name]",
     );
     expect(harness.stdout).toContain("--standalone <name>");
     expect(harness.stdout).toContain("--verify <branch>");

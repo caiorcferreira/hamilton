@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { Test } from "@nestjs/testing";
 import { describe, expect, it } from "vitest";
-import { ResultModule } from "../../src/cli/nest/result.module.js";
+import { ResultModule } from "../../packages/cli/src/cli/nest/result.module.js";
 import {
   RESULT_EXIT_SINK,
   RESULT_OUTPUT_SINK,
   ResultReporter,
   type CliResult,
-} from "../../src/cli/nest/result-reporter.js";
+} from "../../packages/cli/src/cli/nest/result-reporter.js";
 
 type Event =
   | { readonly type: "stdout" | "stderr"; readonly value: string }
