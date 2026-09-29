@@ -15,7 +15,13 @@ const runCli = (arguments_: string[], env: NodeJS.ProcessEnv = {}) =>
   spawnSync(process.execPath, ["run", entrypoint, ...arguments_], {
     cwd: projectRoot,
     encoding: "utf8",
-    env: { ...process.env, ...env },
+    env: {
+      ...process.env,
+      ...(env.HOME === undefined
+        ? {}
+        : { XDG_CONFIG_HOME: Path.join(env.HOME, ".config") }),
+      ...env,
+    },
     timeout: 5000,
     killSignal: "SIGKILL",
   });

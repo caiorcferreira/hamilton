@@ -187,7 +187,10 @@ describe("KeplerService paths", () => {
 
   it("defaults XDG_CONFIG_HOME under HOME/.config", () => {
     const root = makeDirectory();
-    const service = new KeplerService({ homeDirectory: root });
+    const service = new KeplerService({
+      homeDirectory: root,
+      environment: { HOME: root },
+    });
 
     expect(service.globalHome()).toBe(
       Path.join(root, ".config", ".vialactea-works", "kepler"),
@@ -646,7 +649,10 @@ describe("KeplerService paths", () => {
 
   it("creates the global directories and loads the settings file", () => {
     const root = makeDirectory();
-    const service = new KeplerService({ homeDirectory: root });
+    const service = new KeplerService({
+      homeDirectory: root,
+      environment: { HOME: root },
+    });
     const paths = service.ensureGlobalHome();
     Fs.writeFileSync(paths.settings, "feature:\n  enabled: true\n");
 
@@ -656,7 +662,11 @@ describe("KeplerService paths", () => {
   });
 
   it("returns no config when settings do not exist", () => {
-    const service = new KeplerService({ homeDirectory: makeDirectory() });
+    const home = makeDirectory();
+    const service = new KeplerService({
+      homeDirectory: home,
+      environment: { HOME: home },
+    });
 
     expect(service.loadConfig()).toBeUndefined();
   });

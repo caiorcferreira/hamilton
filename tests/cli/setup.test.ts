@@ -117,14 +117,19 @@ describe("SetupService", () => {
 describe("SetupService filesystem integration", () => {
   let tmpHome: string;
   const originalHome = process.env.HOME;
+  const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
 
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-init-"));
     process.env.HOME = tmpHome;
+    process.env.XDG_CONFIG_HOME = Path.join(tmpHome, ".config");
   });
 
   afterEach(() => {
-    process.env.HOME = originalHome;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    if (originalXdgConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
     Fs.rmSync(tmpHome, { recursive: true, force: true });
   });
 
@@ -291,16 +296,21 @@ describe("bundle root resolution", () => {
   let tmpHome: string;
   let tmpBundleDir: string;
   const originalHome = process.env.HOME;
+  const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
   const originalBundleDir = process.env.KEPLER_BUNDLE_DIR;
 
   beforeEach(() => {
     tmpHome = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-setup-"));
     tmpBundleDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), "kepler-bundle-"));
     process.env.HOME = tmpHome;
+    process.env.XDG_CONFIG_HOME = Path.join(tmpHome, ".config");
   });
 
   afterEach(() => {
-    process.env.HOME = originalHome;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    if (originalXdgConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
     delete process.env.KEPLER_BUNDLE_DIR;
     if (originalBundleDir) {
       process.env.KEPLER_BUNDLE_DIR = originalBundleDir;
