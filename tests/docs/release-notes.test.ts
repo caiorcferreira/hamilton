@@ -38,24 +38,33 @@ describe("versioned release notes", () => {
     expect(verifyJob).toContain("bash scripts/smoke-installer.sh");
   });
 
-  it("documents the first Kepler package and release format", () => {
+  it("documents the current version's fixes and release format", () => {
     expect(existsSync(releaseNotesPath)).toBe(true);
     const releaseNotes = readFileSync(releaseNotesPath, "utf8");
 
     expect(releaseNotes).toContain(`# Kepler ${packageVersion}`);
-    expect(releaseNotes).toMatch(/first release[^\n]*two-package workspace/i);
-    expect(releaseNotes).toMatch(/old `hamilton` command[^\n]*not provided as an alias/i);
-    expect(releaseNotes).toMatch(/global data now lives/i);
-    expect(releaseNotes).toMatch(/legacy `~\/.hamilton\/`[^\n]*source unchanged/i);
-    expect(releaseNotes).toMatch(/legacy `\.hamilton\/`[^\n]*without merging/i);
+    expect(releaseNotes).toMatch(/workbench lint.*sole authority/i);
+    expect(releaseNotes).toMatch(/MODIFIED.*REMOVED.*RENAMED/s);
+    expect(releaseNotes).toMatch(/critique-specific `applied` decision/i);
     expect(releaseNotes).toContain("@vialactea-works/kepler-cli");
     expect(releaseNotes).toContain("@vialactea-works/kepler-core");
     expect(releaseNotes).toContain(`kepler-core-${packageVersion}.tgz`);
     expect(releaseNotes).toContain("SHA256SUMS");
-    expect(releaseNotes).toMatch(/publishing it to GitHub Packages is a separate workflow step/i);
+    expect(releaseNotes).toMatch(/publishes the core package to GitHub Packages/i);
     expect(releaseNotes).toMatch(/standalone executable/i);
     expect(releaseNotes).toContain("kepler-bundle.tar.gz");
     expect(releaseNotes).toMatch(/curl -fsSL[^\n]*install\.sh[^\n]*\| bash/);
+  });
+
+  it("preserves documentation of the first Kepler release migration", () => {
+    const firstRelease = readFileSync(resolve(root, "docs/releases/0.10.0.md"), "utf8");
+
+    expect(firstRelease).toMatch(/first release[^\n]*two-package workspace/i);
+    expect(firstRelease).toMatch(/old `hamilton` command[^\n]*not provided as an alias/i);
+    expect(firstRelease).toMatch(/global data now lives/i);
+    expect(firstRelease).toMatch(/legacy `~\/.hamilton\/`[^\n]*source unchanged/i);
+    expect(firstRelease).toMatch(/legacy `\.hamilton\/`[^\n]*without merging/i);
+    expect(firstRelease).toMatch(/publishing it to GitHub Packages is a separate workflow step/i);
   });
 
   it("packages Kepler-named binaries, bundle, and a core tarball", () => {

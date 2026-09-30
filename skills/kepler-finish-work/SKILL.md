@@ -18,7 +18,7 @@ optional and remain outside the seven-step core count.
 
 - The change directory path (`.kepler/changes/<change>/`) and its exact split-pipeline
   evidence:
-  - `<change-dir>/plan.md` and the task-only root ledger at `<change-dir>/progress.md`.
+  - `<change-dir>/plan.md` and the lint-valid root ledger at `<change-dir>/progress.md`.
   - The physically last implementation attempt in every active
     `<change-dir>/tasks/task-N/progress.md` and the physically last feedback pass in the matching
     `<change-dir>/tasks/task-N/feedback.md`.
@@ -34,9 +34,10 @@ optional and remain outside the seven-step core count.
 - Project standards from `AGENTS.md`: full test and build commands, base branch, git workflow,
   remote conventions, and pull- or merge-request tooling.
 
-Reject a planned legacy layout instead of reconstructing it. Once `plan.md` exists, the root
-ledger and every active task's linked progress and feedback artifacts must have the exact split
-shape expected by the finish gate.
+Use `kepler workbench lint --change-dir <change-dir>` for existing artifact format and schema;
+its exit status is the single source of truth for validity. Required task and review evidence,
+its committed state, and completion readiness are separate finish gates. Do not independently
+reject a lint-valid artifact for its layout or for differences from a template.
 
 ## References
 
@@ -69,7 +70,8 @@ skill's own directory — they are co-located with this `SKILL.md`, not at `${XD
 
 ## Preconditions
 
-For a new attempt, identify the complete test suite and build/typecheck commands from
+For a new attempt, run `kepler workbench lint --change-dir <change-dir>` and stop with its
+findings if it exits nonzero. Identify the complete test suite and build/typecheck commands from
 `AGENTS.md`. Pass a command that runs both to the installed gate; do not guess or omit either:
 
 ```bash
@@ -82,7 +84,8 @@ whole-branch review's material-change ancestry comparison. It does not waive the
 ledger, task feedback, whole-branch review validity, verdict, blocking findings, range ancestry,
 clean tree, or verification gates.
 
-The command is authoritative. It must validate all of these facts and close with `gate: open`:
+The precondition command is authoritative for completion readiness, not for adding artifact-format
+requirements to lint. It must validate all of these facts and close with `gate: open`:
 
 - The working tree is clean, and the full test suite and build/typecheck pass.
 - The exact root task ledger has one ordered row for every active task, no extra row, the exact
@@ -95,9 +98,9 @@ The command is authoritative. It must validate all of these facts and close with
   has no blocking findings. Its reviewed range must be structurally valid. Unless explicitly
   waived, its Head must also contain the latest material change commit.
 
-If the Kepler CLI/workbench is unavailable, perform those exact checks by hand, including
-physical-last-pass parsing and full commit ancestry. Fail closed on anything absent, malformed,
-contradictory, unreachable, stale, or unverifiable.
+If the Kepler CLI/workbench is unavailable, stop: a hand-written artifact parser cannot replace
+lint or the precondition command. Fail closed on missing evidence, contradictory state, unreachable
+or stale commits, or an unverifiable finish gate.
 
 If any gate fails, stop and report the gate output verbatim. Perform no finish action, do not
 create or change `finish.md`, do not synchronize specs or route state, and do not write root
@@ -167,17 +170,18 @@ attempt, but it does not make an unrelated edit safe.
 `<change-dir>/finish.md` is the only finish-history artifact. On the first admitted attempt,
 load and instantiate the exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md` template. Populate its frontmatter fields `change`, `status`, `created`, `updated`, `strategy`,
 `result`, and `decision`. Substitute the real change title and first complete attempt, remove the opening instruction block and every
-inline hint, and ensure no authoring instruction or hint survives in the live file. Otherwise validate the
-existing body before use and derive the next attempt from the cleaned record portion of that same
-installed template. Retained authoring markup may be removed, but `finish.md` is otherwise
-append-only: never alter or reorder a recorded attempt or outcome, and never write root
+inline hint, and ensure no authoring instruction or hint survives in the live file. Otherwise
+run `kepler workbench lint --file <change-dir>/finish.md` before use, then derive the next
+attempt from the cleaned record portion of that same installed template. A successful lint
+must not be overridden by a separate body-format check. Retained authoring markup may be
+removed, but `finish.md` is otherwise append-only: never alter or reorder a recorded attempt or outcome, and never write root
 `progress.md`; finish work owns no root progress row or section.
 
 Every pair uses `## Attempt N — <YYYY-MM-DD>` and `## Outcome N — <YYYY-MM-DD>`. For a fully
 paired history, choose the next integer after the highest numbered Attempt or Outcome. Numbers
 must be strictly monotonic, each number must occur once for each kind, and Outcome N must be the
-matching observation for Attempt N. Reject duplicate, skipped, reordered, or malformed sections
-before any action.
+matching observation for Attempt N. Lint decides whether the existing section format is valid;
+check actual attempt/outcome evidence for a safe resume before any action.
 
 Populate the template-defined attempt with durable gate evidence, specification synchronization,
 selected strategy, intended workspace result, and route intent. Append its matching outcome only
@@ -193,7 +197,7 @@ verify it there. For a strategy with a remote branch, push and read back the per
 
 ## Resume and recovery
 
-Read and validate `finish.md` before starting preconditions for a new attempt. If the physical
+If `finish.md` exists, lint it before starting preconditions for a new attempt. If the physical
 history ends with Attempt N without matching Outcome N, reconcile it before any new action or
 attempt allocation. Inspect, in order, the relevant git commits and refs, remote branch, pull
 request or merge request, route files, and workspace/worktree state. Do not trust an earlier
@@ -341,7 +345,7 @@ digraph kepler_finish_work {
     "Read finish history" [shape=box];
     "Dangling Attempt N?" [shape=diamond];
     "Reconcile actual state\nwithout a duplicate attempt" [shape=box];
-    "Run exact split gates" [shape=box];
+    "Lint artifacts + run finish gates" [shape=box];
     "Gate open?" [shape=diamond];
     "Report verbatim blocker\n(no writes)" [shape=box];
     "Capture gate-entry HEAD" [shape=box];
@@ -357,8 +361,8 @@ digraph kepler_finish_work {
 
     "Read finish history" -> "Dangling Attempt N?";
     "Dangling Attempt N?" -> "Reconcile actual state\nwithout a duplicate attempt" [label="yes"];
-    "Dangling Attempt N?" -> "Run exact split gates" [label="no"];
-    "Run exact split gates" -> "Gate open?";
+    "Dangling Attempt N?" -> "Lint artifacts + run finish gates" [label="no"];
+    "Lint artifacts + run finish gates" -> "Gate open?";
     "Gate open?" -> "Report verbatim blocker\n(no writes)" [label="no"];
     "Gate open?" -> "Capture gate-entry HEAD" [label="yes"];
     "Capture gate-entry HEAD" -> "Synchronize specs + commit";

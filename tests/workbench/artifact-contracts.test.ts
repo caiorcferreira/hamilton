@@ -347,6 +347,42 @@ describe("artifact metadata contracts", () => {
     }
   });
 
+  it("accepts applied only as a critique decision", () => {
+    const critique = validArtifacts.find(([path]) => path.endsWith("/critique.md"))!
+    const proposal = validArtifacts.find(([path]) => path.endsWith("/proposal.md"))!
+    const acceptedCritique = validateArtifact(
+      recognized(critique[0], { ...critique[1], decision: "applied" }),
+    )
+    const rejectedProposal = validateArtifact(
+      recognized(proposal[0], { ...proposal[1], decision: "applied" }),
+    )
+
+    expect(acceptedCritique._tag).toBe("valid")
+    expectInvalid(rejectedProposal, "invalid-value")
+  })
+
+  it("accepts any requirements delta section and rejects a delta with none", () => {
+    const [path, metadata] = validArtifacts.find(([source]) => source.endsWith("/requirements/workbench.md"))!
+
+    for (const operation of ["ADDED", "MODIFIED", "REMOVED", "RENAMED"]) {
+      const artifact = recognized(path, metadata, `# Capability: workbench\n\n## ${operation} Requirements`)
+      expect(validateArtifact(artifact)._tag).toBe("valid")
+    }
+    expectInvalid(validateArtifact(recognized(path, metadata, "# Capability: workbench")), "missing-section")
+  })
+
+  it("accepts additional sections in a route and prose instead of tables in a canonical spec", () => {
+    const [routePath, routeMetadata] = validArtifacts.find(([path]) => path.endsWith("/route.md"))!
+    const [specPath, specMetadata] = validArtifacts.find(([path]) => path.endsWith("/specs/workbench.md"))!
+
+    expect(
+      validateArtifact(recognized(routePath, routeMetadata, `${bodyFor("route")}\n## Notes to readers`))._tag,
+    ).toBe("valid")
+    expect(
+      validateArtifact(recognized(specPath, specMetadata, `${bodyFor("requirements-spec")}\nThe contract uses prose.`))._tag,
+    ).toBe("valid")
+  })
+
   it.each([
     "Point of departure",
     "Destination",

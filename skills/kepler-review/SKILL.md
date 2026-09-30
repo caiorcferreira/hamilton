@@ -49,20 +49,16 @@ Run this no-write gate before whole-branch scope inspection, range validation, o
 A change directory with no `plan.md` is `pre-plan`, not legacy; stop because no planned branch can
 enter final review, but do not classify or scaffold it as an unsupported generation.
 
-Once `plan.md` exists, require the exact split root task ledger and every required active-task
-scaffold artifact. Root `<change-dir>/progress.md` must be the exact task-only table, with one
-`Task | Status | Progress` column set, exactly one plan-ordered row per active task, a status from
-`pending`, `in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each
-linked
-`<change-dir>/tasks/task-N/progress.md` must exist with matching numeric task identity. Reject a
-monolithic root progress file, missing scaffold, partially scaffolded or otherwise partially split
-layout, alternate task path, or mixed execution and verdict history as `legacy-unsupported`. Stop
-with between-changes upgrade guidance: finish the old change under its old installation or upgrade
-the complete Kepler generation and run `kepler setup` between changes. Never parse, migrate,
-reconstruct, or partially scaffold that layout, and never create, append, change, or write review
-when this gate fails.
+Once `plan.md` exists, run `kepler workbench lint --change-dir <change-dir>` before
+interpreting the existing artifacts. Its exit status alone determines their format and schema
+validity. Do not reject a lint-valid root `<change-dir>/progress.md` for frontmatter, extra
+content, or failure to match a skill-specific task-only layout; only lint can classify an
+artifact as `legacy-unsupported`. On nonzero lint, report its findings and do not write review.
 
-After the split scaffold passes, require every active task's `feedback.md` as review-ready evidence,
+Require the root task ledger and each active task's `tasks/task-N/progress.md` as review inputs.
+If any is absent, stop and name the missing evidence; lint does not check absent files. Check
+that task identities agree with the plan, without treating an alternative lint-accepted layout
+as an invalid artifact. Then require every active task's `feedback.md` as review-ready evidence,
 require every active task to have root status `done`, and require durable approved feedback. For
 each exact `tasks/task-N/feedback.md` path, require all of the following from repository state:
 
@@ -75,15 +71,15 @@ each exact `tasks/task-N/feedback.md` path, require all of the following from re
   `git diff --quiet -- <feedback-path>` succeeding;
 - the latest commit that touched the feedback path is artifact-only, and the commit's path list
   contains only `tasks/task-N/feedback.md`;
-- the physical last pass has valid identity, numbering, shape, verdict, findings, and range, says
-  `approved`, has no blocking findings, and is fresh for the latest commit that touched that task's
-  progress file.
+- lint accepts the feedback artifact; the physical last pass belongs to this task, says
+  `approved`, has no blocking findings, and its reviewed Git range is fresh for the latest
+  commit that touched that task's progress file.
 
 Missing feedback is a valid lifecycle state rather than a legacy format. A worktree-only approval
 is interrupted-before-feedback-commit state. An untracked or modified feedback path fails this
 preflight. Evaluate index and worktree divergence independently: a staged feedback blob that
 differs while the worktree matches `HEAD` must fail the index condition. A mixed feedback commit
-also fails. Stale or malformed feedback and
+also fails. Stale feedback, feedback rejected by lint, and
 `changes-requested` feedback also fail it. Stop without creating, appending, changing, or writing
 `review.md`; direct the caller back to `kepler-code-feedback` for the affected task. Only durable
 approved feedback for every active task may continue to branch inspection, range validation, or
@@ -178,7 +174,8 @@ unresolved requirement.
 
 ## Verdicts
 
-Use only these verdicts:
+For a new review pass, use only these verdicts. A historical `skipped` pass may be lint-valid;
+it is not an approval and never advances the branch.
 
 - `approved` when the complete range is valid and fresh, every binding criterion is satisfied,
   broader repository impact is accounted for, and Blocking contains no findings.
@@ -212,21 +209,22 @@ and `decision`; frontmatter contains only artifact identity and lifecycle fields
 opening instruction block and every inline hint while substituting placeholders; neither authoring
 instructions nor hints may survive in the live artifact.
 
-When the file exists, validate it first, then use the cleaned record portion of that same installed
-template to append the next-numbered pass at the physical end. Preserve the heading and every prior
-pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field, in that order
+When the file exists, use the successful preflight lint result as its format validation, then
+use the cleaned record portion of that same installed template to append the next-numbered pass
+at the physical end. Preserve the heading and every prior pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field, in that order
 before exactly its two child sections, `### Blocking` and `### Suggestions`. Retained template
-authoring markup may be removed before appending, but no recorded pass may be changed, deleted,
-reordered, or split. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
-heading is allowed; Base and Head are the only per-pass range fields. Populate every
+authoring markup is not a reason to reject a lint-valid history; no recorded pass may be changed,
+deleted, reordered, or split. Never rewrite a prior pass. No `### Reviewed range` heading or other
+child heading is allowed; Base and Head are the only per-pass range fields. Populate every
 template-defined value. An approval has no blocking findings
 and may briefly record useful verified coverage as a suggestion; both findings groups remain
 present. Record any focused command and result without changing the template-defined shape. Every
 pass records full identifiers, never abbreviated commit ids. Append to the one `review.md` history
 only; never create `review-<k>.md`.
 
-Fresh review files use identity and lifecycle-only frontmatter with complete pass-local Base, Head,
-and Verdict fields. The first append to a legacy-global history has one deterministic transition:
+When creating a review file, use identity and lifecycle-only frontmatter with complete
+pass-local Base, Head, and Verdict fields; existing lint-valid extra metadata is not a blocker.
+The first append to a legacy-global history has one deterministic transition:
 validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly
 the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
 physical end in the same mutation. Never copy global provenance into historical passes. Never retain
@@ -242,12 +240,12 @@ tracked path except the change's root `progress.md`, `tasks/task-N/progress.md`,
 plan, canonical specs, maps, application code, tests, skills, templates, scripts, and documentation
 remain material even when their paths are under `.kepler/`.
 
-The physically last pass governs whole-branch status only when its numbering and shape, verdict,
-findings, and reviewed range are valid; its base is an ancestor of its head; its head is an ancestor
-of current `HEAD`; and its head contains the latest material change commit. A malformed last pass
-must fail closed. Never scan backward or fall back to an earlier approval. Apart from removal of
-retained template authoring markup, do not rewrite, delete, reorder, or insert before an existing
-pass.
+The physically last pass governs whole-branch status. Use lint for its artifact format,
+numbering, fields, and findings; a successful lint is not subject to a second shape check. Verify
+that its base is an ancestor of its head, its head is an ancestor of current `HEAD`, and its head
+contains the latest material change commit. Never scan backward or fall back to an earlier
+approval. Do not rewrite, delete, reorder, or insert before an existing pass except for the
+documented legacy-global transition.
 
 ## Record and commit
 
@@ -280,7 +278,7 @@ Never send whole-branch findings directly to `kepler-code`; never invoke another
 
 ```dot
 digraph kepler_review {
-    "Require split layout + approved tasks" [shape=box];
+    "Lint existing artifacts + require approved tasks" [shape=box];
     "Validate merge base + branch range" [shape=box];
     "Inspect the complete branch" [shape=box];
     "Run focused verification" [shape=box];
@@ -292,7 +290,7 @@ digraph kepler_review {
     "Review-only bookkeeping commit" [shape=doublecircle];
     "Return control to driver" [shape=doublecircle];
 
-    "Require split layout + approved tasks" -> "Validate merge base + branch range";
+    "Lint existing artifacts + require approved tasks" -> "Validate merge base + branch range";
     "Validate merge base + branch range" -> "Inspect the complete branch";
     "Inspect the complete branch" -> "Run focused verification";
     "Run focused verification" -> "Decide verdict";

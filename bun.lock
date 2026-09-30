@@ -23,7 +23,7 @@
     },
     "packages/cli": {
       "name": "@vialactea-works/kepler-cli",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "bin": {
         "kepler": "./dist/cli/main.js",
       },
@@ -45,7 +45,7 @@
     },
     "packages/core": {
       "name": "@vialactea-works/kepler-core",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "dependencies": {
         "yaml": "2.4.5",
       },

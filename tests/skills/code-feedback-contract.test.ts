@@ -51,17 +51,18 @@ describe("kepler-code-feedback contract", () => {
     expect(skill).toMatch(/not approved automatically/is)
   })
 
-  it("gates the split generation before task scope or verdict writes", () => {
+  it("uses lint for existing artifact validity before task scope or verdict writes", () => {
     const skill = readCodeFeedback()
     const preflight = section(skill, "## Generation preflight")
 
     expect(preflight).toMatch(/no `plan\.md`.*`pre-plan`/is)
-    expect(preflight).toMatch(/once `plan\.md` exists.*exact (?:split )?root task ledger/is)
-    expect(preflight).toMatch(/every required active-task.*tasks\/task-N\/progress\.md/is)
-    expect(preflight).toMatch(/monolithic.*missing.*partially split.*`legacy-unsupported`/is)
-    expect(preflight).toMatch(/between-changes.*upgrade/i)
-    expect(preflight).toMatch(/absent.*feedback\.md.*valid creation-time state/is)
-    expect(preflight).toMatch(/never.*(?:create|append|change|write).*feedback/is)
+    expect(preflight).toContain("kepler workbench lint --change-dir <change-dir>")
+    expect(preflight).toMatch(/exit status.*single source of truth.*format and schema/is)
+    expect(preflight).toMatch(/frontmatter.*task ledger.*lint-accepted content/is)
+    expect(preflight).toMatch(/missing input.*lint does not require absent files/is)
+    expect(preflight).toMatch(/absent assigned `feedback\.md`.*valid.*creation-time state/is)
+    expect(preflight).toMatch(/nonzero lint.*without writing feedback/is)
+    expect(preflight).not.toMatch(/root.*must contain only the task table/is)
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Wrong scope"))
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Process"))
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Feedback artifact"))
@@ -109,7 +110,8 @@ describe("kepler-code-feedback contract", () => {
     const artifact = readCodeFeedback()
 
     expect(artifact).toMatch(/physically last pass.*governs/is)
-    expect(artifact).toMatch(/malformed last pass.*fail closed/is)
+    expect(artifact).toMatch(/physically last pass.*lint.*format.*numbering.*fields.*findings/is)
+    expect(artifact).toMatch(/successful lint.*not subject to a second shape check/is)
     expect(artifact).toMatch(/never.*fall\s+back.*earlier approval/is)
   })
 

@@ -102,7 +102,12 @@ and skipped unrelated files do not affect success. A newly initialized pending t
 with its task identity and heading but no attempt record, so planning must not invent a synthetic
 attempt merely to satisfy lint. Conventional artifact filenames without frontmatter produce
 warnings, while malformed recognized artifacts fail closed; lint returns success only when no errors
-or warnings remain.
+or warnings remain. For artifacts that already exist, lint's exit status is the sole authority
+on format and schema validity. Skill templates describe how to author new content; they must not
+reject a lint-valid artifact because it includes additional frontmatter or body content, uses a
+different accepted layout, or differs from the installed template. A missing file, wrong task,
+uncommitted feedback, stale review, or unmet acceptance criterion remains a separate workflow
+or evidence gate; lint does not check those conditions.
 
 ## The skills
 
@@ -131,8 +136,8 @@ needed to understand what will be true, why this path was chosen, and how delive
   its way found before the SDD loop begins.
 - **Inputs:** a complex goal; the project's `AGENTS.md`.
 - **Produces:** a map at `.kepler/maps/<effort>/` (`map.md`, `tickets/`, and `route.md` once the
-  map clears). The route body is a stable synthesized handoff with exactly five sections — Point
-  of departure, Destination, Path chosen, Shipping rules, and Units — while frontmatter owns the
+  map clears). New routes use five core sections — Point of departure, Destination, Path chosen,
+  Shipping rules, and Units — while frontmatter owns the
   route status and each unit's identity, lifecycle status, dependencies, and backing tickets.
 - **Notes:** Wayfinder clears fog and compiles the destination and causal path; it does not execute
   the units. `kepler-propose` and `kepler-plan` turn units into implementation artifacts,

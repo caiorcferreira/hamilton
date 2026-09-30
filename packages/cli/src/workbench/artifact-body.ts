@@ -50,7 +50,7 @@ const bodyContracts: Record<SupportedArtifact, BodyContract> = {
   },
   "requirements-change": {
     heading: "Capability:",
-    sections: ["ADDED Requirements"],
+    sections: [],
   },
   "requirements-spec": {
     heading: "Capability:",
@@ -882,6 +882,26 @@ export const validateArtifactBody = (
         ),
       );
     }
+  }
+  if (
+    kind === "requirements-change" &&
+    !headings.some(
+      (heading) =>
+        heading.level >= 2 &&
+        ["ADDED", "MODIFIED", "REMOVED", "RENAMED"].some(
+          (operation) => heading.text === `${operation} Requirements`,
+        ),
+    )
+  ) {
+    diagnostics.push(
+      bodyDiagnostic(
+        artifact,
+        "missing-section",
+        "Body is missing a requirements delta section",
+        artifact.locations.body.startLine,
+        "ADDED | MODIFIED | REMOVED | RENAMED Requirements",
+      ),
+    );
   }
   const allowEmptyTaskProgress = pendingTaskProgress(artifact, kind, title);
   const allowEmptyFinishOutcome: readonly GenericWorkflowRecordKind[] =

@@ -63,15 +63,20 @@ describe("kepler-plan execution contract", () => {
       expect(contract).toContain("`(abandoned - reason)`")
       expect(contract).toContain("`(abandoned — )`")
       expect(contract).toContain("`(abandoned — reason) trailing`")
-      expect(contract).toMatch(/active or malformed/)
+      expect(contract).toMatch(/active.*lint.*plan/is)
       expect(contract).not.toMatch(/begins with the literal|suffix begins with|canonical literal/)
     }
     expect(replan).toMatch(/retain its existing task directory and append-only\s+history/)
   })
 
-  it("rejects planned legacy layouts", () => {
-    expect(skill).toMatch(/plan\.md.*legacy-unsupported|legacy-unsupported.*plan\.md/is)
-    expect(skill).toMatch(/Never parse,\s+migrate, reconstruct, or partially scaffold a planned legacy layout\./)
+  it("trusts lint when re-planning an existing artifact", () => {
+    const process = section(skill, "## Process")
+    const replan = section(skill, "## Re-plan mode")
+
+    expect(process).toMatch(/`plan\.md` already exists.*kepler workbench lint --change-dir <change-dir>/is)
+    expect(process).toMatch(/successful lint.*must not be overridden.*layout or template comparison/is)
+    expect(replan).toMatch(/do not reject a lint-valid artifact.*additional frontmatter or\s+body content/is)
+    expect(replan).not.toMatch(/planned legacy layout is `legacy-unsupported`/i)
   })
 })
 
@@ -90,10 +95,10 @@ describe("kepler-code execution contract", () => {
     const process = section(skill, "## Process")
 
     expect(skill).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md")
-    expect(skill).toMatch(/exact installed.*template/is)
+    expect(skill).toMatch(/installed.*template.*guides new content.*lint.*validates/is)
     expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
-    expect(skill).toMatch(/instruction block.*inline hint/is)
-    expect(skill).toMatch(/must not survive|remov(?:e|ing)/is)
+    expect(skill).toMatch(/do not\s+compare an existing task log with the installed template/is)
+    expect(process).toMatch(/if evidence is missing.*name the\s+missing input/is)
     expect(process).toMatch(/Update only the assigned task's root frontmatter metadata entry and\s+Markdown row together to `in-progress`/is)
     expect(process).toMatch(/update the same root frontmatter metadata entry\s+and Markdown row together from `in-progress` to\s+the matching `done` or `blocked` status/is)
     expect(process).toMatch(/frontmatter.*(?:metadata|entry).*and.*(?:Markdown )?row.*together.*`in-progress`/is)
@@ -110,7 +115,8 @@ describe("kepler-code execution contract", () => {
     expect(skill).toContain("<change-dir>/tasks/task-N/.base")
     expect(skill).toMatch(/full commit identifier/)
     expect(skill).toMatch(/never overwrite|does not overwrite/i)
-    expect(skill).toMatch(/does not receive attempt sections, changed paths, commands, notes, feedback\s+verdicts, whole-branch review summaries, or finish outcomes/)
+    expect(skill).toMatch(/writes attempt details to the task log.*do not.*feedback.*review.*finish outcomes to root progress/is)
+    expect(skill).toMatch(/writer\s+ownership rule.*not a reason to reject.*lint-accepted content/is)
   })
 
   it("finalizes assigned task-local status only with its attempt outcome", () => {
@@ -121,8 +127,8 @@ describe("kepler-code execution contract", () => {
     expect(process).toMatch(/append.*attempt.*set.*local.*status.*`done` or `blocked`.*before.*lint.*commit/is)
     expect(process).toMatch(/done.*local.*`done`.*blocked.*local.*`blocked`/is)
     expect(process).toMatch(/preserv(?:e|es).*prior attempts.*sibling files/is)
-    expect(process).toMatch(/linked file has no appended attempts.*creation portion.*match/is)
-    expect(process).toMatch(/after attempts exist.*local `status: done` or `blocked`.*latest.*outcome/is)
+    expect(process).toMatch(/newly\s+initialized log.*`status: pending`.*no attempt/is)
+    expect(process).toMatch(/do not\s+compare an existing task log with the installed template/is)
     expect(process).toMatch(/previously finalized.*without.*local.*`in-progress`/is)
   })
 
@@ -176,9 +182,13 @@ describe("kepler-code execution contract", () => {
     expect(tdd).toMatch(/preference-based.*(?:omission|reason).*not|not.*preference-based/is)
   })
 
-  it("rejects unsupported planned legacy layouts before implementation", () => {
-    expect(skill).toContain("legacy-unsupported")
-    expect(skill).toMatch(/before implementation/)
-    expect(skill).toMatch(/Never parse, migrate, reconstruct, or partially scaffold a\s+planned legacy layout\./)
+  it("does not independently reject lint-valid execution artifacts", () => {
+    const process = section(skill, "## Process")
+
+    expect(process).toMatch(/before implementation.*kepler workbench lint --change-dir <change-dir>/is)
+    expect(process).toMatch(/exit status.*single source of.*artifact format and schema/is)
+    expect(process).toMatch(/do not.*independently classify a layout as `legacy-unsupported`/is)
+    expect(process).toMatch(/if evidence is missing.*name the\s+missing input/is)
+    expect(skill).toMatch(/template guides new content.*lint.*validates the format of existing/is)
   })
 })

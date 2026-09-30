@@ -31,8 +31,8 @@ Exactly one of these forms supplies it:
 Only a heading that ends with the complete canonical
 `### Task N: <title> (abandoned — <reason>)` form and supplies a nonempty reason is abandoned.
 Headings that use `(abandoned - reason)`, `(abandoned — )`, or
-`(abandoned — reason) trailing` do not match; resolve them under ordinary active or malformed
-task handling. Never resolve or execute an exactly abandoned task as active, and never reuse its
+`(abandoned — reason) trailing` do not match; treat them as active if lint accepts the plan,
+without inventing a skill-only format error. Never resolve or execute an exactly abandoned task as active, and never reuse its
 numeric id.
 
 Each invocation also receives:
@@ -102,25 +102,18 @@ For every cycle, task-local evidence must record the Red, Green, and Refactor co
    For inline input, also confirm that its id and content identify the same active plan task.
    Read its Acceptance, cited requirement or design sections, and project standards. Do not load
    other task blocks.
-3. **Require the split execution layout.** Before implementation, load the exact installed
-   `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` template. Its YAML frontmatter is the machine-readable
-   metadata source. Instantiate a cleaned in-memory copy with the assigned task id and title by
-   removing its opening instruction block and every inline hint, then
-   require `plan.md`, the root
-   `<change-dir>/progress.md` frontmatter `tasks` entry and Markdown table, exactly one active
-   metadata entry and row for the assigned task, and the linked `<change-dir>/tasks/task-N/progress.md`.
-   The frontmatter entry and table row must match on numeric id, exact title, status, and link. When the linked file has no appended attempts, its creation portion must match
-   that cleaned instantiation, including `status: pending`; after attempts exist, preserve the
-   same identity fields and require local `status: done` or `blocked` that matches the latest
-   attempt outcome. The installed template's initial `status: pending` is not immutable after a canonical
-   attempt. A previously finalized task log may be accepted for a correction without changing
-   its local status to `in-progress`; no template instruction or hint may survive in the live
-   artifact. The row link must be the exact relative path
-   `tasks/task-N/progress.md`, and the row status must be one of `pending`, `in-progress`,
-   `blocked`, or `done`. If a planned change lacks this layout, stores attempt history in root
-   progress, or otherwise exposes `legacy-unsupported`, stop at the between-changes migration
-   boundary before implementation. Never parse, migrate, reconstruct, or partially scaffold a
-   planned legacy layout.
+3. **Validate existing artifacts and resolve task evidence.** Before implementation, run
+   `kepler workbench lint --change-dir <change-dir>`. The exit status is the single source of
+   truth for artifact format and schema. Stop on nonzero lint and report its findings; do not
+   compare an existing task log with the installed template, reject lint-valid additional root
+   content, or independently classify a layout as `legacy-unsupported`. Require `plan.md`, the
+   assigned task's root ledger status, and the existing linked
+   `<change-dir>/tasks/task-N/progress.md` as inputs. If evidence is missing, stop and name the
+   missing input; lint does not check absent files. Check that the selected task identity agrees
+   with its evidence, not that its artifact matches a second format specification. Read the
+   existing task log's latest attempt for the checkpoint and lifecycle decisions. A newly
+   initialized log has `status: pending` with no attempt; a previously finalized task log may
+   be accepted for correction without changing its local status to `in-progress`.
 4. **Record the stable task checkpoint.** Immediately before the first implementation attempt,
    first inspect the task's durable state. Run
    `kepler workbench diff --record --task N --change-dir <change-dir>` only
@@ -191,18 +184,18 @@ This skill never edits `plan.md`.
 
 ## Task progress lifecycle
 
-The exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` template is the sole creation-shape
-definition for `<change-dir>/tasks/task-N/progress.md`. Kepler-plan creates the durable file;
-kepler-code instantiates a cleaned copy in memory to validate that creation portion and never
-recreates a missing scaffold. Each completed invocation appends one contiguous, next-numbered dated
-attempt at the physical end. Attempts remain in physical order and every prior attempt is preserved
-byte-for-byte. Validate identity, numbering, outcome vocabulary, path accounting, verification
-evidence, and notes semantically against the lifecycle contract without carrying another full
-artifact skeleton here.
+Kepler-plan creates `<change-dir>/tasks/task-N/progress.md` from the installed
+`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` template;
+kepler-code never recreates a missing task log. The installed template guides new content,
+while lint alone validates the format of existing and updated artifacts. Each completed invocation appends
+one next-numbered dated attempt at the physical end. Preserve prior attempts. Check task
+identity and actual verification evidence for this attempt without imposing an additional
+artifact-shape validator.
 
-The root `<change-dir>/progress.md` is only the current task ledger. It contains task identity,
-status, and links; it does not receive attempt sections, changed paths, commands, notes, feedback
-verdicts, whole-branch review summaries, or finish outcomes.
+Use the root `<change-dir>/progress.md` as the current task ledger. This skill writes task
+identity, status, and links there, and writes attempt details to the task log instead. Do not
+append feedback, whole-branch review, or finish outcomes to root progress. This is a writer
+ownership rule, not a reason to reject other lint-accepted content already in the file.
 
 ## Blocking and interruption
 
@@ -223,8 +216,8 @@ continuing or resolving it.
 - Ask first about any decision the task did not specify, including a public interface change or new
   dependency. If unattended, record a genuine blocker instead of improvising a large decision.
 - Never: commit secrets; delete or weaken a test to make the suite pass; touch another task;
-  accept planned legacy; write task feedback, review, or finish history into progress; commit
-  partial production work for a blocked attempt.
+  override a nonzero lint result or reject a lint-valid artifact for its format; write task feedback,
+  review, or finish history into progress; commit partial production work for a blocked attempt.
 
 ## Code-quality self-review
 
@@ -257,7 +250,7 @@ the stable task checkpoint remains untracked, and `plan.md` remains read-only.
 ```dot
 digraph kepler_code {
     "Confirm workspace + exact active Task N" [shape=box];
-    "Require split ledger + task log" [shape=box];
+    "Lint existing artifacts + require task log" [shape=box];
     "Record or reuse tasks/task-N/.base" [shape=box];
     "Set only Task N in-progress" [shape=box];
     "Red: failing behavioral check or justified alternative" [shape=box];
@@ -271,8 +264,8 @@ digraph kepler_code {
     "Task commit" [shape=doublecircle];
     "Artifact-only bookkeeping commit" [shape=doublecircle];
 
-    "Confirm workspace + exact active Task N" -> "Require split ledger + task log";
-    "Require split ledger + task log" -> "Record or reuse tasks/task-N/.base";
+    "Confirm workspace + exact active Task N" -> "Lint existing artifacts + require task log";
+    "Lint existing artifacts + require task log" -> "Record or reuse tasks/task-N/.base";
     "Record or reuse tasks/task-N/.base" -> "Set only Task N in-progress";
     "Set only Task N in-progress" -> "Red: failing behavioral check or justified alternative";
     "Red: failing behavioral check or justified alternative" -> "Green: smallest passing implementation";

@@ -975,6 +975,25 @@ describe("scoped artifact lint", () => {
     }
   });
 
+  it("accepts supplemental content in root progress with both lint scopes", async () => {
+    const directory = await temporaryDirectory();
+    const changeDirectory = Path.join(directory, ".kepler", "changes", "demo");
+    const file = Path.join(changeDirectory, "progress.md");
+    const source = progressSource([
+      "| Task 1: Keep | done | [details](tasks/task-1/progress.md) |",
+      "| Task 3: Resume | pending | [details](tasks/task-3/progress.md) |",
+    ])
+      .replace("decision: accepted\n", "decision: accepted\ncontext: retained metadata\n")
+      .replace("# Progress: Demo\n", "# Progress: Demo\n\n## Context\nRetained context.\n\n") +
+      "\n## Notes\nAdditional lint-accepted text.\n";
+
+    await Fs.mkdir(changeDirectory, { recursive: true });
+    await Fs.writeFile(file, source);
+
+    expectExit(await executeLint({ file }), 0);
+    expectExit(await executeLint({ changeDir: changeDirectory }), 0);
+  });
+
   it("accepts pending task logs and finish intents only in their pending states", async () => {
     const directory = await temporaryDirectory();
     const taskFile = Path.join(
