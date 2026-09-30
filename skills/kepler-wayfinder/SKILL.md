@@ -77,7 +77,7 @@ Working resolves only the tickets an explicit user request authorizes — invoki
 
 When the last ticket resolves, synthesize the current destination and the causal path that makes it necessary. State the point of departure from the goal and resolved ticket questions, not as a chronology of the map. Then synthesize a self-contained destination from the map's destination, current ticket answers, glossary terms, binding constraints, and out-of-scope boundaries. If that synthesis exposes a contradiction or essential ambiguity, keep the map open, resolve the gap through another ticket or user exchange, and do not write the route.
 
-The route is a static handoff written once as the map's closing act, from the installed template at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/wayfinder/route.md`. Preserve its five body sections:
+The route is a static handoff written once as the map's closing act, from the installed template at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/wayfinder/route.md`. Write its five core body sections below; a lint-valid existing route is not invalid merely because it includes other sections:
 
 1. **Point of departure** states the current situation and causal path from the goal and resolved ticket questions.
 2. **Destination** states the outcome, concrete shape where it removes meaningful ambiguity, guardrails, and builder latitude. Builder latitude is limited to local choices that cannot change the destination; unresolved product or architectural decisions keep the map open.

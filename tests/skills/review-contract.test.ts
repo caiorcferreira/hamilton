@@ -30,17 +30,18 @@ describe("kepler-review contract", () => {
     expect(inputs).toContain("Project standards")
   })
 
-  it("gates the split generation before branch scope or verdict writes", () => {
+  it("uses lint for existing artifact validity before branch scope or verdict writes", () => {
     const skill = readReview()
     const preflight = section(skill, "## Generation preflight")
 
     expect(preflight).toMatch(/no `plan\.md`.*`pre-plan`/is)
-    expect(preflight).toMatch(/once `plan\.md` exists.*exact (?:split )?root task ledger/is)
-    expect(preflight).toMatch(/every required active-task.*tasks\/task-N\/progress\.md/is)
-    expect(preflight).toMatch(/monolithic.*missing.*partially split.*`legacy-unsupported`/is)
-    expect(preflight).toMatch(/between-changes.*upgrade/i)
+    expect(preflight).toContain("kepler workbench lint --change-dir <change-dir>")
+    expect(preflight).toMatch(/exit status alone determines.*format and schema/is)
+    expect(preflight).toMatch(/frontmatter.*extra\s+content.*task-only layout/is)
+    expect(preflight).toMatch(/missing evidence.*lint does not check absent files/is)
     expect(preflight).toMatch(/every active task.*feedback\.md.*review-ready/is)
-    expect(preflight).toMatch(/never.*(?:create|append|change|write).*review/i)
+    expect(preflight).toMatch(/nonzero lint.*do not write review/is)
+    expect(preflight).not.toMatch(/must be the exact task-only table/is)
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Wrong scope"))
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Process"))
     expect(skill.indexOf("## Generation preflight")).toBeLessThan(skill.indexOf("## Review artifact"))
@@ -63,7 +64,7 @@ describe("kepler-review contract", () => {
     expect(preflight).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
     expect(preflight).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
     expect(preflight).toMatch(
-      /physical last pass.*valid.*`approved`.*no blocking findings.*fresh/is,
+      /lint accepts the feedback artifact.*physical last pass.*`approved`.*no blocking findings.*fresh/is,
     )
   })
 
@@ -142,8 +143,9 @@ describe("kepler-review contract", () => {
     expect(artifact).toMatch(/base.*ancestor.*head/is)
     expect(artifact).toMatch(/head.*ancestor.*current `HEAD`/is)
     expect(artifact).toMatch(/head.*contains.*latest material change commit/is)
-    expect(artifact).toMatch(/malformed last pass.*fail closed/is)
-    expect(artifact).toMatch(/never.*fall back.*earlier approval/is)
+    expect(artifact).toMatch(/physically last pass.*lint.*format.*numbering.*fields.*findings/is)
+    expect(artifact).toMatch(/successful lint.*not subject to a second shape check/is)
+    expect(artifact).toMatch(/never.*fall back.*earlier\s+approval/is)
   })
 
   it("defines the one-time legacy transition and strict suffix boundary", () => {

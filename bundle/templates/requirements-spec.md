@@ -22,10 +22,11 @@ decision: accepted | rejected | skipped
     - kepler-compose-spec authors it directly (reformat an old spec, or from code).
   Both apply the altitude + skeleton rules in each skill's references/spec-altitude.md.
 
-  The skeleton below is universal but right-sized: keep the sections a capability
-  needs, omit the ones it has nothing for. Write flowing prose — do not hard-wrap at
-  a fixed width. Before creating this artifact, read the configured Git identity with
-  `git config user.name` and `git config user.email`, then write `author: Name <email>` using both
+  Keep all five top-level sections: lint requires them. When a register has no applicable
+  facts, keep its section concise and omit optional subsections instead of inventing content.
+  Prefer flowing prose, but do not reject an existing lint-valid spec for its presentation.
+  Before creating this artifact, read the configured Git identity with `git config user.name`
+  and `git config user.email`, then write `author: Name <email>` using both
   configured values. If either configured value is missing, ask the user or stop with a blocker rather
   than inventing an identity. When revising an existing artifact, preserve its recorded author unless
   the user explicitly directs an attribution change. Delete this comment block and inline hints before
@@ -41,13 +42,13 @@ decision: accepted | rejected | skipped
 
 ## Contract
 
-<!-- The concrete interface a consumer touches. Use tables for anything with a shape:
+<!-- The concrete interface a consumer touches. Tables can clarify shaped contracts:
      persisted schema, request/response bodies, event payloads, config keys, status
      codes, error taxonomy. This is where a data-model capability shows its field
      names and types, and an endpoint capability shows its routes.
      Add domain subheadings (### <event type>, ### <endpoint>) as merge anchors when a
-     capability has several distinct contract surfaces. Omit this section if the
-     capability exposes no consumer-facing interface. -->
+     capability has several distinct contract surfaces. Keep this section even if there
+     is no separate consumer-facing interface; state that concisely. -->
 
 | field | type | notes |
 |-------|------|-------|
@@ -67,7 +68,7 @@ decision: accepted | rejected | skipped
 ## Invariants
 
 <!-- Properties that hold across all states and over time. This is the one section
-     where MUST / NEVER earn their keep. Omit if there are none. -->
+     where MUST / NEVER earn their keep. If none are known, say so briefly. -->
 
 -
 
@@ -75,6 +76,6 @@ decision: accepted | rejected | skipped
 
 <!-- Reusable design rules or deliberate decisions future work must follow ("policy,
      not incident"). State the rule, not the one occurrence. Draw from design.md's
-     Decisions. Omit if there are none. -->
+     Decisions. If none are known, say so briefly. -->
 
 -

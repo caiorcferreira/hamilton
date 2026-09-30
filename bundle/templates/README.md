@@ -6,8 +6,11 @@ prose, lists, tables, and append-only findings remain in the body. Repeated reco
 such as plan tasks and route units, remain body collections unless the record carries
 independent state; those records use a nested frontmatter list or a dedicated file.
 
-Frontmatter is the machine-readable source of truth. Do not duplicate a frontmatter
-field as a `Key: value` body line or a metadata table row.
+When authoring a new artifact, keep frontmatter as the machine-readable metadata source; avoid
+duplicating its fields as `Key: value` body lines or metadata table rows. These templates guide
+new writing. For an existing artifact, `kepler workbench lint` alone determines format and
+schema validity; a lint-valid file is not invalid because its presentation differs from a
+template.
 
 Templates for the seven-stage spec-driven pipeline. Each maps to a well-known standard,
 taken in spirit (right-sized), not by conformance.

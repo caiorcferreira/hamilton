@@ -33,26 +33,12 @@ Subagent:
     - Head: [HEAD_SHA]
     - Diff package: [DIFF_FILE]
 
-    Require the package base to equal Task [N]'s recorded checkpoint. Each appended pass records
-    exactly one full `Base:`, `Head:`, and `Verdict:` provenance field, in that order before the
-    only Blocking and Suggestions child sections (`### Blocking` and `### Suggestions`). Append to
-    the one feedback.md history at its physical end; never create feedback-<k>.md or rewrite a prior
-    pass. No `### Reviewed range` heading or any other child
-    heading is allowed; Base and Head are the only per-pass range fields. Validate the complete
-    history before writing: a malformed physical-last pass fails closed, and never fall back to an
-    earlier approval. Treat the package as the bounded inspection boundary. Inspect one concrete
-    named outside risk only under kepler-code-feedback's rules.
-
-    Fresh files use identity and lifecycle-only frontmatter with complete pass-local Base, Head, and
-    Verdict fields. On the first append to a legacy-global history, validate the legacy-global history
-    and perform one atomic mutation: preserve every existing pass body byte-for-byte, remove exactly
-    the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at
-    the physical end in the same mutation. Never copy global provenance into historical passes. Never
-    retain global provenance beside an explicit suffix. A fieldless prefix followed by an
-    explicit suffix is already transitioned, including the already-migrated root-review shape; append
-    normally to it, as with modern all-explicit history. Fail closed for partial globals, mixed
-    global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
-    pass after the explicit suffix. Never create feedback-<k>.md.
+    Run `kepler workbench lint --change-dir <change-dir>` before interpreting existing artifacts;
+    only lint decides whether their format is valid. Require the package base to equal Task [N]'s
+    recorded checkpoint. Follow kepler-code-feedback's evidence, review, append, and commit rules;
+    do not impose a second template or pass-shape validator on a lint-valid history. Treat the
+    package as the bounded inspection boundary. Inspect one concrete named outside risk only under
+    kepler-code-feedback's rules.
 
     ## TDD refactor handoff
 

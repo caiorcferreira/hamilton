@@ -176,12 +176,13 @@ verification and another feedback pass. This handoff belongs to the driver, not 
    and decisions already committed for those capabilities — follow them so the plan stays
    consistent. On the minimal path, where no per-change `requirements/` exists, the specs are
    your primary source of existing behavior; write a two-line why/what for the Overview.
-   If `plan.md` already exists, require the split layout: `<change-dir>/progress.md` must be a
-   root task table and every active row must link to its existing
-   `<change-dir>/tasks/task-N/progress.md`. Treat any other planned layout as
-   `legacy-unsupported` and stop at the between-changes migration boundary. Never parse,
-   migrate, reconstruct, or partially scaffold a planned legacy layout. A change without
-   `plan.md` is pre-plan, not legacy.
+   If `plan.md` already exists, run `kepler workbench lint --change-dir <change-dir>`
+   before interpreting it or its linked artifacts. Treat its exit status as the single source
+   of truth for existing artifact format and schema; a successful lint must not be overridden
+   by a skill-specific layout or template comparison. On nonzero lint, report the findings
+   without mutating artifacts. Require the existing root ledger and task logs needed for
+   re-planning as inputs; name missing evidence separately, since lint does not check absent
+   files. A change without `plan.md` is pre-plan, not legacy.
 5. **Explore (read-only).** Map the files and modules involved, the patterns to follow,
    and the test setup. Make no edits.
 6. **Decompose.** Break the work into TDD-sized tasks. Order them and mark logical dependencies
@@ -246,9 +247,9 @@ verification and another feedback pass. This handoff belongs to the driver, not 
 ## Re-plan mode
 
 When a plan defect surfaces mid-run — a mis-sliced task, a wrong step, a missing dependency —
-re-enter this skill in re-plan mode. Require the split layout before making changes; a planned
-legacy layout is `legacy-unsupported`, so stop rather than migrating or reconstructing it. Read
-`plan.md` and the root `<change-dir>/progress.md` current-status table —
+re-enter this skill in re-plan mode. Run the existing-artifact lint gate in Process step 4 before
+making changes. Do not reject a lint-valid artifact because it has additional frontmatter or
+body content. Read `plan.md` and the root `<change-dir>/progress.md` current-status table —
 `kepler workbench context <change-dir>` summarizes them in one call — and
 amend the plan without reading or rewriting sibling attempt histories.
 
@@ -278,9 +279,8 @@ amend the plan without reading or rewriting sibling attempt histories.
   `### Task N: <title> (abandoned — <reason>)`. Only a heading that ends with this complete
   canonical form and supplies a nonempty reason is abandoned. Headings that use
   `(abandoned - reason)`, `(abandoned — )`, or `(abandoned — reason) trailing` do not match;
-  retain them under ordinary active or malformed task handling. Remove an exactly abandoned
-  task's row from the active root table and retain its existing task directory and append-only
-  history. Do not delete them or reuse the numeric id.
+  retain them as active unless lint rejects the plan. Remove an exactly abandoned task's row
+  from the active root table and retain its existing task directory and append-only history. Do not delete them or reuse the numeric id.
 - Do not make a new task edit a sibling's task progress, feedback, checkpoint, root metadata
   entry, or status row. Each task owns only its listed implementation files and its own execution
   evidence. If correcting a frozen task requires editing its owned evidence, report the

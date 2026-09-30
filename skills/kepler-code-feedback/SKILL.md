@@ -55,23 +55,20 @@ Run this no-write gate before task-scope inspection, diff validation, or verdict
 directory with no `plan.md` is `pre-plan`, not legacy; stop because no planned task can be reviewed,
 but do not classify or scaffold it as an unsupported generation.
 
-Once `plan.md` exists, require the exact split root task ledger and every required active-task
-scaffold artifact. Root `<change-dir>/progress.md` must contain only the task table, with exactly one
-`Task | Status | Progress` header, one plan-ordered row per active task, a status from `pending`,
-`in-progress`, `blocked`, or `done`, and the exact `tasks/task-N/progress.md` link. Each linked
-`<change-dir>/tasks/task-N/progress.md` must exist with matching numeric task identity. Reject a
-monolithic root progress file, missing scaffold, partially scaffolded or otherwise partially split
-layout, alternate task path, or mixed execution and verdict history as `legacy-unsupported`. Stop
-with between-changes upgrade guidance: finish the old change under its old installation or upgrade
-the complete Kepler generation and run `kepler setup` between changes. Never parse, migrate,
-reconstruct, or partially scaffold that layout, and never create, append, change, or write feedback
-when this gate fails.
+Once `plan.md` exists, run `kepler workbench lint --change-dir <change-dir>` before
+interpreting the existing artifacts. Its exit status is the single source of truth for their
+format and schema: a successful lint must not be overturned by a task-only-table rule, a
+comparison to a template, or a skill-specific `legacy-unsupported` classification. Root
+`<change-dir>/progress.md` may contain both frontmatter and a task ledger, as well as other
+lint-accepted content. On nonzero lint, report its findings without writing feedback.
 
-An absent assigned `feedback.md` is a valid creation-time state after the split scaffold passes;
-the first successful feedback pass creates it. If it already exists, its path and task identity
-must match the assigned task. Feedback files for tasks that have not reached feedback are not
-planning scaffold. Only after this preflight succeeds may the task-specific scope and evidence
-checks below run.
+For this review, require the assigned active task's root status and existing
+`<change-dir>/tasks/task-N/progress.md` as evidence. If an input is absent, stop and name the
+missing input; lint does not require absent files to exist. Check that the supplied task identity
+agrees with the plan, task evidence, and feedback destination. These are review scope checks,
+not an independent artifact-format validator. An absent assigned `feedback.md` is a valid
+creation-time state; the first successful pass creates it. Only after these checks may the
+task-specific scope and evidence checks below run.
 
 ## Wrong scope
 
@@ -140,7 +137,8 @@ an unresolved requirement.
 
 ## Verdicts
 
-Use only these verdicts:
+For a new feedback pass, use only these verdicts. A historical `skipped` pass may be lint-valid;
+it is not an approval and never advances the task.
 
 - `approved` when all acceptance criteria and binding constraints are verified, the reviewed range
   is valid, and Blocking contains no findings.
@@ -179,21 +177,21 @@ artifact frontmatter only with artifact identity and lifecycle fields: `artifact
 hint while substituting placeholders; neither authoring instructions nor hints may survive in the
 live artifact.
 
-When the file exists, validate it first, then use the cleaned record portion of that same installed
-template to append the next-numbered pass at the physical end. Preserve the task identity heading
-and every prior pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,
+When the file exists, use the successful preflight lint result as its format validation, then
+use the cleaned record portion of that same installed template to append the next-numbered pass
+at the physical end. Preserve the task identity heading and every prior pass. Each pass contains exactly one full `Base:`, `Head:`, and `Verdict:` field,
 in that order before exactly its two child sections, `### Blocking` and `### Suggestions`. A
-retained leading template instruction block or inline hint is authoring markup, not verdict
-history: remove it before appending, but do not change, delete, reorder, or insert within any prior
-pass. Never rewrite a prior pass. No `### Reviewed range` heading or any other child
-heading is allowed; Base and Head are the only per-pass range fields. Populate every
+retained leading template instruction block or inline hint is not a reason to reject a
+lint-valid history. Do not change, delete, reorder, or insert within any prior pass.
+Never rewrite a prior pass. No `### Reviewed range` heading or any other child heading is allowed; Base and Head are the only per-pass range fields. Populate every
 template-defined value. An approval has no blocking findings and
 may briefly record useful verified coverage as a suggestion; both findings groups remain present.
 Every pass records the supplied full Base and Head values, never abbreviated commit ids. Append to
 the one `feedback.md` history only; never create `feedback-<k>.md`.
 
-Fresh feedback files use identity and lifecycle-only frontmatter with complete pass-local Base, Head,
-and Verdict fields. The first append to a legacy-global history has one deterministic transition:
+When creating a feedback file, use identity and lifecycle-only frontmatter with complete
+pass-local Base, Head, and Verdict fields; existing lint-valid extra metadata is not a blocker.
+The first append to a legacy-global history has one deterministic transition:
 validate the legacy-global history, preserve every existing pass body byte-for-byte, remove exactly
 the global `base`, `head`, and `verdict` fields, and append the next complete pass-local record at the
 physical end in the same mutation. Never copy global provenance into historical passes. Never retain
@@ -203,11 +201,11 @@ suffix; modern all-explicit history also appends normally. Fail closed for parti
 global-plus-explicit evidence, missing legacy globals without an explicit suffix, or any fieldless
 pass after the explicit suffix. Never create `feedback-<k>.md`.
 
-The physically last pass governs. It is valid only when task identity, pass numbering and shape,
-verdict, findings, and reviewed range are complete and consistent. An `approved` pass with a
-blocking item is contradictory. A malformed last pass must fail closed; never scan backward or fall
-back to an earlier approval. Apart from the one-time removal of retained template authoring markup,
-do not rewrite, delete, reorder, or insert before an existing pass.
+The physically last pass governs. Use lint to determine whether its artifact format, numbering,
+fields, and findings are valid; a successful lint is not subject to a second shape check. Verify
+its reviewed range against the actual Git history and its verdict against the task's evidence.
+Never scan backward or fall back to an earlier approval. Do not rewrite, delete, reorder, or
+insert before an existing pass except for the documented legacy-global transition.
 
 ## Record and commit
 
@@ -244,7 +242,7 @@ pipeline skill yourself.
 
 ```dot
 digraph kepler_code_feedback {
-    "Require split layout + exact Task N" [shape=box];
+    "Lint existing artifacts + require Task N evidence" [shape=box];
     "Validate checkpoint + stable task diff" [shape=box];
     "Inspect bounded task evidence" [shape=box];
     "Decide verdict" [shape=box];
@@ -255,7 +253,7 @@ digraph kepler_code_feedback {
     "Feedback-only bookkeeping commit" [shape=doublecircle];
     "Return control to driver" [shape=doublecircle];
 
-    "Require split layout + exact Task N" -> "Validate checkpoint + stable task diff";
+    "Lint existing artifacts + require Task N evidence" -> "Validate checkpoint + stable task diff";
     "Validate checkpoint + stable task diff" -> "Inspect bounded task evidence";
     "Inspect bounded task evidence" -> "Decide verdict";
     "Decide verdict" -> "Run commit safety preflight";

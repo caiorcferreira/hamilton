@@ -36,7 +36,13 @@ describe("kepler-orchestrate task resume contract", () => {
 
   it("dispatches code feedback when feedback is stale", () => {
     expect(matrix).toMatch(
-      /\| `done` \| stale or malformed \| Dispatch `kepler-code-feedback`/,
+      /\| `done` \| stale or lint-invalid \| Dispatch `kepler-code-feedback`/,
+    )
+  })
+
+  it("keeps a lint-valid skipped task pass from authorizing advancement", () => {
+    expect(matrix).toMatch(
+      /\| `done` \| fresh `skipped` \| Dispatch `kepler-code-feedback`.*artifact is valid but does not approve the task/,
     )
   })
 
@@ -123,7 +129,13 @@ describe("kepler-orchestrate whole-branch resume contract", () => {
   })
 
   it("dispatches whole-branch review when review is malformed or stale", () => {
-    expect(matrix).toMatch(/\| stale or malformed \| Dispatch `kepler-review`/)
+    expect(matrix).toMatch(/\| stale or lint-invalid \| Dispatch `kepler-review`/)
+  })
+
+  it("keeps a lint-valid skipped branch pass from authorizing finish", () => {
+    expect(matrix).toMatch(
+      /\| fresh `skipped` \| Dispatch `kepler-review`.*artifact is valid but does not approve the branch/,
+    )
   })
 
   it("routes fresh requested changes through classification", () => {
@@ -236,7 +248,7 @@ describe("kepler-orchestrate checkpoint and evidence contract", () => {
     expect(approval).toMatch(/latest commit that touched.*feedback.*artifact-only/is)
     expect(approval).toMatch(/commit's path list.*only.*tasks\/task-N\/feedback\.md/is)
     expect(approval).toMatch(
-      /physical last pass.*valid.*`approved`.*no blocking findings.*fresh/is,
+      /lint accepts the feedback artifact.*physical last pass.*`approved`.*no blocking findings.*fresh/is,
     )
     expect(approval).toMatch(/any failed condition.*dispatch `kepler-code-feedback`/is)
   })
@@ -276,13 +288,10 @@ describe("kepler-orchestrate prompt scopes", () => {
     expect(codeFeedback).toContain("Head: [HEAD_SHA]")
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/progress.md")
     expect(codeFeedback).toContain("<change-dir>/tasks/task-N/feedback.md")
-    expect(codeFeedback).toMatch(/each appended pass records\s+exactly one full `Base:`, `Head:`, and `Verdict:` provenance field/i)
-    expect(codeFeedback).toMatch(/only Blocking and Suggestions child\s+sections/i)
-    expect(codeFeedback).toMatch(/never create[\s\S]*feedback-<k>\.md/i)
-    expect(codeFeedback).toMatch(/rewrite a prior\s+pass/i)
-    expect(codeFeedback).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
-    expect(codeFeedback).toMatch(/malformed physical-last pass.*fails closed/is)
-    expect(codeFeedback).toMatch(/never fall back to an\s+earlier approval/is)
+    expect(codeFeedback).toContain("kepler workbench lint --change-dir <change-dir>")
+    expect(codeFeedback).toMatch(/only lint decides whether their format is valid/is)
+    expect(codeFeedback).toMatch(/follow kepler-code-feedback's.*append.*commit rules/is)
+    expect(codeFeedback).toMatch(/do not impose a second template or pass-shape validator/is)
     expect(codeFeedback).toMatch(/bounded inspection/i)
   })
 
@@ -313,34 +322,20 @@ describe("kepler-orchestrate prompt scopes", () => {
     expect(wholeBranch).toContain("Head: [HEAD_SHA]")
     expect(wholeBranch).toMatch(/complete branch diff/i)
     expect(wholeBranch).toContain("<change-dir>/review.md")
-    expect(wholeBranch).toMatch(/each appended pass records\s+exactly one full `Base:`, `Head:`, and `Verdict:`\s+provenance field/i)
-    expect(wholeBranch).toMatch(/only Blocking and Suggestions child\s+sections/i)
-    expect(wholeBranch).toMatch(/never create[\s\S]*review-<k>\.md/i)
-    expect(wholeBranch).toMatch(/rewrite a prior pass/i)
-    expect(wholeBranch).toMatch(/no `### Reviewed range`\s+heading.*allowed/is)
-    expect(wholeBranch).toMatch(/malformed physical-last pass.*fails closed/is)
-    expect(wholeBranch).toMatch(/never fall back to an\s+earlier approval/is)
+    expect(wholeBranch).toContain("kepler workbench lint --change-dir <change-dir>")
+    expect(wholeBranch).toMatch(/only lint decides whether their format is valid/is)
+    expect(wholeBranch).toMatch(/follow kepler-review's.*append.*commit rules/is)
+    expect(wholeBranch).toMatch(/do not impose a second template or pass-shape\s+validator/is)
     expect(wholeBranch).toMatch(/broader repository/i)
   })
 
-  it("defines the same one-time producer transition for both dispatch prompts", () => {
-    const transitionRules = [
-      /validate the legacy-global history/i,
-      /preserve every existing pass body byte-for-byte/i,
-      /remove exactly\s+the\s+global `base`, `head`, and `verdict` fields/is,
-      /append the next complete pass-local record at\s+the\s+physical end in the same mutation/is,
-      /never copy global provenance into historical passes/i,
-      /never\s+retain\s+global provenance beside an explicit suffix/is,
-      /fieldless prefix.*explicit suffix.*already transitioned/is,
-      /fail closed for partial globals/i,
-      /mixed\s+global-plus-explicit evidence/is,
-      /missing legacy globals without an explicit suffix/i,
-      /fieldless\s+pass after the explicit suffix/is,
-      /no `### Reviewed range` heading.*allowed/is,
-    ]
-
-    for (const prompt of [codeFeedback, wholeBranch])
-      for (const rule of transitionRules) expect(prompt).toMatch(rule)
+  it("delegates pass formatting to lint instead of duplicating a producer validator", () => {
+    for (const prompt of [codeFeedback, wholeBranch]) {
+      expect(prompt).toMatch(/only lint decides whether their format is valid/is)
+      expect(prompt).toMatch(/do not impose a second template or pass-shape\s+validator/is)
+      expect(prompt).not.toMatch(/fail closed for partial globals/i)
+      expect(prompt).not.toMatch(/each appended pass records exactly one full/i)
+    }
   })
 })
 

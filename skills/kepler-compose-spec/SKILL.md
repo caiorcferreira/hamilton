@@ -68,8 +68,9 @@ skill's own directory — they are co-located with this SKILL.md, **not** at `${
   top-level concern — not a mechanism, a config surface, a single module, or a wiring step. Aim
   for the fewest capabilities that cover the system without overlap. (Same sizing as
   `kepler-propose`: prefer `logging.md` over `structured-logging.md` + `trace-log-correlation.md`.)
-- **Right-size sections.** Keep the skeleton sections a capability needs; omit the ones it has
-  nothing for. A tiny capability may be an Overview and three Contract rows.
+- **Right-size content.** Keep all five sections required by lint; keep a section concise when
+  there are no applicable facts, and omit optional subsections. A tiny capability can be brief
+  without inventing guarantees. Lint, not this writing rubric, decides existing format validity.
 
 ## Process
 

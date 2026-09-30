@@ -1,4 +1,10 @@
-# glossary.md Format
+# Working glossary.md format
+
+This bare Markdown format applies only to `.kepler/maps/<effort>/glossary.md`, which is outside
+artifact lint. The canonical `.kepler/specs/glossary.md` is a `requirements-spec` artifact:
+create or edit it using the canonical spec template, then run
+`kepler workbench lint --file <spec-path>`. Do not reject a lint-valid canonical glossary because it differs from this
+working-note format.
 
 ## Structure
 
@@ -29,18 +35,13 @@ _Avoid_: Client, buyer, account
 - **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
 - **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
 
-## Single vs multi-context repos
+## Working and canonical scope
 
-Guidance for the skill — not part of the glossary a session writes.
+Guidance for the skill, not part of the glossary a session writes.
 
-**Single context** (most repos): one `glossary.md` at `.kepler/specs/`.
-
-**Multiple contexts:** each effort under `.kepler/maps/` keeps its own working `glossary.md` — the current effort's scratch language only. Only the current effort's working glossary is ever read; never read another effort's working glossary. When an effort closes, the wayfinder closing act folds its resolved terms into the canonical `.kepler/specs/glossary.md` — the accumulated language the project has committed to.
-
-The skill infers which structure applies:
-
-- If this effort's `glossary.md` exists, read it for this effort's working language — no other effort's glossary is read.
-- If only `.kepler/specs/glossary.md` exists, single context.
-- If this effort has no `glossary.md`, create one lazily when the first term is resolved.
-
-When both exist, infer which one the current topic relates to. If unclear, ask.
+Read the project's committed terms from `.kepler/specs/glossary.md` when it exists. Each current
+effort may keep a working glossary under its own `.kepler/maps/<effort>/`; create that file
+lazily when the first working term is resolved. Never read another effort's working glossary.
+When an effort closes, the Wayfinder closing act folds resolved terms into the canonical spec
+using its lint-valid requirements-spec format. The presence or absence of a working file does
+not change the canonical artifact's format.

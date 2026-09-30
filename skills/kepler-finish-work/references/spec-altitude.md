@@ -26,9 +26,10 @@ canonical spec buried in `SHALL`/`WHEN`/`THEN` scaffolding stops being read at a
 
 ## The shape: a light universal skeleton
 
-Every canonical spec uses the same five top-level sections. They are the four registers below
-plus a narrative frame. Prose and tables under each; **omit any section a capability has nothing
-for** — right-sized, not gold-plated.
+Every canonical spec uses the five sections required by `kepler workbench lint`: Overview,
+Contract, Behavior, Invariants, and Decisions. Keep a required section concise when a capability
+has no applicable facts, and omit optional subsections rather than inventing guarantees. The
+skeleton guides new writing; lint alone decides whether an existing artifact's format is valid.
 
 ```markdown
 # Capability: <name>
@@ -55,8 +56,8 @@ for** — right-sized, not gold-plated.
 - <A reusable design rule or deliberate decision future work must follow.>
 ```
 
-Write the canonical spec in **flowing prose** — let paragraphs run as continuous lines; break
-only at real boundaries (paragraphs, list items, headings). Do not hard-wrap at a fixed width.
+For new writing, prefer flowing prose and tables where they make a contract clearer. These
+presentation choices are not extra validity gates for a spec that passes lint.
 
 **Anchors.** The five section headings, plus any domain subheadings you add under Contract or
 Behavior (e.g. `### RAP_OPERATION_SYNC`, `### POST /events`), are the **merge anchors**. A change

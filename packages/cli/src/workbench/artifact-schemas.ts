@@ -124,6 +124,8 @@ const schemaProperties = (artifact: SupportedArtifact) => {
   for (const [field, values] of Object.entries(enumValues[artifact] ?? {})) {
     if (values) properties[field] = { enum: values };
   }
+  if (artifact === "critique")
+    properties.decision = { enum: ["accepted", "applied", "rejected", "skipped"] };
   return properties;
 };
 
