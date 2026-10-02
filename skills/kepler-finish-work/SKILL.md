@@ -42,7 +42,7 @@ reject a lint-valid artifact for its layout or for differences from a template.
 ## References
 
 This skill ships with a `references/` folder. Read reference files using the Read tool on the
-skill's own directory — they are co-located with this `SKILL.md`, not at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`.
+skill's own directory — they are co-located with this `SKILL.md`, not at `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`.
 
 - `references/spec-altitude.md` — the altitude rubric and the canonical spec's human-readable
   skeleton (`## Overview` / `## Contract` / `## Behavior` with Examples / `## Invariants` /
@@ -136,7 +136,7 @@ design, and requirement deltas disagree. Report the affected artifact and mismat
 repairing approved intent inside the finish stage.
 
 Write canonical specifications in the human-readable skeleton from
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/requirements-spec.md`. Never copy the change-side
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/requirements-spec.md`. Never copy the change-side
 Requirement/SHALL/Scenario shape or its delta-group headings into a canonical spec. Translate
 each delta into its anchored contract surface:
 
@@ -168,7 +168,7 @@ attempt, but it does not make an unrelated edit safe.
 ## Finish history
 
 `<change-dir>/finish.md` is the only finish-history artifact. On the first admitted attempt,
-load and instantiate the exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md` template. Populate its frontmatter fields `change`, `status`, `created`, `updated`, `strategy`,
+load and instantiate the exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/finish.md` template. Populate its frontmatter fields `change`, `status`, `created`, `updated`, `strategy`,
 `result`, and `decision`. Substitute the real change title and first complete attempt, remove the opening instruction block and every
 inline hint, and ensure no authoring instruction or hint survives in the live file. Otherwise
 run `kepler workbench lint --file <change-dir>/finish.md` before use, then derive the next

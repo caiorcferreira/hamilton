@@ -46,7 +46,7 @@ describe("kepler-finish-work contract", () => {
     const skill = readFinishWork()
     const history = section(skill, "## Finish history")
 
-    expect(history).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md")
+    expect(history).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/finish.md")
     expect(history).toMatch(/exact installed.*template/i)
     expect(history).toContain("<change-dir>/finish.md")
     expect(history).toMatch(/remove.*instruction block.*inline\s+hint/is)

@@ -89,7 +89,7 @@ describe("kepler-code-feedback contract", () => {
   it("instantiates the installed template and appends task-owned feedback", () => {
     const artifact = readCodeFeedback()
 
-    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/feedback.md")
+    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/feedback.md")
     expect(artifact).toMatch(/exact installed.*template/i)
     expect(artifact).toContain("<change-dir>/tasks/task-N/feedback.md")
     expect(artifact).toMatch(/task directory segment is lowercase\s+`task-N`/)

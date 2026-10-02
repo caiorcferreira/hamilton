@@ -94,7 +94,7 @@ describe("kepler-code execution contract", () => {
   it("loads the installed task-progress template and owns only assigned task evidence", () => {
     const process = section(skill, "## Process")
 
-    expect(skill).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md")
+    expect(skill).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/task-progress.md")
     expect(skill).toMatch(/installed.*template.*guides new content.*lint.*validates/is)
     expect(skill).toMatch(/frontmatter.*metadata|metadata.*frontmatter/is)
     expect(skill).toMatch(/do not\s+compare an existing task log with the installed template/is)

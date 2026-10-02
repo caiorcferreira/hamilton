@@ -34,6 +34,7 @@ const makeInterruptedMigration = (root: string, createCanonical: boolean) => {
   const configHome = Path.join(root, "config");
   const legacyPath = Path.join(home, ".hamilton");
   const canonicalPath = Path.join(configHome, ".vialactea-works", "kepler");
+  const correctedCanonicalPath = Path.join(configHome, "vialactea-works", "kepler");
   const transactionId = "bcd12345-6789-4abc-8def-0123456789ab";
   const stagingPath = migrationStagingPath(canonicalPath, transactionId);
   Fs.mkdirSync(legacyPath, { recursive: true });
@@ -77,6 +78,7 @@ const makeInterruptedMigration = (root: string, createCanonical: boolean) => {
     configHome,
     legacyPath,
     canonicalPath,
+    correctedCanonicalPath,
     stagingPath,
     markerPath,
     state,
@@ -146,14 +148,57 @@ describe("KeplerService paths", () => {
     });
 
     expect(service.globalPaths()).toEqual({
-      home: Path.join(root, "config", ".vialactea-works", "kepler"),
-      templates: Path.join(root, "config", ".vialactea-works", "kepler", "templates"),
-      guidelines: Path.join(root, "config", ".vialactea-works", "kepler", "guidelines"),
-      settings: Path.join(root, "config", ".vialactea-works", "kepler", "settings.yaml"),
+      home: Path.join(root, "config", "vialactea-works", "kepler"),
+      templates: Path.join(root, "config", "vialactea-works", "kepler", "templates"),
+      guidelines: Path.join(root, "config", "vialactea-works", "kepler", "guidelines"),
+      settings: Path.join(root, "config", "vialactea-works", "kepler", "settings.yaml"),
     });
     expect(service.projectDataPath(Path.join(root, "project"))).toBe(
       Path.join(root, "project", ".kepler"),
     );
+  });
+
+  it("prefers the previous hidden global path over .hamilton and preserves both", () => {
+    const root = makeDirectory();
+    const home = Path.join(root, "home");
+    const xdgConfigHome = Path.join(root, "config");
+    const previousHome = Path.join(xdgConfigHome, ".vialactea-works", "kepler");
+    const legacyHome = Path.join(home, ".hamilton");
+    const canonicalHome = Path.join(xdgConfigHome, "vialactea-works", "kepler");
+    Fs.mkdirSync(previousHome, { recursive: true });
+    Fs.mkdirSync(legacyHome, { recursive: true });
+    Fs.writeFileSync(Path.join(previousHome, "settings.yaml"), "source: previous\n");
+    Fs.writeFileSync(Path.join(legacyHome, "settings.yaml"), "source: legacy\n");
+    const service = new KeplerService({ homeDirectory: home, xdgConfigHome });
+
+    expect(service.globalHome()).toBe(canonicalHome);
+    expect(Fs.readFileSync(Path.join(canonicalHome, "settings.yaml"), "utf8"))
+      .toBe("source: previous\n");
+    expect(Fs.readFileSync(Path.join(previousHome, "settings.yaml"), "utf8"))
+      .toBe("source: previous\n");
+    expect(Fs.readFileSync(Path.join(legacyHome, "settings.yaml"), "utf8"))
+      .toBe("source: legacy\n");
+  });
+
+  it("prefers corrected global data when both global paths exist", () => {
+    const root = makeDirectory();
+    const xdgConfigHome = Path.join(root, "config");
+    const previousHome = Path.join(xdgConfigHome, ".vialactea-works", "kepler");
+    const canonicalHome = Path.join(xdgConfigHome, "vialactea-works", "kepler");
+    Fs.mkdirSync(previousHome, { recursive: true });
+    Fs.mkdirSync(canonicalHome, { recursive: true });
+    Fs.writeFileSync(Path.join(previousHome, "settings.yaml"), "source: previous\n");
+    Fs.writeFileSync(Path.join(canonicalHome, "settings.yaml"), "source: corrected\n");
+    const service = new KeplerService({
+      homeDirectory: Path.join(root, "home"),
+      xdgConfigHome,
+    });
+
+    expect(service.globalHome()).toBe(canonicalHome);
+    expect(Fs.readFileSync(Path.join(canonicalHome, "settings.yaml"), "utf8"))
+      .toBe("source: corrected\n");
+    expect(Fs.readFileSync(Path.join(previousHome, "settings.yaml"), "utf8"))
+      .toBe("source: previous\n");
   });
 
   it("uses distinct migration paths for .kepler and kepler siblings", () => {
@@ -193,7 +238,7 @@ describe("KeplerService paths", () => {
     });
 
     expect(service.globalHome()).toBe(
-      Path.join(root, ".config", ".vialactea-works", "kepler"),
+      Path.join(root, ".config", "vialactea-works", "kepler"),
     );
   });
 
@@ -205,7 +250,7 @@ describe("KeplerService paths", () => {
     });
 
     expect(service.globalHome()).toBe(
-      Path.join(root, ".config", ".vialactea-works", "kepler"),
+      Path.join(root, ".config", "vialactea-works", "kepler"),
     );
   });
 
@@ -247,7 +292,7 @@ describe("KeplerService paths", () => {
       const service = new KeplerService({ homeDirectory: home, xdgConfigHome });
 
       expect(() => service.globalHome()).toThrow(KeplerMigrationError);
-      expect(Fs.existsSync(Path.join(legacyHome, ".vialactea-works"))).toBe(false);
+      expect(Fs.existsSync(Path.join(legacyHome, "vialactea-works"))).toBe(false);
       expect(Fs.readdirSync(legacyHome)).toEqual(["settings.yaml"]);
     }
   });
@@ -259,7 +304,7 @@ describe("KeplerService paths", () => {
     const canonicalHome = Path.join(
       root,
       "config",
-      ".vialactea-works",
+      "vialactea-works",
       "kepler",
     );
     Fs.mkdirSync(legacyHome, { recursive: true });
@@ -286,7 +331,7 @@ describe("KeplerService paths", () => {
     const legacySettings = Path.join(home, ".hamilton", "settings.yaml");
     const canonicalHome = Path.join(
       xdgConfigHome,
-      ".vialactea-works",
+      "vialactea-works",
       "kepler",
     );
     Fs.mkdirSync(Path.dirname(legacySettings), { recursive: true });
@@ -307,7 +352,7 @@ describe("KeplerService paths", () => {
       xdgConfigHome: paths.configHome,
     });
 
-    expect(service.globalHome()).toBe(paths.canonicalPath);
+    expect(service.globalHome()).toBe(paths.correctedCanonicalPath);
     expect(Fs.readFileSync(Path.join(paths.canonicalPath, "settings.yaml"), "utf8"))
       .toBe("source: legacy\n");
     expect(Fs.readFileSync(Path.join(paths.canonicalPath, "legacy-only.txt"), "utf8"))
@@ -347,7 +392,7 @@ describe("KeplerService paths", () => {
       xdgConfigHome: paths.configHome,
     });
 
-    expect(service.globalHome()).toBe(paths.canonicalPath);
+    expect(service.globalHome()).toBe(paths.correctedCanonicalPath);
     expect(Fs.readFileSync(Path.join(paths.canonicalPath, "settings.yaml"), "utf8"))
       .toBe("source: legacy\n");
     expect(Fs.existsSync(paths.markerPath)).toBe(false);
@@ -435,7 +480,7 @@ describe("KeplerService paths", () => {
     expect(Fs.existsSync(Path.join(paths.legacyPath, "settings.yaml"))).toBe(true);
 
     Fs.unlinkSync(paths.canonicalPath);
-    expect(service.globalHome()).toBe(paths.canonicalPath);
+    expect(service.globalHome()).toBe(paths.correctedCanonicalPath);
     expect(Fs.readFileSync(Path.join(paths.canonicalPath, "settings.yaml"), "utf8"))
       .toBe("source: legacy\n");
     expect(Fs.readFileSync(Path.join(unrelatedTarget, "settings.yaml"), "utf8"))
@@ -466,7 +511,7 @@ describe("KeplerService paths", () => {
     });
 
     expect(() => process.kill(reusedPid, 0)).not.toThrow();
-    expect(service.globalHome()).toBe(paths.canonicalPath);
+    expect(service.globalHome()).toBe(paths.correctedCanonicalPath);
     expect(Fs.readFileSync(Path.join(paths.canonicalPath, "settings.yaml"), "utf8"))
       .toBe("source: legacy\n");
     expect(Fs.existsSync(paths.markerPath)).toBe(false);
@@ -582,7 +627,7 @@ describe("KeplerService paths", () => {
     const service = new KeplerService({ homeDirectory: home, xdgConfigHome });
 
     const paths = service.globalPaths();
-    expect(paths.home).toBe(Path.join(xdgConfigHome, ".vialactea-works", "kepler"));
+    expect(paths.home).toBe(Path.join(xdgConfigHome, "vialactea-works", "kepler"));
     expect(Fs.readFileSync(paths.settings, "utf8")).toBe(
       "extensions:\n  - name: custom\n",
     );
@@ -604,7 +649,7 @@ describe("KeplerService paths", () => {
     const legacySettings = Path.join(home, ".hamilton", "settings.yaml");
     const canonicalSettings = Path.join(
       xdgConfigHome,
-      ".vialactea-works",
+      "vialactea-works",
       "kepler",
       "settings.yaml",
     );
@@ -674,7 +719,7 @@ describe("KeplerService paths", () => {
   it("reports failed legacy copies without deleting the source", () => {
     const root = makeDirectory();
     const legacyHome = Path.join(root, ".hamilton");
-    const canonicalHome = Path.join(root, "config", ".vialactea-works", "kepler");
+    const canonicalHome = Path.join(root, "config", "vialactea-works", "kepler");
     Fs.mkdirSync(legacyHome, { recursive: true });
     Fs.writeFileSync(Path.join(legacyHome, "settings.yaml"), "legacy: true\n");
     const canonicalParent = Path.dirname(canonicalHome);

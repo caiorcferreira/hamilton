@@ -41,7 +41,7 @@ not worked again unless the user explicitly requests a new critique pass.
 
 This skill ships with a `references/` folder. Read reference files using the Read tool on
 the skill's own directory — they are co-located with this SKILL.md, **not** at
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`.
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/`.
 
 - `references/code-quality.md` — the design/plan-altitude rubric for judging structural
   quality, the same one `kepler-propose` self-reviews against.
@@ -131,7 +131,7 @@ the skill's own directory — they are co-located with this SKILL.md, **not** at
 ## Report format
 
 Write the report to `.kepler/changes/<change>/critique.md`, following the
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/critique.md` format, and print the same content to chat. Findings are
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/critique.md` format, and print the same content to chat. Findings are
 **one continuous numbered list, ordered most-severe first**, each tagged
 `[Critical]` (blocks the gate — a defect that would cause implementation confusion or a
 runtime failure), `[Significant]` (a factual error or YAGNI violation to correct before the

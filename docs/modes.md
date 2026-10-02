@@ -46,9 +46,9 @@ See **[Skills reference](./skills.md)** for what each skill does and how to run 
 The code and skills live in:
 
 - `skills/kepler-*/` — the seven pipeline skills.
-- `bundle/templates/` — the artifact templates, installed to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by
+- `bundle/templates/` — the artifact templates, installed to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by
   `kepler setup`.
-- `bundle/guidelines/` — coding guidelines, installed to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/` by
+- `bundle/guidelines/` — coding guidelines, installed to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/` by
   `kepler setup`.
 - `packages/cli/src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
 - a project's `.kepler/` — per-project specs and change artifacts, created by the `kepler-init`

@@ -5,7 +5,7 @@ structure to AI-assisted coding — carrying a change from idea to merge through
 spec-driven steps that any coding agent can follow.
 
 Kepler is now a **simple CLI that sets up the Assisted workflow**: `kepler setup` installs the
-spec-driven-development artifact templates and coding guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`, while
+spec-driven-development artifact templates and coding guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`, while
 `kepler workbench` provides the supported workflow-mechanics surface used by the skills. The
 Autonomous workflow engine and Ambient memory layer were removed in 0.3.0; the last full-feature
 state is preserved on the `archive/full-feature-pre-cleanup` branch and the `pre-cleanup-0.2.1` tag.
@@ -19,9 +19,9 @@ npx skills add https://github.com/vialactea-works/kepler
 ```
 
 The first command installs the platform-specific standalone Bun executable and its sidecar bundle,
-then sets up artifacts in `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler`. The second installs the skills in your preferred coding agent.
+then sets up artifacts in `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler`. The second installs the skills in your preferred coding agent.
 
-Kepler stores global files under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` and project artifacts under `.kepler/`. When only legacy `~/.hamilton/` or project `.hamilton/` data exists, Kepler copies it to the corresponding Kepler path and leaves the original unchanged. If both paths exist, Kepler uses the new path without merging, overwriting, or deleting legacy data.
+Kepler stores global files under `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/` and project artifacts under `.kepler/`. If the previous hidden global directory `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`, legacy `~/.hamilton/`, or project `.hamilton/` contains data and the corresponding canonical path does not exist, Kepler copies the data and leaves the source unchanged. Existing canonical data takes precedence without merging or deleting legacy data; when both legacy global directories exist, Kepler uses the previous hidden directory.
 
 **Environment variables** (optional):
 - `KEPLER_VERSION` — install a specific release version (default: latest)
@@ -40,10 +40,10 @@ A setup failure exits with status `2` instead of `0`.
 
 ## What the CLI does
 
-`kepler setup` bootstraps `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`:
+`kepler setup` bootstraps `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`:
 
 ```
-${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/
+${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/
   templates/     # SDD artifact templates (plan.md, design.md, proposal.md, ...)
   guidelines/    # coding guidelines (general, golang, typescript)
   settings.yaml  # default settings
@@ -55,7 +55,7 @@ operations are `kepler workbench isolate`, `kepler workbench diff`,
 `kepler workbench prototype`. Artifact validation uses `kepler workbench lint`.
 
 ```bash
-kepler setup          # bootstrap ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/ (preserves existing settings)
+kepler setup          # bootstrap ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/ (preserves existing settings)
 kepler setup --force  # rerun setup; preserves existing settings
 kepler workbench --help
 kepler --help
@@ -74,7 +74,7 @@ init ──▶ [ propose ] ──▶ plan ──▶ ( code ◀──▶ code-fee
 
 Each step is a self-contained `SKILL.md` that names no engine internals. It depends on the project's
 standards (`AGENTS.md`), the artifact templates and coding guidelines Kepler installs under
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` with `kepler setup`, the distributed `kepler workbench` command, and the
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/` with `kepler setup`, the distributed `kepler workbench` command, and the
 per-change artifacts under the project's own `.kepler/` directory. The same skill guides a person
 in an editor or an agent like Claude Code. The heavyweight front door (`propose`) is optional; a
 tactical change starts at `plan`.
@@ -135,7 +135,7 @@ curl -fsSL https://raw.githubusercontent.com/vialactea-works/kepler/main/install
 bun install
 bun run build                  # compile TypeScript
 bun run install-local          # symlink to ~/.local/bin/
-kepler setup                 # install bundle/{templates,guidelines}/ → ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/
+kepler setup                 # install bundle/{templates,guidelines}/ → ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/
 
 # 2. Make the pipeline skills available to your coding agent.
 #    The skills live in skills/kepler-*/ — copy or symlink them into a

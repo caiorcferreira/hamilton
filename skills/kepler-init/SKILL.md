@@ -20,7 +20,7 @@ seven-step core count.
 - `.kepler/` workspace: `specs/` and `changes/`.
 
 It does not create templates: the artifact templates are global, installed at
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by the `kepler setup` command, and shared across projects.
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by the `kepler setup` command, and shared across projects.
 
 ## Inputs
 

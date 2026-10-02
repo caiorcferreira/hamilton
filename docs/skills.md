@@ -46,11 +46,11 @@ Assisted mode needs two things in place:
 
    ```bash
    bun run install-local     # build + symlink the `kepler` CLI
-   kepler setup            # installs bundle/{templates,guidelines}/ → ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/
+   kepler setup            # installs bundle/{templates,guidelines}/ → ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/
    kepler workbench --help
    ```
 
-   The skills read the installed templates from `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/<name>.md` and use the
+   The skills read the installed templates from `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/<name>.md` and use the
    distributed `kepler workbench` command for workflow mechanics.
 
 2. **The skills available to your coding agent.** The pipeline skills live in `skills/kepler-*/`.
@@ -351,7 +351,7 @@ other path creates a spec only when `kepler-finish-work` distills a completed ch
 ## Artifacts and layout
 
 Templates are global; artifacts are per-project. The canonical templates ship in the repository's
-`bundle/templates/` and are installed to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by `kepler setup`. Every change's
+`bundle/templates/` and are installed to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by `kepler setup`. Every change's
 artifacts live under the project's `.kepler/` directory:
 
 ```

@@ -1,16 +1,16 @@
 # Creating Custom Guidelines
 
 Guidelines are coding rules and conventions shipped with Kepler and installed to
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/` by `kepler setup`. Agents and the Assisted skills read these
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/` by `kepler setup`. Agents and the Assisted skills read these
 files directly when working in a project, so they always have your team's standards at hand.
 
 ## What Guidelines Are
 
 Guidelines are markdown files that describe coding conventions for specific
-languages or frameworks. They live under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/<name>/`:
+languages or frameworks. They live under `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/<name>/`:
 
 ```
-${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/<name>/
+${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/<name>/
   guideline.yml       # Metadata (name, optional glob patterns) — kept for reference
   convention-1.md     # Guideline content
   convention-2.md
@@ -22,14 +22,14 @@ skills and agents read them directly.
 
 ## Step 1: Add a Guideline
 
-Add a directory of markdown files under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/` (or extend the bundled
+Add a directory of markdown files under `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/` (or extend the bundled
 ones in `bundle/guidelines/` in this repo):
 
 ```bash
-mkdir -p ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/react-ts
+mkdir -p ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/react-ts
 ```
 
-Create `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/react-ts/component_patterns.md`:
+Create `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/react-ts/component_patterns.md`:
 
 ```markdown
 ## Component Conventions
@@ -55,7 +55,7 @@ it before coding:
 ```markdown
 ## Standards
 
-Follow the conventions in ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/guidelines/react-ts/component_patterns.md
+Follow the conventions in ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/guidelines/react-ts/component_patterns.md
 ```
 
 ## Step 3: Iterate

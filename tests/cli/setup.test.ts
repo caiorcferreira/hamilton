@@ -39,9 +39,9 @@ const runSetup = () => {
 
 describe("SetupService", () => {
   const bundleRoot = "/bundle";
-  const templates = "/home/.config/.vialactea-works/kepler/templates";
-  const guidelines = "/home/.config/.vialactea-works/kepler/guidelines";
-  const settings = "/home/.config/.vialactea-works/kepler/settings.yaml";
+  const templates = "/home/.config/vialactea-works/kepler/templates";
+  const guidelines = "/home/.config/vialactea-works/kepler/guidelines";
+  const settings = "/home/.config/vialactea-works/kepler/settings.yaml";
 
   function makePorts(existingSettings?: string) {
     const files = new Map<string, string>();
@@ -136,7 +136,7 @@ describe("SetupService filesystem integration", () => {
   it("creates required directories", () => {
     runSetup();
 
-    const home = Path.join(tmpHome, ".config/.vialactea-works/kepler");
+    const home = Path.join(tmpHome, ".config/vialactea-works/kepler");
     expect(Fs.existsSync(home)).toBe(true);
     expect(Fs.existsSync(Path.join(home, "templates"))).toBe(true);
     expect(Fs.existsSync(Path.join(home, "guidelines"))).toBe(true);
@@ -146,7 +146,7 @@ describe("SetupService filesystem integration", () => {
   it("copies artifact templates", () => {
     runSetup();
 
-    const templatesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates");
+    const templatesBase = Path.join(tmpHome, ".config/vialactea-works/kepler", "templates");
     for (const file of TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true);
     }
@@ -155,7 +155,7 @@ describe("SetupService filesystem integration", () => {
   it("copies wayfinder artifact templates", () => {
     runSetup();
 
-    const templatesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates");
+    const templatesBase = Path.join(tmpHome, ".config/vialactea-works/kepler", "templates");
     for (const file of WAYFINDER_TEMPLATE_FILES) {
       expect(Fs.existsSync(Path.join(templatesBase, file))).toBe(true);
     }
@@ -183,7 +183,7 @@ describe("SetupService filesystem integration", () => {
   it("copies guideline manifests", () => {
     runSetup();
 
-    const guidelinesBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "guidelines");
+    const guidelinesBase = Path.join(tmpHome, ".config/vialactea-works/kepler", "guidelines");
     expect(
       Fs.existsSync(Path.join(guidelinesBase, "general", "01-code-style.md")),
     ).toBe(true);
@@ -211,7 +211,7 @@ describe("SetupService filesystem integration", () => {
   });
 
   it("leaves an existing helper script directory unchanged", () => {
-    const scriptsBase = Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts");
+    const scriptsBase = Path.join(tmpHome, ".config/vialactea-works/kepler", "scripts");
     Fs.mkdirSync(Path.join(scriptsBase, "nested"), { recursive: true });
     Fs.writeFileSync(Path.join(scriptsBase, "legacy.sh"), "legacy helper\n");
     Fs.writeFileSync(
@@ -238,14 +238,14 @@ describe("SetupService filesystem integration", () => {
     runSetup();
 
     expect(
-      Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "templates", "plan.md")),
+      Fs.existsSync(Path.join(tmpHome, ".config/vialactea-works/kepler", "templates", "plan.md")),
     ).toBe(true);
   });
 
   it("creates default settings.yaml on init", () => {
     runSetup();
 
-    const settingsPath = Path.join(tmpHome, ".config/.vialactea-works/kepler", "settings.yaml");
+    const settingsPath = Path.join(tmpHome, ".config/vialactea-works/kepler", "settings.yaml");
     expect(Fs.existsSync(settingsPath)).toBe(true);
 
     const content = Fs.readFileSync(settingsPath, "utf-8");
@@ -257,7 +257,7 @@ describe("SetupService filesystem integration", () => {
   it("does not overwrite existing settings.yaml on re-init", () => {
     runSetup();
 
-    const settingsPath = Path.join(tmpHome, ".config/.vialactea-works/kepler", "settings.yaml");
+    const settingsPath = Path.join(tmpHome, ".config/vialactea-works/kepler", "settings.yaml");
     Fs.writeFileSync(
       settingsPath,
       "extensions:\n  - name: rtk\n    enabled: false\n",
@@ -332,14 +332,14 @@ describe("bundle root resolution", () => {
 
     const copiedTemplate = Path.join(
       tmpHome,
-      ".config/.vialactea-works/kepler",
+      ".config/vialactea-works/kepler",
       "templates",
       "plan.md",
     );
     expect(Fs.existsSync(copiedTemplate)).toBe(true);
     const content = Fs.readFileSync(copiedTemplate, "utf-8");
     expect(content).toBe("# Plan Template");
-    expect(Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts"))).toBe(
+    expect(Fs.existsSync(Path.join(tmpHome, ".config/vialactea-works/kepler", "scripts"))).toBe(
       false,
     );
   });
@@ -354,7 +354,7 @@ describe("bundle root resolution", () => {
 
     process.env.KEPLER_BUNDLE_DIR = tmpBundleDir;
     runSetup();
-    expect(Fs.existsSync(Path.join(tmpHome, ".config/.vialactea-works/kepler", "scripts"))).toBe(
+    expect(Fs.existsSync(Path.join(tmpHome, ".config/vialactea-works/kepler", "scripts"))).toBe(
       false,
     );
   });

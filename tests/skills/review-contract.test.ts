@@ -117,7 +117,7 @@ describe("kepler-review contract", () => {
   it("instantiates the installed root template and records material freshness", () => {
     const artifact = readReview()
 
-    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/review.md")
+    expect(artifact).toContain("${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/review.md")
     expect(artifact).toMatch(/exact installed.*template/is)
     expect(artifact).toContain("<change-dir>/review.md")
     expect(artifact).toMatch(/remove.*instruction block.*inline hint/is)

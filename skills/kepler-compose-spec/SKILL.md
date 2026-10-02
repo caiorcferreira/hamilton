@@ -26,7 +26,7 @@ creates a change directory — this skill operates only on `.kepler/specs/`.
 ## What it produces
 
 - `.kepler/specs/<capability>.md`, one per capability, in the skeleton of
-  `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/requirements-spec.md`: `## Overview` / `## Contract` /
+  `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/requirements-spec.md`: `## Overview` / `## Contract` /
   `## Behavior` (+ **Examples**) / `## Invariants` / `## Decisions`.
 
 ## Inputs
@@ -45,7 +45,7 @@ codebase with no (or partial) specs means from-code. When ambiguous, ask.
 ## References
 
 This skill ships with a `references/` folder. Read reference files using the Read tool on this
-skill's own directory — they are co-located with this SKILL.md, **not** at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`.
+skill's own directory — they are co-located with this SKILL.md, **not** at `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`.
 
 - `references/spec-altitude.md` — the altitude rubric and the canonical spec's shape: the
   skeleton, the register→section mapping, the Examples-block treatment of scenarios, the voice,
