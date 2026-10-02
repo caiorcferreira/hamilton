@@ -202,7 +202,7 @@ or destroying unrelated work.
 ## Review artifact
 
 Write only `<change-dir>/review.md`. Load the exact installed
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/review.md` template on every pass. When the file does not exist, instantiate
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/review.md` template on every pass. When the file does not exist, instantiate
 a complete copy with the change title, current date, next pass number, full reviewed identifiers,
 verdict, decision, and findings. Populate the artifact frontmatter fields `created`, `status`,
 and `decision`; frontmatter contains only artifact identity and lifecycle fields. Remove the

@@ -43,9 +43,10 @@ describe("versioned release notes", () => {
     const releaseNotes = readFileSync(releaseNotesPath, "utf8");
 
     expect(releaseNotes).toContain(`# Kepler ${packageVersion}`);
-    expect(releaseNotes).toMatch(/workbench lint.*sole authority/i);
-    expect(releaseNotes).toMatch(/MODIFIED.*REMOVED.*RENAMED/s);
-    expect(releaseNotes).toMatch(/critique-specific `applied` decision/i);
+    expect(releaseNotes).toMatch(/XDG_CONFIG_HOME.*vialactea-works\/kepler/);
+    expect(releaseNotes).toMatch(/previous hidden directory.*without deleting the source/i);
+    expect(releaseNotes).toMatch(/existing corrected data takes precedence/i);
+    expect(releaseNotes).toMatch(/legacy `~\/\.hamilton\/` remains supported/i);
     expect(releaseNotes).toContain("@vialactea-works/kepler-cli");
     expect(releaseNotes).toContain("@vialactea-works/kepler-core");
     expect(releaseNotes).toContain(`kepler-core-${packageVersion}.tgz`);

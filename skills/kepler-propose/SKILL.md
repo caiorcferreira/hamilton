@@ -21,7 +21,7 @@ non-trivial change, an unresolved structural smell blocks the gate (see step 10)
 
 ## What it produces
 
-In `.kepler/changes/<YYYY-MM-DD-title>/`, using the templates at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`:
+In `.kepler/changes/<YYYY-MM-DD-title>/`, using the templates at `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/`:
 
 - `proposal.md` — the PRD: why, what changes, and the capabilities affected.
 - `requirements/<capability>.md` — the SRS (delta form) for each capability.
@@ -41,7 +41,7 @@ In `.kepler/changes/<YYYY-MM-DD-title>/`, using the templates at `${XDG_CONFIG_H
 
 This skill ships with a `references/` folder. Read reference files using the Read tool on
 the skill's own directory — they are co-located with this SKILL.md, **not** at
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`.
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/`.
 
 - `references/code-quality.md` — the self-review rubric for design quality.
 

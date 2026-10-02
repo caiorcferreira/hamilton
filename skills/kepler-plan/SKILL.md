@@ -35,7 +35,7 @@ files. This skill produces planning artifacts only. **It never writes production
 
 This skill ships with a `references/` folder. Read reference files using the Read tool on
 the skill's own directory — they are co-located with this SKILL.md, **not** at
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/`.
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/` or `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/`.
 
 - `references/code-quality.md` — the self-review rubric for plan quality.
 
@@ -202,8 +202,8 @@ verification and another feedback pass. This handoff belongs to the driver, not 
    confirm it before finalizing. If running unattended, self-review against the checklist
    below and record any assumptions inline in the plan.
 9. **Write `plan.md` and initialize execution progress.** Instantiate the installed
-   `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/plan.md`, `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/progress.md`, and
-   `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` templates as concrete cleaned artifacts: remove each
+   `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/plan.md`, `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/progress.md`, and
+   `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/task-progress.md` templates as concrete cleaned artifacts: remove each
    template's opening instruction block and every inline hint before writing it. For a new plan,
    read the configured repository identity with `git config user.name` and `git config user.email`.
    If either Git value is missing or an identity is unavailable, ask the user for it and stop;

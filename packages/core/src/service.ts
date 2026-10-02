@@ -2,7 +2,11 @@ import * as Fs from "node:fs";
 import * as Os from "node:os";
 import * as Path from "node:path";
 import { loadKeplerSettings, type KeplerSettings } from "./config.js";
-import { resolveLegacyDataPath } from "./migration.js";
+import {
+  legacyMigrationMarkerPath,
+  migrationMarkerPath,
+  resolveLegacyDataPath,
+} from "./migration.js";
 
 export interface KeplerEnvironment {
   HOME?: string;
@@ -62,13 +66,28 @@ export class KeplerService {
   globalHome(): string {
     const canonicalPath = Path.join(
       this.configHome,
+      "vialactea-works",
+      "kepler",
+    );
+    const previousCanonicalPath = Path.join(
+      this.configHome,
       ".vialactea-works",
       "kepler",
     );
-    return resolveLegacyDataPath(
+    const previousMigrationInProgress =
+      pathExists(migrationMarkerPath(previousCanonicalPath)) ||
+      pathExists(legacyMigrationMarkerPath(previousCanonicalPath));
+    if (!pathExists(previousCanonicalPath) && !previousMigrationInProgress) {
+      return resolveLegacyDataPath(
+        Path.join(this.homeDirectory, ".hamilton"),
+        canonicalPath,
+      );
+    }
+    const migratedPreviousPath = resolveLegacyDataPath(
       Path.join(this.homeDirectory, ".hamilton"),
-      canonicalPath,
+      previousCanonicalPath,
     );
+    return resolveLegacyDataPath(migratedPreviousPath, canonicalPath);
   }
 
   projectDataPath(projectRoot: string): string {

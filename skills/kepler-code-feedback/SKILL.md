@@ -169,7 +169,7 @@ or destroying unrelated work.
 ## Feedback artifact
 
 Write only `<change-dir>/tasks/task-N/feedback.md`; the task directory segment is lowercase
-`task-N`. Load the exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/feedback.md` template on every pass. When
+`task-N`. Load the exact installed `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/feedback.md` template on every pass. When
 the file does not exist, instantiate a complete copy with the exact task id, title, current date,
 next pass number, full reviewed identifiers, verdict, decision, and findings. Populate the
 artifact frontmatter only with artifact identity and lifecycle fields: `artifact`, `change`,

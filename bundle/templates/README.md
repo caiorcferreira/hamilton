@@ -64,8 +64,8 @@ scaffolded by `kepler-init`; the wayfinder skill creates it on first use.
 ## Where these templates live
 
 These templates are global, not per-project. They are bundled here in `bundle/templates/`
-and copied to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by the `kepler setup` command. The pipeline steps
-read the installed copy at `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/<name>.md`.
+and copied to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by the `kepler setup` command. The pipeline steps
+read the installed copy at `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/<name>.md`.
 
 ## Where the artifacts they produce live
 

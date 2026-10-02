@@ -102,8 +102,8 @@ printf 'PASS: workbench help\n'
 capture_success setup setup
 grep -Fq 'Kepler set up successfully.' "$stage/setup.stdout" || fail 'setup success message missing'
 grep -Fq 'Installed guidelines.' "$stage/setup.stdout" || fail 'setup guidelines report missing'
-[[ -f "$stage/home/.config/.vialactea-works/kepler/templates/task-progress.md" ]] || fail 'setup task-progress template missing'
-[[ -f "$stage/home/.config/.vialactea-works/kepler/guidelines/typescript/02-code-style.md" ]] || fail 'setup TypeScript guideline missing'
+[[ -f "$stage/home/.config/vialactea-works/kepler/templates/task-progress.md" ]] || fail 'setup task-progress template missing'
+[[ -f "$stage/home/.config/vialactea-works/kepler/guidelines/typescript/02-code-style.md" ]] || fail 'setup TypeScript guideline missing'
 printf 'PASS: setup assets\n'
 
 capture_success lint workbench lint --file "$stage/.kepler/specs/cli-distribution.md"

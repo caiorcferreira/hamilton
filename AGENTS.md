@@ -32,7 +32,7 @@ The CLI entrypoint is `packages/cli/src/cli/main.ts`; Nest commands live in `pac
 
 ## Data Paths and Compatibility
 
-Kepler's global home is `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`; project artifacts live under `.kepler/`. The old global `~/.hamilton/` and project `.hamilton/` paths remain read-only migration sources: Kepler copies legacy data only when the corresponding canonical path does not exist, keeps the source intact, and prefers an existing canonical path without merging or deleting legacy data. Do not manually remove a legacy source as part of migration.
+Kepler's global home is `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`; project artifacts live under `.kepler/`. The previous hidden global path `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`, old global `~/.hamilton/`, and project `.hamilton/` paths remain read-only migration sources: Kepler copies legacy data only when the corresponding canonical path does not exist, keeps the source intact, and prefers an existing canonical path without merging or deleting legacy data. If both legacy global paths exist and the canonical path does not, the previous hidden global path takes precedence. Do not manually remove a legacy source as part of migration.
 
 Bundle lookup can be overridden with `KEPLER_BUNDLE_DIR` in tests or development.
 

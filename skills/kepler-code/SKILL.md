@@ -185,7 +185,7 @@ This skill never edits `plan.md`.
 ## Task progress lifecycle
 
 Kepler-plan creates `<change-dir>/tasks/task-N/progress.md` from the installed
-`${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md` template;
+`${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/task-progress.md` template;
 kepler-code never recreates a missing task log. The installed template guides new content,
 while lint alone validates the format of existing and updated artifacts. Each completed invocation appends
 one next-numbered dated attempt at the physical end. Preserve prior attempts. Check task

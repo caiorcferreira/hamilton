@@ -183,7 +183,7 @@ bootstrap specs on adoption or migrate an older spec format.
 ## Artifacts and layout
 
 **Templates are global.** The canonical set lives in the repository's `bundle/templates/` and
-is copied to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by the `kepler setup` command. Every step reads the
+is copied to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by the `kepler setup` command. Every step reads the
 installed copy, so there is one definition of each artifact's shape.
 
 **Artifacts are per-project**, under the project's `.kepler/` directory:
@@ -279,21 +279,21 @@ with the Kepler generation that created it. Only then, between changes:
 1. Update the Kepler CLI and the skills loaded by your agent together from the same release or
    checkout.
 2. Run `kepler setup` even when the release installer already ran it. This installs that
-   generation's templates and guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`.
+   generation's templates and guidelines into `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`.
 3. Verify the supported CLI surface against the installed generation:
 
    ```bash
-   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/task-progress.md
-   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/feedback.md
-   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/review.md
-   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/finish.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/task-progress.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/feedback.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/review.md
+   test -f ${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/finish.md
    kepler workbench --help
    ```
 
    Reload the coding-agent session and confirm it exposes the matching skill generation. A missing
    template, failed workbench check, or older skill definition means the generation is not installed;
    stop before planning.
-4. `kepler setup` copies legacy `~/.hamilton/` global data to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`. Before scaffolding an existing project that has `.hamilton/` but no `.kepler/`, run `kepler workbench context --all` from the project root to copy project data. Both copies leave their sources unchanged. A `no .kepler/changes/` result with exit code `1` means the project has no changes to list. If both paths exist, Kepler uses the Kepler path without merging or modifying legacy data.
+4. `kepler setup` copies global data from the previous hidden path `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/` or legacy `~/.hamilton/` into `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`. If both old global paths exist, the previous hidden path takes precedence. Before scaffolding an existing project that has `.hamilton/` but no `.kepler/`, run `kepler workbench context --all` from the project root to copy project data. Both copies leave their sources unchanged. A `no .kepler/changes/` result with exit code `1` means the project has no changes to list. If a canonical path already exists, Kepler uses it without merging or modifying legacy data.
 5. Start the next change with the verified generation.
 
 New work uses the seven-stage pipeline, skipping only the optional propose stage when appropriate,
@@ -350,7 +350,7 @@ by the agent deciding and recording the reasoning.
 Four locations hold the framework:
 
 - `bundle/templates/` — the canonical artifact templates, shipped with Kepler and installed
-  to `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/templates/` by `kepler setup`.
+  to `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/templates/` by `kepler setup`.
 - `packages/cli/src/workbench/` — the workflow-mechanics implementation distributed through the CLI.
 - `skills/kepler-*/` — the seven core pipeline skills and their optional companion skills, each a
   self-contained `SKILL.md`.
@@ -368,6 +368,6 @@ your agent reads `SKILL.md` files) and follows it against the artifacts.
 
 The seven core pipeline skills, the `kepler-orchestrate` driver, and the distributed workbench
 are the maintained workflow in this repository. `kepler setup` installs the versioned templates
-and guidelines under `${XDG_CONFIG_HOME:-$HOME/.config}/.vialactea-works/kepler/`; users install the portable skills separately for their coding
+and guidelines under `${XDG_CONFIG_HOME:-$HOME/.config}/vialactea-works/kepler/`; users install the portable skills separately for their coding
 agent. The test suite covers the setup CLI, workbench operations, artifact templates, and skill
 contracts.
